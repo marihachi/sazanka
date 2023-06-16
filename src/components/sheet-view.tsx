@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { init, GameLoop } from 'kontra';
-import { createBackground, createGate, createWire } from './app/view.js';
-import { BOTTOM, calcCellId, calcPos, createSheet, GATE, LEFT, RIGHT, TOP, WIRE } from './app/sheet.js';
-import './app.css';
+import { createBackground, createGate, createWire } from '../model/sprite.js';
+import { BOTTOM, calcCellId, calcPos, createSheet, GATE, LEFT, RIGHT, TOP, WIRE } from '../model/sheet.js';
+import './sheet-view.css';
 
-function App() {
+function SheetView() {
   useEffect(() => {
     const { canvas } = init();
 
@@ -51,4 +51,4 @@ function App() {
   );
 }
 
-export default App;
+export default SheetView;
