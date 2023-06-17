@@ -18,7 +18,7 @@ function unregisterEvents() {
 function SheetView() {
   const viewModel = new SheetViewModel();
 
-  function changeTool(name: 'hand' | 'gate' | 'wire') {
+  function changeTool(name: 'hand' | 'erase' | 'gate' | 'wire') {
     if (viewModel.session == null) {
       return;
     }
@@ -54,7 +54,6 @@ function SheetView() {
 
           const cell = viewModel.getCellPoint(pointerX, pointerY);
 
-          // if pointer pressed
           if (viewModel.session.tool == 'gate' && prevPressed != pressed) {
             prevPressed = pressed;
             if (cell.x >= 0 && cell.y >= 0 && pressed) {
@@ -66,6 +65,13 @@ function SheetView() {
             prevPressed = pressed;
             if (cell.x >= 0 && cell.y >= 0 && pressed) {
               viewModel.addWire(cell);
+            }
+          }
+
+          if (viewModel.session.tool == 'erase') {
+            prevPressed = pressed;
+            if (cell.x >= 0 && cell.y >= 0 && pressed) {
+              viewModel.removeEntity(cell);
             }
           }
 
@@ -105,6 +111,7 @@ function SheetView() {
   return (
     <>
       <button onClick={() => changeTool('hand')}>Hand</button>
+      <button onClick={() => changeTool('erase')}>Erase</button>
       <button onClick={() => changeTool('gate')}>Gate</button>
       <button onClick={() => changeTool('wire')}>Wire</button>
       <canvas

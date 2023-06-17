@@ -13,7 +13,7 @@ export class SheetViewModel {
     gridRows: Sprite[],
     gridColumns: Sprite[],
     entitySprites: Map<SheetEntity, Sprite>,
-    tool: 'hand' | 'gate' | 'wire',
+    tool: 'hand' | 'erase' | 'gate' | 'wire',
   };
 
   newSession(width: number, height: number) {
@@ -194,5 +194,32 @@ export class SheetViewModel {
     // add sprite
     const sprite = this.createWireSprite(cell, entity);
     this.session.entitySprites.set(entity, sprite);
+  }
+
+  removeEntity(cell: CellPoint) {
+    if (this.session == null) {
+      throw new Error('sheet is not opened.');
+    }
+
+    if (cell.sheet != this.session.sheet) {
+      throw new Error('other sheet specified.');
+    }
+
+    const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
+
+    if (!this.session.sheet.entities.has(cellIndex.value)) {
+      // entity not exists
+      return;
+    }
+
+    // TODO: check entity area
+
+    const entity = this.session.sheet.entities.get(cellIndex.value)!;
+
+    // remove entity
+    this.session.sheet.entities.delete(cellIndex.value);
+
+    // remove sprite
+    this.session.entitySprites.delete(entity);
   }
 }
