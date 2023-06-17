@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import './view-container.css';
-import { SheetView } from '../sheet-view/view-model.js';
+import { SheetView } from '../sheet/sheet-view.js';
 
 const useWindowSize = (): number[] => {
   const [size, setSize] = useState([0, 0]);

@@ -1,8 +1,8 @@
 import { GameLoop, getPointer, init, initPointer, pointerPressed, Sprite } from 'kontra';
-import { CellIndex, CellPoint } from '../sheet/cell.js';
-import { GateEntity, SheetEntity, WireEntity } from '../sheet/entity.js';
-import { Sheet } from '../sheet/sheet.js';
-import { WireDirection } from '../sheet/wire-direction.js';
+import { CellIndex, CellPoint } from './cell.js';
+import { GateEntity, SheetEntity, WireEntity } from './entity.js';
+import { Sheet } from './sheet.js';
+import { WireDirection } from './wire-direction.js';
 
 const cellViewSize = 12;
 
