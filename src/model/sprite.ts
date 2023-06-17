@@ -1,5 +1,6 @@
 import { Sprite } from 'kontra';
-import { BOTTOM, GateEntity, LEFT, MapPos, RIGHT, TOP, WireEntity } from './sheet.js';
+import { GateEntity, WireEntity } from './entity.js';
+import { Point } from './point.js';
 
 export const cellViewSize = 8;
 
@@ -14,12 +15,12 @@ export function createBackground(width: number, height: number): Sprite {
   return sprite;
 }
 
-export function createGate(mapPos: MapPos, entity: GateEntity): Sprite {
+export function createGate(point: Point, entity: GateEntity): Sprite {
   const width = entity.width * cellViewSize;
   const height = entity.height * cellViewSize;
   const sprite = Sprite({
-    x: mapPos.x * cellViewSize,
-    y: mapPos.y * cellViewSize,
+    x: point.x * cellViewSize,
+    y: point.y * cellViewSize,
     width: width,
     height: height,
     render() {
@@ -47,11 +48,11 @@ export function createGate(mapPos: MapPos, entity: GateEntity): Sprite {
   return sprite;
 }
 
-export function createWire(mapPos: MapPos, entity: WireEntity): Sprite {
+export function createWire(point: Point, entity: WireEntity): Sprite {
   const half = cellViewSize / 2;
   const sprite = Sprite({
-    x: mapPos.x * cellViewSize,
-    y: mapPos.y * cellViewSize,
+    x: point.x * cellViewSize,
+    y: point.y * cellViewSize,
     width: cellViewSize,
     height: cellViewSize,
     render() {
@@ -61,19 +62,19 @@ export function createWire(mapPos: MapPos, entity: WireEntity): Sprite {
       const ctx = this.context;
       ctx.beginPath();
       ctx.lineCap = 'square';
-      if ((entity.dirBits & TOP) != 0) {
+      if (entity.dir.hasTop()) {
         ctx.moveTo(half, half);
         ctx.lineTo(half, 0);
       }
-      if ((entity.dirBits & LEFT) != 0) {
+      if (entity.dir.hasLeft()) {
         ctx.moveTo(half, half);
         ctx.lineTo(0, half);
       }
-      if ((entity.dirBits & BOTTOM) != 0) {
+      if (entity.dir.hasBottom()) {
         ctx.moveTo(half, half);
         ctx.lineTo(half, cellViewSize);
       }
-      if ((entity.dirBits & RIGHT) != 0) {
+      if (entity.dir.hasRight()) {
         ctx.moveTo(half, half);
         ctx.lineTo(cellViewSize, half);
       }

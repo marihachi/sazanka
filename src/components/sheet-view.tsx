@@ -1,29 +1,32 @@
 import { useEffect } from 'react';
 import { init, GameLoop } from 'kontra';
-import { createBackground, createGate, createWire } from '../model/sprite.js';
-import { BOTTOM, calcCellId, calcPos, createSheet, GATE, LEFT, RIGHT, TOP, WIRE } from '../model/sheet.js';
 import './sheet-view.css';
+import { Sheet } from '../model/sheet.js';
+import { CellIndex } from '../model/cell';
+import { createBackground, createGate, createWire } from '../model/sprite';
+import { GATE } from '../model/entity';
+import { Point } from '../model/point';
 
 function SheetView() {
   useEffect(() => {
     const { canvas } = init();
 
     // create sheet
-    const sheetWidth = 32;
-    const sheetHeight = 32;
-    const sheet = createSheet(sheetWidth, sheetHeight);
+    const sheet = new Sheet(32, 32);
 
     // create entities
-    sheet.entities.set(calcCellId({ x: 2, y: 2 }, sheetWidth), GATE('AND', 5, 5, 2, 1));
+    const testCellIndex = CellIndex.fromPointValue(2, 2, sheet).value;
+    sheet.entities.set(testCellIndex, GATE('AND', 5, 5, 2, 1));
 
     // create sprites
     const back = createBackground(canvas.width, canvas.height);
     for (const [i, entity] of sheet.entities) {
+      const p = Point.fromCellIndexValue(i, sheet);
       if (entity.kind == 'gate') {
-        entity.sprite = createGate(calcPos(i, sheetWidth), entity);
+        entity.sprite = createGate(p, entity);
       }
       if (entity.kind == 'wire') {
-        entity.sprite = createWire(calcPos(i, sheetWidth), entity);
+        entity.sprite = createWire(p, entity);
       }
     }
 
