@@ -1,76 +1,82 @@
 import { useEffect } from 'react';
-import { init, GameLoop, Sprite } from 'kontra';
+import { init, GameLoop, initPointer, getPointer, pointerPressed, Text } from 'kontra';
 import './sheet-view.css';
-import { Sheet } from '../sheet/sheet.js';
-import { CellIndex, CellPoint } from '../sheet/cell.js';
-import { createBackground, createGate, createWire } from './sprite.js';
-import { WireDirection } from '../sheet/wire-direction.js';
-import { GateEntity, isGateEntity, isWireEntity, SheetEntity, WireEntity } from '../sheet/entity';
+import { SheetViewModel } from './view-model.js';
+
+function contextmenuHandler(e: MouseEvent) {
+  e.preventDefault();
+}
+
+function registerEvents() {
+  document.querySelector<HTMLCanvasElement>('#sheet-view')?.addEventListener(`contextmenu`, contextmenuHandler);
+}
+
+function unregisterEvents() {
+  document.querySelector<HTMLCanvasElement>('#sheet-view')?.removeEventListener('contextmenu', contextmenuHandler);
+}
 
 function SheetView() {
   useEffect(() => {
+    registerEvents();
+
+    // initialize kontra
     const { canvas } = init();
+    initPointer();
 
-    // create sheet
-    const sheet = new Sheet(32, 32);
+    const viewModel = new SheetViewModel();
+    viewModel.newSession(64, 64);
 
-    // create test gate
-    const testGateCell = CellIndex.fromPointValue(12, 2, sheet).value;
-    sheet.entities.set(testGateCell, new GateEntity('AND', 5, 5, 2, 1));
+    const debugText = Text({
+      text: '',
+      color: 'white',
+    });
 
-    // create test wires
-    let testWireCell = 0;
-
-    testWireCell = CellIndex.fromPointValue(17, 4, sheet).value;
-    const testWireDir = new WireDirection();
-    testWireDir.setLeft();
-    testWireDir.setRight();
-    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
-
-    testWireCell = CellIndex.fromPointValue(18, 4, sheet).value;
-    testWireDir.clear();
-    testWireDir.setLeft();
-    testWireDir.setBottom();
-    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
-
-    testWireCell = CellIndex.fromPointValue(18, 5, sheet).value;
-    testWireDir.clear();
-    testWireDir.setTop();
-    testWireDir.setBottom();
-    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
-
-    // setup sprites
-    const sprites: Map<SheetEntity, Sprite> = new Map();
-    const back = createBackground(canvas.width, canvas.height);
-    for (const [i, entity] of sheet.entities) {
-      const p = CellPoint.fromIndexValue(i, sheet);
-      if (isGateEntity(entity)) {
-        const sprite = createGate(p, entity);
-        sprites.set(entity, sprite);
-      }
-      if (isWireEntity(entity)) {
-        const sprite = createWire(p, entity);
-        sprites.set(entity, sprite);
-      }
-    }
-
-    // loop
+    // create view loop
     let loop = GameLoop({
+      blur: true,
       update() {
-        back.update();
-        sprites.forEach(x => x.update());
+        if (viewModel.session != null) {
+          const pointer = getPointer();
+          const pressed = pointerPressed('left');
+
+          const cell = viewModel.getCellPoint(pointer.x, pointer.y);
+
+          // if pointer pressed
+          if (cell.x >= 0 && cell.y >= 0 && pressed) {
+            viewModel.addGate(cell);
+            // sheetViewModel.addWire(cell);
+          }
+
+          viewModel.session.backSprite.update();
+          viewModel.session.entitySprites.forEach(x => x.update());
+
+          // debug
+          debugText.text = `pointer: ${pointer.x} ${pointer.y}, cell: ${cell.x} ${cell.y}`;
+          debugText.update();
+        }
       },
       render() {
-        back.render();
-        sprites.forEach(x => x.render());
-      }
+        if (viewModel.session != null) {
+          viewModel.session.backSprite.render();
+          viewModel.session.entitySprites.forEach(x => x.render());
+
+          // debug
+          debugText.render();
+        }
+      },
     });
     loop.start();
+
+    // dispose
+    return () => {
+      unregisterEvents();
+    };
   });
 
   return (
     <>
       <canvas
+        id='sheet-view'
         width={1280}
         height={720}
       />
