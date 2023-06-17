@@ -33,6 +33,6 @@ export type WireEntity = {
 export function WIRE(dir: DirectionSet): Entity {
   return {
     kind: 'wire',
-    dir: dir,
+    dir: new DirectionSet(dir.bits),
   };
 }

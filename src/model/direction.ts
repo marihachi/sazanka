@@ -32,20 +32,24 @@ export class DirectionSet {
     return (this.bits & DirectionSet.right) != 0;
   }
 
-  enableTop() {
+  setTop() {
     this.bits += DirectionSet.top;
   }
 
-  enableBottom() {
+  setBottom() {
     this.bits += DirectionSet.bottom;
   }
 
-  enableLeft() {
+  setLeft() {
     this.bits += DirectionSet.left;
   }
 
-  enableRight() {
+  setRight() {
     this.bits += DirectionSet.right;
+  }
+
+  clear() {
+    this.bits = 0;
   }
 
   static readonly top: number = 1;
