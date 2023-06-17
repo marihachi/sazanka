@@ -1,12 +1,15 @@
-import { Sprite } from 'kontra';
+import { GameLoop, getPointer, init, initPointer, pointerPressed, Sprite } from 'kontra';
 import { CellIndex, CellPoint } from '../sheet/cell.js';
 import { GateEntity, SheetEntity, WireEntity } from '../sheet/entity.js';
 import { Sheet } from '../sheet/sheet.js';
 import { WireDirection } from '../sheet/wire-direction.js';
 
-export const cellViewSize = 12;
+const cellViewSize = 12;
 
-export class SheetViewModel {
+// TODO: add toolbar (none, gate, wire, erase)
+
+export class SheetView {
+  loop?: GameLoop;
   session?: {
     sheet: Sheet,
     backSprite: Sprite,
@@ -16,11 +19,87 @@ export class SheetViewModel {
     tool: 'none' | 'erase' | 'gate' | 'wire',
   };
 
+  init() {
+    const { canvas } = init();
+    initPointer();
+
+    this.newSession(48, 48);
+
+    if (this.session != null) {
+      this.session.tool = 'gate';
+    }
+
+    // const debugText = Text({
+    //   text: '',
+    //   color: 'white',
+    // });
+
+    let prevPressed = pointerPressed('left');
+
+    const view = this;
+
+    this.loop = GameLoop({
+      //blur: true,
+      fps: 60,
+      update() {
+        if (view.session != null) {
+          const pointer = getPointer();
+          const pointerX = Math.floor(pointer.x);
+          const pointerY = Math.floor(pointer.y);
+          const pressed = pointerPressed('left');
+
+          const cell = view.getCellPoint(pointerX, pointerY);
+
+          if (view.session.tool == 'gate' && prevPressed != pressed) {
+            prevPressed = pressed;
+            if (cell.x >= 0 && cell.y >= 0 && pressed) {
+              view.addGate(cell);
+            }
+          }
+
+          if (view.session.tool == 'wire') {
+            prevPressed = pressed;
+            if (cell.x >= 0 && cell.y >= 0 && pressed) {
+              view.addWire(cell);
+            }
+          }
+
+          if (view.session.tool == 'erase') {
+            prevPressed = pressed;
+            if (cell.x >= 0 && cell.y >= 0 && pressed) {
+              view.removeEntity(cell);
+            }
+          }
+
+          view.session.backSprite.update();
+          view.session.entitySprites.forEach(x => x.update());
+
+          view.session.gridRows.forEach(x => x.update());
+          view.session.gridColumns.forEach(x => x.update());
+
+          // debugText.text = `pointer: ${pointerX} ${pointerY}, cell: ${cell.x} ${cell.y}`;
+          // debugText.update();
+        }
+      },
+      render() {
+        if (view.session != null) {
+          view.session.backSprite.render();
+
+          view.session.gridRows.forEach(x => x.render());
+          view.session.gridColumns.forEach(x => x.render());
+
+          view.session.entitySprites.forEach(x => x.render());
+
+          // debugText.render();
+        }
+      },
+    });
+    this.loop.start();
+  }
+
   newSession(width: number, height: number) {
-    // create sheet
     const sheet = new Sheet(width, height);
 
-    // sheet back sprite
     const backSprite = Sprite({
       x: 0,
       y: 0,
@@ -117,8 +196,7 @@ export class SheetViewModel {
     const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
 
     if (cell.sheet.entities.has(cellIndex.value)) {
-      // entity already exists
-      return;
+      throw new Error('entity already exists.');
     }
 
     // TODO: check conflict other entities.
@@ -183,8 +261,7 @@ export class SheetViewModel {
     const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
 
     if (this.session.sheet.entities.has(cellIndex.value)) {
-      // entity already exists
-      return;
+      throw new Error('entity already exists.');
     }
 
     // TODO: check conflict other entities.
@@ -212,8 +289,7 @@ export class SheetViewModel {
     const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
 
     if (!this.session.sheet.entities.has(cellIndex.value)) {
-      // entity not exists
-      return;
+      throw new Error('entity not exists.');
     }
 
     // TODO: check entity area
@@ -225,5 +301,9 @@ export class SheetViewModel {
 
     // remove sprite
     this.session.entitySprites.delete(entity);
+  }
+
+  dispose() {
+    this.loop?.stop();
   }
 }
