@@ -1,6 +1,6 @@
 import { Sprite } from 'kontra';
+import { CellPoint } from './cell.js';
 import { GateEntity, WireEntity } from './entity.js';
-import { Point } from './point.js';
 
 export const cellViewSize = 8;
 
@@ -15,7 +15,7 @@ export function createBackground(width: number, height: number): Sprite {
   return sprite;
 }
 
-export function createGate(point: Point, entity: GateEntity): Sprite {
+export function createGate(point: CellPoint, entity: GateEntity): Sprite {
   const width = entity.width * cellViewSize;
   const height = entity.height * cellViewSize;
   const sprite = Sprite({
@@ -48,7 +48,7 @@ export function createGate(point: Point, entity: GateEntity): Sprite {
   return sprite;
 }
 
-export function createWire(point: Point, entity: WireEntity): Sprite {
+export function createWire(point: CellPoint, entity: WireEntity): Sprite {
   const half = cellViewSize / 2;
   const sprite = Sprite({
     x: point.x * cellViewSize,
