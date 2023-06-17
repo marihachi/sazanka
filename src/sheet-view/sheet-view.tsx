@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { init, GameLoop } from 'kontra';
+import { init, GameLoop, Sprite } from 'kontra';
 import './sheet-view.css';
 import { Sheet } from '../sheet/sheet.js';
 import { CellIndex, CellPoint } from '../sheet/cell.js';
 import { createBackground, createGate, createWire } from './sprite.js';
-import { GATE, WIRE } from '../sheet/entity.js';
 import { WireDirection } from '../sheet/wire-direction.js';
+import { GateEntity, isGateEntity, isWireEntity, SheetEntity, WireEntity } from '../sheet/entity';
 
 function SheetView() {
   useEffect(() => {
@@ -16,7 +16,7 @@ function SheetView() {
 
     // create test gate
     const testGateCell = CellIndex.fromPointValue(12, 2, sheet).value;
-    sheet.entities.set(testGateCell, GATE('AND', 5, 5, 2, 1));
+    sheet.entities.set(testGateCell, new GateEntity('AND', 5, 5, 2, 1));
 
     // create test wires
     let testWireCell = 0;
@@ -25,29 +25,32 @@ function SheetView() {
     const testWireDir = new WireDirection();
     testWireDir.setLeft();
     testWireDir.setRight();
-    sheet.entities.set(testWireCell, WIRE(testWireDir));
+    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
 
     testWireCell = CellIndex.fromPointValue(18, 4, sheet).value;
     testWireDir.clear();
     testWireDir.setLeft();
     testWireDir.setBottom();
-    sheet.entities.set(testWireCell, WIRE(testWireDir));
+    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
 
     testWireCell = CellIndex.fromPointValue(18, 5, sheet).value;
     testWireDir.clear();
     testWireDir.setTop();
     testWireDir.setBottom();
-    sheet.entities.set(testWireCell, WIRE(testWireDir));
+    sheet.entities.set(testWireCell, new WireEntity(testWireDir));
 
     // setup sprites
+    const sprites: Map<SheetEntity, Sprite> = new Map();
     const back = createBackground(canvas.width, canvas.height);
     for (const [i, entity] of sheet.entities) {
       const p = CellPoint.fromIndexValue(i, sheet);
-      if (entity.kind == 'gate') {
-        entity.sprite = createGate(p, entity);
+      if (isGateEntity(entity)) {
+        const sprite = createGate(p, entity);
+        sprites.set(entity, sprite);
       }
-      if (entity.kind == 'wire') {
-        entity.sprite = createWire(p, entity);
+      if (isWireEntity(entity)) {
+        const sprite = createWire(p, entity);
+        sprites.set(entity, sprite);
       }
     }
 
@@ -55,11 +58,11 @@ function SheetView() {
     let loop = GameLoop({
       update() {
         back.update();
-        sheet.entities.forEach(x => x.sprite?.update());
+        sprites.forEach(x => x.update());
       },
       render() {
         back.render();
-        sheet.entities.forEach(x => x.sprite?.render());
+        sprites.forEach(x => x.render());
       }
     });
     loop.start();
