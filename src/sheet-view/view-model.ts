@@ -4,13 +4,16 @@ import { GateEntity, SheetEntity, WireEntity } from '../sheet/entity.js';
 import { Sheet } from '../sheet/sheet.js';
 import { WireDirection } from '../sheet/wire-direction.js';
 
-export const cellViewSize = 8;
+export const cellViewSize = 12;
 
 export class SheetViewModel {
   session?: {
     sheet: Sheet,
     backSprite: Sprite,
+    gridRows: Sprite[],
+    gridColumns: Sprite[],
     entitySprites: Map<SheetEntity, Sprite>,
+    tool: 'hand' | 'gate' | 'wire',
   };
 
   newSession(width: number, height: number) {
@@ -26,10 +29,35 @@ export class SheetViewModel {
       color: '#181818',
     });
 
+    const gridRows: Sprite[] = [];
+    for (let i = 0; i < Math.floor(height); i++) {
+      gridRows.push(Sprite({
+        x: 0,
+        y: (i + 1) * cellViewSize - 1,
+        width: sheet.width * cellViewSize,
+        height: 1,
+        color: '#2E2E2E',
+      }));
+    }
+
+    const gridColumns: Sprite[] = [];
+    for (let i = 0; i < Math.floor(width); i++) {
+      gridColumns.push(Sprite({
+        x: (i + 1) * cellViewSize - 1,
+        y: 0,
+        width: 1,
+        height: sheet.height * cellViewSize,
+        color: '#2E2E2E',
+      }));
+    }
+
     this.session = {
       sheet: sheet,
       backSprite: backSprite,
+      gridRows: gridRows,
+      gridColumns: gridColumns,
       entitySprites: new Map(),
+      tool: 'hand',
     };
   }
 
@@ -42,8 +70,8 @@ export class SheetViewModel {
   }
 
   private createGateSprite(point: CellPoint, entity: GateEntity): Sprite {
-    const width = entity.width * cellViewSize;
-    const height = entity.height * cellViewSize;
+    const width = entity.width * cellViewSize - 1;
+    const height = entity.height * cellViewSize - 1;
     const sprite = Sprite({
       x: point.x * cellViewSize,
       y: point.y * cellViewSize,
@@ -86,7 +114,8 @@ export class SheetViewModel {
     const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
 
     if (cell.sheet.entities.has(cellIndex.value)) {
-      throw new Error('Failed to add a gate.');
+      // entity already exists
+      return;
     }
 
     // TODO: check conflict other entities.
@@ -149,8 +178,11 @@ export class SheetViewModel {
     const cellIndex = CellIndex.fromPointValue(cell.x, cell.y, this.session.sheet);
 
     if (this.session.sheet.entities.has(cellIndex.value)) {
-      throw new Error('Failed to add a wire.');
+      // entity already exists
+      return;
     }
+
+    // TODO: check conflict other entities.
 
     // add entity
     const wireDir = new WireDirection();
