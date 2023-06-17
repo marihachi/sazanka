@@ -34,10 +34,10 @@ function SheetView() {
 
     viewModel.newSession(48, 48);
 
-    const debugText = Text({
-      text: '',
-      color: 'white',
-    });
+    // const debugText = Text({
+    //   text: '',
+    //   color: 'white',
+    // });
 
     let prevPressed = pointerPressed('left');
 
@@ -81,9 +81,9 @@ function SheetView() {
           viewModel.session.gridRows.forEach(x => x.update());
           viewModel.session.gridColumns.forEach(x => x.update());
 
-          // debug
-          debugText.text = `pointer: ${pointerX} ${pointerY}, cell: ${cell.x} ${cell.y}`;
-          debugText.update();
+          // // debug
+          // debugText.text = `pointer: ${pointerX} ${pointerY}, cell: ${cell.x} ${cell.y}`;
+          // debugText.update();
         }
       },
       render() {
@@ -95,8 +95,8 @@ function SheetView() {
 
           viewModel.session.entitySprites.forEach(x => x.render());
 
-          // debug
-          debugText.render();
+          // // debug
+          // debugText.render();
         }
       },
     });
