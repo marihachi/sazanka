@@ -18,7 +18,7 @@ function unregisterEvents() {
 function SheetView() {
   const viewModel = new SheetViewModel();
 
-  function changeTool(name: 'hand' | 'erase' | 'gate' | 'wire') {
+  function changeTool(name: 'none' | 'erase' | 'gate' | 'wire') {
     if (viewModel.session == null) {
       return;
     }
@@ -110,10 +110,10 @@ function SheetView() {
 
   return (
     <>
-      <button onClick={() => changeTool('hand')}>Hand</button>
-      <button onClick={() => changeTool('erase')}>Erase</button>
+      <button onClick={() => changeTool('none')}>None</button>
       <button onClick={() => changeTool('gate')}>Gate</button>
       <button onClick={() => changeTool('wire')}>Wire</button>
+      <button onClick={() => changeTool('erase')}>Erase</button>
       <canvas
         id='sheet-view'
         width={1280}

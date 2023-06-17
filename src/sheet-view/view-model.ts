@@ -13,7 +13,7 @@ export class SheetViewModel {
     gridRows: Sprite[],
     gridColumns: Sprite[],
     entitySprites: Map<SheetEntity, Sprite>,
-    tool: 'hand' | 'erase' | 'gate' | 'wire',
+    tool: 'none' | 'erase' | 'gate' | 'wire',
   };
 
   newSession(width: number, height: number) {
@@ -57,7 +57,7 @@ export class SheetViewModel {
       gridRows: gridRows,
       gridColumns: gridColumns,
       entitySprites: new Map(),
-      tool: 'hand',
+      tool: 'none',
     };
   }
 
@@ -69,7 +69,10 @@ export class SheetViewModel {
     return new CellPoint(Math.floor(x / cellViewSize), Math.floor(y / cellViewSize), this.session.sheet);
   }
 
-  private createGateSprite(point: CellPoint, entity: GateEntity): Sprite {
+  private addGateSprite(point: CellPoint, entity: GateEntity) {
+    if (this.session == null) {
+      throw new Error('sheet is not opened.');
+    }
     const width = entity.width * cellViewSize - 1;
     const height = entity.height * cellViewSize - 1;
     const sprite = Sprite({
@@ -99,7 +102,7 @@ export class SheetViewModel {
         ctx.fillText(entity.name, width / 2 - nameMetrics.width / 2, 18);
       },
     });
-    return sprite;
+    this.session.entitySprites.set(entity, sprite);
   }
 
   addGate(cell: CellPoint) {
@@ -125,11 +128,13 @@ export class SheetViewModel {
     this.session.sheet.entities.set(cellIndex.value, entity);
 
     // add sprite
-    const sprite = this.createGateSprite(cell, entity);
-    this.session.entitySprites.set(entity, sprite);
+    this.addGateSprite(cell, entity);
   }
 
-  private createWireSprite(point: CellPoint, entity: WireEntity): Sprite {
+  private addWireSprite(point: CellPoint, entity: WireEntity) {
+    if (this.session == null) {
+      throw new Error('sheet is not opened.');
+    }
     const half = cellViewSize / 2;
     const sprite = Sprite({
       x: point.x * cellViewSize,
@@ -163,7 +168,7 @@ export class SheetViewModel {
         ctx.stroke();
       },
     });
-    return sprite;
+    this.session.entitySprites.set(entity, sprite);
   }
 
   addWire(cell: CellPoint) {
@@ -192,8 +197,7 @@ export class SheetViewModel {
     this.session.sheet.entities.set(cellIndex.value, entity);
 
     // add sprite
-    const sprite = this.createWireSprite(cell, entity);
-    this.session.entitySprites.set(entity, sprite);
+    this.addWireSprite(cell, entity);
   }
 
   removeEntity(cell: CellPoint) {
