@@ -1,6 +1,6 @@
 import { Sprite } from 'kontra';
-import { CellPoint } from './cell.js';
-import { GateEntity, WireEntity } from './entity.js';
+import { CellPoint } from '../sheet/cell.js';
+import { GateEntity, WireEntity } from '../sheet/entity.js';
 
 export const cellViewSize = 8;
 

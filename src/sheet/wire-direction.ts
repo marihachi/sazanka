@@ -1,5 +1,5 @@
 /*
- * direction set data
+ * direction data for wire entity
  * 
  * Bit layout:
  * [3] Right, [2] Left, [1] Bottom, [0] Top
@@ -9,7 +9,7 @@
  * 0x6 (Left and Bottom)
 */
 
-export class DirectionSet {
+export class WireDirection {
   bits: number;
 
   constructor(bits: number = 0) {
@@ -17,35 +17,35 @@ export class DirectionSet {
   }
 
   hasTop() {
-    return (this.bits & DirectionSet.top) != 0;
+    return (this.bits & WireDirection.top) != 0;
   }
 
   hasBottom() {
-    return (this.bits & DirectionSet.bottom) != 0;
+    return (this.bits & WireDirection.bottom) != 0;
   }
 
   hasLeft() {
-    return (this.bits & DirectionSet.left) != 0;
+    return (this.bits & WireDirection.left) != 0;
   }
 
   hasRight() {
-    return (this.bits & DirectionSet.right) != 0;
+    return (this.bits & WireDirection.right) != 0;
   }
 
   setTop() {
-    this.bits += DirectionSet.top;
+    this.bits += WireDirection.top;
   }
 
   setBottom() {
-    this.bits += DirectionSet.bottom;
+    this.bits += WireDirection.bottom;
   }
 
   setLeft() {
-    this.bits += DirectionSet.left;
+    this.bits += WireDirection.left;
   }
 
   setRight() {
-    this.bits += DirectionSet.right;
+    this.bits += WireDirection.right;
   }
 
   clear() {

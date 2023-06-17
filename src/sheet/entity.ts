@@ -1,7 +1,7 @@
 import { Sprite } from 'kontra';
-import { DirectionSet } from './direction.js';
+import { WireDirection } from './wire-direction.js';
 
-export type Entity = GateEntity | WireEntity;
+export type SheetEntity = GateEntity | WireEntity;
 
 export type GateEntity = {
   kind: 'gate',
@@ -13,7 +13,7 @@ export type GateEntity = {
   sprite?: Sprite,
 };
 
-export function GATE(name: string, width: number, height: number, inputPorts: number, outputPorts: number): Entity {
+export function GATE(name: string, width: number, height: number, inputPorts: number, outputPorts: number): SheetEntity {
   return {
     kind: 'gate',
     name,
@@ -26,13 +26,13 @@ export function GATE(name: string, width: number, height: number, inputPorts: nu
 
 export type WireEntity = {
   kind: 'wire',
-  dir: DirectionSet,
+  dir: WireDirection,
   sprite?: Sprite,
 };
 
-export function WIRE(dir: DirectionSet): Entity {
+export function WIRE(dir: WireDirection): SheetEntity {
   return {
     kind: 'wire',
-    dir: new DirectionSet(dir.bits),
+    dir: new WireDirection(dir.bits),
   };
 }

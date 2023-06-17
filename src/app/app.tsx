@@ -1,6 +1,6 @@
 import { } from 'react';
 import './app.css';
-import SheetView from './sheet-view.js';
+import SheetView from '../sheet-view/sheet-view.js';
 
 function App() {
   return (

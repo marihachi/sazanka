@@ -1,9 +1,9 @@
-import { Entity } from './entity.js';
+import { SheetEntity } from './entity.js';
 
 export class Sheet {
   width: number;
   height: number;
-  entities: Map<number, Entity>;
+  entities: Map<number, SheetEntity>;
 
   constructor(width: number, height: number) {
     this.width = width;

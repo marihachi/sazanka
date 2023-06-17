@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { init, GameLoop } from 'kontra';
 import './sheet-view.css';
-import { Sheet } from '../model/sheet.js';
-import { CellIndex, CellPoint } from '../model/cell';
-import { createBackground, createGate, createWire } from '../model/sprite';
-import { GATE, WIRE } from '../model/entity';
-import { DirectionSet } from '../model/direction';
+import { Sheet } from '../sheet/sheet.js';
+import { CellIndex, CellPoint } from '../sheet/cell.js';
+import { createBackground, createGate, createWire } from './sprite.js';
+import { GATE, WIRE } from '../sheet/entity.js';
+import { WireDirection } from '../sheet/wire-direction.js';
 
 function SheetView() {
   useEffect(() => {
@@ -22,7 +22,7 @@ function SheetView() {
     let testWireCell = 0;
 
     testWireCell = CellIndex.fromPointValue(17, 4, sheet).value;
-    const testWireDir = new DirectionSet();
+    const testWireDir = new WireDirection();
     testWireDir.setLeft();
     testWireDir.setRight();
     sheet.entities.set(testWireCell, WIRE(testWireDir));
