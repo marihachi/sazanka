@@ -17,7 +17,7 @@ export class EditorView {
   private ticker: PIXI.Ticker;
   tool: 'none' | 'erase' | 'gate' | 'wire' = 'none';
   private sheet: Sheet;
-  private graphicsTable: Map<SheetEntity, PIXI.Graphics>;
+  private objectTable: Map<SheetEntity, PIXI.DisplayObject>;
   private gridGraphics: PIXI.Graphics;
 
   constructor(width: number, height: number, ticker: PIXI.Ticker) {
@@ -26,7 +26,7 @@ export class EditorView {
     this.height = height;
     this.ticker = ticker;
     this.sheet = new Sheet();
-    this.graphicsTable = new Map();
+    this.objectTable = new Map();
     this.gridGraphics = new PIXI.Graphics();
   }
 
@@ -61,6 +61,7 @@ export class EditorView {
     // TODO: check conflict other entities.
 
     const entity = new GateEntity('AND', 5, 5, 2, 1);
+    const object = new PIXI.Container();
 
     const graphics = new PIXI.Graphics();
     graphics.x = sheetPos[0] * cellSize;
@@ -85,9 +86,21 @@ export class EditorView {
       console.log(sheetPos, entity);
     });
 
+    object.addChild(graphics);
+
+    const nameText = new PIXI.Text();
+    nameText.text = entity.name;
+    nameText.style = new PIXI.TextStyle({ fontFamily: 'Arial', fontSize: 12, fill: '#aaaaaa' });
+
+    nameText.x = sheetPos[0] * cellSize + cellSize * 2.5;
+    nameText.y = sheetPos[1] * cellSize + cellSize * 1.25;
+    nameText.anchor.set(0.5);
+
+    object.addChild(nameText);
+
     this.sheet.setEntity(sheetPos, entity);
-    this.graphicsTable.set(entity, graphics);
-    this.container.addChild(graphics);
+    this.objectTable.set(entity, object);
+    this.container.addChild(object);
   }
 
   addWire(sheetPos: [number, number]) {
@@ -122,7 +135,7 @@ export class EditorView {
     });
 
     this.sheet.setEntity(sheetPos, entity);
-    this.graphicsTable.set(entity, graphics);
+    this.objectTable.set(entity, graphics);
     this.container.addChild(graphics);
   }
 
@@ -132,13 +145,13 @@ export class EditorView {
       return;
     }
 
-    const graphics = this.graphicsTable.get(entity);
+    const graphics = this.objectTable.get(entity);
     if (graphics == null) {
       return;
     }
 
     this.container.removeChild(graphics);
-    this.graphicsTable.delete(entity);
+    this.objectTable.delete(entity);
     this.sheet.deleteEntity(sheetPos);
   }
 }
