@@ -1,3 +1,18 @@
+import { SheetEntity } from './entity';
+
+export class WireEntity extends SheetEntity {
+  dir: WireDirection;
+
+  constructor(dir: WireDirection) {
+    super();
+    this.dir = new WireDirection(dir.bits);
+  }
+}
+
+export function isWireEntity(x: SheetEntity): x is WireEntity {
+  return x instanceof WireEntity;
+}
+
 /*
  * direction data for wire entity
  * 
@@ -34,22 +49,27 @@ export class WireDirection {
 
   setTop() {
     this.bits += WireDirection.top;
+    return this;
   }
 
   setBottom() {
     this.bits += WireDirection.bottom;
+    return this;
   }
 
   setLeft() {
     this.bits += WireDirection.left;
+    return this;
   }
 
   setRight() {
     this.bits += WireDirection.right;
+    return this;
   }
 
   clear() {
     this.bits = 0;
+    return this;
   }
 
   static readonly top: number = 1;

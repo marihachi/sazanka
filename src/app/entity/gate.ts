@@ -1,7 +1,4 @@
-import { WireDirection } from './wire-direction.js';
-
-export abstract class SheetEntity {
-}
+import { SheetEntity } from './entity';
 
 export class GateEntity extends SheetEntity {
   name: string;
@@ -22,17 +19,4 @@ export class GateEntity extends SheetEntity {
 
 export function isGateEntity(x: SheetEntity): x is GateEntity {
   return x instanceof GateEntity;
-}
-
-export class WireEntity extends SheetEntity {
-  dir: WireDirection;
-
-  constructor(dir: WireDirection) {
-    super();
-    this.dir = new WireDirection(dir.bits);
-  }
-}
-
-export function isWireEntity(x: SheetEntity): x is WireEntity {
-  return x instanceof WireEntity;
 }
