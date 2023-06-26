@@ -8,6 +8,8 @@ export function initStage() {
     antialias: true,
   });
   document.body.appendChild(app.view as any);
+  // debug
+  // (globalThis as any).__PIXI_APP__ = app;
 
   // add editor
   const editor = new SheetEditor(app.screen.width, app.screen.height, app.ticker);
@@ -17,4 +19,13 @@ export function initStage() {
     editor.width = app.screen.width;
     editor.height = app.screen.height;
   });
+
+  // debug text
+  const debugText = new PIXI.Text('', new PIXI.TextStyle({ fontSize: 14, fill: '#ffffff' }));
+  app.stage.eventMode = 'dynamic';
+  app.stage.hitArea = app.screen;
+  app.stage.addEventListener('pointermove', (e) => {
+    debugText.text = `${e.global.x} ${e.global.y}`;
+  });
+  app.stage.addChild(debugText);
 };

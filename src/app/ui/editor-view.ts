@@ -18,7 +18,8 @@ export class EditorView {
   tool: 'none' | 'erase' | 'gate' | 'wire' = 'none';
   private sheet: Sheet;
   private objectTable: Map<SheetEntity, PIXI.DisplayObject>;
-  private gridGraphics: PIXI.Graphics;
+  private objectsLayer: PIXI.Container;
+  private gridLayer: PIXI.Graphics;
 
   constructor(width: number, height: number, ticker: PIXI.Ticker) {
     this.container = new PIXI.Container();
@@ -27,31 +28,55 @@ export class EditorView {
     this.ticker = ticker;
     this.sheet = new Sheet();
     this.objectTable = new Map();
-    this.gridGraphics = new PIXI.Graphics();
+    this.objectsLayer = new PIXI.Container();
+    this.gridLayer = new PIXI.Graphics();
   }
 
   init() {
-    this.container.addChild(this.gridGraphics);
+    this.container.addChild(this.gridLayer);
+    this.container.addChild(this.objectsLayer);
+
+    let offset = [0, 0];
+    this.ticker.add(() => {
+      this.objectsLayer.x = offset[0];
+      this.objectsLayer.y = offset[1];
+
+      for (const [entity, object] of this.objectTable) {
+        // get the local position of the object to the view container.
+        const pos = this.container.toLocal(object.getGlobalPosition());
+
+        // culling
+        const boundLeft = -(entity.width * cellSize);
+        const boundTop = -(entity.height * cellSize);
+        const boundRight = this.width;
+        const boundBottom = this.height;
+        object.renderable = (pos.x >= boundLeft && pos.y >= boundTop && pos.x <= boundRight && pos.y <= boundBottom);
+      }
+    });
 
     // grid tick
     this.ticker.add(() => {
-      this.gridGraphics.clear();
+      this.gridLayer.clear();
 
-      let x = 0;
-      while (this.width - x > 0) {
-        this.gridGraphics
-          .lineStyle(1, 0x2e2e2e, 1, 0)
-          .moveTo(x, 0)
-          .lineTo(x, this.height);
+      let x = offset[0] % cellSize;
+      while (this.width - x >= 0) {
+        if (x >= 0) {
+          this.gridLayer
+            .lineStyle(1, 0x2e2e2e, 1, 0)
+            .moveTo(x, 0)
+            .lineTo(x, this.height);
+        }
         x += cellSize;
       }
-  
-      let y = 0;
-      while (this.height - y > 0) {
-        this.gridGraphics
-          .lineStyle(1, 0x2e2e2e, 1, 0)
-          .moveTo(0, y)
-          .lineTo(this.width, y);
+
+      let y = offset[1] % cellSize;
+      while (this.height - y >= 0) {
+        if (y >= 0) {
+          this.gridLayer
+            .lineStyle(1, 0x2e2e2e, 1, 0)
+            .moveTo(0, y)
+            .lineTo(this.width, y);
+        }
         y += cellSize;
       }
     });
@@ -62,10 +87,10 @@ export class EditorView {
 
     const entity = new GateEntity('AND', 5, 5, 2, 1);
     const object = new PIXI.Container();
+    object.x = sheetPos[0] * cellSize;
+    object.y = sheetPos[1] * cellSize;
 
     const graphics = new PIXI.Graphics();
-    graphics.x = sheetPos[0] * cellSize;
-    graphics.y = sheetPos[1] * cellSize;
 
     graphics
       .beginFill(0x1c1c1c)
@@ -76,13 +101,13 @@ export class EditorView {
       .lineStyle(2, 0x444444, 1, 0)
       .drawRect(0, 0, cellSize * 5, cellSize * 5);
 
-    graphics.eventMode = 'static';
-    graphics.cursor = 'pointer';
+    object.eventMode = 'static';
+    object.cursor = 'pointer';
 
     const area = new PIXI.Rectangle(0, 0, cellSize * 5, cellSize * 5);
-    graphics.hitArea = area;
+    object.hitArea = area;
 
-    graphics.on('click', () => {
+    object.on('click', () => {
       console.log(sheetPos, entity);
     });
 
@@ -92,15 +117,15 @@ export class EditorView {
     nameText.text = entity.name;
     nameText.style = new PIXI.TextStyle({ fontFamily: 'Arial', fontSize: 12, fill: '#aaaaaa' });
 
-    nameText.x = sheetPos[0] * cellSize + cellSize * 2.5;
-    nameText.y = sheetPos[1] * cellSize + cellSize * 1.25;
+    nameText.x = cellSize * 2.5;
+    nameText.y = cellSize * 1.25;
     nameText.anchor.set(0.5);
 
     object.addChild(nameText);
 
     this.sheet.setEntity(sheetPos, entity);
     this.objectTable.set(entity, object);
-    this.container.addChild(object);
+    this.objectsLayer.addChild(object);
   }
 
   addWire(sheetPos: [number, number]) {
@@ -115,28 +140,28 @@ export class EditorView {
 
     const entity = new WireEntity(direction);
 
-    const graphics = new PIXI.Graphics();
-    graphics.x = sheetPos[0] * cellSize;
-    graphics.y = sheetPos[1] * cellSize;
+    const object = new PIXI.Graphics();
+    object.x = sheetPos[0] * cellSize;
+    object.y = sheetPos[1] * cellSize;
 
-    graphics
+    object
       .lineStyle(2, 0x666666, 1, 0)
       .moveTo(0, cellSize / 2)
       .lineTo(cellSize, cellSize / 2);
 
-    graphics.eventMode = 'static';
-    graphics.cursor = 'pointer';
+    object.eventMode = 'static';
+    object.cursor = 'pointer';
 
     const area = new PIXI.Rectangle(0, 0, cellSize, cellSize);
-    graphics.hitArea = area;
+    object.hitArea = area;
 
-    graphics.on('click', () => {
+    object.on('click', () => {
       console.log(sheetPos, entity);
     });
 
     this.sheet.setEntity(sheetPos, entity);
-    this.objectTable.set(entity, graphics);
-    this.container.addChild(graphics);
+    this.objectTable.set(entity, object);
+    this.objectsLayer.addChild(object);
   }
 
   removeViewEntity(sheetPos: [number, number]) {
@@ -150,7 +175,7 @@ export class EditorView {
       return;
     }
 
-    this.container.removeChild(graphics);
+    this.objectsLayer.removeChild(graphics);
     this.objectTable.delete(entity);
     this.sheet.deleteEntity(sheetPos);
   }

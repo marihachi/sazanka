@@ -2,16 +2,12 @@ import { SheetEntity } from './entity.js';
 
 export class GateEntity extends SheetEntity {
   name: string;
-  width: number;
-  height: number;
   inputPorts: number;
   outputPorts: number;
 
   constructor(name: string, width: number, height: number, inputPorts: number, outputPorts: number) {
-    super();
+    super(width, height);
     this.name = name;
-    this.width = width;
-    this.height = height;
     this.inputPorts = inputPorts;
     this.outputPorts = outputPorts;
   }

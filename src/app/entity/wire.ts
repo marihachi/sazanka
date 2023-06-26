@@ -4,7 +4,7 @@ export class WireEntity extends SheetEntity {
   dir: WireDirection;
 
   constructor(dir: WireDirection) {
-    super();
+    super(1, 1);
     this.dir = new WireDirection(dir.bits);
   }
 }
