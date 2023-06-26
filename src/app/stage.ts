@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from '../pixi.js';
 import { SheetEditor } from './ui/sheet-editor.js';
 
 export function initStage() {

@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from '../../pixi.js';
 import { EditorToolbar } from './editor-toolbar.js';
 import { EditorView } from './editor-view.js';
 

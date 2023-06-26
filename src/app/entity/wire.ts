@@ -1,4 +1,4 @@
-import { SheetEntity } from './entity';
+import { SheetEntity } from './entity.js';
 
 export class WireEntity extends SheetEntity {
   dir: WireDirection;

@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import * as PIXI from '../../pixi.js';
 import { SheetEntity } from '../entity/entity.js';
 import { GateEntity } from '../entity/gate.js';
 import { WireDirection, WireEntity } from '../entity/wire.js';
