@@ -10,7 +10,7 @@ export function calcCellPosition(point: [number, number]): [number, number] {
   return [Math.floor(point[0] / cellSize), Math.floor(point[1] / cellSize)];
 }
 
-export class EditorView {
+export class SheetView {
   container: PIXI.Container;
   width: number;
   height: number;

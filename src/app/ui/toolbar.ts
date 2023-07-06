@@ -1,6 +1,6 @@
 import * as PIXI from '../../pixi.js';
 
-export class EditorToolbar {
+export class Toolbar {
   container: PIXI.Container;
   width: number;
   height: number;

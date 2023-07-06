@@ -1,10 +1,12 @@
 import * as PIXI from '../../pixi.js';
-import { EditorToolbar } from './editor-toolbar.js';
-import { EditorView } from './editor-view.js';
+import { Toolbar } from './toolbar.js';
+import { SheetView } from './sheet-view.js';
+import { ToolboxPanel } from './toolbox-panel.js';
 
 const toolbarHeight = 30;
+const sidePanelWidth = 200;
 
-export class SheetEditor {
+export class Editor {
   container: PIXI.Container;
   width: number;
   height: number;
@@ -18,8 +20,9 @@ export class SheetEditor {
   }
 
   init() {
-    // editor view
-    const view = new EditorView(this.width, this.height - toolbarHeight, this.ticker);
+    // sheet view
+    const view = new SheetView(this.width - sidePanelWidth, this.height - toolbarHeight, this.ticker);
+    view.container.x = sidePanelWidth;
     view.container.y = toolbarHeight;
     this.container.addChild(view.container);
     view.init();
@@ -29,12 +32,23 @@ export class SheetEditor {
     });
 
     // toolbar
-    const toolbar = new EditorToolbar(this.width, toolbarHeight, this.ticker);
+    const toolbar = new Toolbar(this.width, toolbarHeight, this.ticker);
     this.container.addChild(toolbar.container);
     toolbar.init();
     this.ticker.add(() => {
       toolbar.width = this.width;
       toolbar.height = toolbarHeight;
+    });
+
+    // toolbox panel
+    const toolbox = new ToolboxPanel(sidePanelWidth, this.height - toolbarHeight, this.ticker);
+    toolbox.container.x = 0;
+    toolbox.container.y = toolbarHeight;
+    this.container.addChild(toolbox.container);
+    toolbox.init();
+    this.ticker.add(() => {
+      toolbox.width = sidePanelWidth;
+      toolbox.height = this.height - toolbarHeight;
     });
 
     // add test items

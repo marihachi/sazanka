@@ -1,5 +1,5 @@
 import * as PIXI from '../pixi.js';
-import { SheetEditor } from './ui/sheet-editor.js';
+import { Editor } from './ui/editor.js';
 
 export function initStage() {
   const app = new PIXI.Application({
@@ -12,7 +12,7 @@ export function initStage() {
   // (globalThis as any).__PIXI_APP__ = app;
 
   // add editor
-  const editor = new SheetEditor(app.screen.width, app.screen.height, app.ticker);
+  const editor = new Editor(app.screen.width, app.screen.height, app.ticker);
   app.stage.addChild(editor.container);
   editor.init();
   app.ticker.add(() => {
