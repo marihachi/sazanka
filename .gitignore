@@ -21,5 +21,8 @@ tsconfig.tsbuildinfo
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+bin
+obj
+.vs
