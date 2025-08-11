@@ -6,7 +6,9 @@ A logic circuit simulator for Windows.
 WIP!
 
 ## License
-MIT
+### sazanka
+MITライセンスのもとで利用できます。
 
-DXライブラリに関するライセンスは以下を参照してください。
+### DXライブラリ
+以下を参照してください。\
 https://dxlib.xsrv.jp/dxlicense.html 
