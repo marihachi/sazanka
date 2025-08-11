@@ -1,5 +1,5 @@
 # sazanka
-A logic circuit simulator for browsers.
+A logic circuit simulator for Windows.
 
 ![image](screenshot.png)
 
