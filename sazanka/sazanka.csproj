@@ -40,7 +40,12 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="App\GridPanel.cs" />
+    <Compile Include="App\Area.cs" />
+    <Compile Include="Core\SceneManager.cs" />
     <Compile Include="DxDLL.cs" />
+    <Compile Include="Core\IScene.cs" />
+    <Compile Include="App\MainScene.cs" />
     <Compile Include="Program.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +55,9 @@
     <Content Include="DxLib_x64.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

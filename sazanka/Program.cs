@@ -1,4 +1,8 @@
 using DxLibDLL;
+using sazanka.App;
+using sazanka.Core;
+using System;
+using System.Collections.Generic;
 
 namespace sazanka
 {
@@ -10,20 +14,48 @@ namespace sazanka
             DX.SetGraphMode(800, 600, 32);
             DX.SetMainWindowText("sazanka");
 
-            if (DX.DxLib_Init() == -1) return -1;
+            var sceneManager = new SceneManager(new Dictionary<string, IScene>
+            {
+                { "MainScene", new MainScene() },
+            });
+
+            if (DX.DxLib_Init() != 0)
+                return -1;
 
             DX.SetDrawScreen(DX.DX_SCREEN_BACK);
 
-            while (true)
+            try
             {
-                if (DX.ProcessMessage() != 0) break;
-                DX.ClearDrawScreen();
-                DX.GetMousePoint(out int x, out int y);
-                DX.DrawString(0, 0, $"{x}, {y}", DX.GetColor(255, 255, 255));
-                DX.ScreenFlip();
-            }
+                sceneManager.ChangeScene("MainScene");
 
-            DX.DxLib_End();
+                while (true)
+                {
+                    if (DX.ProcessMessage() != 0)
+                        break;
+
+                    DX.ClearDrawScreen();
+
+                    sceneManager.Update();
+
+                    DX.ScreenFlip();
+                }
+            }
+            catch (Exception ex)
+            {
+                DX.LogFileAdd($"(例外) {ex.Message}\r\n");
+
+                var lines = ex.StackTrace.Split(new[] { "\r\n" }, StringSplitOptions.None);
+                foreach (var line in lines)
+                {
+                    DX.LogFileAdd($"{line}\r\n");
+                }
+
+                return -1;
+            }
+            finally
+            {
+                DX.DxLib_End();
+            }
 
             return 0;
         }
