@@ -30,15 +30,8 @@ namespace sazanka.App
 
         public void Update()
         {
-            DX.DrawBox(
-                Origin.X,
-                Origin.Y,
-                Origin.X + MapSize.Width * CellSize.Width,
-                Origin.Y + MapSize.Height * CellSize.Height,
-                DX.GetColor(150, 150, 150),
-                0);
-
-            for (int i = 1; i < MapSize.Height; i++)
+            // 横線の描画
+            for (int i = 0; i <= MapSize.Height; i++)
             {
                 int x1 = Origin.X;
                 int x2 = Origin.X + MapSize.Width * CellSize.Width;
@@ -50,7 +43,8 @@ namespace sazanka.App
                     DX.GetColor(150, 150, 150));
             }
 
-            for (int i = 1; i < MapSize.Width; i++)
+            // 縦線の描画
+            for (int i = 0; i <= MapSize.Width; i++)
             {
                 int x = Origin.X + CellSize.Width * i;
                 int y1 = Origin.Y;
