@@ -1,15 +1,21 @@
 using DxLibDLL;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace sazanka.App
 {
     internal class GridPanel
     {
         /// <summary>
-        /// グリッドの基準点を表すワールド座標
+        /// グリッドの基準点を表す絶対座標
         /// </summary>
-        public Point Origin { get; set; }
+        public Point Location { get; set; }
+
+        /// <summary>
+        /// スクリーンの基準点を表す絶対座標
+        /// </summary>
+        public Point ScreenOrigin { get; set; }
 
         /// <summary>
         /// 
@@ -21,9 +27,9 @@ namespace sazanka.App
         /// </summary>
         public Size CellSize { get; set; }
 
-        public GridPanel(Point origin, Size mapSize, Size cellSize)
+        public GridPanel(Point location, Size mapSize, Size cellSize)
         {
-            Origin = origin;
+            Location = location;
             MapSize = mapSize;
             CellSize = cellSize;
         }
@@ -33,26 +39,44 @@ namespace sazanka.App
             // 横線の描画
             for (int i = 0; i <= MapSize.Height; i++)
             {
-                int x1 = Origin.X;
-                int x2 = Origin.X + MapSize.Width * CellSize.Width;
-                int y = Origin.Y + CellSize.Height * i;
+                var p1 = new Point(
+                    Location.X,
+                    Location.Y + CellSize.Height * i);
+
+                var p2 = new Point(
+                    Location.X + MapSize.Width * CellSize.Width,
+                    Location.Y + CellSize.Height * i);
+
+                var rel1 = PointUtility.ConvertAbsToRel(p1, ScreenOrigin);
+                var rel2 = PointUtility.ConvertAbsToRel(p2, ScreenOrigin);
 
                 DX.DrawLine(
-                    x1, y,
-                    x2, y,
+                    rel1.X,
+                    rel1.Y,
+                    rel2.X,
+                    rel2.Y,
                     DX.GetColor(150, 150, 150));
             }
 
             // 縦線の描画
             for (int i = 0; i <= MapSize.Width; i++)
             {
-                int x = Origin.X + CellSize.Width * i;
-                int y1 = Origin.Y;
-                int y2 = Origin.Y + MapSize.Width * CellSize.Width;
+                var p1 = new Point(
+                    Location.X + CellSize.Width * i,
+                    Location.Y);
+
+                var p2 = new Point(
+                    Location.X + CellSize.Width * i,
+                    Location.Y + MapSize.Width * CellSize.Width);
+
+                var rel1 = PointUtility.ConvertAbsToRel(p1, ScreenOrigin);
+                var rel2 = PointUtility.ConvertAbsToRel(p2, ScreenOrigin);
 
                 DX.DrawLine(
-                    x, y1,
-                    x, y2,
+                    rel1.X,
+                    rel1.Y,
+                    rel2.X,
+                    rel2.Y,
                     DX.GetColor(150, 150, 150));
             }
         }
