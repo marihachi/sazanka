@@ -11,7 +11,9 @@ namespace sazanka.App
         private GridPanel _gridPanel;
         public void Activated()
         {
-            _gridPanel = new GridPanel(new Point(50, 50), new Size(10, 10), new Size(30, 30));
+            _gridPanel = new GridPanel(10, 10, new Size(30, 30), new Rectangle(100, 100, 200, 200));
+
+            _gridPanel.ViewportOrigin = new Point(0, 0);
         }
 
         public void Update()
@@ -25,12 +27,13 @@ namespace sazanka.App
             // test
             if (wheel != 0)
             {
-                _gridPanel.ScreenOrigin += new Size(0, wheel * 10);
+                _gridPanel.ViewportOrigin += new Size(0, -1 * wheel * 10);
             }
 
             _gridPanel.Update();
 
-            DX.DrawString(0, 0, $"X={pos.X} Y={pos.Y} {button & 1} {button & 2} {_gridPanel.ScreenOrigin.X} {_gridPanel.ScreenOrigin.Y}", DX.GetColor(255, 255, 255));
+            DX.DrawString(0, 0, $"X={pos.X} Y={pos.Y} {button & 1} {button & 2}", DX.GetColor(255, 255, 255));
+            DX.DrawString(0, 20, $"X={_gridPanel.ViewportOrigin.X} Y={_gridPanel.ViewportOrigin.Y}", DX.GetColor(255, 255, 255));
         }
     }
 }

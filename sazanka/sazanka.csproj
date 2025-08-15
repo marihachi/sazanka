@@ -41,7 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App\GridPanel.cs" />
-    <Compile Include="App\Area.cs" />
+    <Compile Include="App\RectangleExtensions.cs" />
+    <Compile Include="App\PointConversion.cs" />
     <Compile Include="Core\SceneManager.cs" />
     <Compile Include="DxDLL.cs" />
     <Compile Include="Core\IScene.cs" />

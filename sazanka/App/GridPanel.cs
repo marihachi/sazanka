@@ -8,75 +8,95 @@ namespace sazanka.App
     internal class GridPanel
     {
         /// <summary>
-        /// グリッドの基準点を表す絶対座標
+        /// 列の数を表す
         /// </summary>
-        public Point Location { get; set; }
+        public int ColumnsCount { get; set; }
 
         /// <summary>
-        /// スクリーンの基準点を表す絶対座標
+        /// 行の数を表す
         /// </summary>
-        public Point ScreenOrigin { get; set; }
+        public int RowsCount { get; set; }
 
         /// <summary>
-        /// 
-        /// </summary>
-        public Size MapSize { get; set; }
-
-        /// <summary>
-        /// 
+        /// 1つのセルのサイズ
         /// </summary>
         public Size CellSize { get; set; }
 
-        public GridPanel(Point location, Size mapSize, Size cellSize)
+        /// <summary>
+        /// コントロールの表示エリア
+        /// </summary>
+        public Rectangle ControlArea { get; set; }
+
+        /// <summary>
+        /// 現在表示している領域の基準点
+        /// </summary>
+        public Point ViewportOrigin { get; set; }
+
+        public GridPanel(int columnsCount, int rowsCount, Size cellSize, Rectangle controlArea)
         {
-            Location = location;
-            MapSize = mapSize;
+            ColumnsCount = columnsCount;
+            RowsCount = rowsCount;
             CellSize = cellSize;
+            ControlArea = controlArea;
         }
 
         public void Update()
         {
+            // コントロールの枠を描画
+            DX.DrawBox(
+                ControlArea.X, ControlArea.Y,
+                ControlArea.X + ControlArea.Width, ControlArea.Y + ControlArea.Height,
+                DX.GetColor(100, 100, 100),
+                0
+            );
+
+            // TODO: 描画対象のセルを取得
+
             // 横線の描画
-            for (int i = 0; i <= MapSize.Height; i++)
+            for (int i = 0; i <= RowsCount; i++)
             {
                 var p1 = new Point(
-                    Location.X,
-                    Location.Y + CellSize.Height * i);
+                    0,
+                    CellSize.Height * i);
 
                 var p2 = new Point(
-                    Location.X + MapSize.Width * CellSize.Width,
-                    Location.Y + CellSize.Height * i);
+                    RowsCount * CellSize.Width,
+                    CellSize.Height * i);
 
-                var rel1 = PointUtility.ConvertAbsToRel(p1, ScreenOrigin);
-                var rel2 = PointUtility.ConvertAbsToRel(p2, ScreenOrigin);
+                var vp1 = PointConversion.GlobalToViewport(p1, ViewportOrigin);
+                var vp2 = PointConversion.GlobalToViewport(p2, ViewportOrigin);
+                vp1.Offset(ControlArea.GetPoint());
+                vp2.Offset(ControlArea.GetPoint());
 
                 DX.DrawLine(
-                    rel1.X,
-                    rel1.Y,
-                    rel2.X,
-                    rel2.Y,
+                    vp1.X,
+                    vp1.Y,
+                    vp2.X,
+                    vp2.Y,
                     DX.GetColor(150, 150, 150));
             }
 
             // 縦線の描画
-            for (int i = 0; i <= MapSize.Width; i++)
+            for (int i = 0; i <= ColumnsCount; i++)
             {
                 var p1 = new Point(
-                    Location.X + CellSize.Width * i,
-                    Location.Y);
+                    CellSize.Width * i,
+                    0);
 
                 var p2 = new Point(
-                    Location.X + CellSize.Width * i,
-                    Location.Y + MapSize.Width * CellSize.Width);
+                    CellSize.Width * i,
+                    ColumnsCount * CellSize.Width);
 
-                var rel1 = PointUtility.ConvertAbsToRel(p1, ScreenOrigin);
-                var rel2 = PointUtility.ConvertAbsToRel(p2, ScreenOrigin);
+                var vp1 = PointConversion.GlobalToViewport(p1, ViewportOrigin);
+                var vp2 = PointConversion.GlobalToViewport(p2, ViewportOrigin);
+                vp1.Offset(ControlArea.GetPoint());
+                vp2.Offset(ControlArea.GetPoint());
 
                 DX.DrawLine(
-                    rel1.X,
-                    rel1.Y,
-                    rel2.X,
-                    rel2.Y,
+                    vp1.X,
+                    vp1.Y,
+                    vp2.X,
+                    vp2.Y,
                     DX.GetColor(150, 150, 150));
             }
         }
