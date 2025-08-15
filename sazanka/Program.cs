@@ -35,7 +35,7 @@ namespace sazanka
 
                     DX.ClearDrawScreen();
 
-                    sceneManager.Update();
+                    sceneManager.DispatchUpdate();
 
                     DX.ScreenFlip();
                 }

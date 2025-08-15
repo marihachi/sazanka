@@ -25,7 +25,7 @@ namespace sazanka.Core
             _currentScene.Activated();
         }
 
-        public void Update()
+        public void DispatchUpdate()
         {
             _currentScene?.Update();
         }
