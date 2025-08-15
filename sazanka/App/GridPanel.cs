@@ -51,6 +51,7 @@ namespace sazanka.App
             );
 
             // TODO: 描画対象のセルを取得
+            // - グローバル座標上の表示範囲を満たすセルの領域を計算したい
 
             // 横線の描画
             for (int i = 0; i <= RowsCount; i++)
