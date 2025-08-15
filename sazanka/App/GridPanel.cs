@@ -55,48 +55,48 @@ namespace sazanka.App
             // 横線の描画
             for (int i = 0; i <= RowsCount; i++)
             {
-                var p1 = new Point(
+                var left = new Point(
                     0,
                     CellSize.Height * i);
 
-                var p2 = new Point(
+                var right = new Point(
                     RowsCount * CellSize.Width,
                     CellSize.Height * i);
 
-                var vp1 = PointConversion.GlobalToViewport(p1, ViewportOrigin);
-                var vp2 = PointConversion.GlobalToViewport(p2, ViewportOrigin);
-                vp1.Offset(ControlArea.GetPoint());
-                vp2.Offset(ControlArea.GetPoint());
+                var vpLeft = PointConversion.GlobalToViewport(left, ViewportOrigin);
+                var vpRight = PointConversion.GlobalToViewport(right, ViewportOrigin);
+                vpLeft.Offset(ControlArea.GetPoint());
+                vpRight.Offset(ControlArea.GetPoint());
 
                 DX.DrawLine(
-                    vp1.X,
-                    vp1.Y,
-                    vp2.X,
-                    vp2.Y,
+                    vpLeft.X,
+                    vpLeft.Y,
+                    vpRight.X,
+                    vpRight.Y,
                     DX.GetColor(150, 150, 150));
             }
 
             // 縦線の描画
             for (int i = 0; i <= ColumnsCount; i++)
             {
-                var p1 = new Point(
+                var top = new Point(
                     CellSize.Width * i,
                     0);
 
-                var p2 = new Point(
+                var bottom = new Point(
                     CellSize.Width * i,
                     ColumnsCount * CellSize.Width);
 
-                var vp1 = PointConversion.GlobalToViewport(p1, ViewportOrigin);
-                var vp2 = PointConversion.GlobalToViewport(p2, ViewportOrigin);
-                vp1.Offset(ControlArea.GetPoint());
-                vp2.Offset(ControlArea.GetPoint());
+                var vpTop = PointConversion.GlobalToViewport(top, ViewportOrigin);
+                var vpBottom = PointConversion.GlobalToViewport(bottom, ViewportOrigin);
+                vpTop.Offset(ControlArea.GetPoint());
+                vpBottom.Offset(ControlArea.GetPoint());
 
                 DX.DrawLine(
-                    vp1.X,
-                    vp1.Y,
-                    vp2.X,
-                    vp2.Y,
+                    vpTop.X,
+                    vpTop.Y,
+                    vpBottom.X,
+                    vpBottom.Y,
                     DX.GetColor(150, 150, 150));
             }
         }
