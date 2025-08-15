@@ -45,8 +45,8 @@ namespace sazanka.App
             // コントロールの枠を描画
             DX.DrawBox(
                 ControlArea.X, ControlArea.Y,
-                ControlArea.X + ControlArea.Width, ControlArea.Y + ControlArea.Height,
-                DX.GetColor(100, 100, 100),
+                ControlArea.X + ControlArea.Width + 1, ControlArea.Y + ControlArea.Height + 1,
+                DX.GetColor(150, 150, 150),
                 0
             );
 
