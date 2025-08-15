@@ -43,9 +43,11 @@ namespace sazanka.App
         public void Update()
         {
             // コントロールの枠を描画
+            var frameTopLeft = new Point(ControlArea.X, ControlArea.Y);
+            var frameBottomRight = new Point(ControlArea.X + ControlArea.Width, ControlArea.Y + ControlArea.Height);
             DX.DrawBox(
-                ControlArea.X, ControlArea.Y,
-                ControlArea.X + ControlArea.Width + 1, ControlArea.Y + ControlArea.Height + 1,
+                frameTopLeft.X, frameTopLeft.Y,
+                frameBottomRight.X + 1, frameBottomRight.Y + 1,
                 DX.GetColor(150, 150, 150),
                 0
             );
