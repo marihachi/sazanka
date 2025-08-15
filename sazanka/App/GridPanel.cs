@@ -23,12 +23,12 @@ namespace sazanka.App
         public Size CellSize { get; set; }
 
         /// <summary>
-        /// コントロールの表示エリア
+        /// コントロールが配置される領域
         /// </summary>
         public Rectangle ControlArea { get; set; }
 
         /// <summary>
-        /// 現在表示している領域の基準点
+        /// 現在表示されている領域の基準点
         /// </summary>
         public Point ViewportOrigin { get; set; }
 
