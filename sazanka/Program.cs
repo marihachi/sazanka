@@ -39,6 +39,9 @@ namespace sazanka
 
                     DX.ScreenFlip();
                 }
+
+                // dispose resources
+                DX.DxLib_End();
             }
             catch (Exception ex)
             {
@@ -50,11 +53,10 @@ namespace sazanka
                     DX.LogFileAdd($"{line}\r\n");
                 }
 
-                return -1;
-            }
-            finally
-            {
+                // dispose resources
                 DX.DxLib_End();
+
+                return -1;
             }
 
             return 0;
