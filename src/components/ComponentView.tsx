@@ -66,6 +66,15 @@ export function ComponentView({
         />
       </>
     );
+  } else if (c.kind === 'HIGH') {
+    body = (
+      <>
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
+        <text className={styles.high} x={c.x + w / 2} y={c.y + h / 2 + 6}>
+          1
+        </text>
+      </>
+    );
   } else if (c.kind === 'OUTPUT') {
     body = (
       <>

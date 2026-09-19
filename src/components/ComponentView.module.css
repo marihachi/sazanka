@@ -42,3 +42,12 @@
 .lead.on {
   stroke: var(--on);
 }
+
+/* HIGH の「1」。常に ON なので ON の色で描く */
+.high {
+  fill: var(--on);
+  font-size: 18px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}

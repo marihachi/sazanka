@@ -2,10 +2,11 @@ export type GateKind = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR';
 /** 記憶素子。RS はクロックのないラッチ、ほかはクロックの立ち上がりで動くフリップフロップ */
 export type FlipFlopKind = 'RS' | 'DFF' | 'TFF' | 'JKFF';
 /**
+ * HIGH: 常に ON を出力する
  * CUSTOM: モジュール。シミュレーション前に展開される
  * BUF: 入力をそのまま出力する。展開したモジュールのピンに使う内部用の部品
  */
-export type Kind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'OUTPUT' | 'CUSTOM' | 'BUF';
+export type Kind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'HIGH' | 'OUTPUT' | 'CUSTOM' | 'BUF';
 
 export interface Component {
   id: string;
@@ -63,6 +64,7 @@ export function inputCount(kind: Kind): number {
   switch (kind) {
     case 'INPUT':
     case 'CLOCK':
+    case 'HIGH':
     case 'CUSTOM': // ピン数は定義による (project.ts の portsOf)。シミュレーション前に展開されるのでここでは 0
       return 0;
     case 'NOT':
@@ -112,6 +114,8 @@ function evalGate(c: Component, ins: boolean[]): boolean {
     case 'INPUT':
     case 'CLOCK':
       return !!c.on;
+    case 'HIGH':
+      return true;
     case 'OUTPUT':
     case 'BUF':
       return a;

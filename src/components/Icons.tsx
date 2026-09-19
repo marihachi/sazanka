@@ -1,6 +1,7 @@
 import andIcon from '../assets/icons/and.svg';
 import clockIcon from '../assets/icons/clock.svg';
 import dffIcon from '../assets/icons/dff.svg';
+import highIcon from '../assets/icons/high.svg';
 import inputIcon from '../assets/icons/input.svg';
 import jkffIcon from '../assets/icons/jkff.svg';
 import moduleIcon from '../assets/icons/module.svg';
@@ -18,6 +19,7 @@ import styles from './Icons.module.css';
 const ICONS: Partial<Record<Kind, string>> = {
   INPUT: inputIcon,
   CLOCK: clockIcon,
+  HIGH: highIcon,
   OUTPUT: outputIcon,
   AND: andIcon,
   OR: orIcon,

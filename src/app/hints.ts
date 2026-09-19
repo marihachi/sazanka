@@ -56,6 +56,8 @@ export function statusHints(ctx: HintContext): string[] {
         return ['ダブルクリックでラベルを編集', ...move];
       case 'CUSTOM':
         return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
+      case 'HIGH':
+        return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':
         return [`${(CLOCK_HALF_PERIOD * 2) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
       case 'RS':

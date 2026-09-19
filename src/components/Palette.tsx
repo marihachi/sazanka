@@ -7,11 +7,30 @@ import { MaskIcon, PartIcon } from './Icons';
 import styles from './Palette.module.css';
 
 const GROUPS: { title: string; kinds: Kind[] }[] = [
-  { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },
+  { title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
   { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
   { title: 'ラッチ', kinds: ['RS'] },
   { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
 ];
+
+/** パレットの部品のツールチップ。部品の働きを1文で説明する */
+const DESCRIPTIONS: Partial<Record<Kind, string>> = {
+  INPUT: '入力スイッチ。クリックで ON/OFF を切り替える',
+  CLOCK: '一定の周期で ON/OFF を繰り返す',
+  HIGH: '常に ON を出力する',
+  OUTPUT: '入力が ON のとき点灯するランプ',
+  AND: 'すべての入力が ON のとき ON',
+  OR: 'どれかの入力が ON のとき ON',
+  NOT: '入力を反転する',
+  NAND: 'AND の反転。すべての入力が ON のときだけ OFF',
+  NOR: 'OR の反転。すべての入力が OFF のときだけ ON',
+  XOR: '2つの入力が異なるとき ON',
+  RS: 'S で ON、R で OFF にして値を保持する。クロックはなく、入力にすぐ反応する',
+  DFF: 'CLK が OFF から ON になった瞬間に D の値を取り込み、保持する',
+  TFF: 'CLK が OFF から ON になった瞬間に、T が ON なら出力を反転する',
+  JKFF: 'CLK が OFF から ON になった瞬間に、J で ON、K で OFF、両方 ON なら反転する',
+  CUSTOM: '回路をまとめた部品。シート上でダブルクリックすると中身を開く',
+};
 
 /** パレットからシートへドラッグするときの dataTransfer の型 */
 export const DRAG_MIME = 'application/x-sazanka-part';
@@ -94,7 +113,8 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
     <button
       className={kind === 'CUSTOM' ? styles.custom : undefined}
       disabled={disabled}
-      title={disabledReason}
+      // 置けないモジュールは、説明よりも置けない理由を見せる
+      title={disabledReason ?? DESCRIPTIONS[kind]}
       draggable={!disabled}
       onClick={onAdd}
       onDragStart={(e) => {

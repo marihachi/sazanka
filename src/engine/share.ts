@@ -27,6 +27,7 @@ const KINDS = new Set<Kind>([
   'JKFF',
   'INPUT',
   'CLOCK',
+  'HIGH',
   'OUTPUT',
   'CUSTOM',
 ]);

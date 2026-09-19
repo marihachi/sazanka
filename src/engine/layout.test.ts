@@ -42,6 +42,7 @@ describe('ピンの位置', () => {
       'JKFF',
       'INPUT',
       'CLOCK',
+      'HIGH',
       'OUTPUT',
       'CUSTOM',
     ];

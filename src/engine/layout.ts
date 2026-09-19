@@ -12,12 +12,17 @@ export function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
+/** 入出力の部品 (INPUT、CLOCK、HIGH、OUTPUT)。どれも小さな正方形で、ピンは中央に1本 */
+function isTerminal(c: Component): boolean {
+  return c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'HIGH' || c.kind === 'OUTPUT';
+}
+
 /**
  * 部品本体のサイズ。
  * 部品の位置はグリッド上にあるので、ピンの先端もグリッド上に来るよう、高さはピンの並びに合わせて決めている
  */
 export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
-  if (c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'OUTPUT') {
+  if (isTerminal(c)) {
     return { w: 40, h: 40 };
   } else if (isFlipFlop(c.kind)) {
     return { w: 60, h: 80 };
@@ -35,7 +40,7 @@ export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
 export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
   const { h } = bodySize(c, ports);
   let y: number;
-  if (c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'OUTPUT') {
+  if (isTerminal(c)) {
     // 入力ピンがあるのは OUTPUT だけ (1本)
     y = c.y + h / 2;
   } else if (isFlipFlop(c.kind)) {
@@ -54,8 +59,8 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
 export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
   const { w, h } = bodySize(c, ports);
   let y: number;
-  if (c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'OUTPUT') {
-    // 出力ピンがあるのは INPUT と CLOCK だけ (1本)
+  if (isTerminal(c)) {
+    // 出力ピンがあるのは OUTPUT 以外 (1本)
     y = c.y + h / 2;
   } else if (isFlipFlop(c.kind)) {
     // Q と Q̄ は上下端から1グリッド内側

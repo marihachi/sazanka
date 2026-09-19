@@ -69,6 +69,18 @@ describe('simulate', () => {
     expect(r.values.get('o:0')).toBe(false);
   });
 
+  it('HIGH は何もつながなくても常に ON を出す', () => {
+    const r = simulate({
+      components: [
+        { id: 'h', kind: 'HIGH', x: 0, y: 0 },
+        { id: 'n', kind: 'NOT', x: 0, y: 0 },
+      ],
+      wires: [{ id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+    });
+    expect(r.values.get('h:0')).toBe(true);
+    expect(r.values.get('n:0')).toBe(false);
+  });
+
   it('CLOCK は on の値をそのまま出す', () => {
     const r = simulate({ components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }], wires: [] });
     expect(r.values.get('k:0')).toBe(true);
