@@ -13,7 +13,7 @@ import rsIcon from '../assets/icons/rs.svg';
 import tffIcon from '../assets/icons/tff.svg';
 import xorIcon from '../assets/icons/xor.svg';
 import type { Kind } from '../engine/sim';
-import './Icons.css';
+import styles from './Icons.module.css';
 
 const ICONS: Partial<Record<Kind, string>> = {
   INPUT: inputIcon,
@@ -38,7 +38,12 @@ export function MaskIcon({ src, className }: { src: string; className: string })
   return <span className={className} aria-hidden="true" style={{ mask, WebkitMask: mask }} />;
 }
 
+/** ツールバーなどのボタンに付けるアイコン (16×16) */
+export function ToolIcon({ src }: { src: string }) {
+  return <MaskIcon src={src} className={styles.toolIcon} />;
+}
+
 /** 部品の種類ごとのアイコン (32×24) */
 export function PartIcon({ kind }: { kind: Kind }) {
-  return <MaskIcon src={ICONS[kind] ?? moduleIcon} className="part-icon" />;
+  return <MaskIcon src={ICONS[kind] ?? moduleIcon} className={styles.partIcon} />;
 }

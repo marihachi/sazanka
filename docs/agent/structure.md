@@ -8,7 +8,11 @@
 - `style.css` … 色の変数（`:root`）、ページ全体、`app/` の画面レイアウトのスタイルと、共通のユーティリティ（`.visually-hidden`）。
 - `assets/` … SVG。
 
-CSS は、コンポーネント固有のものならコンポーネントごとに分けて `components/` に置き（例: `TabBar.tsx` と `TabBar.css`）、そのコンポーネントから import する（ユーザーの指示）。共通の `style.css` は `main.tsx` で各コンポーネントより先に読み込む。
+CSS は、コンポーネント固有のものならコンポーネントごとに CSS Modules で分けて `components/` に置き（例: `TabBar.tsx` と `TabBar.module.css`）、そのコンポーネントから `styles` として import する（ユーザーの指示）。共通の `style.css` は `main.tsx` で各コンポーネントより先に読み込む。
+
+- CSS のクラス名はケバブケースで書き、TS からは `styles.tabInput` のようにキャメルケースで参照する（`vite.config.ts` の `localsConvention`）。存在しないクラス名を参照しても型エラーにならず、`undefined` になるだけなので注意。
+- 条件付きのクラスは `components/classNames.ts` の `classNames` でつなげる。
+- ほかのコンポーネントのクラスは直接使わない。見た目を共有したいときは、コンポーネントとして切り出す（例: ツールバーなどのボタンのアイコンは `Icons.tsx` の `ToolIcon`）。
 
 依存の向きは `app` → `components` → `engine` の一方向に保つ。
 

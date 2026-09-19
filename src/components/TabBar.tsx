@@ -1,8 +1,9 @@
 import trashIcon from '../assets/icons/trash.svg';
 import { MAIN_ID, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
-import { MaskIcon } from './Icons';
-import './TabBar.css';
+import { classNames } from './classNames';
+import { ToolIcon } from './Icons';
+import styles from './TabBar.module.css';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -29,13 +30,13 @@ export function TabBar({
   onDeleteCurrent,
 }: TabBarProps) {
   return (
-    <div className="tabbar">
-      <div className="tabs" role="tablist">
+    <div className={styles.tabbar}>
+      <div className={styles.tabs} role="tablist">
         {circuits.map((d) =>
           renamingId === d.id ? (
             <InlineInput
               key={d.id}
-              className="tab-input"
+              className={styles.tabInput}
               initial={d.name}
               onCommit={(v) => onRename(d.id, v)}
               onCancel={onCancelRename}
@@ -45,7 +46,7 @@ export function TabBar({
               key={d.id}
               role="tab"
               aria-selected={d.id === currentId}
-              className={`tab${d.id === currentId ? ' active' : ''}`}
+              className={classNames(styles.tab, d.id === currentId && styles.active)}
               onClick={() => onOpen(d.id)}
               onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
               title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更できます。' : undefined}
@@ -56,9 +57,9 @@ export function TabBar({
         )}
       </div>
       {currentId !== MAIN_ID && (
-        <div className="tabbar-actions">
-          <button className="tool" onClick={onDeleteCurrent}>
-            <MaskIcon src={trashIcon} className="tool-icon" />
+        <div className={styles.tabbarActions}>
+          <button className={styles.tool} onClick={onDeleteCurrent}>
+            <ToolIcon src={trashIcon} />
             モジュールを削除
           </button>
         </div>

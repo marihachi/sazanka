@@ -1,7 +1,8 @@
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
 import type { Ports } from '../engine/project';
 import { isFlipFlop, type Component, type Kind } from '../engine/sim';
-import './ComponentView.css';
+import { classNames } from './classNames';
+import styles from './ComponentView.module.css';
 
 export const LABELS: Partial<Record<Kind, string>> = { RS: 'RS Latch', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
 /** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
@@ -42,10 +43,10 @@ export function ComponentView({
   if (c.kind === 'INPUT') {
     body = (
       <>
-        <rect className="body" x={c.x} y={c.y} width={w} height={h} rx={4} />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
         <rect x={c.x + 8} y={c.y + 8} width={w - 16} height={h - 16} rx={3} fill={lamp} pointerEvents="none" />
         {c.label && (
-          <text className="pin-label end" x={c.x - 6} y={c.y + h / 2 + 4}>
+          <text className={classNames(styles.pinLabel, styles.end)} x={c.x - 6} y={c.y + h / 2 + 4}>
             {c.label}
           </text>
         )}
@@ -55,7 +56,7 @@ export function ComponentView({
     const y0 = c.y + h / 2;
     body = (
       <>
-        <rect className="body" x={c.x} y={c.y} width={w} height={h} rx={4} />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
         <path
           d={`M${c.x + 6},${y0 + 7} h7 v-14 h7 v14 h7 v-14 h7`}
           fill="none"
@@ -68,10 +69,10 @@ export function ComponentView({
   } else if (c.kind === 'OUTPUT') {
     body = (
       <>
-        <circle className="body" cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2} />
+        <circle className={styles.body} cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2} />
         <circle cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2 - 6} fill={lamp} pointerEvents="none" />
         {c.label && (
-          <text className="pin-label" x={c.x + w + 6} y={c.y + h / 2 + 4}>
+          <text className={styles.pinLabel} x={c.x + w + 6} y={c.y + h / 2 + 4}>
             {c.label}
           </text>
         )}
@@ -81,9 +82,9 @@ export function ComponentView({
     const isCustom = c.kind === 'CUSTOM';
     body = (
       <>
-        <rect className="body" x={c.x} y={c.y} width={w} height={h} />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} />
         <text
-          className="label"
+          className={styles.label}
           x={c.x + w / 2}
           y={isCustom ? c.y - 6 : isFlipFlop(c.kind) ? c.y + h / 2 + 4 : c.y + 20}
         >
@@ -91,14 +92,19 @@ export function ComponentView({
         </text>
         {ports.inputs.map((label, i) =>
           label ? (
-            <text key={i} className="pin-label" x={c.x + 4} y={inputPinPos(c, ports, i).y + 4}>
+            <text key={i} className={styles.pinLabel} x={c.x + 4} y={inputPinPos(c, ports, i).y + 4}>
               {label}
             </text>
           ) : null,
         )}
         {ports.outputs.map((label, i) =>
           label ? (
-            <text key={i} className="pin-label end" x={c.x + w - 4} y={outputPinPos(c, ports, i).y + 4}>
+            <text
+              key={i}
+              className={classNames(styles.pinLabel, styles.end)}
+              x={c.x + w - 4}
+              y={outputPinPos(c, ports, i).y + 4}
+            >
               {label}
             </text>
           ) : null,
@@ -109,7 +115,7 @@ export function ComponentView({
 
   return (
     <g
-      className={selected ? 'selected' : undefined}
+      className={selected ? styles.selected : undefined}
       onPointerDown={onBodyDown}
       onDoubleClick={onBodyDoubleClick}
       style={{ cursor: 'move' }}
@@ -118,8 +124,8 @@ export function ComponentView({
         const p = inputPinPos(c, ports, i);
         return (
           <g key={i}>
-            <line className={`lead${v ? ' on' : ''}`} x1={p.x} y1={p.y} x2={c.x} y2={p.y} />
-            <circle className="pin" cx={p.x} cy={p.y} r={6} onPointerDown={(e) => onInputPinDown(e, i)} />
+            <line className={classNames(styles.lead, v && styles.on)} x1={p.x} y1={p.y} x2={c.x} y2={p.y} />
+            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} onPointerDown={(e) => onInputPinDown(e, i)} />
           </g>
         );
       })}
@@ -127,8 +133,14 @@ export function ComponentView({
         const p = outputPinPos(c, ports, i);
         return (
           <g key={i}>
-            <line className={`lead${outputValues[i] ? ' on' : ''}`} x1={c.x + w} y1={p.y} x2={p.x} y2={p.y} />
-            <circle className="pin" cx={p.x} cy={p.y} r={6} onPointerDown={(e) => onOutputPinDown(e, i)} />
+            <line
+              className={classNames(styles.lead, outputValues[i] && styles.on)}
+              x1={c.x + w}
+              y1={p.y}
+              x2={p.x}
+              y2={p.y}
+            />
+            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} onPointerDown={(e) => onOutputPinDown(e, i)} />
           </g>
         );
       })}

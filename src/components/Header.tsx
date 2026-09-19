@@ -1,13 +1,13 @@
 import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
-import './Header.css';
+import styles from './Header.module.css';
 
 /** 最上部のヘッダー (ロゴ) */
 export function Header() {
   return (
-    <header className="header">
+    <header className={styles.header}>
       <h1>
-        <MaskIcon src={logo} className="logo" />
+        <MaskIcon src={logo} className={styles.logo} />
         <span className="visually-hidden">sazanka</span>
       </h1>
     </header>

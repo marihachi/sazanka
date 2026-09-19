@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import './StatusBar.css';
+import styles from './StatusBar.module.css';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -31,11 +31,11 @@ export function StatusBar({ hints, unstable }: StatusBarProps) {
   }, [hint, index, hints.length, paused]);
 
   return (
-    <footer className="statusbar" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
-      <span key={hint} className="status-hint">
+    <footer className={styles.statusbar} onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
+      <span key={hint} className={styles.statusHint}>
         {hint}
       </span>
-      {unstable && <span className="status-warn">発振しています</span>}
+      {unstable && <span className={styles.statusWarn}>発振しています</span>}
     </footer>
   );
 }

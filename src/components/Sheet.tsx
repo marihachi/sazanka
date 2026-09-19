@@ -3,9 +3,10 @@ import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Po
 import { findDef, portsOf, type CircuitDef, type Project } from '../engine/project';
 import { pinKey, type Component, type Kind, type PinRef, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
+import { classNames } from './classNames';
 import { InlineInput } from './Dialogs';
 import { DRAG_MIME, type PaletteDrag } from './Palette';
-import './Sheet.css';
+import styles from './Sheet.module.css';
 
 export type Selection = { type: 'comp' | 'wire'; id: string } | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
@@ -219,10 +220,10 @@ export function Sheet({
   const labelTarget = labelEditingId ? compMap.get(labelEditingId) : undefined;
 
   return (
-    <div className="sheet-wrap">
+    <div className={styles.sheetWrap}>
       <svg
         ref={svgRef}
-        className="sheet"
+        className={styles.sheet}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => {
@@ -258,9 +259,9 @@ export function Sheet({
           const selected = selection?.type === 'wire' && selection.id === w.id;
           return (
             <g key={w.id}>
-              <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
+              <path className={classNames(styles.wire, on && styles.on, selected && styles.selected)} d={d} />
               <path
-                className="wire-hit"
+                className={styles.wireHit}
                 d={d}
                 onPointerDown={(e) => {
                   e.stopPropagation();
@@ -301,7 +302,7 @@ export function Sheet({
 
         {pending && pendingFrom && (
           <path
-            className="pending"
+            className={styles.pending}
             d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
           />
         )}
@@ -309,7 +310,7 @@ export function Sheet({
       {labelTarget && (
         <InlineInput
           key={labelTarget.id}
-          className="label-input"
+          className={styles.labelInput}
           style={labelInputPosition(labelTarget)}
           initial={labelTarget.label ?? ''}
           placeholder="ラベル"

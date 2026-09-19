@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import './Dialogs.css';
+import { classNames } from './classNames';
+import styles from './Dialogs.module.css';
 
 // ブラウザの prompt / confirm / alert は VS Code 内のブラウザなどで動かないため、画面内の UI で代替する
 
@@ -35,7 +36,7 @@ export function InlineInput({ initial, className, style, placeholder, onCommit, 
   return (
     <input
       ref={ref}
-      className={className ? `inline-input ${className}` : 'inline-input'}
+      className={classNames(styles.inlineInput, className)}
       style={style}
       defaultValue={initial}
       placeholder={placeholder}
@@ -64,9 +65,9 @@ export function Dialog({ request, onClose }: { request: DialogRequest; onClose: 
   useEffect(() => confirmRef.current?.focus(), []);
 
   return (
-    <div className="dialog-backdrop" onPointerDown={onClose}>
+    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
       <div
-        className="dialog"
+        className={styles.dialog}
         role="dialog"
         aria-modal="true"
         onPointerDown={(e) => e.stopPropagation()}
@@ -75,11 +76,11 @@ export function Dialog({ request, onClose }: { request: DialogRequest; onClose: 
         }}
       >
         <p>{request.message}</p>
-        <div className="dialog-buttons">
+        <div className={styles.dialogButtons}>
           {request.onConfirm && <button onClick={onClose}>キャンセル</button>}
           <button
             ref={confirmRef}
-            className={request.danger ? 'danger' : undefined}
+            className={request.danger ? styles.danger : undefined}
             onClick={() => {
               onClose();
               request.onConfirm?.();
@@ -124,9 +125,9 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
   }
 
   return (
-    <div className="dialog-backdrop" onPointerDown={onClose}>
+    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
       <form
-        className="dialog"
+        className={styles.dialog}
         role="dialog"
         aria-modal="true"
         aria-labelledby="prompt-title"
@@ -137,7 +138,7 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
         }}
       >
         <h2 id="prompt-title">{request.title}</h2>
-        <label className="field">
+        <label className={styles.field}>
           <span>{request.label}</span>
           <input
             ref={inputRef}
@@ -148,12 +149,12 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
             }}
           />
         </label>
-        <p className="field-error">{touched && error ? error : ' '}</p>
-        <div className="dialog-buttons">
+        <p className={styles.fieldError}>{touched && error ? error : ' '}</p>
+        <div className={styles.dialogButtons}>
           <button type="button" onClick={onClose}>
             キャンセル
           </button>
-          <button type="submit" className="primary" disabled={touched && !!error}>
+          <button type="submit" className={styles.primary} disabled={touched && !!error}>
             {request.confirmLabel}
           </button>
         </div>

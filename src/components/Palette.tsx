@@ -2,8 +2,9 @@ import trashIcon from '../assets/icons/trash.svg';
 import type { CircuitDef } from '../engine/project';
 import type { Kind } from '../engine/sim';
 import { LABELS } from './ComponentView';
+import { classNames } from './classNames';
 import { MaskIcon, PartIcon } from './Icons';
-import './Palette.css';
+import styles from './Palette.module.css';
 
 const GROUPS: { title: string; kinds: Kind[] }[] = [
   { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },
@@ -37,8 +38,8 @@ interface PaletteProps {
 /** 左側のパネル。部品の一覧と、下端の削除エリア */
 export function Palette({ modules, dragMode, trashRef, onAdd }: PaletteProps) {
   return (
-    <div className="sidebar">
-      <aside className="palette">
+    <div className={styles.sidebar}>
+      <aside className={styles.palette}>
         {GROUPS.map((group) => (
           <section key={group.title}>
             <h3>{group.title}</h3>
@@ -59,14 +60,18 @@ export function Palette({ modules, dragMode, trashRef, onAdd }: PaletteProps) {
               onAdd={() => onAdd('CUSTOM', def.id)}
             />
           ))}
-          {modules.length === 0 && <p className="empty">モジュールはまだありません</p>}
+          {modules.length === 0 && <p className={styles.empty}>モジュールはまだありません</p>}
         </section>
       </aside>
       <div
         ref={trashRef}
-        className={`trash${dragMode !== 'none' ? ' dragging' : ''}${dragMode === 'trash' ? ' active' : ''}`}
+        className={classNames(
+          styles.trash,
+          dragMode !== 'none' && styles.dragging,
+          dragMode === 'trash' && styles.active,
+        )}
       >
-        <MaskIcon src={trashIcon} className="trash-icon" />
+        <MaskIcon src={trashIcon} className={styles.trashIcon} />
         ここへドラッグで削除
       </div>
     </div>
@@ -87,7 +92,7 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
   const disabled = !!disabledReason;
   return (
     <button
-      className={kind === 'CUSTOM' ? 'custom' : undefined}
+      className={kind === 'CUSTOM' ? styles.custom : undefined}
       disabled={disabled}
       title={disabledReason}
       draggable={!disabled}
