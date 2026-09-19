@@ -48,7 +48,3 @@ export function connect<T extends Circuit>(circuit: T, id: string, from: PinRef,
 export function disconnect<T extends Circuit>(circuit: T, to: PinRef): T {
   return { ...circuit, wires: circuit.wires.filter((w) => !isWireTo(to)(w)) };
 }
-
-export function clearCircuit<T extends Circuit>(circuit: T): T {
-  return { ...circuit, components: [], wires: [] };
-}

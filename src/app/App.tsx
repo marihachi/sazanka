@@ -16,13 +16,15 @@ import { Toolbar } from '../components/Toolbar';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, snap, type Point } from '../engine/layout';
 import {
+  circuitsUsing,
   dependsOn,
+  emptyProject,
   findDef,
   MAIN_ID,
   portsOf,
   simulateCircuit,
-  circuitsUsing,
   type CircuitDef,
+  type Project,
 } from '../engine/project';
 import { parseProject, serializeProject } from '../engine/share';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
@@ -244,16 +246,21 @@ export function App() {
     setCircuit((cur) => edit.disconnect(cur, to));
   }
 
-  function clearAll() {
+  /** プロジェクト全体を置き換える (新規作成、読み込み)。元に戻すで戻せる */
+  function replaceProject(next: Project) {
+    setProject(() => next);
+    prevResults.current.clear();
+    openCircuit(MAIN_ID);
+    setEditing(null);
+  }
+
+  function newProject() {
     setDialog({
-      message: 'この回路をすべて消去しますか？',
-      confirmLabel: '消去',
+      message:
+        '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
+      confirmLabel: '新規作成',
       danger: true,
-      onConfirm: () => {
-        setCircuit(edit.clearCircuit);
-        setSelection(null);
-        setPending(null);
-      },
+      onConfirm: () => replaceProject(emptyProject()),
     });
   }
 
@@ -295,10 +302,7 @@ export function App() {
       onSubmit: (text) => {
         const result = parseProject(text.trim(), newId);
         if (!result.ok) return result.error;
-        setProject(() => result.project);
-        prevResults.current.clear();
-        openCircuit(MAIN_ID);
-        setEditing(null);
+        replaceProject(result.project);
         if (result.author) setDialog({ message: `「${result.author}」さんの回路を読み込みました。` });
         return undefined;
       },
@@ -334,7 +338,7 @@ export function App() {
         onUndo={undoEdit}
         onRedo={redoEdit}
         onAddModule={createModule}
-        onClear={clearAll}
+        onNew={newProject}
         onExport={exportProject}
         onImport={importProject}
       />

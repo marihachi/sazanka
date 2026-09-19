@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   addComponent,
-  clearCircuit,
   connect,
   disconnect,
   moveComponent,
@@ -64,13 +63,9 @@ describe('edit', () => {
     expect(moved.components[0]).toBe(added.components[0]);
   });
 
-  it('全消去すると部品も配線もなくなる', () => {
-    expect(clearCircuit(base)).toEqual({ components: [], wires: [] });
-  });
-
   it('回路定義の ID や名前は編集しても残る', () => {
     const def: CircuitDef = { ...base, id: 'm', name: 'M' };
-    expect(clearCircuit(removeComponent(def, 'g'))).toMatchObject({ id: 'm', name: 'M' });
+    expect(removeWire(removeComponent(def, 'g'), 'w1')).toMatchObject({ id: 'm', name: 'M' });
   });
 
   it('スイッチの ON/OFF を切り替える', () => {
