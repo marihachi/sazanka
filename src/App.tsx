@@ -4,7 +4,6 @@ import { Dialog, InlineInput, PromptDialog, type DialogRequest, type PromptReque
 import clearIcon from './assets/icons/clear.svg';
 import logo from './assets/logo.svg';
 import plusIcon from './assets/icons/plus.svg';
-import renameIcon from './assets/icons/rename.svg';
 import trashIcon from './assets/icons/trash.svg';
 import { MaskIcon, PartIcon } from './PartIcon';
 import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
@@ -49,6 +48,7 @@ const IDLE_HINTS = [
 ];
 /** モジュールのタブを開いているときに追加で表示するヒント */
 const MODULE_HINTS = [
+  'タブをダブルクリックすると、モジュールの名前を変更できる',
   'このモジュールの INPUT / OUTPUT が、外側から見たピンになる (上から順)',
   'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
   'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
@@ -492,10 +492,6 @@ export function App() {
         </div>
         {circuit.id !== MAIN_ID && (
           <div className="tabbar-actions">
-            <button className="tool" onClick={() => setEditing({ type: 'tab', id: circuit.id })}>
-              <MaskIcon src={renameIcon} className="tool-icon" />
-              名前変更
-            </button>
             <button className="tool" onClick={deleteCircuit}>
               <MaskIcon src={trashIcon} className="tool-icon" />
               モジュールを削除
