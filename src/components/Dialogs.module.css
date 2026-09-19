@@ -104,3 +104,32 @@
   background: #5a2222;
   border-color: #ef5350;
 }
+
+.dialog .text {
+  display: block;
+  width: min(480px, 80vw);
+  height: 160px;
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  resize: vertical;
+  outline: none;
+}
+
+.dialog .text:focus {
+  border-color: var(--accent);
+}
+
+.dialog .field-error.done {
+  color: var(--accent);
+}
+
+/* 複数行の文字列の上に置く1行の入力欄 */
+.dialog .field.inline {
+  width: auto;
+  margin-bottom: 12px;
+}

@@ -162,3 +162,99 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
     </div>
   );
 }
+
+export interface TextRequest {
+  title: string;
+  message: string;
+  initial: string;
+  /** 表示するだけで編集させない (書き出した文字列を見せるときなど) */
+  readOnly?: boolean;
+  confirmLabel: string;
+  /** 確定時の処理。エラーメッセージを返すとダイアログを閉じずに表示する */
+  onSubmit: (value: string) => string | undefined | Promise<string | undefined>;
+  /** 成功しても閉じずに、このメッセージを表示する */
+  doneMessage?: string;
+  /** 文字列の上に置く1行の入力欄 (書き出すときの作者名など) */
+  field?: {
+    label: string;
+    initial: string;
+    placeholder?: string;
+    /** 入力が変わるたびに呼ばれる。文字列を返すと、下の複数行の文字列をそれに置き換える */
+    onChange: (value: string) => string | undefined;
+  };
+}
+
+/** 複数行の文字列を見せる・入力してもらう画面内のダイアログ */
+export function TextDialog({ request, onClose }: { request: TextRequest; onClose: () => void }) {
+  const [value, setValue] = useState(request.initial);
+  const [fieldValue, setFieldValue] = useState(request.field?.initial ?? '');
+  const [status, setStatus] = useState<{ error: boolean; text: string } | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textRef.current?.focus();
+    textRef.current?.select();
+  }, []);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const error = await request.onSubmit(value);
+    if (error) setStatus({ error: true, text: error });
+    else if (request.doneMessage) setStatus({ error: false, text: request.doneMessage });
+    else onClose();
+  }
+
+  return (
+    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
+      <form
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="text-title"
+        onSubmit={submit}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <h2 id="text-title">{request.title}</h2>
+        <p>{request.message}</p>
+        {request.field && (
+          <label className={classNames(styles.field, styles.inline)}>
+            <span>{request.field.label}</span>
+            <input
+              value={fieldValue}
+              placeholder={request.field.placeholder}
+              onChange={(e) => {
+                setFieldValue(e.target.value);
+                setStatus(null);
+                const text = request.field!.onChange(e.target.value);
+                if (text !== undefined) setValue(text);
+              }}
+            />
+          </label>
+        )}
+        <textarea
+          ref={textRef}
+          className={styles.text}
+          value={value}
+          readOnly={request.readOnly}
+          spellCheck={false}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setStatus(null);
+          }}
+        />
+        <p className={classNames(styles.fieldError, status && !status.error && styles.done)}>{status?.text ?? ' '}</p>
+        <div className={styles.dialogButtons}>
+          <button type="button" onClick={onClose}>
+            {request.readOnly ? '閉じる' : 'キャンセル'}
+          </button>
+          <button type="submit" className={styles.primary}>
+            {request.confirmLabel}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

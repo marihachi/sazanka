@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
-import { Dialog, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
+import {
+  Dialog,
+  PromptDialog,
+  TextDialog,
+  type DialogRequest,
+  type PromptRequest,
+  type TextRequest,
+} from '../components/Dialogs';
 import { Header } from '../components/Header';
 import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
@@ -17,9 +24,10 @@ import {
   circuitsUsing,
   type CircuitDef,
 } from '../engine/project';
+import { parseProject, serializeProject } from '../engine/share';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
-import { loadProject, saveProject } from './storage';
+import { loadAuthor, loadProject, saveAuthor, saveProject } from './storage';
 import { useClock } from './useClock';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
@@ -46,6 +54,7 @@ export function App() {
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
+  const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
   /** 回路ごとの前回のシミュレーション結果 */
   const prevResults = useRef(new Map<string, SimResult>());
 
@@ -176,7 +185,7 @@ export function App() {
   }
 
   useShortcuts({
-    enabled: !dialog && !promptDialog,
+    enabled: !dialog && !promptDialog && !textDialog,
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
@@ -246,6 +255,55 @@ export function App() {
     });
   }
 
+  function exportProject() {
+    const author = loadAuthor();
+    setTextDialog({
+      title: '書き出し',
+      message:
+        'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
+      initial: serializeProject(project, author),
+      readOnly: true,
+      field: {
+        label: '作者名 (省略可)',
+        initial: author,
+        onChange: (value) => {
+          saveAuthor(value);
+          return serializeProject(project, value);
+        },
+      },
+      confirmLabel: 'コピー',
+      doneMessage: 'コピーしました',
+      onSubmit: async (text) => {
+        try {
+          await navigator.clipboard.writeText(text);
+          return undefined;
+        } catch {
+          // 安全でない接続 (http) などでは、クリップボードに書き込めない
+          return 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください';
+        }
+      },
+    });
+  }
+
+  function importProject() {
+    setTextDialog({
+      title: '読み込み',
+      message: '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
+      initial: '',
+      confirmLabel: '読み込む',
+      onSubmit: (text) => {
+        const result = parseProject(text.trim(), newId);
+        if (!result.ok) return result.error;
+        setProject(() => result.project);
+        prevResults.current.clear();
+        openCircuit(MAIN_ID);
+        setEditing(null);
+        if (result.author) setDialog({ message: `「${result.author}」さんの回路を読み込みました。` });
+        return undefined;
+      },
+    });
+  }
+
   const hints = statusHints({
     dragMode,
     wiring: !!pending,
@@ -276,6 +334,8 @@ export function App() {
         onRedo={redoEdit}
         onAddModule={createModule}
         onClear={clearAll}
+        onExport={exportProject}
+        onImport={importProject}
       />
       <div className="workspace">
         <Palette
@@ -313,6 +373,7 @@ export function App() {
       <StatusBar hints={hints} unstable={sim.unstable} />
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
       {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
+      {textDialog && <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />}
     </div>
   );
 }

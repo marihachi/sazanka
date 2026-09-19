@@ -28,3 +28,22 @@ export function saveProject(project: Project) {
     // 保存できない環境では無視
   }
 }
+
+const AUTHOR_KEY = 'sazanka.author';
+
+/** 前回書き出したときの作者名。次に書き出すときの初期値にする */
+export function loadAuthor(): string {
+  try {
+    return localStorage.getItem(AUTHOR_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveAuthor(author: string) {
+  try {
+    localStorage.setItem(AUTHOR_KEY, author);
+  } catch {
+    // 保存できない環境では無視
+  }
+}
