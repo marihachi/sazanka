@@ -1,4 +1,4 @@
-import { bodySize, inputPinPos, outputPinPos } from '../engine/geometry';
+import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
 import type { Ports } from '../engine/project';
 import { isFlipFlop, type Component, type Kind } from '../engine/sim';
 import './ComponentView.css';

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from '../engine/geometry';
+import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from '../engine/layout';
 import { findDef, portsOf, type CircuitDef, type Project } from '../engine/project';
 import { pinKey, type Component, type Kind, type PinRef, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';

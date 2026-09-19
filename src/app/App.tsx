@@ -7,7 +7,7 @@ import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
 import { Toolbar } from '../components/Toolbar';
 import * as edit from '../engine/edit';
-import { clampPosition, GRID, snap, type Point } from '../engine/geometry';
+import { clampPosition, GRID, snap, type Point } from '../engine/layout';
 import {
   dependsOn,
   findDef,

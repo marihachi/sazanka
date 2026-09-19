@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampPosition } from './geometry';
+import { clampPosition } from './layout';
 import type { Component } from './sim';
 
 describe('clampPosition', () => {

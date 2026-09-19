@@ -1,4 +1,4 @@
-import type { Point } from './geometry';
+import type { Point } from './layout';
 import type { Circuit, Component, PinRef } from './sim';
 
 function updateComponent<T extends Circuit>(circuit: T, id: string, update: (c: Component) => Component): T {
