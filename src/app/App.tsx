@@ -259,8 +259,7 @@ export function App() {
     const author = loadAuthor();
     setTextDialog({
       title: '書き出し',
-      message:
-        'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
+      message: 'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
       initial: serializeProject(project, author),
       readOnly: true,
       field: {
