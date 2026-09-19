@@ -1,62 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ComponentView, LABELS } from './ComponentView';
-import { Dialog, InlineInput, PromptDialog, type DialogRequest, type PromptRequest } from './Dialogs';
-import clearIcon from './assets/icons/clear.svg';
-import logo from './assets/logo.svg';
-import plusIcon from './assets/icons/plus.svg';
-import trashIcon from './assets/icons/trash.svg';
-import { MaskIcon, PartIcon } from './PartIcon';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
+import clearIcon from '../assets/icons/clear.svg';
+import plusIcon from '../assets/icons/plus.svg';
+import logo from '../assets/logo.svg';
+import { ComponentView } from '../components/ComponentView';
+import { Dialog, InlineInput, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
+import { MaskIcon } from '../components/Icons';
+import { DRAG_MIME, Palette, type PaletteDrag, type PaletteModule } from '../components/Palette';
+import { StatusBar } from '../components/StatusBar';
+import { TabBar } from '../components/TabBar';
+import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from '../engine/geometry';
 import {
   dependsOn,
-  emptyProject,
   findDef,
   MAIN_ID,
   portsOf,
   simulateCircuit,
   type CircuitDef,
   type Project,
-} from './project';
-import { pinKey, type Circuit, type Component, type Kind, type PinRef, type SimResult } from './sim';
-
-const PALETTE: { title: string; kinds: Kind[] }[] = [
-  { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },
-  { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
-  { title: 'ラッチ', kinds: ['RS'] },
-  { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
-];
-/** パレットからドラッグするときの dataTransfer の型 */
-const DRAG_MIME = 'application/x-sazanka-part';
-const STORAGE_KEY = 'sazanka.project';
-/** 旧形式 (回路1つ) の保存キー */
-const LEGACY_STORAGE_KEY = 'sazanka.circuit';
-/** ヒントを表示し続ける時間 (ms)。長い文ほど長く、最短でも HINT_MIN_DURATION */
-function hintDuration(hint: string): number {
-  return Math.max(HINT_MIN_DURATION, 3000 + hint.length * 250);
-}
-const HINT_MIN_DURATION = 6000;
-/** 何も操作していないときに順に表示するヒント */
-const IDLE_HINTS = [
-  '左のパネルからクリックかドラッグで部品を追加',
-  '出力ピン → 入力ピンの順にクリックで配線',
-  '配線がつながった入力ピンをクリックすると配線を外す',
-  'INPUT はクリックで ON/OFF を切り替え',
-  '入力ピンにつなげる配線は1本だけ。別の配線をつなぐと置き換わる',
-  '部品を左下の削除エリアへドラッグすると削除',
-  'フリップフロップ (D / T / JK) は、CLK (>) が OFF から ON になった瞬間だけ動く',
-  'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
-  '「モジュールを追加」で回路を部品としてまとめられる',
-  'モジュールの中の INPUT / OUTPUT がピンになる。ダブルクリックでラベルを付けるとピン名になる',
-];
-/** モジュールのタブを開いているときに追加で表示するヒント */
-const MODULE_HINTS = [
-  'タブをダブルクリックすると、モジュールの名前を変更できる',
-  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる (上から順)',
-  'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
-  'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
-];
-/** CLOCK が反転する間隔 (ms) */
-const CLOCK_HALF_PERIOD = 500;
+} from '../engine/project';
+import { pinKey, type Component, type Kind, type PinRef, type SimResult } from '../engine/sim';
+import { statusHints } from './hints';
+import { loadProject, saveProject } from './storage';
+import { useClock } from './useClock';
 
 type Selection = { type: 'comp' | 'wire'; id: string } | null;
 /** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
@@ -76,22 +41,6 @@ const DRAG_THRESHOLD = 4;
 
 function newId(): string {
   return Math.random().toString(36).slice(2, 10);
-}
-
-function loadProject(): Project {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Project;
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      const project = emptyProject();
-      Object.assign(project.circuits[0], JSON.parse(legacy) as Circuit);
-      return project;
-    }
-  } catch {
-    // 読み込めなければ空のプロジェクトから始める
-  }
-  return emptyProject();
 }
 
 function wirePath(a: Point, b: Point): string {
@@ -130,32 +79,13 @@ export function App() {
     prevResults.current.set(circuit.id, sim);
   }, [sim, circuit.id]);
 
-  const hasClock = project.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
-  useEffect(() => {
-    if (!hasClock) return;
-    const timer = setInterval(() => {
-      setProject((p) => ({
-        circuits: p.circuits.map((d) => ({
-          ...d,
-          components: d.components.map((c) => (c.kind === 'CLOCK' ? { ...c, on: !c.on } : c)),
-        })),
-      }));
-    }, CLOCK_HALF_PERIOD);
-    return () => clearInterval(timer);
-  }, [hasClock]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
-    } catch {
-      // 保存できない環境では無視
-    }
-  }, [project]);
+  useClock(project, setProject);
+  useEffect(() => saveProject(project), [project]);
 
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
 
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
-  const paletteModules = project.circuits
+  const paletteModules: PaletteModule[] = project.circuits
     .filter((d) => d.id !== MAIN_ID)
     .map((d) => ({
       def: d,
@@ -392,7 +322,7 @@ export function App() {
     const data = e.dataTransfer.getData(DRAG_MIME);
     if (!data) return;
     e.preventDefault();
-    const { kind, custom } = JSON.parse(data) as { kind: Kind; custom?: string };
+    const { kind, custom } = JSON.parse(data) as PaletteDrag;
     const p = toLocal(e);
     // カーソルが部品の左上付近に来るよう少しずらす
     addComponent(kind, custom, { x: p.x - GRID, y: p.y - GRID });
@@ -416,46 +346,15 @@ export function App() {
     });
   }
 
-  /** ステータスバーに出す、今の操作に応じた使い方のヒント。複数あれば時間で切り替える */
-  function statusHints(): string[] {
-    if (dragMode === 'trash') return ['離すと削除します'];
-    if (dragMode === 'moving') return ['左下の削除エリアで離すと削除します'];
-    if (pending) return ['接続先の入力ピンをクリック ・ Esc で取り消し'];
-    if (editing) return ['Enter で確定 ・ Esc で取り消し'];
-    if (selection?.type === 'wire') return ['Delete で配線を削除'];
-    const c = selection?.type === 'comp' ? compMap.get(selection.id) : undefined;
-    if (c) {
-      const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
-      if (c.kind === 'INPUT') return ['クリックで ON/OFF', 'ダブルクリックでラベルを編集', ...move];
-      if (c.kind === 'OUTPUT') return ['ダブルクリックでラベルを編集', ...move];
-      if (c.kind === 'CUSTOM') return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
-      if (c.kind === 'CLOCK') return [`${(CLOCK_HALF_PERIOD * 2) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
-      if (c.kind === 'RS')
-        return ['S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)', 'クロックはなく、S / R が変わるとすぐに Q が変わる', ...move];
-      if (c.kind === 'DFF') return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
-      if (c.kind === 'TFF') return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
-      if (c.kind === 'JKFF')
-        return ['CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する', ...move];
-      return move;
-    }
-    if (sim.unstable) return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];
-    return circuit.id === MAIN_ID ? IDLE_HINTS : [...MODULE_HINTS, ...IDLE_HINTS];
-  }
-
-  const hints = statusHints();
-  const hintKey = hints.join('|');
-  const [hintIndex, setHintIndex] = useState(0);
-  /** ステータスバーにマウスが載っている間は切り替えを止める */
-  const [hintPaused, setHintPaused] = useState(false);
-  // 状態が変わったら最初のヒントから表示し直す
-  useEffect(() => setHintIndex(0), [hintKey]);
-  const hint = hints[hintIndex % hints.length];
-  // 読み終えられるだけの時間を置いてから次のヒントへ切り替える
-  useEffect(() => {
-    if (hints.length < 2 || hintPaused) return;
-    const timer = setTimeout(() => setHintIndex((i) => i + 1), hintDuration(hint));
-    return () => clearTimeout(timer);
-  }, [hint, hintIndex, hints.length, hintPaused]);
+  const hints = statusHints({
+    dragMode,
+    wiring: !!pending,
+    editing: !!editing,
+    wireSelected: selection?.type === 'wire',
+    selectedComponent: selection?.type === 'comp' ? compMap.get(selection.id) : undefined,
+    unstable: sim.unstable,
+    inModule: circuit.id !== MAIN_ID,
+  });
 
   /** ラベル入力欄は部品の真上に置く */
   function labelInputPosition(c: Component): React.CSSProperties {
@@ -475,41 +374,16 @@ export function App() {
           <span className="visually-hidden">sazanka</span>
         </h1>
       </header>
-      <div className="tabbar">
-        <div className="tabs" role="tablist">
-          {project.circuits.map((d) =>
-            editing?.type === 'tab' && editing.id === d.id ? (
-              <InlineInput
-                key={d.id}
-                className="tab-input"
-                initial={d.name}
-                onCommit={(v) => renameCircuit(d.id, v)}
-                onCancel={() => setEditing(null)}
-              />
-            ) : (
-              <button
-                key={d.id}
-                role="tab"
-                aria-selected={d.id === circuit.id}
-                className={`tab${d.id === circuit.id ? ' active' : ''}`}
-                onClick={() => openCircuit(d.id)}
-                onDoubleClick={() => d.id !== MAIN_ID && setEditing({ type: 'tab', id: d.id })}
-                title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更' : undefined}
-              >
-                {d.name}
-              </button>
-            ),
-          )}
-        </div>
-        {circuit.id !== MAIN_ID && (
-          <div className="tabbar-actions">
-            <button className="tool" onClick={deleteCircuit}>
-              <MaskIcon src={trashIcon} className="tool-icon" />
-              モジュールを削除
-            </button>
-          </div>
-        )}
-      </div>
+      <TabBar
+        circuits={project.circuits}
+        currentId={circuit.id}
+        renamingId={editing?.type === 'tab' ? editing.id : undefined}
+        onOpen={openCircuit}
+        onStartRename={(id) => setEditing({ type: 'tab', id })}
+        onRename={renameCircuit}
+        onCancelRename={() => setEditing(null)}
+        onDeleteCurrent={deleteCircuit}
+      />
       <div className="toolbar actions">
         <button className="tool" onClick={createModule}>
           <MaskIcon src={plusIcon} className="tool-icon" />
@@ -521,39 +395,12 @@ export function App() {
         </button>
       </div>
       <div className="workspace">
-        <div className="sidebar">
-          <aside className="palette">
-            {PALETTE.map((group) => (
-              <section key={group.title}>
-                <h3>{group.title}</h3>
-                {group.kinds.map((k) => (
-                  <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => addComponent(k)} />
-                ))}
-              </section>
-            ))}
-            <section>
-              <h3>モジュール</h3>
-              {paletteModules.map(({ def, blocked }) => (
-                <PaletteItem
-                  key={def.id}
-                  label={def.name}
-                  kind="CUSTOM"
-                  custom={def.id}
-                  disabledReason={blocked}
-                  onAdd={() => addComponent('CUSTOM', def.id)}
-                />
-              ))}
-              {paletteModules.length === 0 && <p className="empty">モジュールはまだありません</p>}
-            </section>
-          </aside>
-          <div
-            ref={trashRef}
-            className={`trash${dragMode !== 'none' ? ' dragging' : ''}${dragMode === 'trash' ? ' active' : ''}`}
-          >
-            <MaskIcon src={trashIcon} className="trash-icon" />
-            ここへドラッグで削除
-          </div>
-        </div>
+        <Palette
+          modules={paletteModules}
+          dragMode={dragMode}
+          trashRef={trashRef}
+          onAdd={(kind, custom) => addComponent(kind, custom)}
+        />
         <div className="canvas-wrap">
           <svg
             ref={svgRef}
@@ -647,48 +494,9 @@ export function App() {
           )}
         </div>
       </div>
-      <footer
-        className="statusbar"
-        onPointerEnter={() => setHintPaused(true)}
-        onPointerLeave={() => setHintPaused(false)}
-      >
-        <span key={hint} className="status-hint">
-          {hint}
-        </span>
-        {sim.unstable && <span className="status-warn">発振しています</span>}
-      </footer>
+      <StatusBar hints={hints} unstable={sim.unstable} />
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
       {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
     </div>
-  );
-}
-
-interface PaletteItemProps {
-  label: string;
-  kind: Kind;
-  custom?: string;
-  /** 置けない場合の理由。あればグレーアウトし、理由をツールチップに出す */
-  disabledReason?: string;
-  onAdd: () => void;
-}
-
-/** クリックで追加、キャンバスへドラッグで好きな位置に追加 */
-function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItemProps) {
-  const disabled = !!disabledReason;
-  return (
-    <button
-      className={kind === 'CUSTOM' ? 'custom' : undefined}
-      disabled={disabled}
-      title={disabledReason}
-      draggable={!disabled}
-      onClick={onAdd}
-      onDragStart={(e) => {
-        e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind, custom }));
-        e.dataTransfer.effectAllowed = 'copy';
-      }}
-    >
-      <PartIcon kind={kind} />
-      <span>{label}</span>
-    </button>
   );
 }

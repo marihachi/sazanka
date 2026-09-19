@@ -1,6 +1,6 @@
-import { bodySize, inputPinPos, outputPinPos } from './geometry';
-import type { Ports } from './project';
-import { isFlipFlop, type Component, type Kind } from './sim';
+import { bodySize, inputPinPos, outputPinPos } from '../engine/geometry';
+import type { Ports } from '../engine/project';
+import { isFlipFlop, type Component, type Kind } from '../engine/sim';
 
 export const LABELS: Partial<Record<Kind, string>> = { RS: 'RS Latch', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
 /** キャンバス上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
