@@ -6,7 +6,7 @@
   min-height: 24px;
   padding: 2px 10px;
   font-size: 12px;
-  background: var(--tabbar);
+  background: var(--statusbar);
   border-top: 1px solid var(--border);
   /* ヒントの切り替え効果で中身が動いてもはみ出さない */
   overflow: hidden;
