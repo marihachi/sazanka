@@ -1,8 +1,6 @@
 import type { Component } from '../engine/sim';
 import { CLOCK_HALF_PERIOD } from './useClock';
 
-// ステータスバーに出す使い方のヒント。分かりにくい操作や仕様に気付いたらここに追加する
-
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
   '左のパネルからクリックかドラッグで部品を追加',
