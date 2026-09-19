@@ -23,6 +23,8 @@ body,
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, sans-serif;
+  /* アプリは画面全体に収める。一時的なはみ出しでページのスクロールバーを出さない */
+  overflow: hidden;
 }
 
 .app {
@@ -516,6 +518,8 @@ body,
   font-size: 12px;
   background: var(--tabbar);
   border-top: 1px solid var(--border);
+  /* ヒントの切り替え効果で中身が動いてもはみ出さない */
+  overflow: hidden;
 }
 
 .status-hint {
@@ -525,6 +529,18 @@ body,
   text-overflow: ellipsis;
   white-space: nowrap;
   opacity: 0.75;
+}
+
+/* ヒントが切り替わるときにふわっと表示する */
+.status-hint {
+  animation: hint-in 0.4s ease-out;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .status-warn {

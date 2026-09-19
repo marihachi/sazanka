@@ -30,6 +30,29 @@ const DRAG_MIME = 'application/x-sazanka-part';
 const STORAGE_KEY = 'sazanka.project';
 /** 旧形式 (回路1つ) の保存キー */
 const LEGACY_STORAGE_KEY = 'sazanka.circuit';
+/** ヒントを表示し続ける時間 (ms)。長い文ほど長く、最短でも HINT_MIN_DURATION */
+function hintDuration(hint: string): number {
+  return Math.max(HINT_MIN_DURATION, 3000 + hint.length * 250);
+}
+const HINT_MIN_DURATION = 6000;
+/** 何も操作していないときに順に表示するヒント */
+const IDLE_HINTS = [
+  '左のパネルからクリックかドラッグで部品を追加',
+  '出力ピン → 入力ピンの順にクリックで配線',
+  '配線がつながった入力ピンをクリックすると配線を外す',
+  'INPUT はクリックで ON/OFF を切り替え',
+  '入力ピンにつなげる配線は1本だけ。別の配線をつなぐと置き換わる',
+  '部品を左下の削除エリアへドラッグすると削除',
+  'フリップフロップ (SR 以外) は、CLK (>) が OFF から ON になった瞬間だけ動く',
+  '「モジュールを追加」で回路を部品としてまとめられる',
+  'モジュールの中の INPUT / OUTPUT がピンになる。ダブルクリックでラベルを付けるとピン名になる',
+];
+/** モジュールのタブを開いているときに追加で表示するヒント */
+const MODULE_HINTS = [
+  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる (上から順)',
+  'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
+  'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
+];
 /** CLOCK が反転する間隔 (ms) */
 const CLOCK_HALF_PERIOD = 500;
 
@@ -383,20 +406,45 @@ export function App() {
     });
   }
 
-  /** ステータスバーに出す、今の操作に応じた使い方のヒント */
-  function statusHint(): string {
-    if (dragMode === 'trash') return '離すと削除します';
-    if (dragMode === 'moving') return '左下の削除エリアで離すと削除します';
-    if (pending) return '接続先の入力ピンをクリック ・ Esc で取り消し';
-    if (editing) return 'Enter で確定 ・ Esc で取り消し';
-    if (selection?.type === 'wire') return 'Delete で配線を削除';
+  /** ステータスバーに出す、今の操作に応じた使い方のヒント。複数あれば時間で切り替える */
+  function statusHints(): string[] {
+    if (dragMode === 'trash') return ['離すと削除します'];
+    if (dragMode === 'moving') return ['左下の削除エリアで離すと削除します'];
+    if (pending) return ['接続先の入力ピンをクリック ・ Esc で取り消し'];
+    if (editing) return ['Enter で確定 ・ Esc で取り消し'];
+    if (selection?.type === 'wire') return ['Delete で配線を削除'];
     const c = selection?.type === 'comp' ? compMap.get(selection.id) : undefined;
-    if (c?.kind === 'INPUT') return 'クリックで ON/OFF ・ ダブルクリックでラベル編集 ・ ドラッグで移動 ・ Delete で削除';
-    if (c?.kind === 'OUTPUT') return 'ダブルクリックでラベル編集 ・ ドラッグで移動 ・ Delete で削除';
-    if (c?.kind === 'CUSTOM') return 'ダブルクリックで中身を開く ・ ドラッグで移動 ・ Delete で削除';
-    if (c) return 'ドラッグで移動 ・ Delete または左下の削除エリアへドラッグで削除';
-    return '左のパネルからクリックかドラッグで部品を追加 ・ 出力ピン→入力ピンの順にクリックで配線';
+    if (c) {
+      const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
+      if (c.kind === 'INPUT') return ['クリックで ON/OFF', 'ダブルクリックでラベルを編集', ...move];
+      if (c.kind === 'OUTPUT') return ['ダブルクリックでラベルを編集', ...move];
+      if (c.kind === 'CUSTOM') return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
+      if (c.kind === 'CLOCK') return [`${(CLOCK_HALF_PERIOD * 2) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
+      if (c.kind === 'SR') return ['S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)', ...move];
+      if (c.kind === 'DFF') return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
+      if (c.kind === 'TFF') return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
+      if (c.kind === 'JKFF')
+        return ['CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する', ...move];
+      return move;
+    }
+    if (sim.unstable) return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];
+    return circuit.id === MAIN_ID ? IDLE_HINTS : [...MODULE_HINTS, ...IDLE_HINTS];
   }
+
+  const hints = statusHints();
+  const hintKey = hints.join('|');
+  const [hintIndex, setHintIndex] = useState(0);
+  /** ステータスバーにマウスが載っている間は切り替えを止める */
+  const [hintPaused, setHintPaused] = useState(false);
+  // 状態が変わったら最初のヒントから表示し直す
+  useEffect(() => setHintIndex(0), [hintKey]);
+  const hint = hints[hintIndex % hints.length];
+  // 読み終えられるだけの時間を置いてから次のヒントへ切り替える
+  useEffect(() => {
+    if (hints.length < 2 || hintPaused) return;
+    const timer = setTimeout(() => setHintIndex((i) => i + 1), hintDuration(hint));
+    return () => clearTimeout(timer);
+  }, [hint, hintIndex, hints.length, hintPaused]);
 
   /** ラベル入力欄は部品の真上に置く */
   function labelInputPosition(c: Component): React.CSSProperties {
@@ -585,8 +633,14 @@ export function App() {
           )}
         </div>
       </div>
-      <footer className="statusbar">
-        <span className="status-hint">{statusHint()}</span>
+      <footer
+        className="statusbar"
+        onPointerEnter={() => setHintPaused(true)}
+        onPointerLeave={() => setHintPaused(false)}
+      >
+        <span key={hint} className="status-hint">
+          {hint}
+        </span>
         {sim.unstable && <span className="status-warn">発振しています</span>}
       </footer>
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
