@@ -1,6 +1,6 @@
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
 import type { Ports } from '../engine/project';
-import { isFlipFlop, type Component, type Kind } from '../engine/sim';
+import type { Component, Kind } from '../engine/sim';
 import { classNames } from './classNames';
 import styles from './ComponentView.module.css';
 
@@ -83,11 +83,7 @@ export function ComponentView({
     body = (
       <>
         <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} />
-        <text
-          className={styles.label}
-          x={c.x + w / 2}
-          y={isCustom ? c.y - 6 : isFlipFlop(c.kind) ? c.y + h / 2 + 4 : c.y + 20}
-        >
+        <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
           {isCustom ? (name ?? '(不明)') : (BODY_LABELS[c.kind] ?? LABELS[c.kind] ?? c.kind)}
         </text>
         {ports.inputs.map((label, i) =>

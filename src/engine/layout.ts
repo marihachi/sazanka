@@ -12,7 +12,10 @@ export function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
-/** 部品本体のサイズ */
+/**
+ * 部品本体のサイズ。
+ * 部品の位置はグリッド上にあるので、ピンの先端もグリッド上に来るよう、高さはピンの並びに合わせて決めている
+ */
 export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
   if (c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'OUTPUT') {
     return { w: 40, h: 40 };
@@ -22,8 +25,9 @@ export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
     const n = Math.max(ports.inputs.length, ports.outputs.length, 1);
     return { w: 80, h: (n + 1) * GRID };
   } else {
-    // 論理ゲート (と、モジュールの展開でだけ作られる BUF)
-    return { w: 60, h: 60 };
+    // 論理ゲート (と、モジュールの展開でだけ作られる BUF)。
+    // 2入力を上下端から1グリッド内側、出力を中央に置いて、すべてグリッドに乗る高さ
+    return { w: 60, h: 80 };
   }
 }
 
@@ -39,8 +43,9 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
   } else if (c.kind === 'CUSTOM') {
     y = c.y + GRID * (pin + 1);
   } else {
-    // 論理ゲート: 1入力 (NOT、BUF) は中央、2入力は上下に分ける
-    y = ports.inputs.length === 1 ? c.y + h / 2 : c.y + GRID * (pin + 1);
+    // 論理ゲート: 1入力 (NOT、BUF) は中央、2入力は上下端から1グリッド内側
+    if (ports.inputs.length === 1) y = c.y + h / 2;
+    else y = pin === 0 ? c.y + GRID : c.y + h - GRID;
   }
   return { x: c.x - GRID, y };
 }
