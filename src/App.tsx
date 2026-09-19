@@ -13,7 +13,13 @@ import {
 } from './project';
 import { pinKey, type Circuit, type Component, type Kind, type PinRef, type SimResult } from './sim';
 
-const PALETTE: Kind[] = ['INPUT', 'CLOCK', 'OUTPUT', 'AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR', 'SR', 'DFF', 'TFF', 'JKFF'];
+const PALETTE: { title: string; kinds: Kind[] }[] = [
+  { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },
+  { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
+  { title: 'フリップフロップ', kinds: ['SR', 'DFF', 'TFF', 'JKFF'] },
+];
+/** パレットからドラッグするときの dataTransfer の型 */
+const DRAG_MIME = 'application/x-sazanka-part';
 const STORAGE_KEY = 'sazanka.project';
 /** 旧形式 (回路1つ) の保存キー */
 const LEGACY_STORAGE_KEY = 'sazanka.circuit';
@@ -118,9 +124,15 @@ export function App() {
     setPending(null);
   }
 
-  function addComponent(kind: Kind, sub?: string) {
+  /** 部品を追加する。位置を省略すると少しずつずらして置く */
+  function addComponent(kind: Kind, sub?: string, at?: Point) {
     const n = circuit.components.length;
-    const c: Component = { id: newId(), kind, x: 100 + (n % 10) * GRID, y: 80 + (n % 10) * GRID };
+    const c: Component = {
+      id: newId(),
+      kind,
+      x: at ? snap(at.x) : 100 + (n % 10) * GRID,
+      y: at ? snap(at.y) : 80 + (n % 10) * GRID,
+    };
     if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
     if (sub) c.sub = sub;
     setCircuit((cur) => ({ ...cur, components: [...cur.components, c] }));
@@ -257,6 +269,16 @@ export function App() {
     }));
   }
 
+  function onDrop(e: React.DragEvent) {
+    const data = e.dataTransfer.getData(DRAG_MIME);
+    if (!data) return;
+    e.preventDefault();
+    const { kind, sub } = JSON.parse(data) as { kind: Kind; sub?: string };
+    const p = toLocal(e);
+    // カーソルが部品の左上付近に来るよう少しずらす
+    addComponent(kind, sub, { x: p.x - GRID, y: p.y - GRID });
+  }
+
   function onBackgroundDown() {
     setPending(null);
     setSelection(null);
@@ -289,16 +311,6 @@ export function App() {
         )}
       </div>
       <div className="toolbar">
-        {PALETTE.map((k) => (
-          <button key={k} onClick={() => addComponent(k)}>
-            {LABELS[k] ?? k}
-          </button>
-        ))}
-        {usableSubs.map((d) => (
-          <button key={d.id} className="sub" onClick={() => addComponent('SUB', d.id)}>
-            {d.name}
-          </button>
-        ))}
         <button onClick={deleteSelection} disabled={!selection}>
           削除
         </button>
@@ -306,81 +318,128 @@ export function App() {
         <span className="sep" />
         {sim.unstable && <span className="warn">発振しています</span>}
         <span className="hint">
-          出力ピン→入力ピンをクリックで配線 / スイッチはクリックで切替 / ダブルクリックでラベル編集・サブ回路を開く / Delete で削除
+          部品は左のパネルからクリックかドラッグで追加 / 出力ピン→入力ピンをクリックで配線 / スイッチはクリックで切替 / ダブルクリックでラベル編集・サブ回路を開く / Delete で削除
         </span>
       </div>
-      <svg
-        ref={svgRef}
-        className="canvas"
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={() => (dragRef.current = null)}
-        onPointerDown={onBackgroundDown}
-      >
-        <defs>
-          <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
-            <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+      <div className="workspace">
+        <aside className="palette">
+          {PALETTE.map((group) => (
+            <section key={group.title}>
+              <h3>{group.title}</h3>
+              {group.kinds.map((k) => (
+                <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => addComponent(k)} />
+              ))}
+            </section>
+          ))}
+          <section>
+            <h3>サブ回路</h3>
+            {usableSubs.map((d) => (
+              <PaletteItem key={d.id} label={d.name} kind="SUB" sub={d.id} onAdd={() => addComponent('SUB', d.id)} />
+            ))}
+            {usableSubs.length === 0 && <p className="empty">置けるサブ回路はありません</p>}
+          </section>
+        </aside>
+        <svg
+          ref={svgRef}
+          className="canvas"
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={() => (dragRef.current = null)}
+          onPointerDown={onBackgroundDown}
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
+          }}
+          onDrop={onDrop}
+        >
+          <defs>
+            <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
+              <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
 
-        {circuit.wires.map((w) => {
-          const from = compMap.get(w.from.comp);
-          const to = compMap.get(w.to.comp);
-          if (!from || !to) return null;
-          const fromPorts = portsOf(from, project);
-          const toPorts = portsOf(to, project);
-          // サブ回路のピンが減った場合など、存在しないピンへの配線は描かない
-          if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
-          const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
-          const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-          const selected = selection?.type === 'wire' && selection.id === w.id;
-          return (
-            <g key={w.id}>
-              <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
-              <path
-                className="wire-hit"
-                d={d}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  setSelection({ type: 'wire', id: w.id });
-                }}
+          {circuit.wires.map((w) => {
+            const from = compMap.get(w.from.comp);
+            const to = compMap.get(w.to.comp);
+            if (!from || !to) return null;
+            const fromPorts = portsOf(from, project);
+            const toPorts = portsOf(to, project);
+            // サブ回路のピンが減った場合など、存在しないピンへの配線は描かない
+            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
+            const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
+            const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
+            const selected = selection?.type === 'wire' && selection.id === w.id;
+            return (
+              <g key={w.id}>
+                <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
+                <path
+                  className="wire-hit"
+                  d={d}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setSelection({ type: 'wire', id: w.id });
+                  }}
+                />
+              </g>
+            );
+          })}
+
+          {circuit.components.map((c) => {
+            const ports = portsOf(c, project);
+            return (
+              <ComponentView
+                key={c.id}
+                comp={c}
+                ports={ports}
+                name={c.kind === 'SUB' ? findDef(project, c.sub)?.name : undefined}
+                outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
+                  !!sim.values.get(pinKey(c.id, i)),
+                )}
+                inputValues={ports.inputs.map((_, i) => {
+                  const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
+                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                })}
+                selected={selection?.type === 'comp' && selection.id === c.id}
+                onBodyDown={(e) => onCompPointerDown(e, c)}
+                onBodyDoubleClick={() => onCompDoubleClick(c)}
+                onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
+                onOutputPinDown={(e, pin) => onOutputPinDown(e, c, pin)}
               />
-            </g>
-          );
-        })}
+            );
+          })}
 
-        {circuit.components.map((c) => {
-          const ports = portsOf(c, project);
-          return (
-            <ComponentView
-              key={c.id}
-              comp={c}
-              ports={ports}
-              name={c.kind === 'SUB' ? findDef(project, c.sub)?.name : undefined}
-              outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
-                !!sim.values.get(pinKey(c.id, i)),
-              )}
-              inputValues={ports.inputs.map((_, i) => {
-                const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
-                return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
-              })}
-              selected={selection?.type === 'comp' && selection.id === c.id}
-              onBodyDown={(e) => onCompPointerDown(e, c)}
-              onBodyDoubleClick={() => onCompDoubleClick(c)}
-              onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
-              onOutputPinDown={(e, pin) => onOutputPinDown(e, c, pin)}
+          {pending && pendingFrom && (
+            <path
+              className="pending"
+              d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
             />
-          );
-        })}
-
-        {pending && pendingFrom && (
-          <path
-            className="pending"
-            d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
-          />
-        )}
-      </svg>
+          )}
+        </svg>
+      </div>
     </div>
+  );
+}
+
+interface PaletteItemProps {
+  label: string;
+  kind: Kind;
+  sub?: string;
+  onAdd: () => void;
+}
+
+/** クリックで追加、キャンバスへドラッグで好きな位置に追加 */
+function PaletteItem({ label, kind, sub, onAdd }: PaletteItemProps) {
+  return (
+    <button
+      className={kind === 'SUB' ? 'sub' : undefined}
+      draggable
+      onClick={onAdd}
+      onDragStart={(e) => {
+        e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind, sub }));
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
+    >
+      {label}
+    </button>
   );
 }
