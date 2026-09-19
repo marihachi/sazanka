@@ -31,12 +31,13 @@ const ICONS: Partial<Record<Kind, string>> = {
   CUSTOM: moduleIcon,
 };
 
-/**
- * 部品の種類ごとのアイコン (32×24)。
- * SVG をマスクとして使い、文字色 (currentColor) で塗る。
- */
+/** SVG をマスクとして使い、文字色 (currentColor) で塗るアイコン。大きさは className で指定する */
+export function MaskIcon({ src, className }: { src: string; className: string }) {
+  const mask = `url("${src}") center / contain no-repeat`;
+  return <span className={className} aria-hidden="true" style={{ mask, WebkitMask: mask }} />;
+}
+
+/** 部品の種類ごとのアイコン (32×24) */
 export function PartIcon({ kind }: { kind: Kind }) {
-  const url = ICONS[kind] ?? moduleIcon;
-  const mask = `url("${url}") center / contain no-repeat`;
-  return <span className="part-icon" aria-hidden="true" style={{ mask, WebkitMask: mask }} />;
+  return <MaskIcon src={ICONS[kind] ?? moduleIcon} className="part-icon" />;
 }

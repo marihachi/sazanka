@@ -6,7 +6,7 @@
   --text: #ccc;
   --line: #888;
   --on: #4fc3f7;
-  --accent: #ffb74d;
+  --accent: #2dd4bf;
   color-scheme: dark;
 }
 
@@ -55,6 +55,33 @@ body,
 
 .toolbar .sep {
   flex: 1;
+}
+
+/* アイコン付きのツールバーボタン */
+.toolbar.actions {
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.toolbar button.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+
+.toolbar button.tool:hover:not(:disabled) {
+  background: #333;
+  border-color: transparent;
+}
+
+.tool-icon {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
 }
 
 .toolbar .warn {

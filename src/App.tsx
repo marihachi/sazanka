@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ComponentView, LABELS } from './ComponentView';
 import { Dialog, InlineInput, type DialogRequest } from './Dialogs';
+import clearIcon from './assets/icons/clear.svg';
 import trashIcon from './assets/icons/trash.svg';
-import { PartIcon } from './PartIcon';
+import { MaskIcon, PartIcon } from './PartIcon';
 import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
 import {
   dependsOn,
@@ -23,7 +24,6 @@ const PALETTE: { title: string; kinds: Kind[] }[] = [
 ];
 /** パレットからドラッグするときの dataTransfer の型 */
 const DRAG_MIME = 'application/x-sazanka-part';
-const TRASH_MASK = `url("${trashIcon}") center / contain no-repeat`;
 const STORAGE_KEY = 'sazanka.project';
 /** 旧形式 (回路1つ) の保存キー */
 const LEGACY_STORAGE_KEY = 'sazanka.circuit';
@@ -413,11 +413,11 @@ export function App() {
           </>
         )}
       </div>
-      <div className="toolbar">
-        <button onClick={deleteSelection} disabled={!selection}>
-          削除
+      <div className="toolbar actions">
+        <button className="tool" onClick={clearAll} title="この回路をすべて消去">
+          <MaskIcon src={clearIcon} className="tool-icon" />
+          全消去
         </button>
-        <button onClick={clearAll}>全消去</button>
         <span className="sep" />
         {sim.unstable && <span className="warn">発振しています</span>}
         <span className="hint">
@@ -447,7 +447,7 @@ export function App() {
             ref={trashRef}
             className={`trash${dragMode !== 'none' ? ' dragging' : ''}${dragMode === 'trash' ? ' active' : ''}`}
           >
-            <span className="trash-icon" style={{ mask: TRASH_MASK, WebkitMask: TRASH_MASK }} aria-hidden="true" />
+            <MaskIcon src={trashIcon} className="trash-icon" />
             ここへドラッグで削除
           </div>
         </div>
