@@ -42,7 +42,8 @@ function newId(): string {
 }
 
 export function App() {
-  const history = useProjectHistory(loadProject);
+  const [loaded] = useState(loadProject);
+  const history = useProjectHistory(() => loaded.project);
   const project = history.project;
   /** 元に戻せる編集としてプロジェクトを更新する */
   const setProject = history.commit;
@@ -54,7 +55,9 @@ export function App() {
   /** クリックで部品を追加するとき、はみ出さない位置に置くために使う */
   const [sheetSize, setSheetSize] = useState<SheetSize>({ width: Infinity, height: Infinity });
   const [editing, setEditing] = useState<Editing>(null);
-  const [dialog, setDialog] = useState<DialogRequest | null>(null);
+  const [dialog, setDialog] = useState<DialogRequest | null>(() =>
+    loaded.broken ? { message: '保存データが壊れていたため読み込めませんでした。空のプロジェクトで開きます。' } : null,
+  );
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);

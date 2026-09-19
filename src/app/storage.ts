@@ -1,24 +1,46 @@
 import { emptyProject, type Project } from '../engine/project';
+import { checkProject } from '../engine/share';
 import type { Circuit } from '../engine/sim';
 
 const STORAGE_KEY = 'sazanka.project';
 /** 旧形式 (回路1つ) の保存キー */
 const LEGACY_STORAGE_KEY = 'sazanka.circuit';
 
-export function loadProject(): Project {
+export interface LoadResult {
+  project: Project;
+  /** 保存データはあったが、壊れていて読み込めなかった */
+  broken: boolean;
+}
+
+/**
+ * 保存したプロジェクトを読み込む。保存データがなければ空のプロジェクト。
+ * 保存データが壊れていたら空のプロジェクトで始め、broken で知らせる。
+ * 壊れたデータをそのまま使うと、表示や計算の途中で例外が起きて画面が出なくなるため
+ */
+export function loadProject(): LoadResult {
+  let raw: string | null = null;
+  let legacy: string | null = null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Project;
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      const project = emptyProject();
-      Object.assign(project.circuits[0], JSON.parse(legacy) as Circuit);
-      return project;
-    }
+    raw = localStorage.getItem(STORAGE_KEY);
+    legacy = raw ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
   } catch {
-    // 読み込めなければ空のプロジェクトから始める
+    // localStorage を使えない環境では、保存データなしとして扱う
   }
-  return emptyProject();
+  if (!raw && !legacy) return { project: emptyProject(), broken: false };
+  try {
+    let project: unknown;
+    if (raw) {
+      project = JSON.parse(raw);
+    } else {
+      const p = emptyProject();
+      Object.assign(p.circuits[0], JSON.parse(legacy!) as Circuit);
+      project = p;
+    }
+    if (checkProject(project) === undefined) return { project: project as Project, broken: false };
+  } catch {
+    // JSON として読めない
+  }
+  return { project: emptyProject(), broken: true };
 }
 
 export function saveProject(project: Project) {

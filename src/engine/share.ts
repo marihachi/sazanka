@@ -101,8 +101,11 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** 問題があれば、その内容を返す */
-function checkProject(project: unknown): string | undefined {
+/**
+ * プロジェクトとして正しい形かを確かめ、問題があればその内容を返す。
+ * 共有された JSON のほか、localStorage の保存データを読み込むときにも使う
+ */
+export function checkProject(project: unknown): string | undefined {
   if (!isObject(project) || !Array.isArray(project.circuits)) return '回路の一覧がありません';
   const circuits = project.circuits as unknown[];
   if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) return 'メイン回路がありません';
