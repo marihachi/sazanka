@@ -97,6 +97,8 @@ export function Sheet({
   const dragRef = useRef<Drag | null>(null);
   const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
+  /** 入力ピン (pinKey) → つながっている配線 */
+  const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
 
   // 部品を追加するときにはみ出さない位置へ置けるよう、大きさを知らせる
   useEffect(() => {
@@ -282,7 +284,7 @@ export function Sheet({
                 (_, i) => !!sim.values.get(pinKey(c.id, i)),
               )}
               inputValues={ports.inputs.map((_, i) => {
-                const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
+                const w = wireTo.get(pinKey(c.id, i));
                 return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
               })}
               selected={selection?.type === 'comp' && selection.id === c.id}

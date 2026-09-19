@@ -1,8 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import clearIcon from '../assets/icons/clear.svg';
-import plusIcon from '../assets/icons/plus.svg';
-import redoIcon from '../assets/icons/redo.svg';
-import undoIcon from '../assets/icons/undo.svg';
 import logo from '../assets/logo.svg';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
 import { Dialog, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
@@ -10,13 +6,24 @@ import { MaskIcon } from '../components/Icons';
 import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
+import { Toolbar } from '../components/Toolbar';
+import * as edit from '../engine/edit';
 import { clampPosition, GRID, snap, type Point } from '../engine/geometry';
-import { dependsOn, findDef, MAIN_ID, portsOf, simulateCircuit, type CircuitDef } from '../engine/project';
+import {
+  dependsOn,
+  findDef,
+  MAIN_ID,
+  portsOf,
+  simulateCircuit,
+  circuitsUsing,
+  type CircuitDef,
+} from '../engine/project';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
 import { loadProject, saveProject } from './storage';
 import { useClock } from './useClock';
 import { useProjectHistory } from './useProjectHistory';
+import { useShortcuts } from './useShortcuts';
 
 /** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
 type Editing = { type: 'tab' | 'label'; id: string } | null;
@@ -64,8 +71,6 @@ export function App() {
   useClock(project, history.replace);
   useEffect(() => saveProject(project), [project]);
 
-  const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
-
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
   const paletteModules: PaletteModule[] = project.circuits
     .filter((d) => d.id !== MAIN_ID)
@@ -97,20 +102,13 @@ export function App() {
     if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
     if (custom) c.custom = custom;
     Object.assign(c, clampPosition(c, portsOf(c, project), c, sheetSize.width, sheetSize.height));
-    setCircuit((cur) => ({ ...cur, components: [...cur.components, c] }));
+    setCircuit((cur) => edit.addComponent(cur, c));
     setSelection({ type: 'comp', id: c.id });
   }
 
   /** 部品と、それにつながる配線を削除する */
   function deleteComponent(id: string, record = true) {
-    setCircuit(
-      (cur) => ({
-        ...cur,
-        components: cur.components.filter((c) => c.id !== id),
-        wires: cur.wires.filter((w) => w.from.comp !== id && w.to.comp !== id),
-      }),
-      record,
-    );
+    setCircuit((cur) => edit.removeComponent(cur, id), record);
     setSelection(null);
   }
 
@@ -120,7 +118,8 @@ export function App() {
       deleteComponent(selection.id);
       return;
     }
-    setCircuit((cur) => ({ ...cur, wires: cur.wires.filter((w) => w.id !== selection.id) }));
+    const id = selection.id;
+    setCircuit((cur) => edit.removeWire(cur, id));
     setSelection(null);
   }
 
@@ -152,9 +151,7 @@ export function App() {
   }
 
   function deleteCircuit() {
-    const users = project.circuits.filter((d) =>
-      d.components.some((c) => c.kind === 'CUSTOM' && c.custom === circuit.id),
-    );
+    const users = circuitsUsing(project, circuit.id);
     if (users.length > 0) {
       setDialog({
         message: `「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`,
@@ -176,33 +173,18 @@ export function App() {
 
   function setLabel(id: string, value: string) {
     setEditing(null);
-    setCircuit((cur) => ({
-      ...cur,
-      components: cur.components.map((k) => (k.id === id ? { ...k, label: value.trim() || undefined } : k)),
-    }));
+    setCircuit((cur) => edit.setLabel(cur, id, value));
   }
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      // 文字入力中やダイアログ表示中は、キーを編集操作として扱わない
-      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
-      if (dialog || promptDialog || typing) return;
-      const mod = e.ctrlKey || e.metaKey;
-      const key = e.key.toLowerCase();
-      if (mod && (key === 'z' || key === 'y')) {
-        e.preventDefault();
-        if (key === 'y' || e.shiftKey) redoEdit();
-        else undoEdit();
-        return;
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
-      if (e.key === 'Escape') {
-        setPending(null);
-        setSelection(null);
-      }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+  useShortcuts({
+    enabled: !dialog && !promptDialog,
+    onUndo: undoEdit,
+    onRedo: redoEdit,
+    onDelete: deleteSelection,
+    onEscape: () => {
+      setPending(null);
+      setSelection(null);
+    },
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
@@ -233,29 +215,23 @@ export function App() {
     }
   }
 
-  function moveComponent(id: string, { x, y }: Point) {
+  function moveComponent(id: string, position: Point) {
     // ドラッグ中の移動は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-    setCircuit((cur) => ({ ...cur, components: cur.components.map((k) => (k.id === id ? { ...k, x, y } : k)) }), false);
+    setCircuit((cur) => edit.moveComponent(cur, id, position), false);
   }
 
   function toggleInput(id: string) {
     // スイッチ操作は回路の編集ではないので、元に戻す対象にしない
-    setCircuit(
-      (cur) => ({ ...cur, components: cur.components.map((k) => (k.id === id ? { ...k, on: !k.on } : k)) }),
-      false,
-    );
+    setCircuit((cur) => edit.toggleSwitch(cur, id), false);
   }
 
-  /** 入力ピンにつなげる配線は1本だけなので、既存の配線は置き換える */
   function connect(from: PinRef, to: PinRef) {
-    setCircuit((cur) => ({
-      ...cur,
-      wires: [...cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)), { id: newId(), from, to }],
-    }));
+    const id = newId();
+    setCircuit((cur) => edit.connect(cur, id, from, to));
   }
 
   function disconnect(to: PinRef) {
-    setCircuit((cur) => ({ ...cur, wires: cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)) }));
+    setCircuit((cur) => edit.disconnect(cur, to));
   }
 
   function clearAll() {
@@ -264,7 +240,7 @@ export function App() {
       confirmLabel: '消去',
       danger: true,
       onConfirm: () => {
-        setCircuit((cur) => ({ ...cur, components: [], wires: [] }));
+        setCircuit(edit.clearCircuit);
         setSelection(null);
         setPending(null);
       },
@@ -276,7 +252,7 @@ export function App() {
     wiring: !!pending,
     editing: !!editing,
     wireSelected: selection?.type === 'wire',
-    selectedComponent: selection?.type === 'comp' ? compMap.get(selection.id) : undefined,
+    selectedComponent: selection?.type === 'comp' ? circuit.components.find((c) => c.id === selection.id) : undefined,
     unstable: sim.unstable,
     inModule: circuit.id !== MAIN_ID,
   });
@@ -299,30 +275,14 @@ export function App() {
         onCancelRename={() => setEditing(null)}
         onDeleteCurrent={deleteCircuit}
       />
-      <div className="toolbar actions">
-        <button className="tool" onClick={undoEdit} disabled={!history.canUndo} title="元に戻す (Ctrl+Z)">
-          <MaskIcon src={undoIcon} className="tool-icon" />
-          元に戻す
-        </button>
-        <button
-          className="tool"
-          onClick={redoEdit}
-          disabled={!history.canRedo}
-          title="やり直し (Ctrl+Shift+Z / Ctrl+Y)"
-        >
-          <MaskIcon src={redoIcon} className="tool-icon" />
-          やり直し
-        </button>
-        <span className="divider" />
-        <button className="tool" onClick={createModule}>
-          <MaskIcon src={plusIcon} className="tool-icon" />
-          モジュールを追加
-        </button>
-        <button className="tool" onClick={clearAll} title="この回路をすべて消去">
-          <MaskIcon src={clearIcon} className="tool-icon" />
-          全消去
-        </button>
-      </div>
+      <Toolbar
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onUndo={undoEdit}
+        onRedo={redoEdit}
+        onAddModule={createModule}
+        onClear={clearAll}
+      />
       <div className="workspace">
         <Palette
           modules={paletteModules}

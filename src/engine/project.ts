@@ -72,6 +72,11 @@ export function dependsOn(project: Project, a: string, b: string, seen = new Set
   );
 }
 
+/** モジュール id を部品として直接置いている回路 */
+export function circuitsUsing(project: Project, id: string): CircuitDef[] {
+  return project.circuits.filter((d) => d.components.some((c) => c.kind === 'CUSTOM' && c.custom === id));
+}
+
 /** 展開したモジュールのピンに対応する、展開後の部品 ID */
 interface ModulePorts {
   inputs: string[];
