@@ -2,6 +2,7 @@
   --bg: #1c1c1c;
   --grid: #2a2a2a;
   --panel: #252525;
+  --tabbar: #161616;
   --border: #444;
   --text: #ccc;
   --line: #888;
@@ -53,10 +54,6 @@ body,
   border-color: var(--accent);
 }
 
-.toolbar .sep {
-  flex: 1;
-}
-
 /* アイコン付きのツールバーボタン */
 .toolbar.actions {
   gap: 2px;
@@ -82,15 +79,6 @@ body,
   width: 16px;
   height: 16px;
   background-color: currentColor;
-}
-
-.toolbar .warn {
-  color: #ef5350;
-}
-
-.toolbar .hint {
-  font-size: 12px;
-  opacity: 0.7;
 }
 
 .canvas {
@@ -171,18 +159,116 @@ body,
   text-anchor: end;
 }
 
+/* 最上部のヘッダー */
+.app-header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--tabbar);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header h1 {
+  display: flex;
+  margin: 0;
+}
+
+.logo {
+  width: 116px;
+  height: 28px;
+  background-color: var(--accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.tabbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 8px 0;
+  background: var(--tabbar);
+  /* 下のツールバーとの境目の線。内側に描くので、選択中のタブを重ねて隠せる */
+  box-shadow: inset 0 -1px var(--border);
+}
+
 .tabs {
-  padding-bottom: 0;
-  border-bottom: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  /* タブが増えたら横にスクロールする。縦は出さない */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
-.tabs button {
-  border-radius: 4px 4px 0 0;
+.tab {
+  flex-shrink: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--text);
+  opacity: 0.65;
+  border: 1px solid transparent;
+  border-top: 2px solid transparent;
+  border-radius: 6px 6px 0 0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.tabs button.active {
-  background: var(--bg);
-  border-color: var(--accent);
+.tab:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* 選択中のタブは下のツールバーとつながって見せる */
+.tab.active {
+  opacity: 1;
+  background: var(--panel);
+  border-color: var(--border);
+  border-top-color: var(--accent);
+  border-bottom-color: var(--panel);
+}
+
+.tab-input {
+  margin-bottom: 4px;
+}
+
+.tabbar-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  padding-bottom: 4px;
+}
+
+.tabbar-actions button.tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.tabbar-actions button.tool:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .workspace {
@@ -369,7 +455,79 @@ body,
   border-color: var(--accent);
 }
 
+.dialog h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dialog .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(320px, 80vw);
+  font-size: 12px;
+}
+
+.dialog .field input {
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.dialog .field input:focus {
+  border-color: var(--accent);
+}
+
+.dialog .field-error {
+  min-height: 1.2em;
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: #ef5350;
+}
+
+.dialog button.primary {
+  background: #134e48;
+  border-color: var(--accent);
+}
+
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .dialog button.danger {
   background: #5a2222;
   border-color: #ef5350;
+}
+
+/* 画面下のステータスバー */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 24px;
+  padding: 2px 10px;
+  font-size: 12px;
+  background: var(--tabbar);
+  border-top: 1px solid var(--border);
+}
+
+.status-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.status-warn {
+  flex-shrink: 0;
+  color: #ef5350;
 }

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ComponentView, LABELS } from './ComponentView';
-import { Dialog, InlineInput, type DialogRequest } from './Dialogs';
+import { Dialog, InlineInput, PromptDialog, type DialogRequest, type PromptRequest } from './Dialogs';
 import clearIcon from './assets/icons/clear.svg';
+import logo from './assets/logo.svg';
+import plusIcon from './assets/icons/plus.svg';
+import renameIcon from './assets/icons/rename.svg';
 import trashIcon from './assets/icons/trash.svg';
 import { MaskIcon, PartIcon } from './PartIcon';
 import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
@@ -84,6 +87,7 @@ export function App() {
   const [dragMode, setDragMode] = useState<'none' | 'moving' | 'trash'>('none');
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
+  const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   /** 回路ごとの前回のシミュレーション結果 */
   const prevResults = useRef(new Map<string, SimResult>());
 
@@ -183,15 +187,24 @@ export function App() {
     setSelection(null);
   }
 
-  /** 仮の名前で作成し、すぐにタブ上で名前を編集できるようにする */
+  /** 名前を入力するウィンドウを開き、確定したらモジュールを作成して開く */
   function createModule() {
     const names = new Set(project.circuits.map((d) => d.name));
     let n = project.circuits.length;
     while (names.has(`モジュール${n}`)) n++;
-    const def: CircuitDef = { id: newId(), name: `モジュール${n}`, components: [], wires: [] };
-    setProject((p) => ({ circuits: [...p.circuits, def] }));
-    openCircuit(def.id);
-    setEditing({ type: 'tab', id: def.id });
+    setPromptDialog({
+      title: 'モジュールを追加',
+      label: '名前',
+      initial: `モジュール${n}`,
+      confirmLabel: '追加',
+      validate: (name) =>
+        !name ? '名前を入力してください' : names.has(name) ? '同じ名前の回路がすでにあります' : undefined,
+      onSubmit: (name) => {
+        const def: CircuitDef = { id: newId(), name, components: [], wires: [] };
+        setProject((p) => ({ circuits: [...p.circuits, def] }));
+        openCircuit(def.id);
+      },
+    });
   }
 
   function renameCircuit(id: string, value: string) {
@@ -233,7 +246,7 @@ export function App() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // 文字入力中やダイアログ表示中は、キーを編集操作として扱わない
-      if (dialog || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (dialog || promptDialog || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
       if (e.key === 'Escape') {
         setPending(null);
@@ -370,6 +383,21 @@ export function App() {
     });
   }
 
+  /** ステータスバーに出す、今の操作に応じた使い方のヒント */
+  function statusHint(): string {
+    if (dragMode === 'trash') return '離すと削除します';
+    if (dragMode === 'moving') return '左下の削除エリアで離すと削除します';
+    if (pending) return '接続先の入力ピンをクリック ・ Esc で取り消し';
+    if (editing) return 'Enter で確定 ・ Esc で取り消し';
+    if (selection?.type === 'wire') return 'Delete で配線を削除';
+    const c = selection?.type === 'comp' ? compMap.get(selection.id) : undefined;
+    if (c?.kind === 'INPUT') return 'クリックで ON/OFF ・ ダブルクリックでラベル編集 ・ ドラッグで移動 ・ Delete で削除';
+    if (c?.kind === 'OUTPUT') return 'ダブルクリックでラベル編集 ・ ドラッグで移動 ・ Delete で削除';
+    if (c?.kind === 'CUSTOM') return 'ダブルクリックで中身を開く ・ ドラッグで移動 ・ Delete で削除';
+    if (c) return 'ドラッグで移動 ・ Delete または左下の削除エリアへドラッグで削除';
+    return '左のパネルからクリックかドラッグで部品を追加 ・ 出力ピン→入力ピンの順にクリックで配線';
+  }
+
   /** ラベル入力欄は部品の真上に置く */
   function labelInputPosition(c: Component): React.CSSProperties {
     const { w } = bodySize(c, portsOf(c, project));
@@ -382,47 +410,60 @@ export function App() {
 
   return (
     <div className="app">
-      <div className="toolbar tabs">
-        {project.circuits.map((d) =>
-          editing?.type === 'tab' && editing.id === d.id ? (
-            <InlineInput
-              key={d.id}
-              className="tab-input"
-              initial={d.name}
-              onCommit={(v) => renameCircuit(d.id, v)}
-              onCancel={() => setEditing(null)}
-            />
-          ) : (
-            <button
-              key={d.id}
-              className={d.id === circuit.id ? 'active' : undefined}
-              onClick={() => openCircuit(d.id)}
-              onDoubleClick={() => d.id !== MAIN_ID && setEditing({ type: 'tab', id: d.id })}
-              title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更' : undefined}
-            >
-              {d.name}
-            </button>
-          ),
-        )}
-        <button onClick={createModule}>+ モジュール</button>
+      <header className="app-header">
+        <h1>
+          <MaskIcon src={logo} className="logo" />
+          <span className="visually-hidden">sazanka</span>
+        </h1>
+      </header>
+      <div className="tabbar">
+        <div className="tabs" role="tablist">
+          {project.circuits.map((d) =>
+            editing?.type === 'tab' && editing.id === d.id ? (
+              <InlineInput
+                key={d.id}
+                className="tab-input"
+                initial={d.name}
+                onCommit={(v) => renameCircuit(d.id, v)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : (
+              <button
+                key={d.id}
+                role="tab"
+                aria-selected={d.id === circuit.id}
+                className={`tab${d.id === circuit.id ? ' active' : ''}`}
+                onClick={() => openCircuit(d.id)}
+                onDoubleClick={() => d.id !== MAIN_ID && setEditing({ type: 'tab', id: d.id })}
+                title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更' : undefined}
+              >
+                {d.name}
+              </button>
+            ),
+          )}
+        </div>
         {circuit.id !== MAIN_ID && (
-          <>
-            <span className="sep" />
-            <button onClick={() => setEditing({ type: 'tab', id: circuit.id })}>名前変更</button>
-            <button onClick={deleteCircuit}>モジュールを削除</button>
-          </>
+          <div className="tabbar-actions">
+            <button className="tool" onClick={() => setEditing({ type: 'tab', id: circuit.id })}>
+              <MaskIcon src={renameIcon} className="tool-icon" />
+              名前変更
+            </button>
+            <button className="tool" onClick={deleteCircuit}>
+              <MaskIcon src={trashIcon} className="tool-icon" />
+              モジュールを削除
+            </button>
+          </div>
         )}
       </div>
       <div className="toolbar actions">
+        <button className="tool" onClick={createModule}>
+          <MaskIcon src={plusIcon} className="tool-icon" />
+          モジュールを追加
+        </button>
         <button className="tool" onClick={clearAll} title="この回路をすべて消去">
           <MaskIcon src={clearIcon} className="tool-icon" />
           全消去
         </button>
-        <span className="sep" />
-        {sim.unstable && <span className="warn">発振しています</span>}
-        <span className="hint">
-          部品は左のパネルからクリックかドラッグで追加（左下の削除エリアへドラッグで削除） / 出力ピン→入力ピンをクリックで配線 / スイッチはクリックで切替 / ダブルクリックでラベル編集・モジュールを開く / Delete で削除
-        </span>
       </div>
       <div className="workspace">
         <div className="sidebar">
@@ -544,7 +585,12 @@ export function App() {
           )}
         </div>
       </div>
+      <footer className="statusbar">
+        <span className="status-hint">{statusHint()}</span>
+        {sim.unstable && <span className="status-warn">発振しています</span>}
+      </footer>
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
+      {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
     </div>
   );
 }

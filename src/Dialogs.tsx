@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // ブラウザの prompt / confirm / alert は VS Code 内のブラウザなどで動かないため、画面内の UI で代替する
 
@@ -88,6 +88,75 @@ export function Dialog({ request, onClose }: { request: DialogRequest; onClose: 
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export interface PromptRequest {
+  title: string;
+  label: string;
+  initial: string;
+  confirmLabel: string;
+  /** 入力値に問題があればエラーメッセージを返す */
+  validate?: (value: string) => string | undefined;
+  onSubmit: (value: string) => void;
+}
+
+/** 文字を1つ入力してもらう画面内のダイアログ */
+export function PromptDialog({ request, onClose }: { request: PromptRequest; onClose: () => void }) {
+  const [value, setValue] = useState(request.initial);
+  const [touched, setTouched] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = request.validate?.(value.trim());
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setTouched(true);
+    if (error) return;
+    onClose();
+    request.onSubmit(value.trim());
+  }
+
+  return (
+    <div className="dialog-backdrop" onPointerDown={onClose}>
+      <form
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="prompt-title"
+        onSubmit={submit}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <h2 id="prompt-title">{request.title}</h2>
+        <label className="field">
+          <span>{request.label}</span>
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setTouched(true);
+            }}
+          />
+        </label>
+        <p className="field-error">{touched && error ? error : ' '}</p>
+        <div className="dialog-buttons">
+          <button type="button" onClick={onClose}>
+            キャンセル
+          </button>
+          <button type="submit" className="primary" disabled={touched && !!error}>
+            {request.confirmLabel}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
