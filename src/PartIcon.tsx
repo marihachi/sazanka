@@ -9,7 +9,7 @@ import norIcon from './assets/icons/nor.svg';
 import notIcon from './assets/icons/not.svg';
 import orIcon from './assets/icons/or.svg';
 import outputIcon from './assets/icons/output.svg';
-import srIcon from './assets/icons/sr.svg';
+import rsIcon from './assets/icons/rs.svg';
 import tffIcon from './assets/icons/tff.svg';
 import xorIcon from './assets/icons/xor.svg';
 import type { Kind } from './sim';
@@ -24,7 +24,7 @@ const ICONS: Partial<Record<Kind, string>> = {
   NAND: nandIcon,
   NOR: norIcon,
   XOR: xorIcon,
-  SR: srIcon,
+  RS: rsIcon,
   DFF: dffIcon,
   TFF: tffIcon,
   JKFF: jkffIcon,

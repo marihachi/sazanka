@@ -2,7 +2,9 @@ import { bodySize, inputPinPos, outputPinPos } from './geometry';
 import type { Ports } from './project';
 import { isFlipFlop, type Component, type Kind } from './sim';
 
-export const LABELS: Partial<Record<Kind, string>> = { SR: 'SR', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
+export const LABELS: Partial<Record<Kind, string>> = { RS: 'RS Latch', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
+/** キャンバス上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
+const BODY_LABELS: Partial<Record<Kind, string>> = { RS: 'RS' };
 
 interface ComponentViewProps {
   comp: Component;
@@ -84,7 +86,7 @@ export function ComponentView({
           x={c.x + w / 2}
           y={isCustom ? c.y - 6 : isFlipFlop(c.kind) ? c.y + h / 2 + 4 : c.y + 20}
         >
-          {isCustom ? (name ?? '(不明)') : (LABELS[c.kind] ?? c.kind)}
+          {isCustom ? (name ?? '(不明)') : (BODY_LABELS[c.kind] ?? LABELS[c.kind] ?? c.kind)}
         </text>
         {ports.inputs.map((label, i) =>
           label ? (

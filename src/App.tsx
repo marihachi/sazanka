@@ -22,7 +22,8 @@ import { pinKey, type Circuit, type Component, type Kind, type PinRef, type SimR
 const PALETTE: { title: string; kinds: Kind[] }[] = [
   { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },
   { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
-  { title: 'フリップフロップ', kinds: ['SR', 'DFF', 'TFF', 'JKFF'] },
+  { title: 'ラッチ', kinds: ['RS'] },
+  { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
 ];
 /** パレットからドラッグするときの dataTransfer の型 */
 const DRAG_MIME = 'application/x-sazanka-part';
@@ -42,7 +43,8 @@ const IDLE_HINTS = [
   'INPUT はクリックで ON/OFF を切り替え',
   '入力ピンにつなげる配線は1本だけ。別の配線をつなぐと置き換わる',
   '部品を左下の削除エリアへドラッグすると削除',
-  'フリップフロップ (SR 以外) は、CLK (>) が OFF から ON になった瞬間だけ動く',
+  'フリップフロップ (D / T / JK) は、CLK (>) が OFF から ON になった瞬間だけ動く',
+  'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
   '「モジュールを追加」で回路を部品としてまとめられる',
   'モジュールの中の INPUT / OUTPUT がピンになる。ダブルクリックでラベルを付けるとピン名になる',
 ];
@@ -428,7 +430,8 @@ export function App() {
       if (c.kind === 'OUTPUT') return ['ダブルクリックでラベルを編集', ...move];
       if (c.kind === 'CUSTOM') return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
       if (c.kind === 'CLOCK') return [`${(CLOCK_HALF_PERIOD * 2) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
-      if (c.kind === 'SR') return ['S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)', ...move];
+      if (c.kind === 'RS')
+        return ['S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)', 'クロックはなく、S / R が変わるとすぐに Q が変わる', ...move];
       if (c.kind === 'DFF') return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
       if (c.kind === 'TFF') return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
       if (c.kind === 'JKFF')

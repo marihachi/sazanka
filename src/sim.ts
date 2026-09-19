@@ -1,5 +1,6 @@
 export type GateKind = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR';
-export type FlipFlopKind = 'SR' | 'DFF' | 'TFF' | 'JKFF';
+/** 記憶素子。RS はクロックのないラッチ、ほかはクロックの立ち上がりで動くフリップフロップ */
+export type FlipFlopKind = 'RS' | 'DFF' | 'TFF' | 'JKFF';
 /**
  * CUSTOM: モジュール。シミュレーション前に展開される
  * BUF: 入力をそのまま出力する。展開したモジュールのピンに使う内部用の部品
@@ -37,14 +38,14 @@ export interface Circuit {
 
 /** 入力ピン名 (表示用。ゲートは空文字) */
 const INPUT_PINS: Partial<Record<Kind, string[]>> = {
-  SR: ['S', 'R'],
+  RS: ['S', 'R'],
   DFF: ['D', '>'],
   TFF: ['T', '>'],
   JKFF: ['J', '>', 'K'],
 };
 
 export function isFlipFlop(kind: Kind): kind is FlipFlopKind {
-  return kind === 'SR' || kind === 'DFF' || kind === 'TFF' || kind === 'JKFF';
+  return kind === 'RS' || kind === 'DFF' || kind === 'TFF' || kind === 'JKFF';
 }
 
 export function inputPinNames(kind: Kind): string[] {
@@ -124,8 +125,8 @@ function evalGate(c: Component, ins: boolean[]): boolean {
 
 /** フリップフロップの次状態 */
 function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFlopState {
-  if (kind === 'SR') {
-    // レベル動作の SR ラッチ。S=R=1 はリセット優先
+  if (kind === 'RS') {
+    // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先
     const [set, reset] = ins;
     return { q: reset ? false : set ? true : s.q, clk: false };
   }

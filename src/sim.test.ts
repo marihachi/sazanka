@@ -47,7 +47,7 @@ describe('simulate', () => {
     expect(r.unstable).toBe(true);
   });
 
-  it('NOR SR ラッチが状態を保持する', () => {
+  it('NOR で組んだ RS ラッチが状態を保持する', () => {
     const build = (s: boolean, r: boolean): Circuit => ({
       components: [
         { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
@@ -124,9 +124,9 @@ describe('simulate', () => {
       ).toEqual([H, H, H, H, L, L, L, L, H]);
     });
 
-    it('SR ラッチはレベルで動作する', () => {
+    it('RS ラッチはクロックなしで入力にすぐ反応する', () => {
       // [S, R]
-      expect(run('SR', [[H, L], [L, L], [L, H], [L, L], [H, H]])).toEqual([H, H, L, L, L]);
+      expect(run('RS', [[H, L], [L, L], [L, H], [L, L], [H, H]])).toEqual([H, H, L, L, L]);
     });
   });
 });
