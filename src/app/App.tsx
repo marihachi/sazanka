@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import logo from '../assets/logo.svg';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
 import { Dialog, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
-import { MaskIcon } from '../components/Icons';
+import { Header } from '../components/Header';
 import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
@@ -259,12 +258,7 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>
-          <MaskIcon src={logo} className="logo" />
-          <span className="visually-hidden">sazanka</span>
-        </h1>
-      </header>
+      <Header />
       <TabBar
         circuits={project.circuits}
         currentId={circuit.id}

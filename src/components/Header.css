@@ -1,0 +1,19 @@
+.header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--tabbar);
+  border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+  display: flex;
+  margin: 0;
+}
+
+.logo {
+  width: 116px;
+  height: 28px;
+  background-color: var(--accent);
+}
