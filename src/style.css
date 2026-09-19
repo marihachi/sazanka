@@ -353,6 +353,15 @@ body,
   border-style: dashed;
 }
 
+.palette button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.palette button:disabled:hover {
+  border-color: var(--border);
+}
+
 .palette .empty {
   margin: 0;
   font-size: 12px;

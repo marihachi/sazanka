@@ -152,10 +152,18 @@ export function App() {
 
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
 
-  /** 今の回路に配置できるモジュール (自分自身を含むものは除く) */
-  const usableModules = project.circuits.filter(
-    (d) => d.id !== MAIN_ID && d.id !== circuit.id && !dependsOn(project, d.id, circuit.id),
-  );
+  /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
+  const paletteModules = project.circuits
+    .filter((d) => d.id !== MAIN_ID)
+    .map((d) => ({
+      def: d,
+      blocked:
+        d.id === circuit.id
+          ? 'モジュールの中に自分自身は置けません'
+          : dependsOn(project, d.id, circuit.id)
+            ? `「${d.name}」はこの回路を含んでいるため置けません`
+            : undefined,
+    }));
 
   function toLocal(e: { clientX: number; clientY: number }): Point {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -522,10 +530,17 @@ export function App() {
             ))}
             <section>
               <h3>モジュール</h3>
-              {usableModules.map((d) => (
-                <PaletteItem key={d.id} label={d.name} kind="CUSTOM" custom={d.id} onAdd={() => addComponent('CUSTOM', d.id)} />
+              {paletteModules.map(({ def, blocked }) => (
+                <PaletteItem
+                  key={def.id}
+                  label={def.name}
+                  kind="CUSTOM"
+                  custom={def.id}
+                  disabledReason={blocked}
+                  onAdd={() => addComponent('CUSTOM', def.id)}
+                />
               ))}
-              {usableModules.length === 0 && <p className="empty">置けるモジュールはありません</p>}
+              {paletteModules.length === 0 && <p className="empty">モジュールはまだありません</p>}
             </section>
           </aside>
           <div
@@ -649,15 +664,20 @@ interface PaletteItemProps {
   label: string;
   kind: Kind;
   custom?: string;
+  /** 置けない場合の理由。あればグレーアウトし、理由をツールチップに出す */
+  disabledReason?: string;
   onAdd: () => void;
 }
 
 /** クリックで追加、キャンバスへドラッグで好きな位置に追加 */
-function PaletteItem({ label, kind, custom, onAdd }: PaletteItemProps) {
+function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItemProps) {
+  const disabled = !!disabledReason;
   return (
     <button
       className={kind === 'CUSTOM' ? 'custom' : undefined}
-      draggable
+      disabled={disabled}
+      title={disabledReason}
+      draggable={!disabled}
       onClick={onAdd}
       onDragStart={(e) => {
         e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind, custom }));
