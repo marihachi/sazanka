@@ -15,17 +15,48 @@
 }
 
 .palette h3 {
-  margin: 12px 0 6px;
+  margin: 8px 0 4px;
   font-size: 12px;
   font-weight: normal;
-  opacity: 0.7;
 }
 
 .palette section:first-child h3 {
   margin-top: 0;
 }
 
-.palette button {
+/* グループの見出し。クリックで折り畳む */
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  color: var(--text);
+  border: none;
+  font: inherit;
+  text-align: left;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.group-toggle:hover {
+  opacity: 1;
+}
+
+.chevron {
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  transition: transform 0.15s;
+}
+
+/* 折り畳んだグループは、矢印を右向きにする */
+.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -40,26 +71,26 @@
   cursor: grab;
 }
 
-.palette button span {
+.item span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.palette button:hover {
+.item:hover {
   border-color: var(--accent);
 }
 
-.palette button.custom {
+.item.custom {
   border-style: dashed;
 }
 
-.palette button:disabled {
+.item:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.palette button:disabled:hover {
+.item:disabled:hover {
   border-color: var(--border);
 }
 
@@ -98,5 +129,34 @@
 .trash-icon {
   width: 24px;
   height: 24px;
+  background-color: currentColor;
+}
+
+/* パレットの上端のツールバー */
+.toolbar {
+  display: flex;
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: #333;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* パレットの部品ボタンと同じく、載せると枠をアクセントカラーにする */
+.tool:hover {
+  border-color: var(--accent);
+}
+
+.tool-icon {
+  width: 14px;
+  height: 14px;
   background-color: currentColor;
 }

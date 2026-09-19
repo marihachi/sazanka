@@ -1,3 +1,6 @@
+import chevronIcon from '../assets/icons/chevron.svg';
+import collapseAllIcon from '../assets/icons/collapse-all.svg';
+import expandAllIcon from '../assets/icons/expand-all.svg';
 import trashIcon from '../assets/icons/trash.svg';
 import type { CircuitDef } from '../engine/project';
 import type { Kind } from '../engine/sim';
@@ -51,24 +54,40 @@ interface PaletteProps {
   /** 部品をドラッグ中か。'trash' は削除エリアの上 */
   dragMode: 'none' | 'moving' | 'trash';
   trashRef: React.Ref<HTMLDivElement>;
+  /** 折り畳んでいるグループの見出し */
+  collapsed: string[];
+  onCollapsedChange: (collapsed: string[]) => void;
   onAdd: (kind: Kind, custom?: string) => void;
 }
 
 /** 左側のパネル。部品の一覧と、下端の削除エリア */
-export function Palette({ modules, dragMode, trashRef, onAdd }: PaletteProps) {
+export function Palette({ modules, dragMode, trashRef, collapsed, onCollapsedChange, onAdd }: PaletteProps) {
+  const allCollapsed = GROUP_TITLES.every((t) => collapsed.includes(t));
+  const toggleLabel = allCollapsed ? 'すべて展開' : 'すべて折りたたむ';
+  const onToggleGroup = (title: string) =>
+    onCollapsedChange(collapsed.includes(title) ? collapsed.filter((t) => t !== title) : [...collapsed, title]);
+
   return (
     <div className={styles.sidebar}>
+      <div className={styles.toolbar}>
+        <button
+          className={styles.tool}
+          title={toggleLabel}
+          aria-label={toggleLabel}
+          onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_TITLES)}
+        >
+          <MaskIcon src={allCollapsed ? expandAllIcon : collapseAllIcon} className={styles.toolIcon} />
+        </button>
+      </div>
       <aside className={styles.palette}>
         {GROUPS.map((group) => (
-          <section key={group.title}>
-            <h3>{group.title}</h3>
+          <PaletteGroup key={group.title} title={group.title} collapsed={collapsed} onToggle={onToggleGroup}>
             {group.kinds.map((k) => (
               <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => onAdd(k)} />
             ))}
-          </section>
+          </PaletteGroup>
         ))}
-        <section>
-          <h3>モジュール</h3>
+        <PaletteGroup title={MODULE_GROUP} collapsed={collapsed} onToggle={onToggleGroup}>
           {modules.map(({ def, blocked }) => (
             <PaletteItem
               key={def.id}
@@ -80,7 +99,7 @@ export function Palette({ modules, dragMode, trashRef, onAdd }: PaletteProps) {
             />
           ))}
           {modules.length === 0 && <p className={styles.empty}>モジュールはまだありません</p>}
-        </section>
+        </PaletteGroup>
       </aside>
       <div
         ref={trashRef}
@@ -94,6 +113,32 @@ export function Palette({ modules, dragMode, trashRef, onAdd }: PaletteProps) {
         ここへドラッグで削除
       </div>
     </div>
+  );
+}
+
+const MODULE_GROUP = 'モジュール';
+const GROUP_TITLES = [...GROUPS.map((g) => g.title), MODULE_GROUP];
+
+interface PaletteGroupProps {
+  title: string;
+  collapsed: string[];
+  onToggle: (title: string) => void;
+  children: React.ReactNode;
+}
+
+/** 見出しをクリックすると折り畳めるグループ */
+function PaletteGroup({ title, collapsed, onToggle, children }: PaletteGroupProps) {
+  const open = !collapsed.includes(title);
+  return (
+    <section className={open ? undefined : styles.collapsed}>
+      <h3>
+        <button className={styles.groupToggle} aria-expanded={open} onClick={() => onToggle(title)}>
+          <MaskIcon src={chevronIcon} className={styles.chevron} />
+          {title}
+        </button>
+      </h3>
+      {open && children}
+    </section>
   );
 }
 
@@ -111,7 +156,7 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
   const disabled = !!disabledReason;
   return (
     <button
-      className={kind === 'CUSTOM' ? styles.custom : undefined}
+      className={classNames(styles.item, kind === 'CUSTOM' && styles.custom)}
       disabled={disabled}
       // 置けないモジュールは、説明よりも置けない理由を見せる
       title={disabledReason ?? DESCRIPTIONS[kind]}

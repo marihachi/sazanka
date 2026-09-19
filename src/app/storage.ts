@@ -47,3 +47,23 @@ export function saveAuthor(author: string) {
     // 保存できない環境では無視
   }
 }
+
+const COLLAPSED_KEY = 'sazanka.paletteCollapsed';
+
+/** パレットで折り畳んでいるグループの見出し */
+export function loadCollapsedGroups(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCollapsedGroups(titles: string[]) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(titles));
+  } catch {
+    // 保存できない環境では無視
+  }
+}

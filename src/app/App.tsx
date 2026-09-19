@@ -27,7 +27,7 @@ import {
 import { parseProject, serializeProject } from '../engine/share';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
-import { loadAuthor, loadProject, saveAuthor, saveProject } from './storage';
+import { loadAuthor, loadCollapsedGroups, loadProject, saveAuthor, saveCollapsedGroups, saveProject } from './storage';
 import { useClock } from './useClock';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
@@ -55,6 +55,7 @@ export function App() {
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   /** 回路ごとの前回のシミュレーション結果 */
   const prevResults = useRef(new Map<string, SimResult>());
 
@@ -78,6 +79,7 @@ export function App() {
 
   useClock(project, history.replace);
   useEffect(() => saveProject(project), [project]);
+  useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
 
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
   const paletteModules: PaletteModule[] = project.circuits
@@ -341,6 +343,8 @@ export function App() {
           modules={paletteModules}
           dragMode={dragMode}
           trashRef={trashRef}
+          collapsed={collapsedGroups}
+          onCollapsedChange={setCollapsedGroups}
           onAdd={(kind, custom) => addComponent(kind, custom)}
         />
         <Sheet
