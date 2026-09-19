@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ComponentView, LABELS } from './ComponentView';
-import { GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
+import { Dialog, InlineInput, type DialogRequest } from './Dialogs';
+import trashIcon from './assets/icons/trash.svg';
+import { PartIcon } from './PartIcon';
+import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from './geometry';
 import {
   dependsOn,
   emptyProject,
@@ -20,6 +23,7 @@ const PALETTE: { title: string; kinds: Kind[] }[] = [
 ];
 /** パレットからドラッグするときの dataTransfer の型 */
 const DRAG_MIME = 'application/x-sazanka-part';
+const TRASH_MASK = `url("${trashIcon}") center / contain no-repeat`;
 const STORAGE_KEY = 'sazanka.project';
 /** 旧形式 (回路1つ) の保存キー */
 const LEGACY_STORAGE_KEY = 'sazanka.circuit';
@@ -27,12 +31,20 @@ const LEGACY_STORAGE_KEY = 'sazanka.circuit';
 const CLOCK_HALF_PERIOD = 500;
 
 type Selection = { type: 'comp' | 'wire'; id: string } | null;
+/** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
+type Editing = { type: 'tab' | 'label'; id: string } | null;
 
 interface Drag {
   id: string;
   offset: Point;
   moved: boolean;
+  pointerId: number;
+  /** 押した位置 (クライアント座標) */
+  start: Point;
 }
+
+/** 押した位置からこれ以上動いたらドラッグとみなす (px) */
+const DRAG_THRESHOLD = 4;
 
 function newId(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -67,6 +79,11 @@ export function App() {
   const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
   const dragRef = useRef<Drag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const trashRef = useRef<HTMLDivElement>(null);
+  /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
+  const [dragMode, setDragMode] = useState<'none' | 'moving' | 'trash'>('none');
+  const [editing, setEditing] = useState<Editing>(null);
+  const [dialog, setDialog] = useState<DialogRequest | null>(null);
   /** 回路ごとの前回のシミュレーション結果 */
   const prevResults = useRef(new Map<string, SimResult>());
 
@@ -108,14 +125,20 @@ export function App() {
 
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
 
-  /** 今の回路に配置できるサブ回路 (自分自身を含むものは除く) */
-  const usableSubs = project.circuits.filter(
+  /** 今の回路に配置できるモジュール (自分自身を含むものは除く) */
+  const usableModules = project.circuits.filter(
     (d) => d.id !== MAIN_ID && d.id !== circuit.id && !dependsOn(project, d.id, circuit.id),
   );
 
   function toLocal(e: { clientX: number; clientY: number }): Point {
     const rect = svgRef.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  /** 部品がキャンバスからはみ出さない位置に補正する */
+  function clampToCanvas(c: Component, p: Point): Point {
+    const rect = svgRef.current!.getBoundingClientRect();
+    return clampPosition(c, portsOf(c, project), p, rect.width, rect.height);
   }
 
   function openCircuit(id: string) {
@@ -125,7 +148,7 @@ export function App() {
   }
 
   /** 部品を追加する。位置を省略すると少しずつずらして置く */
-  function addComponent(kind: Kind, sub?: string, at?: Point) {
+  function addComponent(kind: Kind, custom?: string, at?: Point) {
     const n = circuit.components.length;
     const c: Component = {
       id: newId(),
@@ -134,54 +157,83 @@ export function App() {
       y: at ? snap(at.y) : 80 + (n % 10) * GRID,
     };
     if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
-    if (sub) c.sub = sub;
+    if (custom) c.custom = custom;
+    Object.assign(c, clampToCanvas(c, c));
     setCircuit((cur) => ({ ...cur, components: [...cur.components, c] }));
     setSelection({ type: 'comp', id: c.id });
   }
 
-  function deleteSelection() {
-    if (!selection) return;
-    setCircuit((cur) =>
-      selection.type === 'comp'
-        ? {
-            ...cur,
-            components: cur.components.filter((c) => c.id !== selection.id),
-            wires: cur.wires.filter((w) => w.from.comp !== selection.id && w.to.comp !== selection.id),
-          }
-        : { ...cur, wires: cur.wires.filter((w) => w.id !== selection.id) },
-    );
+  /** 部品と、それにつながる配線を削除する */
+  function deleteComponent(id: string) {
+    setCircuit((cur) => ({
+      ...cur,
+      components: cur.components.filter((c) => c.id !== id),
+      wires: cur.wires.filter((w) => w.from.comp !== id && w.to.comp !== id),
+    }));
     setSelection(null);
   }
 
-  function createSubcircuit() {
-    const name = prompt('サブ回路の名前', `回路${project.circuits.length}`)?.trim();
-    if (!name) return;
-    const def: CircuitDef = { id: newId(), name, components: [], wires: [] };
-    setProject((p) => ({ circuits: [...p.circuits, def] }));
-    openCircuit(def.id);
+  function deleteSelection() {
+    if (!selection) return;
+    if (selection.type === 'comp') {
+      deleteComponent(selection.id);
+      return;
+    }
+    setCircuit((cur) => ({ ...cur, wires: cur.wires.filter((w) => w.id !== selection.id) }));
+    setSelection(null);
   }
 
-  function renameCircuit() {
-    const name = prompt('サブ回路の名前', circuit.name)?.trim();
+  /** 仮の名前で作成し、すぐにタブ上で名前を編集できるようにする */
+  function createModule() {
+    const names = new Set(project.circuits.map((d) => d.name));
+    let n = project.circuits.length;
+    while (names.has(`モジュール${n}`)) n++;
+    const def: CircuitDef = { id: newId(), name: `モジュール${n}`, components: [], wires: [] };
+    setProject((p) => ({ circuits: [...p.circuits, def] }));
+    openCircuit(def.id);
+    setEditing({ type: 'tab', id: def.id });
+  }
+
+  function renameCircuit(id: string, value: string) {
+    const name = value.trim();
+    setEditing(null);
     if (!name) return;
-    setCircuit((cur) => ({ ...cur, name }));
+    setProject((p) => ({ circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)) }));
   }
 
   function deleteCircuit() {
-    const users = project.circuits.filter((d) => d.components.some((c) => c.kind === 'SUB' && c.sub === circuit.id));
+    const users = project.circuits.filter((d) => d.components.some((c) => c.kind === 'CUSTOM' && c.custom === circuit.id));
     if (users.length > 0) {
-      alert(`「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`);
+      setDialog({
+        message: `「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`,
+      });
       return;
     }
-    if (!confirm(`サブ回路「${circuit.name}」を削除しますか？`)) return;
     const id = circuit.id;
-    setProject((p) => ({ circuits: p.circuits.filter((d) => d.id !== id) }));
-    prevResults.current.delete(id);
-    openCircuit(MAIN_ID);
+    setDialog({
+      message: `モジュール「${circuit.name}」を削除しますか？`,
+      confirmLabel: '削除',
+      danger: true,
+      onConfirm: () => {
+        setProject((p) => ({ circuits: p.circuits.filter((d) => d.id !== id) }));
+        prevResults.current.delete(id);
+        openCircuit(MAIN_ID);
+      },
+    });
+  }
+
+  function setLabel(id: string, value: string) {
+    setEditing(null);
+    setCircuit((cur) => ({
+      ...cur,
+      components: cur.components.map((k) => (k.id === id ? { ...k, label: value.trim() || undefined } : k)),
+    }));
   }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // 文字入力中やダイアログ表示中は、キーを編集操作として扱わない
+      if (dialog || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
       if (e.key === 'Escape') {
         setPending(null);
@@ -195,20 +247,15 @@ export function App() {
   function onCompPointerDown(e: React.PointerEvent, c: Component) {
     e.stopPropagation();
     const p = toLocal(e);
-    dragRef.current = { id: c.id, offset: { x: p.x - c.x, y: p.y - c.y }, moved: false };
+    dragRef.current = { id: c.id, offset: { x: p.x - c.x, y: p.y - c.y }, moved: false, pointerId: e.pointerId, start: { x: e.clientX, y: e.clientY } };
     setSelection({ type: 'comp', id: c.id });
   }
 
   function onCompDoubleClick(c: Component) {
-    if (c.kind === 'SUB' && c.sub && findDef(project, c.sub)) {
-      openCircuit(c.sub);
+    if (c.kind === 'CUSTOM' && c.custom && findDef(project, c.custom)) {
+      openCircuit(c.custom);
     } else if (c.kind === 'INPUT' || c.kind === 'OUTPUT') {
-      const label = prompt('ラベル', c.label ?? '');
-      if (label === null) return;
-      setCircuit((cur) => ({
-        ...cur,
-        components: cur.components.map((k) => (k.id === c.id ? { ...k, label: label.trim() || undefined } : k)),
-      }));
+      setEditing({ type: 'label', id: c.id });
     }
   }
 
@@ -217,11 +264,30 @@ export function App() {
     setMouse(p);
     const drag = dragRef.current;
     if (!drag) return;
-    const x = snap(p.x - drag.offset.x);
-    const y = snap(p.y - drag.offset.y);
+    const svg = svgRef.current!;
+    if (!svg.hasPointerCapture(drag.pointerId)) {
+      // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
+      if (Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) < DRAG_THRESHOLD) return;
+      // キャンバスの外 (削除エリアの上など) に出ても移動イベントを受け取り続ける。
+      // 押した時点でキャプチャすると、クリックやダブルクリックが部品に届かなくなるため、ドラッグが始まってから行う
+      svg.setPointerCapture(drag.pointerId);
+    }
+    const rect = trashRef.current?.getBoundingClientRect();
+    const overTrash =
+      !!rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+    if (overTrash) {
+      // 削除エリアの上では部品は動かさない
+      drag.moved = true;
+      setDragMode('trash');
+      return;
+    }
+    if (drag.moved) setDragMode('moving');
     const c = compMap.get(drag.id);
-    if (!c || (c.x === x && c.y === y)) return;
+    if (!c) return;
+    const { x, y } = clampToCanvas(c, { x: snap(p.x - drag.offset.x), y: snap(p.y - drag.offset.y) });
+    if (c.x === x && c.y === y) return;
     drag.moved = true;
+    setDragMode('moving');
     setCircuit((cur) => ({
       ...cur,
       components: cur.components.map((k) => (k.id === drag.id ? { ...k, x, y } : k)),
@@ -230,8 +296,15 @@ export function App() {
 
   function onPointerUp() {
     const drag = dragRef.current;
+    const mode = dragMode;
     dragRef.current = null;
-    if (!drag || drag.moved) return;
+    setDragMode('none');
+    if (!drag) return;
+    if (mode === 'trash') {
+      deleteComponent(drag.id);
+      return;
+    }
+    if (drag.moved) return;
     // 動かさずに離したスイッチはトグル
     const c = compMap.get(drag.id);
     if (c?.kind === 'INPUT') {
@@ -273,10 +346,10 @@ export function App() {
     const data = e.dataTransfer.getData(DRAG_MIME);
     if (!data) return;
     e.preventDefault();
-    const { kind, sub } = JSON.parse(data) as { kind: Kind; sub?: string };
+    const { kind, custom } = JSON.parse(data) as { kind: Kind; custom?: string };
     const p = toLocal(e);
     // カーソルが部品の左上付近に来るよう少しずらす
-    addComponent(kind, sub, { x: p.x - GRID, y: p.y - GRID });
+    addComponent(kind, custom, { x: p.x - GRID, y: p.y - GRID });
   }
 
   function onBackgroundDown() {
@@ -285,28 +358,58 @@ export function App() {
   }
 
   function clearAll() {
-    if (!confirm('この回路をすべて消去しますか？')) return;
-    setCircuit((cur) => ({ ...cur, components: [], wires: [] }));
-    setSelection(null);
-    setPending(null);
+    setDialog({
+      message: 'この回路をすべて消去しますか？',
+      confirmLabel: '消去',
+      danger: true,
+      onConfirm: () => {
+        setCircuit((cur) => ({ ...cur, components: [], wires: [] }));
+        setSelection(null);
+        setPending(null);
+      },
+    });
+  }
+
+  /** ラベル入力欄は部品の真上に置く */
+  function labelInputPosition(c: Component): React.CSSProperties {
+    const { w } = bodySize(c, portsOf(c, project));
+    const width = 120;
+    return { left: Math.max(0, c.x + w / 2 - width / 2), top: Math.max(0, c.y - 30), width };
   }
 
   const pendingFrom = pending && compMap.get(pending.comp);
+  const labelTarget = editing?.type === 'label' ? compMap.get(editing.id) : undefined;
 
   return (
     <div className="app">
       <div className="toolbar tabs">
-        {project.circuits.map((d) => (
-          <button key={d.id} className={d.id === circuit.id ? 'active' : undefined} onClick={() => openCircuit(d.id)}>
-            {d.name}
-          </button>
-        ))}
-        <button onClick={createSubcircuit}>+ サブ回路</button>
+        {project.circuits.map((d) =>
+          editing?.type === 'tab' && editing.id === d.id ? (
+            <InlineInput
+              key={d.id}
+              className="tab-input"
+              initial={d.name}
+              onCommit={(v) => renameCircuit(d.id, v)}
+              onCancel={() => setEditing(null)}
+            />
+          ) : (
+            <button
+              key={d.id}
+              className={d.id === circuit.id ? 'active' : undefined}
+              onClick={() => openCircuit(d.id)}
+              onDoubleClick={() => d.id !== MAIN_ID && setEditing({ type: 'tab', id: d.id })}
+              title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更' : undefined}
+            >
+              {d.name}
+            </button>
+          ),
+        )}
+        <button onClick={createModule}>+ モジュール</button>
         {circuit.id !== MAIN_ID && (
           <>
             <span className="sep" />
-            <button onClick={renameCircuit}>名前変更</button>
-            <button onClick={deleteCircuit}>サブ回路を削除</button>
+            <button onClick={() => setEditing({ type: 'tab', id: circuit.id })}>名前変更</button>
+            <button onClick={deleteCircuit}>モジュールを削除</button>
           </>
         )}
       </div>
@@ -318,104 +421,130 @@ export function App() {
         <span className="sep" />
         {sim.unstable && <span className="warn">発振しています</span>}
         <span className="hint">
-          部品は左のパネルからクリックかドラッグで追加 / 出力ピン→入力ピンをクリックで配線 / スイッチはクリックで切替 / ダブルクリックでラベル編集・サブ回路を開く / Delete で削除
+          部品は左のパネルからクリックかドラッグで追加（左下の削除エリアへドラッグで削除） / 出力ピン→入力ピンをクリックで配線 / スイッチはクリックで切替 / ダブルクリックでラベル編集・モジュールを開く / Delete で削除
         </span>
       </div>
       <div className="workspace">
-        <aside className="palette">
-          {PALETTE.map((group) => (
-            <section key={group.title}>
-              <h3>{group.title}</h3>
-              {group.kinds.map((k) => (
-                <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => addComponent(k)} />
-              ))}
-            </section>
-          ))}
-          <section>
-            <h3>サブ回路</h3>
-            {usableSubs.map((d) => (
-              <PaletteItem key={d.id} label={d.name} kind="SUB" sub={d.id} onAdd={() => addComponent('SUB', d.id)} />
+        <div className="sidebar">
+          <aside className="palette">
+            {PALETTE.map((group) => (
+              <section key={group.title}>
+                <h3>{group.title}</h3>
+                {group.kinds.map((k) => (
+                  <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => addComponent(k)} />
+                ))}
+              </section>
             ))}
-            {usableSubs.length === 0 && <p className="empty">置けるサブ回路はありません</p>}
-          </section>
-        </aside>
-        <svg
-          ref={svgRef}
-          className="canvas"
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={() => (dragRef.current = null)}
-          onPointerDown={onBackgroundDown}
-          onDragOver={(e) => {
-            if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
-          }}
-          onDrop={onDrop}
-        >
-          <defs>
-            <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
-              <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
+            <section>
+              <h3>モジュール</h3>
+              {usableModules.map((d) => (
+                <PaletteItem key={d.id} label={d.name} kind="CUSTOM" custom={d.id} onAdd={() => addComponent('CUSTOM', d.id)} />
+              ))}
+              {usableModules.length === 0 && <p className="empty">置けるモジュールはありません</p>}
+            </section>
+          </aside>
+          <div
+            ref={trashRef}
+            className={`trash${dragMode !== 'none' ? ' dragging' : ''}${dragMode === 'trash' ? ' active' : ''}`}
+          >
+            <span className="trash-icon" style={{ mask: TRASH_MASK, WebkitMask: TRASH_MASK }} aria-hidden="true" />
+            ここへドラッグで削除
+          </div>
+        </div>
+        <div className="canvas-wrap">
+          <svg
+            ref={svgRef}
+            className="canvas"
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={() => {
+              dragRef.current = null;
+              setDragMode('none');
+            }}
+            onPointerDown={onBackgroundDown}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
+            }}
+            onDrop={onDrop}
+          >
+            <defs>
+              <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
+                <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
 
-          {circuit.wires.map((w) => {
-            const from = compMap.get(w.from.comp);
-            const to = compMap.get(w.to.comp);
-            if (!from || !to) return null;
-            const fromPorts = portsOf(from, project);
-            const toPorts = portsOf(to, project);
-            // サブ回路のピンが減った場合など、存在しないピンへの配線は描かない
-            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
-            const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
-            const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-            const selected = selection?.type === 'wire' && selection.id === w.id;
-            return (
-              <g key={w.id}>
-                <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
-                <path
-                  className="wire-hit"
-                  d={d}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    setSelection({ type: 'wire', id: w.id });
-                  }}
+            {circuit.wires.map((w) => {
+              const from = compMap.get(w.from.comp);
+              const to = compMap.get(w.to.comp);
+              if (!from || !to) return null;
+              const fromPorts = portsOf(from, project);
+              const toPorts = portsOf(to, project);
+              // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
+              if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
+              const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
+              const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
+              const selected = selection?.type === 'wire' && selection.id === w.id;
+              return (
+                <g key={w.id}>
+                  <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
+                  <path
+                    className="wire-hit"
+                    d={d}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      setSelection({ type: 'wire', id: w.id });
+                    }}
+                  />
+                </g>
+              );
+            })}
+
+            {circuit.components.map((c) => {
+              const ports = portsOf(c, project);
+              return (
+                <ComponentView
+                  key={c.id}
+                  comp={c}
+                  ports={ports}
+                  name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                  outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
+                    !!sim.values.get(pinKey(c.id, i)),
+                  )}
+                  inputValues={ports.inputs.map((_, i) => {
+                    const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
+                    return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                  })}
+                  selected={selection?.type === 'comp' && selection.id === c.id}
+                  onBodyDown={(e) => onCompPointerDown(e, c)}
+                  onBodyDoubleClick={() => onCompDoubleClick(c)}
+                  onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
+                  onOutputPinDown={(e, pin) => onOutputPinDown(e, c, pin)}
                 />
-              </g>
-            );
-          })}
+              );
+            })}
 
-          {circuit.components.map((c) => {
-            const ports = portsOf(c, project);
-            return (
-              <ComponentView
-                key={c.id}
-                comp={c}
-                ports={ports}
-                name={c.kind === 'SUB' ? findDef(project, c.sub)?.name : undefined}
-                outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
-                  !!sim.values.get(pinKey(c.id, i)),
-                )}
-                inputValues={ports.inputs.map((_, i) => {
-                  const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
-                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
-                })}
-                selected={selection?.type === 'comp' && selection.id === c.id}
-                onBodyDown={(e) => onCompPointerDown(e, c)}
-                onBodyDoubleClick={() => onCompDoubleClick(c)}
-                onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
-                onOutputPinDown={(e, pin) => onOutputPinDown(e, c, pin)}
+            {pending && pendingFrom && (
+              <path
+                className="pending"
+                d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
               />
-            );
-          })}
-
-          {pending && pendingFrom && (
-            <path
-              className="pending"
-              d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
+            )}
+          </svg>
+          {labelTarget && (
+            <InlineInput
+              key={labelTarget.id}
+              className="label-input"
+              style={labelInputPosition(labelTarget)}
+              initial={labelTarget.label ?? ''}
+              placeholder="ラベル"
+              onCommit={(v) => setLabel(labelTarget.id, v)}
+              onCancel={() => setEditing(null)}
             />
           )}
-        </svg>
+        </div>
       </div>
+      {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
     </div>
   );
 }
@@ -423,23 +552,24 @@ export function App() {
 interface PaletteItemProps {
   label: string;
   kind: Kind;
-  sub?: string;
+  custom?: string;
   onAdd: () => void;
 }
 
 /** クリックで追加、キャンバスへドラッグで好きな位置に追加 */
-function PaletteItem({ label, kind, sub, onAdd }: PaletteItemProps) {
+function PaletteItem({ label, kind, custom, onAdd }: PaletteItemProps) {
   return (
     <button
-      className={kind === 'SUB' ? 'sub' : undefined}
+      className={kind === 'CUSTOM' ? 'custom' : undefined}
       draggable
       onClick={onAdd}
       onDragStart={(e) => {
-        e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind, sub }));
+        e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind, custom }));
         e.dataTransfer.effectAllowed = 'copy';
       }}
     >
-      {label}
+      <PartIcon kind={kind} />
+      <span>{label}</span>
     </button>
   );
 }

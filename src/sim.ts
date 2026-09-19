@@ -1,10 +1,10 @@
 export type GateKind = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR';
 export type FlipFlopKind = 'SR' | 'DFF' | 'TFF' | 'JKFF';
 /**
- * SUB: サブ回路。シミュレーション前に展開される
- * BUF: 入力をそのまま出力する。展開したサブ回路のピンに使う内部用の部品
+ * CUSTOM: モジュール。シミュレーション前に展開される
+ * BUF: 入力をそのまま出力する。展開したモジュールのピンに使う内部用の部品
  */
-export type Kind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'OUTPUT' | 'SUB' | 'BUF';
+export type Kind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'OUTPUT' | 'CUSTOM' | 'BUF';
 
 export interface Component {
   id: string;
@@ -13,10 +13,10 @@ export interface Component {
   y: number;
   /** INPUT / CLOCK の出力状態 */
   on?: boolean;
-  /** INPUT / OUTPUT のラベル (サブ回路のピン名になる) */
+  /** INPUT / OUTPUT のラベル (モジュールのピン名になる) */
   label?: string;
-  /** SUB が参照する回路定義の ID */
-  sub?: string;
+  /** CUSTOM が参照する回路定義の ID */
+  custom?: string;
 }
 
 export interface PinRef {
@@ -58,7 +58,7 @@ export function inputCount(kind: Kind): number {
   switch (kind) {
     case 'INPUT':
     case 'CLOCK':
-    case 'SUB': // ピン数は定義による
+    case 'CUSTOM': // ピン数は定義による
       return 0;
     case 'NOT':
     case 'OUTPUT':
@@ -70,7 +70,7 @@ export function inputCount(kind: Kind): number {
 }
 
 export function outputCount(kind: Kind): number {
-  if (kind === 'OUTPUT' || kind === 'SUB') return 0;
+  if (kind === 'OUTPUT' || kind === 'CUSTOM') return 0;
   return isFlipFlop(kind) ? 2 : 1; // フリップフロップは Q, Q̄
 }
 

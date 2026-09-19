@@ -7,7 +7,7 @@ export const LABELS: Partial<Record<Kind, string>> = { SR: 'SR', DFF: 'D-FF', TF
 interface ComponentViewProps {
   comp: Component;
   ports: Ports;
-  /** SUB の表示名 */
+  /** CUSTOM の表示名 */
   name?: string;
   /** 出力ピンの値 (OUTPUT は表示する入力値) */
   outputValues: boolean[];
@@ -75,16 +75,16 @@ export function ComponentView({
       </>
     );
   } else {
-    const isSub = c.kind === 'SUB';
+    const isCustom = c.kind === 'CUSTOM';
     body = (
       <>
         <rect className="body" x={c.x} y={c.y} width={w} height={h} />
         <text
           className="label"
           x={c.x + w / 2}
-          y={isSub ? c.y - 6 : isFlipFlop(c.kind) ? c.y + h / 2 + 4 : c.y + 20}
+          y={isCustom ? c.y - 6 : isFlipFlop(c.kind) ? c.y + h / 2 + 4 : c.y + 20}
         >
-          {isSub ? (name ?? '(不明)') : (LABELS[c.kind] ?? c.kind)}
+          {isCustom ? (name ?? '(不明)') : (LABELS[c.kind] ?? c.kind)}
         </text>
         {ports.inputs.map((label, i) =>
           label ? (

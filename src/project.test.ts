@@ -40,8 +40,8 @@ const fullAdder: CircuitDef = {
     comp('a', 'INPUT', 0),
     comp('b', 'INPUT', 20),
     comp('ci', 'INPUT', 40),
-    comp('h1', 'SUB', 0, { sub: 'ha' }),
-    comp('h2', 'SUB', 0, { sub: 'ha' }),
+    comp('h1', 'CUSTOM', 0, { custom: 'ha' }),
+    comp('h2', 'CUSTOM', 0, { custom: 'ha' }),
     comp('or', 'OR'),
     comp('s', 'OUTPUT', 0),
     comp('co', 'OUTPUT', 20),
@@ -58,13 +58,13 @@ const fullAdder: CircuitDef = {
   ],
 };
 
-function mainWith(sub: string, nIn: number, nOut: number, ins: boolean[]): CircuitDef {
+function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): CircuitDef {
   return {
     id: MAIN_ID,
     name: 'メイン',
     components: [
       ...ins.map((on, i) => comp(`i${i}`, 'INPUT', i * 20, { on })),
-      comp('u', 'SUB', 0, { sub }),
+      comp('u', 'CUSTOM', 0, { custom }),
       ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT', j * 20)),
     ],
     wires: [
@@ -74,10 +74,10 @@ function mainWith(sub: string, nIn: number, nOut: number, ins: boolean[]): Circu
   };
 }
 
-describe('サブ回路', () => {
+describe('モジュール', () => {
   it('ピン名は INPUT / OUTPUT のラベルを上から順に並べたもの', () => {
     const project: Project = { circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder] };
-    expect(portsOf(comp('u', 'SUB', 0, { sub: 'ha' }), project)).toEqual({ inputs: ['A', 'B'], outputs: ['S', 'C'] });
+    expect(portsOf(comp('u', 'CUSTOM', 0, { custom: 'ha' }), project)).toEqual({ inputs: ['A', 'B'], outputs: ['S', 'C'] });
   });
 
   it('半加算器', () => {
@@ -90,12 +90,12 @@ describe('サブ回路', () => {
       const project: Project = { circuits: [mainWith('ha', 2, 2, [a, b]), halfAdder] };
       const r = simulateCircuit(project, MAIN_ID);
       expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([a !== b, a && b]);
-      // 最上位のサブ回路の出力ピンにも値が入る
+      // 最上位のモジュールの出力ピンにも値が入る
       expect(r.values.get('u:1')).toBe(a && b);
     }
   });
 
-  it('入れ子のサブ回路 (全加算器)', () => {
+  it('入れ子のモジュール (全加算器)', () => {
     for (let n = 0; n < 8; n++) {
       const ins = [!!(n & 1), !!(n & 2), !!(n & 4)];
       const project: Project = { circuits: [mainWith('fa', 3, 2, ins), halfAdder, fullAdder] };
@@ -105,7 +105,7 @@ describe('サブ回路', () => {
     }
   });
 
-  it('サブ回路の中のフリップフロップが状態を保つ', () => {
+  it('モジュールの中のフリップフロップが状態を保つ', () => {
     const reg: CircuitDef = {
       id: 'reg',
       name: 'Reg',
@@ -124,8 +124,8 @@ describe('サブ回路', () => {
   });
 
   it('循環参照は展開しない', () => {
-    const a: CircuitDef = { id: 'a', name: 'A', components: [comp('s', 'SUB', 0, { sub: 'b' })], wires: [] };
-    const b: CircuitDef = { id: 'b', name: 'B', components: [comp('s', 'SUB', 0, { sub: 'a' })], wires: [] };
+    const a: CircuitDef = { id: 'a', name: 'A', components: [comp('s', 'CUSTOM', 0, { custom: 'b' })], wires: [] };
+    const b: CircuitDef = { id: 'b', name: 'B', components: [comp('s', 'CUSTOM', 0, { custom: 'a' })], wires: [] };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };
     expect(dependsOn(project, 'a', 'b')).toBe(true);
     expect(dependsOn(project, 'b', 'a')).toBe(true);

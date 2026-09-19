@@ -7,6 +7,7 @@
 - [作業の進め方](docs/agent/workflow.md) — 言語、検証、コミット
 - [シミュレーション](docs/agent/simulation.md) — 評価モデルの前提と、壊してはいけない不変条件
 - [保存データ](docs/agent/persistence.md) — localStorage の互換性
+- [UI](docs/agent/ui.md) — アイコンの置き場所と描画方式
 
 ## このドキュメント自体の運用
 
