@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import './Dialogs.css';
 
 // ブラウザの prompt / confirm / alert は VS Code 内のブラウザなどで動かないため、画面内の UI で代替する
 
@@ -34,7 +35,7 @@ export function InlineInput({ initial, className, style, placeholder, onCommit, 
   return (
     <input
       ref={ref}
-      className={className}
+      className={className ? `inline-input ${className}` : 'inline-input'}
       style={style}
       defaultValue={initial}
       placeholder={placeholder}

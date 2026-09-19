@@ -77,58 +77,21 @@ body,
   border-color: transparent;
 }
 
-.tool-icon {
-  width: 16px;
-  height: 16px;
-  background-color: currentColor;
-}
-
 .canvas {
-  flex: 1;
   display: block;
   width: 100%;
+  height: 100%;
   user-select: none;
-}
-
-.body {
-  fill: #222;
-  stroke: #555;
-}
-
-.selected .body {
-  stroke: var(--accent);
-}
-
-.label {
-  fill: var(--text);
-  font-size: 13px;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-.lead {
-  stroke: var(--line);
-  stroke-width: 2;
-}
-
-.lead.on,
-.wire.on {
-  stroke: var(--on);
-}
-
-.pin {
-  fill: transparent;
-  cursor: crosshair;
-}
-
-.pin:hover {
-  fill: var(--accent);
 }
 
 .wire {
   stroke: var(--line);
   stroke-width: 2;
   fill: none;
+}
+
+.wire.on {
+  stroke: var(--on);
 }
 
 .wire.selected {
@@ -148,17 +111,6 @@ body,
   stroke-width: 2;
   fill: none;
   pointer-events: none;
-}
-
-.pin-label {
-  fill: var(--text);
-  font-size: 11px;
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.pin-label.end {
-  text-anchor: end;
 }
 
 /* 最上部のヘッダー */
@@ -191,88 +143,6 @@ body,
   white-space: nowrap;
 }
 
-.tabbar {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 6px 8px 0;
-  background: var(--tabbar);
-  /* 下のツールバーとの境目の線。内側に描くので、選択中のタブを重ねて隠せる */
-  box-shadow: inset 0 -1px var(--border);
-}
-
-.tabs {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  min-width: 0;
-  /* タブが増えたら横にスクロールする。縦は出さない */
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.tab {
-  flex-shrink: 0;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 7px 14px;
-  background: transparent;
-  color: var(--text);
-  opacity: 0.65;
-  border: 1px solid transparent;
-  border-top: 2px solid transparent;
-  border-radius: 6px 6px 0 0;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.tab:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-/* 選択中のタブは下のツールバーとつながって見せる */
-.tab.active {
-  opacity: 1;
-  background: var(--panel);
-  border-color: var(--border);
-  border-top-color: var(--accent);
-  border-bottom-color: var(--panel);
-}
-
-.tab-input {
-  margin-bottom: 4px;
-}
-
-.tabbar-actions {
-  display: flex;
-  gap: 2px;
-  margin-left: auto;
-  padding-bottom: 4px;
-}
-
-.tabbar-actions button.tool {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: transparent;
-  color: var(--text);
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  opacity: 0.8;
-  cursor: pointer;
-}
-
-.tabbar-actions button.tool:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.08);
-}
-
 .workspace {
   flex: 1;
   display: flex;
@@ -285,274 +155,8 @@ body,
   min-width: 0;
 }
 
-.workspace .canvas {
-  width: 100%;
-  height: 100%;
-}
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 160px;
-  flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-}
-
-.palette {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.palette h3 {
-  margin: 12px 0 6px;
-  font-size: 12px;
-  font-weight: normal;
-  opacity: 0.7;
-}
-
-.palette section:first-child h3 {
-  margin-top: 0;
-}
-
-.palette button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin-bottom: 4px;
-  padding: 4px 8px;
-  text-align: left;
-  background: #333;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: grab;
-}
-
-.palette button span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.part-icon {
-  flex-shrink: 0;
-  width: 32px;
-  height: 24px;
-  background-color: currentColor;
-}
-
-.palette button:hover {
-  border-color: var(--accent);
-}
-
-.palette button.custom {
-  border-style: dashed;
-}
-
-.palette button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.palette button:disabled:hover {
-  border-color: var(--border);
-}
-
-.palette .empty {
-  margin: 0;
-  font-size: 12px;
-  opacity: 0.5;
-}
-
-/* 部品のドラッグ先にすると削除するエリア */
-.trash {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin: 8px;
-  padding: 12px 8px;
-  font-size: 12px;
-  text-align: center;
-  color: var(--text);
-  opacity: 0.5;
-  border: 2px dashed var(--border);
-  border-radius: 6px;
-}
-
-.trash.dragging {
-  opacity: 1;
-}
-
-.trash.active {
-  color: #ef5350;
-  border-color: #ef5350;
-  background: rgba(239, 83, 80, 0.15);
-}
-
-.trash-icon {
-  width: 24px;
-  height: 24px;
-  background-color: currentColor;
-}
-
-/* その場で編集する入力欄 */
-.tab-input,
-.label-input {
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font: inherit;
-  outline: none;
-}
-
-.tab-input {
-  width: 140px;
-}
-
 .label-input {
   position: absolute;
   font-size: 13px;
 }
 
-/* 画面内のダイアログ */
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.dialog {
-  max-width: 420px;
-  padding: 16px 20px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.dialog p {
-  margin: 0 0 16px;
-  line-height: 1.6;
-}
-
-.dialog-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.dialog button {
-  background: #333;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 6px 14px;
-  cursor: pointer;
-}
-
-.dialog button:hover,
-.dialog button:focus-visible {
-  border-color: var(--accent);
-}
-
-.dialog h2 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.dialog .field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: min(320px, 80vw);
-  font-size: 12px;
-}
-
-.dialog .field input {
-  padding: 6px 8px;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-  font-size: 14px;
-  outline: none;
-}
-
-.dialog .field input:focus {
-  border-color: var(--accent);
-}
-
-.dialog .field-error {
-  min-height: 1.2em;
-  margin: 4px 0 12px;
-  font-size: 12px;
-  color: #ef5350;
-}
-
-.dialog button.primary {
-  background: #134e48;
-  border-color: var(--accent);
-}
-
-.dialog button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.dialog button.danger {
-  background: #5a2222;
-  border-color: #ef5350;
-}
-
-/* 画面下のステータスバー */
-.statusbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 24px;
-  padding: 2px 10px;
-  font-size: 12px;
-  background: var(--tabbar);
-  border-top: 1px solid var(--border);
-  /* ヒントの切り替え効果で中身が動いてもはみ出さない */
-  overflow: hidden;
-}
-
-.status-hint {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.75;
-}
-
-/* ヒントが切り替わるときにふわっと表示する */
-.status-hint {
-  animation: hint-in 0.4s ease-out;
-}
-
-@keyframes hint-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
-.status-warn {
-  flex-shrink: 0;
-  color: #ef5350;
-}

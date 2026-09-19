@@ -13,6 +13,7 @@ import rsIcon from '../assets/icons/rs.svg';
 import tffIcon from '../assets/icons/tff.svg';
 import xorIcon from '../assets/icons/xor.svg';
 import type { Kind } from '../engine/sim';
+import './Icons.css';
 
 const ICONS: Partial<Record<Kind, string>> = {
   INPUT: inputIcon,

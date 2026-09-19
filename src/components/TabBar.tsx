@@ -2,6 +2,7 @@ import trashIcon from '../assets/icons/trash.svg';
 import { MAIN_ID, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
 import { MaskIcon } from './Icons';
+import './TabBar.css';
 
 interface TabBarProps {
   circuits: CircuitDef[];

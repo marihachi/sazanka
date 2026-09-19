@@ -1,0 +1,12 @@
+.part-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 24px;
+  background-color: currentColor;
+}
+
+.tool-icon {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+}

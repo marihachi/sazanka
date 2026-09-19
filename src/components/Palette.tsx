@@ -3,6 +3,7 @@ import type { CircuitDef } from '../engine/project';
 import type { Kind } from '../engine/sim';
 import { LABELS } from './ComponentView';
 import { MaskIcon, PartIcon } from './Icons';
+import './Palette.css';
 
 const GROUPS: { title: string; kinds: Kind[] }[] = [
   { title: '入出力', kinds: ['INPUT', 'CLOCK', 'OUTPUT'] },

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import './StatusBar.css';
 
 const HINT_MIN_DURATION = 6000;
 

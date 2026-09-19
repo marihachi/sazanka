@@ -5,7 +5,10 @@
 - `engine/` … 回路の計算処理（部品の評価、モジュールの展開、配置計算）。React や DOM に依存させない。テストはここに置く。名前は `core` / `circuit` なども検討したうえで、ユーザーが `engine` に決めた。
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。
 - `app/` … 画面全体の組み立てと状態、保存、クロック、ヒントの文言。
-- `styles/`、`assets/` … CSS と SVG。
+- `styles/style.css` … 色の変数（`:root`）、ページ全体、`app/` の画面（ヘッダー、ツールバー、キャンバス）のスタイル。
+- `assets/` … SVG。
+
+CSS は、コンポーネント固有のものならコンポーネントごとに分けて `components/` に置き（例: `TabBar.tsx` と `TabBar.css`）、そのコンポーネントから import する（ユーザーの指示）。共通の `style.css` は `main.tsx` で各コンポーネントより先に読み込む。
 
 依存の向きは `app` → `components` → `engine` の一方向に保つ。
 

@@ -1,0 +1,106 @@
+/* その場で編集する入力欄 (InlineInput) */
+.inline-input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font: inherit;
+  outline: none;
+}
+
+/* 画面内のダイアログ */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog {
+  max-width: 420px;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.dialog p {
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+
+.dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialog button {
+  background: #333;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.dialog button:hover,
+.dialog button:focus-visible {
+  border-color: var(--accent);
+}
+
+.dialog h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dialog .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(320px, 80vw);
+  font-size: 12px;
+}
+
+.dialog .field input {
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.dialog .field input:focus {
+  border-color: var(--accent);
+}
+
+.dialog .field-error {
+  min-height: 1.2em;
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: #ef5350;
+}
+
+.dialog button.primary {
+  background: #134e48;
+  border-color: var(--accent);
+}
+
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dialog button.danger {
+  background: #5a2222;
+  border-color: #ef5350;
+}
