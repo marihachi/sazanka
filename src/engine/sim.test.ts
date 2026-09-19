@@ -39,6 +39,41 @@ describe('simulate', () => {
     });
   }
 
+  /** 入力スイッチ a の値を部品 g の pin 0 に入れたときの g の出力 */
+  function oneInput(kind: 'NOT' | 'BUF', a: boolean): boolean {
+    const r = simulate({
+      components: [
+        { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
+        { id: 'g', kind, x: 0, y: 0 },
+      ],
+      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
+    });
+    return r.values.get('g:0')!;
+  }
+
+  it('NOT は反転し、BUF はそのまま出す', () => {
+    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([true, false]);
+    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([false, true]);
+  });
+
+  it('何もつながっていない入力ピンは OFF として扱う', () => {
+    const r = simulate({
+      components: [
+        { id: 'n', kind: 'NOT', x: 0, y: 0 },
+        { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
+      ],
+      wires: [],
+    });
+    expect(r.values.get('n:0')).toBe(true);
+    // OUTPUT は入力の値を pin 0 に持つ
+    expect(r.values.get('o:0')).toBe(false);
+  });
+
+  it('CLOCK は on の値をそのまま出す', () => {
+    const r = simulate({ components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }], wires: [] });
+    expect(r.values.get('k:0')).toBe(true);
+  });
+
   it('NOT の発振ループを検出する', () => {
     const r = simulate({
       components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
@@ -138,6 +173,11 @@ describe('simulate', () => {
           [H, H, H], // 反転
         ]),
       ).toEqual([H, H, H, H, L, L, L, L, H]);
+    });
+
+    it('前回の結果がないときに CLK が ON なら、立ち上がりとみなして1回動く', () => {
+      // [D, CLK]
+      expect(run('DFF', [[H, H]])).toEqual([H]);
     });
 
     it('RS ラッチはクロックなしで入力にすぐ反応する', () => {

@@ -135,6 +135,17 @@ describe('モジュール', () => {
     expect(step(false, true)).toBe(false);
   });
 
+  it('モジュールのピンが減っても、存在しないピンへの配線は無視して計算する', () => {
+    // 半加算器の出力は2本。3本目 (pin 2) への配線は計算から除く
+    const main = mainWith('ha', 2, 2, [true, true]);
+    main.components.push(comp('o2', 'OUTPUT', 40));
+    main.wires.push(wire('u', 2, 'o2', 0));
+    const project: Project = { circuits: [main, halfAdder] };
+    const r = simulateCircuit(project, MAIN_ID);
+    expect(r.values.get('o1:0')).toBe(true);
+    expect(r.values.get('o2:0')).toBe(false);
+  });
+
   it('循環参照は展開しない', () => {
     const a: CircuitDef = { id: 'a', name: 'A', components: [comp('s', 'CUSTOM', 0, { custom: 'b' })], wires: [] };
     const b: CircuitDef = { id: 'b', name: 'B', components: [comp('s', 'CUSTOM', 0, { custom: 'a' })], wires: [] };

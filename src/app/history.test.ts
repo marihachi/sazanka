@@ -54,6 +54,14 @@ describe('history', () => {
     expect(h.present).toEqual({ shape: 'a', on: true });
   });
 
+  it('redo でも merge で今の状態の一部を引き継げる', () => {
+    let h = commit(initHistory({ shape: 'a', on: false }), { shape: 'b', on: false });
+    h = undo(h);
+    h = replace(h, { ...h.present, on: true });
+    h = redo(h, (restored, current) => ({ ...restored, on: current.on }));
+    expect(h.present).toEqual({ shape: 'b', on: true });
+  });
+
   it('履歴は上限を超えると古いものから捨てる', () => {
     let h = initHistory(0);
     for (let i = 1; i <= 150; i++) h = commit(h, i);

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { connect, disconnect, removeComponent, setLabel, toggleSwitch } from './edit';
+import {
+  addComponent,
+  clearCircuit,
+  connect,
+  disconnect,
+  moveComponent,
+  removeComponent,
+  removeWire,
+  setLabel,
+  toggleSwitch,
+} from './edit';
+import type { CircuitDef } from './project';
 import type { Circuit, Wire } from './sim';
 
 function wire(id: string, from: string, to: string, toPin = 0): Wire {
@@ -37,6 +48,29 @@ describe('edit', () => {
     const labeled = setLabel(base, 'a', ' x ');
     expect(labeled.components[0].label).toBe('x');
     expect(setLabel(labeled, 'a', '  ').components[0].label).toBeUndefined();
+  });
+
+  it('配線を削除しても、部品はそのまま', () => {
+    const c = removeWire(base, 'w2');
+    expect(c.wires.map((w) => w.id)).toEqual(['w1', 'w3']);
+    expect(c.components).toBe(base.components);
+  });
+
+  it('部品の追加と移動', () => {
+    const added = addComponent(base, { id: 'n', kind: 'NOT', x: 0, y: 80 });
+    expect(added.components.map((k) => k.id)).toEqual(['a', 'b', 'g', 'o', 'n']);
+    const moved = moveComponent(added, 'n', { x: 40, y: 120 });
+    expect(moved.components[4]).toMatchObject({ x: 40, y: 120 });
+    expect(moved.components[0]).toBe(added.components[0]);
+  });
+
+  it('全消去すると部品も配線もなくなる', () => {
+    expect(clearCircuit(base)).toEqual({ components: [], wires: [] });
+  });
+
+  it('回路定義の ID や名前は編集しても残る', () => {
+    const def: CircuitDef = { ...base, id: 'm', name: 'M' };
+    expect(clearCircuit(removeComponent(def, 'g'))).toMatchObject({ id: 'm', name: 'M' });
   });
 
   it('スイッチの ON/OFF を切り替える', () => {
