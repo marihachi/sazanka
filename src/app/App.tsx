@@ -11,14 +11,7 @@ import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
 import { clampPosition, GRID, snap, type Point } from '../engine/geometry';
-import {
-  dependsOn,
-  findDef,
-  MAIN_ID,
-  portsOf,
-  simulateCircuit,
-  type CircuitDef,
-} from '../engine/project';
+import { dependsOn, findDef, MAIN_ID, portsOf, simulateCircuit, type CircuitDef } from '../engine/project';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
 import { loadProject, saveProject } from './storage';
@@ -159,7 +152,9 @@ export function App() {
   }
 
   function deleteCircuit() {
-    const users = project.circuits.filter((d) => d.components.some((c) => c.kind === 'CUSTOM' && c.custom === circuit.id));
+    const users = project.circuits.filter((d) =>
+      d.components.some((c) => c.kind === 'CUSTOM' && c.custom === circuit.id),
+    );
     if (users.length > 0) {
       setDialog({
         message: `「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`,
@@ -190,7 +185,8 @@ export function App() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       // 文字入力中やダイアログ表示中は、キーを編集操作として扱わない
-      if (dialog || promptDialog || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      if (dialog || promptDialog || typing) return;
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       if (mod && (key === 'z' || key === 'y')) {
@@ -254,10 +250,7 @@ export function App() {
   function connect(from: PinRef, to: PinRef) {
     setCircuit((cur) => ({
       ...cur,
-      wires: [
-        ...cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)),
-        { id: newId(), from, to },
-      ],
+      wires: [...cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)), { id: newId(), from, to }],
     }));
   }
 
@@ -311,7 +304,12 @@ export function App() {
           <MaskIcon src={undoIcon} className="tool-icon" />
           元に戻す
         </button>
-        <button className="tool" onClick={redoEdit} disabled={!history.canRedo} title="やり直し (Ctrl+Shift+Z / Ctrl+Y)">
+        <button
+          className="tool"
+          onClick={redoEdit}
+          disabled={!history.canRedo}
+          title="やり直し (Ctrl+Shift+Z / Ctrl+Y)"
+        >
           <MaskIcon src={redoIcon} className="tool-icon" />
           やり直し
         </button>

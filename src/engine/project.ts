@@ -67,7 +67,9 @@ export function dependsOn(project: Project, a: string, b: string, seen = new Set
   seen.add(a);
   const def = findDef(project, a);
   if (!def) return false;
-  return def.components.some((c) => c.kind === 'CUSTOM' && c.custom !== undefined && (c.custom === b || dependsOn(project, c.custom, b, seen)));
+  return def.components.some(
+    (c) => c.kind === 'CUSTOM' && c.custom !== undefined && (c.custom === b || dependsOn(project, c.custom, b, seen)),
+  );
 }
 
 /** 展開したモジュールのピンに対応する、展開後の部品 ID */
@@ -80,7 +82,13 @@ interface ModulePorts {
  * def を展開して out に追加する。部品 ID には prefix が付く。
  * モジュールの中の INPUT / OUTPUT は外部と接続する BUF になる。
  */
-function flattenInto(project: Project, def: CircuitDef, prefix: string, out: Circuit, stack: string[]): Map<string, ModulePorts> {
+function flattenInto(
+  project: Project,
+  def: CircuitDef,
+  prefix: string,
+  out: Circuit,
+  stack: string[],
+): Map<string, ModulePorts> {
   const inner = stack.length > 1;
   const modules = new Map<string, ModulePorts>();
   for (const c of def.components) {

@@ -181,7 +181,7 @@ export function simulate(circuit: Circuit, prev?: SimResult, maxIter = 100): Sim
       const ins: boolean[] = [];
       for (let p = 0; p < inputCount(c.kind); p++) {
         const d = driver.get(pinKey(c.id, p));
-        ins.push(d ? snapshot.get(pinKey(d.comp, d.pin)) ?? false : false);
+        ins.push(d ? (snapshot.get(pinKey(d.comp, d.pin)) ?? false) : false);
       }
       if (isFlipFlop(c.kind)) {
         const s = nextState(c.kind, ins, flipFlops.get(c.id)!);

@@ -277,8 +277,9 @@ export function Sheet({
               comp={c}
               ports={ports}
               name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
-              outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
-                !!sim.values.get(pinKey(c.id, i)),
+              outputValues={Array.from(
+                { length: Math.max(ports.outputs.length, 1) },
+                (_, i) => !!sim.values.get(pinKey(c.id, i)),
               )}
               inputValues={ports.inputs.map((_, i) => {
                 const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);

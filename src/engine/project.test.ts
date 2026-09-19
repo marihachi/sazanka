@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { dependsOn, keepSwitchStates, MAIN_ID, portsOf, simulateCircuit, type CircuitDef, type Project } from './project';
+import {
+  dependsOn,
+  keepSwitchStates,
+  MAIN_ID,
+  portsOf,
+  simulateCircuit,
+  type CircuitDef,
+  type Project,
+} from './project';
 import type { Component, SimResult, Wire } from './sim';
 
 function comp(id: string, kind: Component['kind'], y = 0, extra: Partial<Component> = {}): Component {
@@ -77,7 +85,10 @@ function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): Ci
 describe('モジュール', () => {
   it('ピン名は INPUT / OUTPUT のラベルを上から順に並べたもの', () => {
     const project: Project = { circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder] };
-    expect(portsOf(comp('u', 'CUSTOM', 0, { custom: 'ha' }), project)).toEqual({ inputs: ['A', 'B'], outputs: ['S', 'C'] });
+    expect(portsOf(comp('u', 'CUSTOM', 0, { custom: 'ha' }), project)).toEqual({
+      inputs: ['A', 'B'],
+      outputs: ['S', 'C'],
+    });
   });
 
   it('半加算器', () => {
@@ -140,7 +151,11 @@ describe('keepSwitchStates', () => {
       circuits: [
         {
           ...mainWith('ha', 0, 0, []),
-          components: [comp('i', 'INPUT', 0, { on: false }), comp('k', 'CLOCK', 0, { on: false }), comp('g', 'AND', 100)],
+          components: [
+            comp('i', 'INPUT', 0, { on: false }),
+            comp('k', 'CLOCK', 0, { on: false }),
+            comp('g', 'AND', 100),
+          ],
         },
       ],
     };

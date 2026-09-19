@@ -99,12 +99,28 @@ describe('simulate', () => {
 
     it('D-FF は立ち上がりエッジで D を取り込む', () => {
       // [D, CLK]
-      expect(run('DFF', [[H, L], [H, H], [L, H], [L, L], [L, H]])).toEqual([L, H, H, H, L]);
+      expect(
+        run('DFF', [
+          [H, L],
+          [H, H],
+          [L, H],
+          [L, L],
+          [L, H],
+        ]),
+      ).toEqual([L, H, H, H, L]);
     });
 
     it('T-FF は T=1 のとき立ち上がりエッジで反転する', () => {
       // [T, CLK]
-      expect(run('TFF', [[H, H], [H, L], [H, H], [L, L], [L, H]])).toEqual([H, H, L, L, L]);
+      expect(
+        run('TFF', [
+          [H, H],
+          [H, L],
+          [H, H],
+          [L, L],
+          [L, H],
+        ]),
+      ).toEqual([H, H, L, L, L]);
     });
 
     it('JK-FF の動作', () => {
@@ -126,7 +142,15 @@ describe('simulate', () => {
 
     it('RS ラッチはクロックなしで入力にすぐ反応する', () => {
       // [S, R]
-      expect(run('RS', [[H, L], [L, L], [L, H], [L, L], [H, H]])).toEqual([H, H, L, L, L]);
+      expect(
+        run('RS', [
+          [H, L],
+          [L, L],
+          [L, H],
+          [L, L],
+          [H, H],
+        ]),
+      ).toEqual([H, H, L, L, L]);
     });
   });
 });
