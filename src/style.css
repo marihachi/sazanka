@@ -1,0 +1,163 @@
+:root {
+  --bg: #1c1c1c;
+  --grid: #2a2a2a;
+  --panel: #252525;
+  --border: #444;
+  --text: #ccc;
+  --line: #888;
+  --on: #4fc3f7;
+  --accent: #ffb74d;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+
+.toolbar button {
+  background: #333;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  border-color: var(--accent);
+}
+
+.toolbar .sep {
+  flex: 1;
+}
+
+.toolbar .warn {
+  color: #ef5350;
+}
+
+.toolbar .hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.canvas {
+  flex: 1;
+  display: block;
+  width: 100%;
+  user-select: none;
+}
+
+.body {
+  fill: #222;
+  stroke: #555;
+}
+
+.selected .body {
+  stroke: var(--accent);
+}
+
+.label {
+  fill: var(--text);
+  font-size: 13px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lead {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.lead.on,
+.wire.on {
+  stroke: var(--on);
+}
+
+.pin {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.pin:hover {
+  fill: var(--accent);
+}
+
+.wire {
+  stroke: var(--line);
+  stroke-width: 2;
+  fill: none;
+}
+
+.wire.selected {
+  stroke: var(--accent);
+}
+
+.wire-hit {
+  stroke: transparent;
+  stroke-width: 10;
+  fill: none;
+  cursor: pointer;
+}
+
+.pending {
+  stroke: var(--accent);
+  stroke-dasharray: 4 4;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+.pin-label {
+  fill: var(--text);
+  font-size: 11px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.pin-label.end {
+  text-anchor: end;
+}
+
+.tabs {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.tabs button {
+  border-radius: 4px 4px 0 0;
+}
+
+.tabs button.active {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.toolbar button.sub {
+  border-style: dashed;
+}
