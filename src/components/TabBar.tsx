@@ -48,7 +48,7 @@ export function TabBar({
               className={`tab${d.id === currentId ? ' active' : ''}`}
               onClick={() => onOpen(d.id)}
               onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
-              title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更' : undefined}
+              title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更できます。' : undefined}
             >
               {d.name}
             </button>
