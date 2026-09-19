@@ -1,14 +1,7 @@
 # sazanka
-A logic circuit simulator for Windows.
+Webで動作する論理回路シミュレータ。
 
 ![image](screenshot.png)
 
-WIP!
-
 ## License
-### sazanka
-MITライセンスのもとで利用できます。
-
-### DXライブラリ
-以下を参照してください。\
-https://dxlib.xsrv.jp/dxlicense.html 
+MITライセンスの基で利用できます。
