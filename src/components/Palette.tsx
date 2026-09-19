@@ -12,7 +12,7 @@ const GROUPS: { title: string; kinds: Kind[] }[] = [
   { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
 ];
 
-/** パレットからキャンバスへドラッグするときの dataTransfer の型 */
+/** パレットからシートへドラッグするときの dataTransfer の型 */
 export const DRAG_MIME = 'application/x-sazanka-part';
 
 export interface PaletteDrag {
@@ -82,7 +82,7 @@ interface PaletteItemProps {
   onAdd: () => void;
 }
 
-/** クリックで追加、キャンバスへドラッグで好きな位置に追加 */
+/** クリックで追加、シートへドラッグで好きな位置に追加 */
 function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItemProps) {
   const disabled = !!disabledReason;
   return (

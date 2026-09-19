@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dependsOn, MAIN_ID, portsOf, simulateCircuit, type CircuitDef, type Project } from './project';
+import { dependsOn, keepSwitchStates, MAIN_ID, portsOf, simulateCircuit, type CircuitDef, type Project } from './project';
 import type { Component, SimResult, Wire } from './sim';
 
 function comp(id: string, kind: Component['kind'], y = 0, extra: Partial<Component> = {}): Component {
@@ -131,5 +131,32 @@ describe('モジュール', () => {
     expect(dependsOn(project, 'b', 'a')).toBe(true);
     expect(dependsOn(project, 'a', MAIN_ID)).toBe(false);
     expect(() => simulateCircuit(project, MAIN_ID)).not.toThrow();
+  });
+});
+
+describe('keepSwitchStates', () => {
+  it('INPUT / CLOCK の ON/OFF だけ今の値を引き継ぎ、ほかは戻した状態のまま', () => {
+    const restored: Project = {
+      circuits: [
+        {
+          ...mainWith('ha', 0, 0, []),
+          components: [comp('i', 'INPUT', 0, { on: false }), comp('k', 'CLOCK', 0, { on: false }), comp('g', 'AND', 100)],
+        },
+      ],
+    };
+    const current: Project = {
+      circuits: [
+        {
+          ...mainWith('ha', 0, 0, []),
+          components: [comp('i', 'INPUT', 40, { on: true }), comp('k', 'CLOCK', 0, { on: true })],
+        },
+      ],
+    };
+    const merged = keepSwitchStates(restored, current);
+    expect(merged.circuits[0].components).toEqual([
+      comp('i', 'INPUT', 0, { on: true }),
+      comp('k', 'CLOCK', 0, { on: true }),
+      comp('g', 'AND', 100),
+    ]);
   });
 });

@@ -1,0 +1,46 @@
+.sheet-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.sheet {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.wire {
+  stroke: var(--line);
+  stroke-width: 2;
+  fill: none;
+}
+
+.wire.on {
+  stroke: var(--on);
+}
+
+.wire.selected {
+  stroke: var(--accent);
+}
+
+.wire-hit {
+  stroke: transparent;
+  stroke-width: 10;
+  fill: none;
+  cursor: pointer;
+}
+
+.pending {
+  stroke: var(--accent);
+  stroke-dasharray: 4 4;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+.label-input {
+  position: absolute;
+  font-size: 13px;
+}

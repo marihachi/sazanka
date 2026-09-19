@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import clearIcon from '../assets/icons/clear.svg';
 import plusIcon from '../assets/icons/plus.svg';
+import redoIcon from '../assets/icons/redo.svg';
+import undoIcon from '../assets/icons/undo.svg';
 import logo from '../assets/logo.svg';
-import { ComponentView } from '../components/ComponentView';
-import { Dialog, InlineInput, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
+import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
+import { Dialog, PromptDialog, type DialogRequest, type PromptRequest } from '../components/Dialogs';
 import { MaskIcon } from '../components/Icons';
-import { DRAG_MIME, Palette, type PaletteDrag, type PaletteModule } from '../components/Palette';
+import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from '../engine/geometry';
+import { clampPosition, GRID, snap, type Point } from '../engine/geometry';
 import {
   dependsOn,
   findDef,
@@ -16,49 +18,32 @@ import {
   portsOf,
   simulateCircuit,
   type CircuitDef,
-  type Project,
 } from '../engine/project';
-import { pinKey, type Component, type Kind, type PinRef, type SimResult } from '../engine/sim';
+import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
 import { loadProject, saveProject } from './storage';
 import { useClock } from './useClock';
+import { useProjectHistory } from './useProjectHistory';
 
-type Selection = { type: 'comp' | 'wire'; id: string } | null;
 /** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
 type Editing = { type: 'tab' | 'label'; id: string } | null;
-
-interface Drag {
-  id: string;
-  offset: Point;
-  moved: boolean;
-  pointerId: number;
-  /** 押した位置 (クライアント座標) */
-  start: Point;
-}
-
-/** 押した位置からこれ以上動いたらドラッグとみなす (px) */
-const DRAG_THRESHOLD = 4;
 
 function newId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function wirePath(a: Point, b: Point): string {
-  const mid = snap((a.x + b.x) / 2);
-  return `M${a.x},${a.y} H${mid} V${b.y} H${b.x}`;
-}
-
 export function App() {
-  const [project, setProject] = useState<Project>(loadProject);
+  const history = useProjectHistory(loadProject);
+  const project = history.project;
+  /** 元に戻せる編集としてプロジェクトを更新する */
+  const setProject = history.commit;
   const [currentId, setCurrentId] = useState(MAIN_ID);
   const [selection, setSelection] = useState<Selection>(null);
   const [pending, setPending] = useState<PinRef | null>(null);
-  const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
-  const dragRef = useRef<Drag | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const trashRef = useRef<HTMLDivElement>(null);
-  /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
-  const [dragMode, setDragMode] = useState<'none' | 'moving' | 'trash'>('none');
+  const [dragMode, setDragMode] = useState<DragMode>('none');
+  /** クリックで部品を追加するとき、はみ出さない位置に置くために使う */
+  const [sheetSize, setSheetSize] = useState<SheetSize>({ width: Infinity, height: Infinity });
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(null);
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
@@ -67,8 +52,12 @@ export function App() {
 
   const circuit = findDef(project, currentId) ?? project.circuits[0];
 
-  function setCircuit(update: (c: CircuitDef) => CircuitDef) {
-    setProject((p) => ({ circuits: p.circuits.map((d) => (d.id === circuit.id ? update(d) : d)) }));
+  /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
+  function setCircuit(update: (c: CircuitDef) => CircuitDef, record = true) {
+    const id = circuit.id;
+    (record ? history.commit : history.replace)((p) => ({
+      circuits: p.circuits.map((d) => (d.id === id ? update(d) : d)),
+    }));
   }
 
   const sim = useMemo(
@@ -79,7 +68,7 @@ export function App() {
     prevResults.current.set(circuit.id, sim);
   }, [sim, circuit.id]);
 
-  useClock(project, setProject);
+  useClock(project, history.replace);
   useEffect(() => saveProject(project), [project]);
 
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
@@ -96,17 +85,6 @@ export function App() {
             ? `「${d.name}」はこの回路を含んでいるため置けません`
             : undefined,
     }));
-
-  function toLocal(e: { clientX: number; clientY: number }): Point {
-    const rect = svgRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  /** 部品がキャンバスからはみ出さない位置に補正する */
-  function clampToCanvas(c: Component, p: Point): Point {
-    const rect = svgRef.current!.getBoundingClientRect();
-    return clampPosition(c, portsOf(c, project), p, rect.width, rect.height);
-  }
 
   function openCircuit(id: string) {
     setCurrentId(id);
@@ -125,18 +103,21 @@ export function App() {
     };
     if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
     if (custom) c.custom = custom;
-    Object.assign(c, clampToCanvas(c, c));
+    Object.assign(c, clampPosition(c, portsOf(c, project), c, sheetSize.width, sheetSize.height));
     setCircuit((cur) => ({ ...cur, components: [...cur.components, c] }));
     setSelection({ type: 'comp', id: c.id });
   }
 
   /** 部品と、それにつながる配線を削除する */
-  function deleteComponent(id: string) {
-    setCircuit((cur) => ({
-      ...cur,
-      components: cur.components.filter((c) => c.id !== id),
-      wires: cur.wires.filter((w) => w.from.comp !== id && w.to.comp !== id),
-    }));
+  function deleteComponent(id: string, record = true) {
+    setCircuit(
+      (cur) => ({
+        ...cur,
+        components: cur.components.filter((c) => c.id !== id),
+        wires: cur.wires.filter((w) => w.from.comp !== id && w.to.comp !== id),
+      }),
+      record,
+    );
     setSelection(null);
   }
 
@@ -210,6 +191,14 @@ export function App() {
     function onKey(e: KeyboardEvent) {
       // 文字入力中やダイアログ表示中は、キーを編集操作として扱わない
       if (dialog || promptDialog || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+      if (mod && (key === 'z' || key === 'y')) {
+        e.preventDefault();
+        if (key === 'y' || e.shiftKey) redoEdit();
+        else undoEdit();
+        return;
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
       if (e.key === 'Escape') {
         setPending(null);
@@ -220,11 +209,24 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  function onCompPointerDown(e: React.PointerEvent, c: Component) {
-    e.stopPropagation();
-    const p = toLocal(e);
-    dragRef.current = { id: c.id, offset: { x: p.x - c.x, y: p.y - c.y }, moved: false, pointerId: e.pointerId, start: { x: e.clientX, y: e.clientY } };
-    setSelection({ type: 'comp', id: c.id });
+  /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
+  function resetInteraction() {
+    setSelection(null);
+    setPending(null);
+    setEditing(null);
+  }
+
+  function undoEdit() {
+    // ドラッグ中は、ドラッグの開始時点との整合が崩れるので受け付けない
+    if (dragMode !== 'none') return;
+    history.undo();
+    resetInteraction();
+  }
+
+  function redoEdit() {
+    if (dragMode !== 'none') return;
+    history.redo();
+    resetInteraction();
   }
 
   function onCompDoubleClick(c: Component) {
@@ -235,102 +237,32 @@ export function App() {
     }
   }
 
-  function onPointerMove(e: React.PointerEvent) {
-    const p = toLocal(e);
-    setMouse(p);
-    const drag = dragRef.current;
-    if (!drag) return;
-    const svg = svgRef.current!;
-    if (!svg.hasPointerCapture(drag.pointerId)) {
-      // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
-      if (Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) < DRAG_THRESHOLD) return;
-      // キャンバスの外 (削除エリアの上など) に出ても移動イベントを受け取り続ける。
-      // 押した時点でキャプチャすると、クリックやダブルクリックが部品に届かなくなるため、ドラッグが始まってから行う
-      svg.setPointerCapture(drag.pointerId);
-    }
-    const rect = trashRef.current?.getBoundingClientRect();
-    const overTrash =
-      !!rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
-    if (overTrash) {
-      // 削除エリアの上では部品は動かさない
-      drag.moved = true;
-      setDragMode('trash');
-      return;
-    }
-    if (drag.moved) setDragMode('moving');
-    const c = compMap.get(drag.id);
-    if (!c) return;
-    const { x, y } = clampToCanvas(c, { x: snap(p.x - drag.offset.x), y: snap(p.y - drag.offset.y) });
-    if (c.x === x && c.y === y) return;
-    drag.moved = true;
-    setDragMode('moving');
-    setCircuit((cur) => ({
-      ...cur,
-      components: cur.components.map((k) => (k.id === drag.id ? { ...k, x, y } : k)),
-    }));
+  function moveComponent(id: string, { x, y }: Point) {
+    // ドラッグ中の移動は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
+    setCircuit((cur) => ({ ...cur, components: cur.components.map((k) => (k.id === id ? { ...k, x, y } : k)) }), false);
   }
 
-  function onPointerUp() {
-    const drag = dragRef.current;
-    const mode = dragMode;
-    dragRef.current = null;
-    setDragMode('none');
-    if (!drag) return;
-    if (mode === 'trash') {
-      deleteComponent(drag.id);
-      return;
-    }
-    if (drag.moved) return;
-    // 動かさずに離したスイッチはトグル
-    const c = compMap.get(drag.id);
-    if (c?.kind === 'INPUT') {
-      setCircuit((cur) => ({
-        ...cur,
-        components: cur.components.map((k) => (k.id === c.id ? { ...k, on: !k.on } : k)),
-      }));
-    }
+  function toggleInput(id: string) {
+    // スイッチ操作は回路の編集ではないので、元に戻す対象にしない
+    setCircuit(
+      (cur) => ({ ...cur, components: cur.components.map((k) => (k.id === id ? { ...k, on: !k.on } : k)) }),
+      false,
+    );
   }
 
-  function onOutputPinDown(e: React.PointerEvent, c: Component, pin: number) {
-    e.stopPropagation();
-    setPending({ comp: c.id, pin });
-  }
-
-  function onInputPinDown(e: React.PointerEvent, c: Component, pin: number) {
-    e.stopPropagation();
-    if (!pending) {
-      // 入力ピンから始めた場合は既存の配線を外す
-      setCircuit((cur) => ({
-        ...cur,
-        wires: cur.wires.filter((w) => !(w.to.comp === c.id && w.to.pin === pin)),
-      }));
-      return;
-    }
-    const from = pending;
-    setPending(null);
+  /** 入力ピンにつなげる配線は1本だけなので、既存の配線は置き換える */
+  function connect(from: PinRef, to: PinRef) {
     setCircuit((cur) => ({
       ...cur,
       wires: [
-        // 入力ピンに接続できる配線は1本だけ
-        ...cur.wires.filter((w) => !(w.to.comp === c.id && w.to.pin === pin)),
-        { id: newId(), from, to: { comp: c.id, pin } },
+        ...cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)),
+        { id: newId(), from, to },
       ],
     }));
   }
 
-  function onDrop(e: React.DragEvent) {
-    const data = e.dataTransfer.getData(DRAG_MIME);
-    if (!data) return;
-    e.preventDefault();
-    const { kind, custom } = JSON.parse(data) as PaletteDrag;
-    const p = toLocal(e);
-    // カーソルが部品の左上付近に来るよう少しずらす
-    addComponent(kind, custom, { x: p.x - GRID, y: p.y - GRID });
-  }
-
-  function onBackgroundDown() {
-    setPending(null);
-    setSelection(null);
+  function disconnect(to: PinRef) {
+    setCircuit((cur) => ({ ...cur, wires: cur.wires.filter((w) => !(w.to.comp === to.comp && w.to.pin === to.pin)) }));
   }
 
   function clearAll() {
@@ -356,16 +288,6 @@ export function App() {
     inModule: circuit.id !== MAIN_ID,
   });
 
-  /** ラベル入力欄は部品の真上に置く */
-  function labelInputPosition(c: Component): React.CSSProperties {
-    const { w } = bodySize(c, portsOf(c, project));
-    const width = 120;
-    return { left: Math.max(0, c.x + w / 2 - width / 2), top: Math.max(0, c.y - 30), width };
-  }
-
-  const pendingFrom = pending && compMap.get(pending.comp);
-  const labelTarget = editing?.type === 'label' ? compMap.get(editing.id) : undefined;
-
   return (
     <div className="app">
       <header className="app-header">
@@ -385,6 +307,15 @@ export function App() {
         onDeleteCurrent={deleteCircuit}
       />
       <div className="toolbar actions">
+        <button className="tool" onClick={undoEdit} disabled={!history.canUndo} title="元に戻す (Ctrl+Z)">
+          <MaskIcon src={undoIcon} className="tool-icon" />
+          元に戻す
+        </button>
+        <button className="tool" onClick={redoEdit} disabled={!history.canRedo} title="やり直し (Ctrl+Shift+Z / Ctrl+Y)">
+          <MaskIcon src={redoIcon} className="tool-icon" />
+          やり直し
+        </button>
+        <span className="divider" />
         <button className="tool" onClick={createModule}>
           <MaskIcon src={plusIcon} className="tool-icon" />
           モジュールを追加
@@ -401,98 +332,31 @@ export function App() {
           trashRef={trashRef}
           onAdd={(kind, custom) => addComponent(kind, custom)}
         />
-        <div className="canvas-wrap">
-          <svg
-            ref={svgRef}
-            className="canvas"
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={() => {
-              dragRef.current = null;
-              setDragMode('none');
-            }}
-            onPointerDown={onBackgroundDown}
-            onDragOver={(e) => {
-              if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
-            }}
-            onDrop={onDrop}
-          >
-            <defs>
-              <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
-                <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-
-            {circuit.wires.map((w) => {
-              const from = compMap.get(w.from.comp);
-              const to = compMap.get(w.to.comp);
-              if (!from || !to) return null;
-              const fromPorts = portsOf(from, project);
-              const toPorts = portsOf(to, project);
-              // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
-              if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
-              const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
-              const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-              const selected = selection?.type === 'wire' && selection.id === w.id;
-              return (
-                <g key={w.id}>
-                  <path className={`wire${on ? ' on' : ''}${selected ? ' selected' : ''}`} d={d} />
-                  <path
-                    className="wire-hit"
-                    d={d}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      setSelection({ type: 'wire', id: w.id });
-                    }}
-                  />
-                </g>
-              );
-            })}
-
-            {circuit.components.map((c) => {
-              const ports = portsOf(c, project);
-              return (
-                <ComponentView
-                  key={c.id}
-                  comp={c}
-                  ports={ports}
-                  name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
-                  outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, (_, i) =>
-                    !!sim.values.get(pinKey(c.id, i)),
-                  )}
-                  inputValues={ports.inputs.map((_, i) => {
-                    const w = circuit.wires.find((w) => w.to.comp === c.id && w.to.pin === i);
-                    return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
-                  })}
-                  selected={selection?.type === 'comp' && selection.id === c.id}
-                  onBodyDown={(e) => onCompPointerDown(e, c)}
-                  onBodyDoubleClick={() => onCompDoubleClick(c)}
-                  onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
-                  onOutputPinDown={(e, pin) => onOutputPinDown(e, c, pin)}
-                />
-              );
-            })}
-
-            {pending && pendingFrom && (
-              <path
-                className="pending"
-                d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
-              />
-            )}
-          </svg>
-          {labelTarget && (
-            <InlineInput
-              key={labelTarget.id}
-              className="label-input"
-              style={labelInputPosition(labelTarget)}
-              initial={labelTarget.label ?? ''}
-              placeholder="ラベル"
-              onCommit={(v) => setLabel(labelTarget.id, v)}
-              onCancel={() => setEditing(null)}
-            />
-          )}
-        </div>
+        <Sheet
+          project={project}
+          circuit={circuit}
+          sim={sim}
+          selection={selection}
+          onSelect={setSelection}
+          pending={pending}
+          onPendingChange={setPending}
+          dragMode={dragMode}
+          onDragModeChange={setDragMode}
+          labelEditingId={editing?.type === 'label' ? editing.id : undefined}
+          trashRef={trashRef}
+          onResize={setSheetSize}
+          onAdd={addComponent}
+          onMoveStart={history.checkpoint}
+          onMove={moveComponent}
+          // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
+          onDropOnTrash={(id, moved) => deleteComponent(id, !moved)}
+          onToggle={toggleInput}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          onComponentDoubleClick={onCompDoubleClick}
+          onLabelCommit={setLabel}
+          onLabelCancel={() => setEditing(null)}
+        />
       </div>
       <StatusBar hints={hints} unstable={sim.unstable} />
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}

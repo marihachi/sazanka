@@ -4,7 +4,7 @@ import { isFlipFlop, type Component, type Kind } from '../engine/sim';
 import './ComponentView.css';
 
 export const LABELS: Partial<Record<Kind, string>> = { RS: 'RS Latch', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
-/** キャンバス上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
+/** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
 const BODY_LABELS: Partial<Record<Kind, string>> = { RS: 'RS' };
 
 interface ComponentViewProps {
