@@ -70,12 +70,12 @@ describe('share', () => {
     expect(parse(serializeProject(emptyProject()))).toEqual({ ok: true, project: emptyProject() });
   });
 
-  it('作者名を入れて書き出し、読み込むと作者名も返す。空なら含めない', () => {
-    const text = serializeProject(project, ' さざんか ');
-    expect(JSON.parse(text).author).toBe('さざんか');
-    expect(parse(text)).toMatchObject({ ok: true, author: 'さざんか' });
-    expect(JSON.parse(serializeProject(project, '  '))).not.toHaveProperty('author');
-    expect(parse(JSON.stringify({ app: 'sazanka', version: 1, author: 1, project })).ok).toBe(false);
+  it('作者名はプロジェクトの中に入れて書き出す。空なら含めない', () => {
+    const text = serializeProject({ ...project, author: ' さざんか ' });
+    expect(JSON.parse(text).project.author).toBe('さざんか');
+    expect(parse(text)).toMatchObject({ ok: true, project: { author: 'さざんか' } });
+    expect(JSON.parse(serializeProject({ ...project, author: '  ' })).project).not.toHaveProperty('author');
+    expect(parse(withProject({ ...project, author: 1 })).ok).toBe(false);
   });
 
   it('JSON でないもの、sazanka のデータでないものは読み込まない', () => {

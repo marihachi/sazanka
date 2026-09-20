@@ -20,6 +20,8 @@ export interface CircuitDef extends Circuit {
 export interface Project {
   /** 先頭はメイン回路 (id = MAIN_ID) */
   circuits: CircuitDef[];
+  /** 書き出すときに付ける作者名。入力されていなければ無い */
+  author?: string;
 }
 
 export function emptyProject(): Project {
@@ -154,6 +156,7 @@ export function keepSwitchStates(restored: Project, current: Project): Project {
     for (const c of d.components) if (c.kind === 'INPUT' || c.kind === 'CLOCK') on.set(`${d.id}/${c.id}`, c.on);
   }
   return {
+    ...restored,
     circuits: restored.circuits.map((d) => ({
       ...d,
       components: d.components.map((c) => {

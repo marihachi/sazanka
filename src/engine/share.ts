@@ -8,8 +8,6 @@ interface ShareData {
   /** sazanka の共有データであることの目印 */
   app: 'sazanka';
   version: number;
-  /** 作者名。書き出すときに入力されなければ含めない */
-  author?: string;
   project: Project;
 }
 
@@ -33,12 +31,14 @@ const KINDS = new Set<Kind>([
 ]);
 
 /** プロジェクト全体を共有用の JSON にする */
-export function serializeProject(project: Project, author = ''): string {
+export function serializeProject(project: Project): string {
+  const author = project.author?.trim();
   const data: ShareData = {
     app: 'sazanka',
     version: SHARE_VERSION,
-    ...(author.trim() && { author: author.trim() }),
     project: {
+      // 作者名は、入力されていなければ含めない
+      ...(author && { author }),
       circuits: project.circuits.map((d) =>
         renameIds(
           d,
@@ -67,7 +67,7 @@ function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (
   };
 }
 
-export type ParseResult = { ok: true; project: Project; author?: string } | { ok: false; error: string };
+export type ParseResult = { ok: true; project: Project } | { ok: false; error: string };
 
 /**
  * 共有用の JSON を読み込む。部品と配線の ID は newId で付け直す。
@@ -84,17 +84,10 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   if (typeof data.version !== 'number' || data.version > SHARE_VERSION) {
     return { ok: false, error: '新しい版の sazanka で作られたデータのため読み込めません' };
   }
-  if (data.author !== undefined && typeof data.author !== 'string') {
-    return { ok: false, error: '回路データが壊れています (作者名が文字列ではありません)' };
-  }
   const error = checkProject(data.project);
   if (error) return { ok: false, error: `回路データが壊れています (${error})` };
-  const { circuits } = data.project as Project;
-  return {
-    ok: true,
-    project: { circuits: circuits.map((d) => renameIds(d, newId, newId)) },
-    ...(typeof data.author === 'string' && data.author && { author: data.author }),
-  };
+  const project = data.project as Project;
+  return { ok: true, project: { ...project, circuits: project.circuits.map((d) => renameIds(d, newId, newId)) } };
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -107,6 +100,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
  */
 export function checkProject(project: unknown): string | undefined {
   if (!isObject(project) || !Array.isArray(project.circuits)) return '回路の一覧がありません';
+  if (project.author !== undefined && typeof project.author !== 'string') return '作者名が文字列ではありません';
   const circuits = project.circuits as unknown[];
   if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) return 'メイン回路がありません';
   const ids = new Set<string>();

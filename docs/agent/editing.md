@@ -1,6 +1,6 @@
 # 編集と元に戻す
 
-- 回路の編集は元に戻せる（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y、ツールバーのボタン）。プロジェクト全体の状態をそのまま履歴に積む方式（`src/app/history.ts`、`useProjectHistory`）。
+- 元に戻す仕組みは、プロジェクト全体の状態をそのまま履歴に積む方式（`src/app/history.ts`）。差分は持たない。
 - 新しい編集操作を足すときは、元に戻す対象かどうかを決めて使い分ける。
   - 回路の編集（部品・配線・ラベル・モジュールの追加や変更や削除）は `history.commit`（App の `setCircuit` / `setProject` の既定）。
   - 回路の編集ではない変更（INPUT の ON/OFF、CLOCK の切り替わり）は `history.replace`（`setCircuit(..., false)`）。元に戻しても、INPUT / CLOCK の ON/OFF は今の値を引き継ぐ（`keepSwitchStates`）。

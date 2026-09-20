@@ -29,7 +29,7 @@ import {
 import { parseProject, serializeProject } from '../engine/share';
 import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
 import { statusHints } from './hints';
-import { loadAuthor, loadCollapsedGroups, loadProject, saveAuthor, saveCollapsedGroups, saveProject } from './storage';
+import { loadCollapsedGroups, loadProject, saveCollapsedGroups, saveProject } from './storage';
 import { useClock } from './useClock';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
@@ -56,7 +56,7 @@ export function App() {
   const [sheetSize, setSheetSize] = useState<SheetSize>({ width: Infinity, height: Infinity });
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(() =>
-    loaded.broken ? { message: '保存データが壊れていたため読み込めませんでした。空のプロジェクトで開きます。' } : null,
+    loaded.error ? { message: `${loaded.error}空のプロジェクトで開きます。` } : null,
   );
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
@@ -268,18 +268,19 @@ export function App() {
   }
 
   function exportProject() {
-    const author = loadAuthor();
     setTextDialog({
       title: '書き出し',
       message: 'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
-      initial: serializeProject(project, author),
+      initial: serializeProject(project),
       readOnly: true,
       field: {
         label: '作者名 (省略可)',
-        initial: author,
+        initial: project.author ?? '',
         onChange: (value) => {
-          saveAuthor(value);
-          return serializeProject(project, value);
+          // 作者名は回路の編集ではないので、元に戻す対象にしない
+          const next: Project = { ...project, author: value };
+          history.replace(next);
+          return serializeProject(next);
         },
       },
       confirmLabel: 'コピー',
@@ -306,7 +307,7 @@ export function App() {
         const result = parseProject(text.trim(), newId);
         if (!result.ok) return result.error;
         replaceProject(result.project);
-        if (result.author) setDialog({ message: `「${result.author}」さんの回路を読み込みました。` });
+        if (result.project.author) setDialog({ message: `「${result.project.author}」さんの回路を読み込みました。` });
         return undefined;
       },
     });
