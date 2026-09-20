@@ -1,0 +1,162 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 160px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+}
+
+.palette {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.palette h3 {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.palette section:first-child h3 {
+  margin-top: 0;
+}
+
+/* グループの見出し。クリックで折り畳む */
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  color: var(--text);
+  border: none;
+  font: inherit;
+  text-align: left;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.group-toggle:hover {
+  opacity: 1;
+}
+
+.chevron {
+  width: 12px;
+  height: 12px;
+  background-color: currentColor;
+  transition: transform 0.15s;
+}
+
+/* 折り畳んだグループは、矢印を右向きにする */
+.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  text-align: left;
+  background: #333;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item:hover {
+  border-color: var(--accent);
+}
+
+.item.custom {
+  border-style: dashed;
+}
+
+.item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.item:disabled:hover {
+  border-color: var(--border);
+}
+
+.palette .empty {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+/* 部品のドラッグ先にすると削除するエリア */
+.trash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 8px;
+  padding: 12px 8px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.5;
+  border: 2px dashed var(--border);
+  border-radius: 6px;
+}
+
+.trash.dragging {
+  opacity: 1;
+}
+
+.trash.active {
+  color: #ef5350;
+  border-color: #ef5350;
+  background: rgba(239, 83, 80, 0.15);
+}
+
+.trash-icon {
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+}
+
+/* パレットの上端のツールバー */
+.toolbar {
+  display: flex;
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: #333;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* パレットの部品ボタンと同じく、載せると枠をアクセントカラーにする */
+.tool:hover {
+  border-color: var(--accent);
+}
+
+.tool-icon {
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+}

@@ -1,0 +1,39 @@
+/* 画面下のステータスバー */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 24px;
+  padding: 2px 10px;
+  font-size: 12px;
+  background: var(--statusbar);
+  border-top: 1px solid var(--border);
+  /* ヒントの切り替え効果で中身が動いてもはみ出さない */
+  overflow: hidden;
+}
+
+.status-hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+/* ヒントが切り替わるときにふわっと表示する */
+.status-hint {
+  animation: hint-in 0.4s ease-out;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.status-warn {
+  flex-shrink: 0;
+  color: #ef5350;
+}

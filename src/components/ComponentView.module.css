@@ -1,0 +1,53 @@
+.body {
+  fill: #222;
+  stroke: #555;
+}
+
+.selected .body {
+  stroke: var(--accent);
+}
+
+.label {
+  fill: var(--text);
+  font-size: 13px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lead {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.pin {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.pin:hover {
+  fill: var(--accent);
+}
+
+.pin-label {
+  fill: var(--text);
+  font-size: 11px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.pin-label.end {
+  text-anchor: end;
+}
+
+.lead.on {
+  stroke: var(--on);
+}
+
+/* HIGH の「1」。常に ON なので ON の色で描く */
+.high {
+  fill: var(--on);
+  font-size: 18px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
