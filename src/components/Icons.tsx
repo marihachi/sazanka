@@ -1,4 +1,4 @@
-import type { ComponentKind } from '../engine/project';
+import type { ComponentKind } from '../engine/circuit';
 import andIcon from '../assets/icons/and.svg';
 import clockIcon from '../assets/icons/clock.svg';
 import dffIcon from '../assets/icons/dff.svg';

@@ -1,4 +1,5 @@
-import { portComponents, findDef, type CircuitDef, type Project, type Circuit, type PinRef } from './project';
+import type { Circuit, PinRef } from './circuit';
+import { portComponents, findDef, type CircuitDef, type Project } from './project';
 
 /** 展開したモジュールのピンに対応する、展開後の部品 ID */
 export interface ModulePorts {

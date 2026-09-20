@@ -15,6 +15,7 @@ import { TabBar } from '../components/TabBar';
 import { Toolbar } from '../components/Toolbar';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
+import { newId, type Component, type PinRef, type ComponentKind } from '../engine/circuit';
 import {
   portsOf,
   circuitsUsing,
@@ -24,10 +25,6 @@ import {
   MAIN_ID,
   type CircuitDef,
   type Project,
-  newId,
-  type Component,
-  type PinRef,
-  type ComponentKind,
 } from '../engine/project';
 import { parseProject, serializeProject } from '../engine/share';
 import { type SimResult, simulate } from '../engine/sim';

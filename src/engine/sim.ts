@@ -1,6 +1,5 @@
 import { flattenProject } from './flatten';
 import {
-  type Project,
   type Circuit,
   type Component,
   type PinRef,
@@ -9,7 +8,8 @@ import {
   outputCount,
   type FlipFlopKind,
   CLK_PIN,
-} from './project';
+} from './circuit';
+import type { Project } from './project';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;

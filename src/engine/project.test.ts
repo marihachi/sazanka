@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { circuitsUsing, MAIN_ID, type Project, type Component } from './project';
+import type { Component } from './circuit';
+import { circuitsUsing, MAIN_ID, type Project } from './project';
 
 function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };

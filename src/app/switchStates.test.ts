@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MAIN_ID, type CircuitDef, type Project, type Component } from '../engine/project';
+import type { Component } from '../engine/circuit';
+import { MAIN_ID, type CircuitDef, type Project } from '../engine/project';
 import { keepSwitchStates } from './switchStates';
 
 function comp(id: string, kind: Component['kind'], y = 0, extra: Partial<Component> = {}): Component {

@@ -1,4 +1,4 @@
-import type { Component, Ports, ComponentKind } from '../engine/project';
+import type { Component, Ports, ComponentKind } from '../engine/circuit';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
 import { classNames } from './classNames';
 import { LABELS } from './partLabels';

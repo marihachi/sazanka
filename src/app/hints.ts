@@ -1,4 +1,4 @@
-import type { Component } from '../engine/project';
+import type { Component } from '../engine/circuit';
 import { CLOCK_HALF_PERIOD } from './useClock';
 
 /** 何も操作していないときに順に表示するヒント */

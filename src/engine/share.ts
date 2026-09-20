@@ -1,4 +1,5 @@
-import { type CircuitDef, type Project, type PinRef, checkProject } from './project';
+import type { PinRef } from './circuit';
+import { type CircuitDef, type Project, checkProject } from './project';
 import { isObject } from './util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
@@ -9,6 +10,22 @@ interface ShareData {
   app: 'sazanka';
   version: number;
   project: Project;
+}
+
+/**
+ * 回路の部品と配線の ID を、partId / wireId (引数は何番目か) で付け直し、配線の接続先も合わせる。
+ * 書き出すときは、読みやすいよう回路ごとに part-1、wire-1 からの連番にする。
+ * 読み込むときは、アプリ内の ID の付け方 (ランダム) にそろえる。
+ * ID は回路の中でだけ一意であればよい。回路の ID はモジュールの参照に使うので変えない
+ */
+function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (index: number) => string): CircuitDef {
+  const ids = new Map(def.components.map((c, i) => [c.id, partId(i)]));
+  const ref = (p: PinRef): PinRef => ({ comp: ids.get(p.comp) ?? p.comp, pin: p.pin });
+  return {
+    ...def,
+    components: def.components.map((c) => ({ ...c, id: ids.get(c.id)! })),
+    wires: def.wires.map((w, i) => ({ id: wireId(i), from: ref(w.from), to: ref(w.to) })),
+  };
 }
 
 /** プロジェクト全体を共有用の JSON にする */
@@ -30,22 +47,6 @@ export function serializeProject(project: Project): string {
     },
   };
   return JSON.stringify(data);
-}
-
-/**
- * 回路の部品と配線の ID を、partId / wireId (引数は何番目か) で付け直し、配線の接続先も合わせる。
- * 書き出すときは、読みやすいよう回路ごとに part-1、wire-1 からの連番にする。
- * 読み込むときは、アプリ内の ID の付け方 (ランダム) にそろえる。
- * ID は回路の中でだけ一意であればよい。回路の ID はモジュールの参照に使うので変えない
- */
-function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (index: number) => string): CircuitDef {
-  const ids = new Map(def.components.map((c, i) => [c.id, partId(i)]));
-  const ref = (p: PinRef): PinRef => ({ comp: ids.get(p.comp) ?? p.comp, pin: p.pin });
-  return {
-    ...def,
-    components: def.components.map((c) => ({ ...c, id: ids.get(c.id)! })),
-    wires: def.wires.map((w, i) => ({ id: wireId(i), from: ref(w.from), to: ref(w.to) })),
-  };
 }
 
 export type ParseResult = { ok: true; project: Project } | { ok: false; error: string };

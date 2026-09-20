@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  dependsOn,
-  MAIN_ID,
-  portsOf,
-  type CircuitDef,
-  type Project,
-  type Circuit,
-  type Component,
-  type Wire,
-  type FlipFlopKind,
-  type GateKind,
-} from './project';
+import type { Circuit, Component, Wire, FlipFlopKind, GateKind } from './circuit';
+import { dependsOn, MAIN_ID, portsOf, type CircuitDef, type Project } from './project';
 import { simulateCore, simulate, type SimResult } from './sim';
 
 function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {

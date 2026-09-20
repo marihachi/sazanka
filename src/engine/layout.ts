@@ -1,4 +1,4 @@
-import { type Component, type Ports, isFlipFlop } from './project';
+import { type Component, type Ports, isFlipFlop } from './circuit';
 
 export const GRID = 20;
 

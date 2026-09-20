@@ -1,5 +1,5 @@
 import { Point } from './layout';
-import type { Circuit, Component, PinRef } from './project';
+import type { Circuit, Component, PinRef } from './circuit';
 
 function updateComponent<T extends Circuit>(circuit: T, id: string, update: (c: Component) => Component): T {
   return { ...circuit, components: circuit.components.map((c) => (c.id === id ? update(c) : c)) };
