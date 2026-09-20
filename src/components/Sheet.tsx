@@ -6,7 +6,7 @@ import { pinKey, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
 import { InlineInput } from './Dialogs';
-import { DRAG_MIME, type PaletteDrag } from './drag';
+import { DRAG_MIME, type PaletteDrag } from './parts';
 import styles from './Sheet.module.css';
 
 export type Selection = { type: 'comp' | 'wire'; id: string } | null;
