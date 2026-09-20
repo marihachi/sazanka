@@ -2,9 +2,22 @@
 
 `src/` は次のように分けている（プロジェクトの方針）。
 
-- `engine/` … 回路のデータと計算処理。React や DOM に依存させない。回路1つ分のデータと部品の種類ごとの仕様（`circuit.ts`）、プロジェクトとモジュールのピン・検証（`project.ts`）、部品の評価（`sim.ts`）、モジュールの展開（`flatten.ts`）、回路の編集（`edit.ts`）、部品の大きさと配置（`layout.ts`）、共有用 JSON（`share.ts`）が入る。
+- `engine/` … 回路のデータと計算処理。React や DOM に依存させない。
+  - `circuit.ts` … 回路1つ分のデータと、部品の種類ごとの仕様
+  - `project.ts` … プロジェクトの構造、モジュールのピン、データの検証
+  - `sim.ts` … 回路の評価
+  - `flatten.ts` … モジュールの展開
+  - `edit.ts` … 回路の編集
+  - `layout.ts` … 部品の大きさとピンの座標
+  - `share.ts` … 共有用 JSON
+  - `util.ts` … 型を問わない小さな判定
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。回路を直接書き換えず、「移動した」「接続した」などの出来事をコールバックで知らせる。元に戻す対象にするかどうかは `app/` 側で決める（[編集と元に戻す](editing.md)）。
-- `app/` … 画面全体の組み立てと状態、保存、クロック、ヒントの文言。
+  - 各コンポーネントと、その CSS。`parts.ts` … 部品の表示名とドラッグの受け渡し。`classNames.ts` … クラス名の連結
+- `app/` … 画面全体の組み立てと状態。
+  - `App.tsx` … 画面の組み立てと編集操作
+  - `storage.ts` … localStorage への保存
+  - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
+  - `useClock.ts` … クロックの進行。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
 - `style.css` … 色の変数とページ全体のスタイル。どのコンポーネントからも使うものだけを置く。
 - `assets/` … SVG。
 
