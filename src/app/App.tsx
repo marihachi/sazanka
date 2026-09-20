@@ -14,20 +14,23 @@ import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
 import { Toolbar } from '../components/Toolbar';
 import * as edit from '../engine/edit';
-import { clampPosition, GRID, snap, type Point } from '../engine/layout';
+import { clampPosition, GRID, Point, snap } from '../engine/layout';
 import {
+  portsOf,
   circuitsUsing,
   dependsOn,
   emptyProject,
   findDef,
   MAIN_ID,
-  portsOf,
-  simulateCircuit,
   type CircuitDef,
   type Project,
+  newId,
+  type Component,
+  type PinRef,
+  type ComponentKind,
 } from '../engine/project';
 import { parseProject, serializeProject } from '../engine/share';
-import type { Component, Kind, PinRef, SimResult } from '../engine/sim';
+import { type SimResult, simulate } from '../engine/sim';
 import { statusHints } from './hints';
 import { loadCollapsedGroups, loadProject, saveCollapsedGroups, saveProject } from './storage';
 import { useClock } from './useClock';
@@ -36,10 +39,6 @@ import { useShortcuts } from './useShortcuts';
 
 /** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
 type Editing = { type: 'tab' | 'label'; id: string } | null;
-
-function newId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
 
 export function App() {
   const [loaded] = useState(loadProject);
@@ -74,10 +73,7 @@ export function App() {
     }));
   }
 
-  const sim = useMemo(
-    () => simulateCircuit(project, circuit.id, prevResults.current.get(circuit.id)),
-    [project, circuit.id],
-  );
+  const sim = useMemo(() => simulate(project, circuit.id, prevResults.current.get(circuit.id)), [project, circuit.id]);
   useEffect(() => {
     prevResults.current.set(circuit.id, sim);
   }, [sim, circuit.id]);
@@ -106,7 +102,7 @@ export function App() {
   }
 
   /** 部品を追加する。位置を省略すると少しずつずらして置く */
-  function addComponent(kind: Kind, custom?: string, at?: Point) {
+  function addComponent(kind: ComponentKind, custom?: string, at?: Point) {
     const n = circuit.components.length;
     const c: Component = {
       id: newId(),

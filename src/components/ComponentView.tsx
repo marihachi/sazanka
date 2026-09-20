@@ -1,12 +1,11 @@
+import type { Component, Ports, ComponentKind } from '../engine/project';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
-import type { Ports } from '../engine/project';
-import type { Component, Kind } from '../engine/sim';
 import { classNames } from './classNames';
+import { LABELS } from './partLabels';
 import styles from './ComponentView.module.css';
 
-export const LABELS: Partial<Record<Kind, string>> = { RS: 'RS Latch', DFF: 'D-FF', TFF: 'T-FF', JKFF: 'JK-FF' };
 /** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
-const BODY_LABELS: Partial<Record<Kind, string>> = { RS: 'RS' };
+const BODY_LABELS: Partial<Record<ComponentKind, string>> = { RS: 'RS' };
 
 interface ComponentViewProps {
   comp: Component;

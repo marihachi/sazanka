@@ -1,5 +1,5 @@
-import { MAIN_ID, type CircuitDef, type Project } from './project';
-import type { Component, Kind, PinRef, Wire } from './sim';
+import { type CircuitDef, type Project, type PinRef, checkProject } from './project';
+import { isObject } from './util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
 const SHARE_VERSION = 1;
@@ -10,25 +10,6 @@ interface ShareData {
   version: number;
   project: Project;
 }
-
-/** 共有データに置ける部品の種類。BUF は展開用の内部の部品なので含めない */
-const KINDS = new Set<Kind>([
-  'AND',
-  'OR',
-  'NOT',
-  'NAND',
-  'NOR',
-  'XOR',
-  'RS',
-  'DFF',
-  'TFF',
-  'JKFF',
-  'INPUT',
-  'CLOCK',
-  'HIGH',
-  'OUTPUT',
-  'CUSTOM',
-]);
 
 /** プロジェクト全体を共有用の JSON にする */
 export function serializeProject(project: Project): string {
@@ -88,70 +69,4 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   if (error) return { ok: false, error: `回路データが壊れています (${error})` };
   const project = data.project as Project;
   return { ok: true, project: { ...project, circuits: project.circuits.map((d) => renameIds(d, newId, newId)) } };
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-/**
- * プロジェクトとして正しい形かを確かめ、問題があればその内容を返す。
- * 共有された JSON のほか、localStorage の保存データを読み込むときにも使う
- */
-export function checkProject(project: unknown): string | undefined {
-  if (!isObject(project) || !Array.isArray(project.circuits)) return '回路の一覧がありません';
-  if (project.author !== undefined && typeof project.author !== 'string') return '作者名が文字列ではありません';
-  const circuits = project.circuits as unknown[];
-  if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) return 'メイン回路がありません';
-  const ids = new Set<string>();
-  for (const def of circuits) {
-    const error = checkCircuit(def);
-    if (error) return error;
-    const { id } = def as CircuitDef;
-    if (ids.has(id)) return `回路の ID が重複しています: ${id}`;
-    ids.add(id);
-  }
-  for (const def of circuits as CircuitDef[]) {
-    for (const c of def.components) {
-      if (c.kind === 'CUSTOM' && !ids.has(c.custom ?? ''))
-        return `「${def.name}」が存在しないモジュールを参照しています`;
-    }
-  }
-  return undefined;
-}
-
-function checkCircuit(def: unknown): string | undefined {
-  if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string')
-    return '回路の ID か名前がありません';
-  if (!Array.isArray(def.components) || !Array.isArray(def.wires)) return `「${def.name}」の部品か配線がありません`;
-  const compIds = new Set<string>();
-  for (const c of def.components as unknown[]) {
-    if (!isComponent(c)) return `「${def.name}」に不正な部品があります`;
-    if (compIds.has(c.id)) return `「${def.name}」で部品の ID が重複しています: ${c.id}`;
-    compIds.add(c.id);
-  }
-  for (const w of def.wires as unknown[]) {
-    if (!isWire(w) || !compIds.has(w.from.comp) || !compIds.has(w.to.comp)) {
-      return `「${def.name}」に不正な配線があります`;
-    }
-  }
-  return undefined;
-}
-
-function isComponent(c: unknown): c is Component {
-  return (
-    isObject(c) &&
-    typeof c.id === 'string' &&
-    KINDS.has(c.kind as Kind) &&
-    typeof c.x === 'number' &&
-    typeof c.y === 'number'
-  );
-}
-
-function isPinRef(p: unknown): p is Wire['from'] {
-  return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
-}
-
-function isWire(w: unknown): w is Wire {
-  return isObject(w) && typeof w.id === 'string' && isPinRef(w.from) && isPinRef(w.to);
 }

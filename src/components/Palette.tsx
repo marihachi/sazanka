@@ -2,14 +2,14 @@ import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
 import trashIcon from '../assets/icons/trash.svg';
-import type { CircuitDef } from '../engine/project';
-import type { Kind } from '../engine/sim';
-import { LABELS } from './ComponentView';
+import type { CircuitDef, ComponentKind } from '../engine/project';
+import { DRAG_MIME, type PaletteDrag } from './drag';
+import { LABELS } from './partLabels';
 import { classNames } from './classNames';
 import { MaskIcon, PartIcon } from './Icons';
 import styles from './Palette.module.css';
 
-const GROUPS: { title: string; kinds: Kind[] }[] = [
+const GROUPS: { title: string; kinds: ComponentKind[] }[] = [
   { title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
   { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
   { title: 'ラッチ', kinds: ['RS'] },
@@ -17,7 +17,7 @@ const GROUPS: { title: string; kinds: Kind[] }[] = [
 ];
 
 /** パレットの部品のツールチップ。部品の働きを1文で説明する */
-const DESCRIPTIONS: Partial<Record<Kind, string>> = {
+const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
   INPUT: '入力スイッチ。クリックで ON/OFF を切り替える',
   CLOCK: '一定の周期で ON/OFF を繰り返す',
   HIGH: '常に ON を出力する',
@@ -35,14 +35,6 @@ const DESCRIPTIONS: Partial<Record<Kind, string>> = {
   CUSTOM: '回路をまとめた部品。シート上でダブルクリックすると中身を開く',
 };
 
-/** パレットからシートへドラッグするときの dataTransfer の型 */
-export const DRAG_MIME = 'application/x-sazanka-part';
-
-export interface PaletteDrag {
-  kind: Kind;
-  custom?: string;
-}
-
 export interface PaletteModule {
   def: CircuitDef;
   /** 今の回路に置けない理由 */
@@ -57,7 +49,7 @@ interface PaletteProps {
   /** 折り畳んでいるグループの見出し */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
-  onAdd: (kind: Kind, custom?: string) => void;
+  onAdd: (kind: ComponentKind, custom?: string) => void;
 }
 
 /** 左側のパネル。部品の一覧と、下端の削除エリア */
@@ -144,7 +136,7 @@ function PaletteGroup({ title, collapsed, onToggle, children }: PaletteGroupProp
 
 interface PaletteItemProps {
   label: string;
-  kind: Kind;
+  kind: ComponentKind;
   custom?: string;
   /** 置けない場合の理由。あればグレーアウトし、理由をツールチップに出す */
   disabledReason?: string;

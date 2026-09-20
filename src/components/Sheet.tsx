@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap, type Point } from '../engine/layout';
-import { findDef, portsOf, type CircuitDef, type Project } from '../engine/project';
-import { pinKey, type Component, type Kind, type PinRef, type SimResult } from '../engine/sim';
+import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, Point, snap } from '../engine/layout';
+import {
+  portsOf,
+  findDef,
+  type CircuitDef,
+  type Project,
+  type Component,
+  type PinRef,
+  type ComponentKind,
+} from '../engine/project';
+import { pinKey, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
 import { InlineInput } from './Dialogs';
-import { DRAG_MIME, type PaletteDrag } from './Palette';
+import { DRAG_MIME, type PaletteDrag } from './drag';
 import styles from './Sheet.module.css';
 
 export type Selection = { type: 'comp' | 'wire'; id: string } | null;
@@ -53,7 +61,7 @@ interface SheetProps {
   trashRef: React.RefObject<HTMLElement | null>;
   onResize: (size: SheetSize) => void;
   /** パレットから部品がドロップされた */
-  onAdd: (kind: Kind, custom: string | undefined, at: Point) => void;
+  onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
   onMoveStart: () => void;
   onMove: (id: string, position: Point) => void;

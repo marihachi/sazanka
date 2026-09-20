@@ -1,88 +1,15 @@
-export type GateKind = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR';
-/** 記憶素子。RS はクロックのないラッチ、ほかはクロックの立ち上がりで動くフリップフロップ */
-export type FlipFlopKind = 'RS' | 'DFF' | 'TFF' | 'JKFF';
-/**
- * HIGH: 常に ON を出力する
- * CUSTOM: モジュール。シミュレーション前に展開される
- * BUF: 入力をそのまま出力する。展開したモジュールのピンに使う内部用の部品
- */
-export type Kind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'HIGH' | 'OUTPUT' | 'CUSTOM' | 'BUF';
-
-export interface Component {
-  id: string;
-  kind: Kind;
-  x: number;
-  y: number;
-  /** INPUT / CLOCK の出力状態 */
-  on?: boolean;
-  /** INPUT / OUTPUT のラベル (モジュールのピン名になる) */
-  label?: string;
-  /** CUSTOM が参照する回路定義の ID */
-  custom?: string;
-}
-
-export interface PinRef {
-  comp: string;
-  pin: number;
-}
-
-export interface Wire {
-  id: string;
-  from: PinRef; // 出力ピン
-  to: PinRef; // 入力ピン
-}
-
-export interface Circuit {
-  components: Component[];
-  wires: Wire[];
-}
-
-/**
- * 入力ピン名 (表示用。ゲートは空文字)。
- * 並び順がそのままピン番号になり、配線 (Wire) と保存データはピン番号で入力ピンを指す。
- * 順番を入れ替えると、既存の配線が別のピンにつながってしまうので注意
- */
-const INPUT_PINS: Partial<Record<Kind, string[]>> = {
-  RS: ['S', 'R'],
-  DFF: ['D', '>'],
-  TFF: ['T', '>'],
-  JKFF: ['J', '>', 'K'],
-};
-
-export function isFlipFlop(kind: Kind): kind is FlipFlopKind {
-  return kind === 'RS' || kind === 'DFF' || kind === 'TFF' || kind === 'JKFF';
-}
-
-export function inputPinNames(kind: Kind): string[] {
-  const names = INPUT_PINS[kind];
-  if (names) return names;
-  return Array(inputCount(kind)).fill('');
-}
-
-export function inputCount(kind: Kind): number {
-  if (INPUT_PINS[kind]) return INPUT_PINS[kind].length;
-  switch (kind) {
-    case 'INPUT':
-    case 'CLOCK':
-    case 'HIGH':
-    case 'CUSTOM': // ピン数は定義による (project.ts の portsOf)。シミュレーション前に展開されるのでここでは 0
-      return 0;
-    case 'NOT':
-    case 'OUTPUT':
-    case 'BUF':
-      return 1;
-    default:
-      return 2;
-  }
-}
-
-export function outputCount(kind: Kind): number {
-  if (kind === 'OUTPUT' || kind === 'CUSTOM') return 0;
-  return isFlipFlop(kind) ? 2 : 1; // フリップフロップは Q, Q̄
-}
-
-/** エッジトリガ型フリップフロップの CLK 入力のピン番号。JK も CLK を真ん中 (J, >, K) に置いてそろえている */
-const CLK_PIN = 1;
+import { flattenProject } from './flatten';
+import {
+  type Project,
+  type Circuit,
+  type Component,
+  type PinRef,
+  inputCount,
+  isFlipFlop,
+  outputCount,
+  type FlipFlopKind,
+  CLK_PIN,
+} from './project';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;
@@ -168,7 +95,7 @@ function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFl
  * 3. 全部品を評価する。値が1つも変わらなくなったら安定したとみなして終える。
  *    maxIter 回繰り返しても変わり続ける場合は発振とみなす
  */
-export function simulate(circuit: Circuit, prev?: SimResult, maxIter = 100): SimResult {
+export function simulateCore(circuit: Circuit, prev?: SimResult, maxIter = 100): SimResult {
   // 1. 初期値。
   //    前回の値から始めるのは、ラッチのように出力が自分の入力に戻る回路で、保持している値を失わないため。
   //    OFF から始め直すと、保持していた値が失われる (落ち着かずに発振することもある)
@@ -229,4 +156,17 @@ export function simulate(circuit: Circuit, prev?: SimResult, maxIter = 100): Sim
   }
   // 規定回数を超えても値が変わり続けた。途中の値のまま返す
   return { values, flipFlops, unstable: true };
+}
+
+/**
+ * 回路定義 id を最上位としてシミュレーションする (モジュールを展開してから評価する入口)。
+ * 最上位に置かれたモジュールの出力ピンの値も values に含める。
+ */
+export function simulate(project: Project, id: string, prev?: SimResult): SimResult {
+  const { circuit, modules } = flattenProject(project, id);
+  const result = simulateCore(circuit, prev);
+  for (const [compId, mod] of modules) {
+    mod.outputs.forEach((id, pin) => result.values.set(pinKey(compId, pin), result.values.get(pinKey(id, 0)) ?? false));
+  }
+  return result;
 }

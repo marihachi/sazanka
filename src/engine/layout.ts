@@ -1,8 +1,8 @@
-import type { Ports } from './project';
-import { isFlipFlop, type Component } from './sim';
+import { type Component, type Ports, isFlipFlop } from './project';
 
 export const GRID = 20;
 
+/** シート上の座標 */
 export interface Point {
   x: number;
   y: number;

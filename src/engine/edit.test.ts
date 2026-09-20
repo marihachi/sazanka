@@ -9,8 +9,7 @@ import {
   setLabel,
   toggleSwitch,
 } from './edit';
-import type { CircuitDef } from './project';
-import type { Circuit, Wire } from './sim';
+import type { CircuitDef, Circuit, Wire } from './project';
 
 function wire(id: string, from: string, to: string, toPin = 0): Wire {
   return { id, from: { comp: from, pin: 0 }, to: { comp: to, pin: toPin } };

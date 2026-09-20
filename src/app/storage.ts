@@ -1,5 +1,5 @@
-import { emptyProject, type Project } from '../engine/project';
-import { checkProject } from '../engine/share';
+import { checkProject, emptyProject, type Project } from '../engine/project';
+import { isObject } from '../engine/util';
 
 const STORAGE_KEY = 'sazanka.project';
 
@@ -51,10 +51,6 @@ export function readStored(raw: string | null): LoadResult {
     return { project: emptyProject(), error: '保存データが壊れていたため読み込めませんでした。' };
   }
   return { project: project as Project };
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 export function saveProject(project: Project) {

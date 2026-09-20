@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { keepSwitchStates, type Project } from '../engine/project';
+import type { Project } from '../engine/project';
 import { checkpoint, commit, initHistory, redo, replace, undo } from './history';
+import { keepSwitchStates } from './switchStates';
 
 type Update = React.SetStateAction<Project>;
 

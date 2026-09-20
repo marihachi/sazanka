@@ -1,3 +1,4 @@
+import type { ComponentKind } from '../engine/project';
 import andIcon from '../assets/icons/and.svg';
 import clockIcon from '../assets/icons/clock.svg';
 import dffIcon from '../assets/icons/dff.svg';
@@ -13,10 +14,9 @@ import outputIcon from '../assets/icons/output.svg';
 import rsIcon from '../assets/icons/rs.svg';
 import tffIcon from '../assets/icons/tff.svg';
 import xorIcon from '../assets/icons/xor.svg';
-import type { Kind } from '../engine/sim';
 import styles from './Icons.module.css';
 
-const ICONS: Partial<Record<Kind, string>> = {
+const ICONS: Partial<Record<ComponentKind, string>> = {
   INPUT: inputIcon,
   CLOCK: clockIcon,
   HIGH: highIcon,
@@ -46,6 +46,6 @@ export function ToolIcon({ src }: { src: string }) {
 }
 
 /** 部品の種類ごとのアイコン (32×24) */
-export function PartIcon({ kind }: { kind: Kind }) {
+export function PartIcon({ kind }: { kind: ComponentKind }) {
   return <MaskIcon src={ICONS[kind] ?? moduleIcon} className={styles.partIcon} />;
 }

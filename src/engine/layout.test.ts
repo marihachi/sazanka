@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { clampPosition, GRID, inputPinPos, outputPinPos } from './layout';
-import { portsOf, type Project } from './project';
-import type { Component, Kind } from './sim';
+import { portsOf, type Project, type Component, type ComponentKind } from './project';
 
 describe('clampPosition', () => {
   const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };
@@ -28,7 +27,7 @@ describe('clampPosition', () => {
 
 describe('ピンの位置', () => {
   it('部品がグリッド上にあれば、すべてのピンの先端もグリッド上に来る', () => {
-    const kinds: Kind[] = [
+    const kinds: ComponentKind[] = [
       'AND',
       'OR',
       'NOT',
