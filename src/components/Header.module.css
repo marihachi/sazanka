@@ -17,3 +17,28 @@
   height: 28px;
   background-color: var(--accent);
 }
+
+/* このアプリについて */
+.about {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 4px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.about:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.about-icon {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+}

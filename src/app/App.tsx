@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
 import {
+  AboutDialog,
   Dialog,
   PromptDialog,
   TextDialog,
@@ -56,6 +57,7 @@ export function App() {
   );
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
 
@@ -181,7 +183,7 @@ export function App() {
   }
 
   useShortcuts({
-    enabled: !dialog && !promptDialog && !textDialog,
+    enabled: !dialog && !promptDialog && !textDialog && !aboutOpen,
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
@@ -314,7 +316,7 @@ export function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header onAbout={() => setAboutOpen(true)} />
       <TabBar
         circuits={project.circuits}
         currentId={circuit.id}
@@ -379,6 +381,7 @@ export function App() {
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
       {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
       {textDialog && <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />}
+      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
     </div>
   );
 }

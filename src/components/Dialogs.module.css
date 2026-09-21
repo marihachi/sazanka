@@ -133,3 +133,39 @@
   width: auto;
   margin-bottom: 12px;
 }
+
+/* このアプリについて */
+.dialog .links {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.dialog a {
+  color: var(--accent);
+}
+
+.dialog .note {
+  margin-bottom: 4px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* このアプリについて: 先頭にロゴを大きめに出す */
+.dialog .about-title {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 16px;
+}
+
+.about-logo {
+  width: 153px;
+  height: 42px;
+  background-color: var(--accent);
+}
+
+.dialog .about-text {
+  text-align: center;
+}

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import logo from '../assets/logo.svg';
+import { MaskIcon } from './Icons';
 import { classNames } from './classNames';
 import styles from './Dialogs.module.css';
 
@@ -255,6 +257,48 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/** このアプリについての画面内ダイアログ */
+export function AboutDialog({ onClose }: { onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => closeRef.current?.focus(), []);
+
+  return (
+    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
+      <div
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-title"
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <h2 id="about-title" className={styles.aboutTitle}>
+          <MaskIcon src={logo} className={styles.aboutLogo} />
+          <span className="visually-hidden">sazanka について</span>
+        </h2>
+        <p className={styles.aboutText}>ブラウザで動く論理回路シミュレータです。</p>
+        <ul className={styles.links}>
+          <li>
+            <a href="https://github.com/marihachi/sazanka" target="_blank" rel="noreferrer noopener">
+              GitHub リポジトリ
+            </a>
+          </li>
+        </ul>
+        <p className={styles.note}>
+          MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL) というフォントを使っています。
+        </p>
+        <div className={styles.dialogButtons}>
+          <button ref={closeRef} className={styles.primary} onClick={onClose}>
+            閉じる
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
