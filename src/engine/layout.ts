@@ -76,17 +76,18 @@ export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
   return { x: c.x + w + GRID, y };
 }
 
-/**
- * 部品の本体とピンが、幅 width・高さ height の領域に収まるよう位置を補正する。
- * 補正後もグリッド上に乗るようにする。
- */
-export function clampPosition(c: Component, ports: Ports, p: Point, width: number, height: number): Point {
+/** シートの幅と高さ (横 300 マス、縦 200 マス)。部品はこの中にだけ置ける */
+export const SHEET_WIDTH = GRID * 300;
+export const SHEET_HEIGHT = GRID * 200;
+
+/** 部品の本体とピンが、シートからはみ出さないよう位置を補正する。補正後もグリッド上に乗るようにする */
+export function clampPosition(c: Component, ports: Ports, p: Point): Point {
   const { w, h } = bodySize(c, ports);
   // 左右はピンの先端まで、上はモジュール名 (本体の上に描く) の分も含める
   const minX = GRID;
   const minY = c.kind === 'CUSTOM' ? GRID : 0;
-  const maxX = Math.max(minX, Math.floor((width - w - GRID) / GRID) * GRID);
-  const maxY = Math.max(minY, Math.floor((height - h) / GRID) * GRID);
+  const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID);
+  const maxY = Math.max(minY, Math.floor((SHEET_HEIGHT - h) / GRID) * GRID);
   return {
     x: Math.min(Math.max(p.x, minX), maxX),
     y: Math.min(Math.max(p.y, minY), maxY),
@@ -98,11 +99,24 @@ export function clampPosition(c: Component, ports: Ports, p: Point, width: numbe
  * 部品の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
  * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
  */
-export function clampMove(items: { c: Component; ports: Ports }[], delta: Point, width: number, height: number): Point {
+export function clampMove(items: { c: Component; ports: Ports }[], delta: Point): Point {
   let d = delta;
   for (const { c, ports } of items) {
-    const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y }, width, height);
+    const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
     d = { x: p.x - c.x, y: p.y - c.y };
   }
   return d;
+}
+
+/** シート上で部品が占める範囲。本体に加え、左右のピンの先端と、モジュール名の分を含める */
+export interface Rect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export function componentBounds(c: Component, ports: Ports): Rect {
+  const { w, h } = bodySize(c, ports);
+  return { left: c.x - GRID, top: c.kind === 'CUSTOM' ? c.y - GRID : c.y, right: c.x + w + GRID, bottom: c.y + h };
 }

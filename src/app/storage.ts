@@ -1,4 +1,5 @@
 import { checkProject, emptyProject, type Project } from '../engine/project';
+import { isView, type View } from '../components/view';
 import { isObject } from '../engine/util';
 
 const STORAGE_KEY = 'sazanka.project';
@@ -77,6 +78,27 @@ export function loadCollapsedGroups(): string[] {
 export function saveCollapsedGroups(titles: string[]) {
   try {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify(titles));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const VIEWS_KEY = 'sazanka.views';
+
+/** 回路ごとの表示位置と倍率 (回路 ID → 表示)。読めないものは捨て、その回路は既定の表示で開く */
+export function loadViews(): Record<string, View> {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(VIEWS_KEY) ?? '{}');
+    if (!isObject(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, View] => isView(entry[1])));
+  } catch {
+    return {};
+  }
+}
+
+export function saveViews(views: Record<string, View>) {
+  try {
+    localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
   } catch {
     // 保存できない環境では無視
   }

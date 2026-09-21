@@ -1,6 +1,8 @@
 :root {
   --bg: #1c1c1c;
   --grid: #2a2a2a;
+  /* シートで部品を置けない範囲 */
+  --outside: #121212;
   --panel: #252525;
   --header: #0e0e0e;
   --statusbar: #161616;

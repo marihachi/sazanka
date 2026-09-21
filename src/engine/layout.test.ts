@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { bodySize, clampMove, clampPosition, GRID, inputPinPos, outputPinPos, snap } from './layout';
+import {
+  bodySize,
+  clampMove,
+  clampPosition,
+  componentBounds,
+  GRID,
+  SHEET_HEIGHT,
+  SHEET_WIDTH,
+  inputPinPos,
+  outputPinPos,
+  snap,
+} from './layout';
 import type { Component, ComponentKind } from './component';
 import type { Project } from './project';
 import { portsOf } from './module';
@@ -8,22 +19,22 @@ describe('clampPosition', () => {
   const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };
   const ports = { inputs: ['', ''], outputs: [''] };
 
-  it('領域内ならそのまま', () => {
-    expect(clampPosition(and, ports, { x: 100, y: 100 }, 400, 300)).toEqual({ x: 100, y: 100 });
+  it('シートの中ならそのまま', () => {
+    expect(clampPosition(and, ports, { x: 100, y: 100 })).toEqual({ x: 100, y: 100 });
   });
 
   it('左上にはみ出すと、入力ピンの先端が収まる位置に戻す', () => {
-    expect(clampPosition(and, ports, { x: -60, y: -40 }, 400, 300)).toEqual({ x: 20, y: 0 });
+    expect(clampPosition(and, ports, { x: -60, y: -40 })).toEqual({ x: 20, y: 0 });
   });
 
   it('右下にはみ出すと、出力ピンの先端と本体が収まるグリッド位置に戻す', () => {
     // 幅 60 + 出力ピン 20、高さ 80
-    expect(clampPosition(and, ports, { x: 1000, y: 1000 }, 410, 310)).toEqual({ x: 320, y: 220 });
+    expect(clampPosition(and, ports, { x: 99999, y: 99999 })).toEqual({ x: SHEET_WIDTH - 80, y: SHEET_HEIGHT - 80 });
   });
 
   it('モジュールは本体の上の名前の分も空ける', () => {
     const mod: Component = { id: 'm', kind: 'CUSTOM', x: 0, y: 0 };
-    expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }, 400, 300).y).toBe(20);
+    expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }).y).toBe(20);
   });
 });
 
@@ -141,11 +152,28 @@ describe('clampMove', () => {
   ];
 
   it('どれもはみ出さなければそのまま', () => {
-    expect(clampMove(items, { x: 20, y: 0 }, 400, 300)).toEqual({ x: 20, y: 0 });
+    expect(clampMove(items, { x: 20, y: 0 })).toEqual({ x: 20, y: 0 });
   });
 
-  it('どれか1つでもはみ出すなら、全体の移動を縮める', () => {
+  it('どれか1つでも左上にはみ出すなら、全体の移動を縮める', () => {
     // b は上に 20 までしか動けない。a は左に 80 までしか動けない
-    expect(clampMove(items, { x: -200, y: -100 }, 400, 300)).toEqual({ x: -80, y: -20 });
+    expect(clampMove(items, { x: -200, y: -100 })).toEqual({ x: -80, y: -20 });
+  });
+});
+
+describe('componentBounds', () => {
+  it('本体に、左右のピンの先端を含める', () => {
+    const and: Component = { id: 'g', kind: 'AND', x: 100, y: 100 };
+    expect(componentBounds(and, { inputs: ['', ''], outputs: [''] })).toEqual({
+      left: 80,
+      top: 100,
+      right: 180,
+      bottom: 180,
+    });
+  });
+
+  it('モジュールは本体の上の名前の分も含める', () => {
+    const mod: Component = { id: 'm', kind: 'CUSTOM', x: 100, y: 100 };
+    expect(componentBounds(mod, { inputs: [''], outputs: [''] }).top).toBe(80);
   });
 });

@@ -14,16 +14,17 @@ import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
 import { Toolbar } from '../components/Toolbar';
+import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import { newId, type PinRef } from '../engine/circuit';
 import { emptyProject, findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
-import { portsOf, circuitsUsing, dependsOn } from '../engine/module';
+import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
 
 import { statusHints } from './hints';
-import { loadCollapsedGroups, loadProject, saveCollapsedGroups, saveProject } from './storage';
+import { loadCollapsedGroups, loadProject, loadViews, saveCollapsedGroups, saveProject, saveViews } from './storage';
 import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
@@ -42,8 +43,10 @@ export function App() {
   const [pending, setPending] = useState<PinRef | null>(null);
   const trashRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>('none');
-  /** クリックで部品を追加するとき、はみ出さない位置に置くために使う */
-  const [sheetSize, setSheetSize] = useState<SheetSize>({ width: Infinity, height: Infinity });
+  /** クリックで部品を追加するとき、表示している範囲の真ん中に置くために使う */
+  const [sheetSize, setSheetSize] = useState<SheetSize>({ width: 0, height: 0 });
+  /** 回路ごとの表示位置と倍率。元に戻す対象にはしない */
+  const [views, setViews] = useState(loadViews);
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(() =>
     loaded.error ? { message: `${loaded.error}空のプロジェクトで開きます。` } : null,
@@ -53,6 +56,8 @@ export function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
+  // 表示を保存していない回路は、回路全体が見える表示で開く
+  const view = views[circuit.id] ?? overview(circuit, project, sheetSize.width, sheetSize.height);
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
   function setCircuit(update: (c: CircuitDef) => CircuitDef, record = true) {
@@ -69,6 +74,7 @@ export function App() {
   );
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
+  useEffect(() => saveViews(views), [views]);
 
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
   const paletteModules: PaletteModule[] = project.circuits
@@ -89,18 +95,15 @@ export function App() {
     setPending(null);
   }
 
-  /** 部品を追加する。位置を省略すると少しずつずらして置く */
+  /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */
   function addComponent(kind: ComponentKind, custom?: string, at?: Point) {
     const n = circuit.components.length;
-    const c: Component = {
-      id: newId(),
-      kind,
-      x: at ? snap(at.x) : 100 + (n % 10) * GRID,
-      y: at ? snap(at.y) : 80 + (n % 10) * GRID,
-    };
+    const center = toWorld(view, { x: sheetSize.width / 2, y: sheetSize.height / 2 });
+    const base = at ?? { x: center.x - GRID * 2 + (n % 10) * GRID, y: center.y - GRID * 2 + (n % 10) * GRID };
+    const c: Component = { id: newId(), kind, x: snap(base.x), y: snap(base.y) };
     if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
     if (custom) c.custom = custom;
-    Object.assign(c, clampPosition(c, portsOf(c, project), c, sheetSize.width, sheetSize.height));
+    Object.assign(c, clampPosition(c, portsOf(c, project), c));
     setCircuit((cur) => edit.addComponent(cur, c));
     setSelection({ type: 'comp', ids: [c.id] });
   }
@@ -165,6 +168,7 @@ export function App() {
       onConfirm: () => {
         setProject((p) => ({ circuits: p.circuits.filter((d) => d.id !== id) }));
         forget(id);
+        setViews(({ [id]: _, ...rest }) => rest);
         openCircuit(MAIN_ID);
       },
     });
@@ -242,6 +246,8 @@ export function App() {
   function replaceProject(next: Project) {
     setProject(() => next);
     forget();
+    // 回路の ID が同じでも中身は別物なので、表示は初めから
+    setViews({});
     openCircuit(MAIN_ID);
     setEditing(null);
   }
@@ -366,6 +372,8 @@ export function App() {
           labelEditingId={editing?.type === 'label' ? editing.id : undefined}
           trashRef={trashRef}
           onResize={setSheetSize}
+          view={view}
+          onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
           onAdd={addComponent}
           onMoveStart={history.checkpoint}
           onMove={moveComponents}

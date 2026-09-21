@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { bodySize, clampMove, GRID, inputPinPos, outputPinPos, Point, snap } from '../engine/layout';
+import {
+  bodySize,
+  clampMove,
+  GRID,
+  inputPinPos,
+  outputPinPos,
+  Point,
+  SHEET_HEIGHT,
+  SHEET_WIDTH,
+  snap,
+} from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import type { PinRef } from '../engine/circuit';
 import { findDef, type CircuitDef, type Project } from '../engine/project';
@@ -10,6 +20,8 @@ import { classNames } from './classNames';
 import { InlineInput } from './Dialogs';
 import { DRAG_MIME, type PaletteDrag } from './parts';
 import styles from './Sheet.module.css';
+import { overview, toScreen, toWorld, zoomAt, type View } from './view';
+import { ZoomControls } from './ZoomControls';
 
 /** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
 export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
@@ -44,8 +56,35 @@ interface Band {
   base: string[];
 }
 
+/** 表示の移動 (中ボタンか Space を押しながらのドラッグ)。start は押した位置 (画面の座標) */
+interface Pan {
+  pointerId: number;
+  start: Point;
+  view: View;
+}
+
+/** 2本指での移動と拡大縮小。start は押した時点の、2本の指の中点と間隔 (画面の座標) */
+interface Pinch {
+  mid: Point;
+  distance: number;
+  view: View;
+}
+
 /** 押した位置からこれ以上動いたらドラッグとみなす (px) */
 const DRAG_THRESHOLD = 4;
+
+/** 拡大・縮小ボタン1回で変える倍率 */
+const ZOOM_STEP = 1.25;
+
+/** ポインターの位置を、シートの左上からの画面の座標にする */
+function toScreenLocal(svg: SVGSVGElement, e: { clientX: number; clientY: number }): Point {
+  const rect = svg.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
 
 function wirePath(a: Point, b: Point): string {
   const mid = snap((a.x + b.x) / 2);
@@ -68,6 +107,9 @@ interface SheetProps {
   /** 部品をここにドロップすると削除する要素 */
   trashRef: React.RefObject<HTMLElement | null>;
   onResize: (size: SheetSize) => void;
+  /** 表示位置と倍率 (スクロールと拡大縮小) */
+  view: View;
+  onViewChange: (view: View) => void;
   /** パレットから部品がドロップされた */
   onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
@@ -99,6 +141,8 @@ export function Sheet({
   labelEditingId,
   trashRef,
   onResize,
+  view,
+  onViewChange,
   onAdd,
   onMoveStart,
   onMove,
@@ -113,26 +157,173 @@ export function Sheet({
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
   const [band, setBand] = useState<Band | null>(null);
+  const [{ width, height }, setSize] = useState<SheetSize>({ width: 0, height: 0 });
+  const panRef = useRef<Pan | null>(null);
+  const pinchRef = useRef<Pinch | null>(null);
+  /** シートに触れている指 (pointerId → 画面の座標)。2本になったら移動と拡大縮小にする */
+  const touchesRef = useRef(new Map<number, Point>());
+  /** Space を押している間は、ドラッグで表示を移動する */
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  const [panning, setPanning] = useState(false);
+  /** 配線中の線の先 (回路の座標) */
   const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
   /** 入力ピン (pinKey) → つながっている配線 */
   const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
   const selectedIds = useMemo(() => new Set(selection?.type === 'comp' ? selection.ids : []), [selection]);
 
-  // 部品を追加するときにはみ出さない位置へ置けるよう、大きさを知らせる
+  // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {
     const svg = svgRef.current!;
     const observer = new ResizeObserver(() => {
       const rect = svg.getBoundingClientRect();
+      setSize({ width: rect.width, height: rect.height });
       onResize({ width: rect.width, height: rect.height });
     });
     observer.observe(svg);
     return () => observer.disconnect();
   }, [onResize]);
 
+  // ホイールの処理は一度だけ登録するので、呼び出し時点の最新の表示を ref から読む
+  const viewRef = useRef(view);
+  const onViewChangeRef = useRef(onViewChange);
+  useEffect(() => {
+    viewRef.current = view;
+    onViewChangeRef.current = onViewChange;
+  });
+
+  // ホイールで拡大縮小する。トラックパッドのピンチも Ctrl 付きのホイールとして届く。
+  // React の onWheel は passive で登録されて preventDefault できず、ページごと拡大されてしまうので、直接登録する
+  useEffect(() => {
+    const svg = svgRef.current!;
+    function onWheel(e: WheelEvent) {
+      e.preventDefault();
+      // 行単位で届く環境 (Firefox など) では、おおよそのピクセル数に直す
+      const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
+      // ピンチは1回の量が小さいので、強めに効かせる
+      const factor = Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015));
+      const v = viewRef.current;
+      onViewChangeRef.current(zoomAt(v, toScreenLocal(svg, e), v.scale * factor));
+    }
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // Space を押している間は、ドラッグで表示を移動する
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.code !== 'Space') return;
+      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      if (typing) return;
+      // フォーカスしているボタンが押されたり、ページがスクロールしたりしないようにする
+      e.preventDefault();
+      setSpaceHeld(e.type === 'keydown');
+    }
+    // 押したままウィンドウを離れると keyup が来ないので、戻ったときに押していない扱いにする
+    const onBlur = () => setSpaceHeld(false);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKey);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKey);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  /** ポインターの位置を、回路の座標にする */
   function toLocal(e: { clientX: number; clientY: number }): Point {
+    return toWorld(view, toScreenLocal(svgRef.current!, e));
+  }
+
+  /** 表示している範囲の真ん中 (画面の座標) */
+  function center(): Point {
     const rect = svgRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return { x: rect.width / 2, y: rect.height / 2 };
+  }
+
+  function fit() {
+    const rect = svgRef.current!.getBoundingClientRect();
+    onViewChange(overview(circuit, project, rect.width, rect.height));
+  }
+
+  /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
+  function cancelGesture() {
+    dragRef.current = null;
+    setBand(null);
+    onDragModeChange('none');
+  }
+
+  /**
+   * 子要素 (部品やピン) より先に受け取り、表示の移動と拡大縮小を始める。
+   * 始めた場合は子要素に届けず、部品のドラッグや配線が始まらないようにする
+   */
+  function onPointerDownCapture(e: React.PointerEvent) {
+    const svg = svgRef.current!;
+    if (e.pointerType === 'touch') {
+      const touches = touchesRef.current;
+      touches.set(e.pointerId, toScreenLocal(svg, e));
+      if (touches.size >= 2) {
+        e.stopPropagation();
+        if (touches.size === 2) {
+          // 1本目の指で始めた操作はやめて、2本指の操作にする
+          cancelGesture();
+          const [a, b] = [...touches.values()];
+          pinchRef.current = { mid: midpoint(a, b), distance: Math.hypot(a.x - b.x, a.y - b.y), view };
+        }
+        return;
+      }
+    }
+    if (e.button === 1 || (e.button === 0 && spaceHeld)) {
+      e.stopPropagation();
+      // 中ボタンを押したときの自動スクロールを出さない
+      e.preventDefault();
+      svg.setPointerCapture(e.pointerId);
+      panRef.current = { pointerId: e.pointerId, start: toScreenLocal(svg, e), view };
+      setPanning(true);
+    }
+  }
+
+  /** 表示の移動・拡大縮小の途中なら進めて true を返す */
+  function moveView(e: React.PointerEvent): boolean {
+    const svg = svgRef.current!;
+    const touches = touchesRef.current;
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, toScreenLocal(svg, e));
+    const pinch = pinchRef.current;
+    if (pinch) {
+      if (touches.size < 2) return true;
+      const [a, b] = [...touches.values()];
+      const mid = midpoint(a, b);
+      const scale = (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
+      // 押した時点で指の間にあった回路の点を、今の指の間に持ってくる
+      const zoomed = zoomAt(pinch.view, pinch.mid, scale);
+      onViewChange({ ...zoomed, x: zoomed.x + mid.x - pinch.mid.x, y: zoomed.y + mid.y - pinch.mid.y });
+      return true;
+    }
+    const pan = panRef.current;
+    if (pan && pan.pointerId === e.pointerId) {
+      const p = toScreenLocal(svg, e);
+      onViewChange({ ...pan.view, x: pan.view.x + p.x - pan.start.x, y: pan.view.y + p.y - pan.start.y });
+      return true;
+    }
+    return false;
+  }
+
+  /** 指やボタンを離した。表示の移動・拡大縮小を終えたら true を返す */
+  function endView(e: React.PointerEvent): boolean {
+    const touches = touchesRef.current;
+    touches.delete(e.pointerId);
+    if (pinchRef.current) {
+      // 残った指は、すべて離れるまで何もしない (1本目の操作を続きから始めない)
+      if (touches.size === 0) pinchRef.current = null;
+      return true;
+    }
+    if (panRef.current?.pointerId === e.pointerId) {
+      panRef.current = null;
+      setPanning(false);
+      return true;
+    }
+    return false;
   }
 
   function onCompPointerDown(e: React.PointerEvent, c: Component) {
@@ -188,6 +379,7 @@ export function Sheet({
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    if (moveView(e)) return;
     const p = toLocal(e);
     setMouse(p);
     if (band) {
@@ -222,13 +414,10 @@ export function Sheet({
       const c = compMap.get(id);
       return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
     });
-    const svgRect = svg.getBoundingClientRect();
-    const d = clampMove(
-      items,
-      { x: snap(p.x - drag.offset.x) - anchor.x, y: snap(p.y - drag.offset.y) - anchor.y },
-      svgRect.width,
-      svgRect.height,
-    );
+    const d = clampMove(items, {
+      x: snap(p.x - drag.offset.x) - anchor.x,
+      y: snap(p.y - drag.offset.y) - anchor.y,
+    });
     const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
     const unchanged = [...positions].every(([id, pos]) => {
       const c = compMap.get(id)!;
@@ -244,7 +433,8 @@ export function Sheet({
     onMove(positions);
   }
 
-  function onPointerUp() {
+  function onPointerUp(e: React.PointerEvent) {
+    if (endView(e)) return;
     setBand(null);
     const drag = dragRef.current;
     dragRef.current = null;
@@ -282,12 +472,18 @@ export function Sheet({
     onAdd(kind, custom, { x: p.x - GRID, y: p.y - GRID });
   }
 
-  /** ラベル入力欄は部品の真上に置く */
+  /** ラベル入力欄は部品の真上に置く。入力欄は拡大縮小せず、位置だけ表示に合わせる */
   function labelInputPosition(c: Component): React.CSSProperties {
     const { w } = bodySize(c, portsOf(c, project));
     const width = 120;
-    return { left: Math.max(0, c.x + w / 2 - width / 2), top: Math.max(0, c.y - 30), width };
+    const p = toScreen(view, { x: c.x + w / 2, y: c.y });
+    return { left: Math.max(0, p.x - width / 2), top: Math.max(0, p.y - 30), width };
   }
+
+  const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
+  /** シートの画面上の範囲。この外には部品を置けない */
+  const sheetStart = toScreen(view, { x: 0, y: 0 });
+  const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
 
   const pendingFrom = pending && compMap.get(pending.comp);
   const labelTarget = labelEditingId ? compMap.get(labelEditingId) : undefined;
@@ -296,13 +492,13 @@ export function Sheet({
     <div className={styles.sheetWrap}>
       <svg
         ref={svgRef}
-        className={styles.sheet}
+        className={classNames(styles.sheet, (spaceHeld || panning) && styles.panning)}
+        onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => {
-          dragRef.current = null;
-          setBand(null);
-          onDragModeChange('none');
+        onPointerCancel={(e) => {
+          if (endView(e)) return;
+          cancelGesture();
         }}
         onPointerDown={onBackgroundPointerDown}
         onDragOver={(e) => {
@@ -311,83 +507,108 @@ export function Sheet({
         onDrop={onDrop}
       >
         <defs>
-          <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse">
-            <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" />
+          {/* 方眼は表示と一緒に動かす。線の太さは倍率によらず 1px のままにする */}
+          <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse" patternTransform={transform}>
+            <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" strokeWidth={1 / view.scale} />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
+        {/* シートの外 (部品を置けない範囲)。画面全体から、シートの範囲をくり抜いて塗る */}
+        <path
+          className={styles.outside}
+          fillRule="evenodd"
+          d={`M0,0 H${width} V${height} H0 Z M${sheetStart.x},${sheetStart.y} V${sheetEnd.y} H${sheetEnd.x} V${sheetStart.y} Z`}
+        />
+        <rect
+          className={styles.edge}
+          x={sheetStart.x}
+          y={sheetStart.y}
+          width={sheetEnd.x - sheetStart.x}
+          height={sheetEnd.y - sheetStart.y}
+        />
 
-        {circuit.wires.map((w) => {
-          const from = compMap.get(w.from.comp);
-          const to = compMap.get(w.to.comp);
-          if (!from || !to) return null;
-          const fromPorts = portsOf(from, project);
-          const toPorts = portsOf(to, project);
-          // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
-          if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
-          const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
-          const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-          const selected = selection?.type === 'wire' && selection.id === w.id;
-          return (
-            <g key={w.id}>
-              <path className={classNames(styles.wire, on && styles.on, selected && styles.selected)} d={d} />
-              <path
-                className={styles.wireHit}
-                d={d}
-                onPointerDown={(e) => {
+        {/* ここから下は回路の座標で描く */}
+        <g transform={transform}>
+          {circuit.wires.map((w) => {
+            const from = compMap.get(w.from.comp);
+            const to = compMap.get(w.to.comp);
+            if (!from || !to) return null;
+            const fromPorts = portsOf(from, project);
+            const toPorts = portsOf(to, project);
+            // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
+            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
+            const d = wirePath(outputPinPos(from, fromPorts, w.from.pin), inputPinPos(to, toPorts, w.to.pin));
+            const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
+            const selected = selection?.type === 'wire' && selection.id === w.id;
+            return (
+              <g key={w.id}>
+                <path className={classNames(styles.wire, on && styles.on, selected && styles.selected)} d={d} />
+                <path
+                  className={styles.wireHit}
+                  d={d}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    onSelect({ type: 'wire', id: w.id });
+                  }}
+                />
+              </g>
+            );
+          })}
+
+          {circuit.components.map((c) => {
+            const ports = portsOf(c, project);
+            return (
+              <ComponentView
+                key={c.id}
+                comp={c}
+                ports={ports}
+                name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                outputValues={Array.from(
+                  { length: Math.max(ports.outputs.length, 1) },
+                  (_, i) => !!sim.values.get(pinKey(c.id, i)),
+                )}
+                inputValues={ports.inputs.map((_, i) => {
+                  const w = wireTo.get(pinKey(c.id, i));
+                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                })}
+                selected={selectedIds.has(c.id)}
+                onBodyDown={(e) => onCompPointerDown(e, c)}
+                onBodyDoubleClick={() => onComponentDoubleClick(c)}
+                onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
+                onOutputPinDown={(e, pin) => {
                   e.stopPropagation();
-                  onSelect({ type: 'wire', id: w.id });
+                  onPendingChange({ comp: c.id, pin });
                 }}
               />
-            </g>
-          );
-        })}
+            );
+          })}
 
-        {circuit.components.map((c) => {
-          const ports = portsOf(c, project);
-          return (
-            <ComponentView
-              key={c.id}
-              comp={c}
-              ports={ports}
-              name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
-              outputValues={Array.from(
-                { length: Math.max(ports.outputs.length, 1) },
-                (_, i) => !!sim.values.get(pinKey(c.id, i)),
-              )}
-              inputValues={ports.inputs.map((_, i) => {
-                const w = wireTo.get(pinKey(c.id, i));
-                return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
-              })}
-              selected={selectedIds.has(c.id)}
-              onBodyDown={(e) => onCompPointerDown(e, c)}
-              onBodyDoubleClick={() => onComponentDoubleClick(c)}
-              onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
-              onOutputPinDown={(e, pin) => {
-                e.stopPropagation();
-                onPendingChange({ comp: c.id, pin });
-              }}
+          {band && (
+            <rect
+              className={styles.band}
+              vectorEffect="non-scaling-stroke"
+              x={Math.min(band.start.x, band.end.x)}
+              y={Math.min(band.start.y, band.end.y)}
+              width={Math.abs(band.end.x - band.start.x)}
+              height={Math.abs(band.end.y - band.start.y)}
             />
-          );
-        })}
+          )}
 
-        {band && (
-          <rect
-            className={styles.band}
-            x={Math.min(band.start.x, band.end.x)}
-            y={Math.min(band.start.y, band.end.y)}
-            width={Math.abs(band.end.x - band.start.x)}
-            height={Math.abs(band.end.y - band.start.y)}
-          />
-        )}
-
-        {pending && pendingFrom && (
-          <path
-            className={styles.pending}
-            d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
-          />
-        )}
+          {pending && pendingFrom && (
+            <path
+              className={styles.pending}
+              d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
+            />
+          )}
+        </g>
       </svg>
+      <ZoomControls
+        scale={view.scale}
+        onZoomIn={() => onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))}
+        onZoomOut={() => onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))}
+        onReset={() => onViewChange(zoomAt(view, center(), 1))}
+        onFit={fit}
+      />
       {labelTarget && (
         <InlineInput
           key={labelTarget.id}

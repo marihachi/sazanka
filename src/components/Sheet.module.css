@@ -14,6 +14,12 @@
   touch-action: none;
 }
 
+/* Space を押している間と、表示を移動している間 */
+.sheet.panning,
+.sheet.panning * {
+  cursor: grab !important;
+}
+
 .wire {
   stroke: var(--line);
   stroke-width: 2;
@@ -53,4 +59,14 @@
 .label-input {
   position: absolute;
   font-size: 13px;
+}
+
+/* 部品を置けない範囲 (シートの外)。方眼の上に重ねて隠す */
+.outside {
+  fill: var(--outside);
+}
+
+.edge {
+  stroke: var(--border);
+  fill: none;
 }
