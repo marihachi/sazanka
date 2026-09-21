@@ -24,8 +24,11 @@ export type ComponentKind = GateKind | FlipFlopKind | 'INPUT' | 'CLOCK' | 'HIGH'
 
 export type GateKind = 'AND' | 'OR' | 'NOT' | 'NAND' | 'NOR' | 'XOR';
 
-/** 記憶素子。RS はクロックのないラッチ、ほかはクロックの立ち上がりで動くフリップフロップ */
-export type FlipFlopKind = 'RS' | 'DFF' | 'TFF' | 'JKFF';
+/**
+ * 記憶素子。RS、RSEN、DLATCH はクロックのないラッチ (入力の ON/OFF の状態で動く)、
+ * ほかはクロックの立ち上がりの瞬間だけ動くフリップフロップ
+ */
+export type FlipFlopKind = 'RS' | 'RSEN' | 'DLATCH' | 'DFF' | 'TFF' | 'JKFF';
 
 /**
  * 利用者が回路に置ける部品の種類。保存データや共有データに現れるのはこれだけ。
@@ -39,6 +42,8 @@ export const PLACEABLE_KINDS: ReadonlySet<ComponentKind> = new Set<ComponentKind
   'NOR',
   'XOR',
   'RS',
+  'RSEN',
+  'DLATCH',
   'DFF',
   'TFF',
   'JKFF',
@@ -56,6 +61,8 @@ export const PLACEABLE_KINDS: ReadonlySet<ComponentKind> = new Set<ComponentKind
  */
 const INPUT_PINS: Partial<Record<ComponentKind, string[]>> = {
   RS: ['S', 'R'],
+  RSEN: ['S', 'EN', 'R'],
+  DLATCH: ['D', 'EN'],
   DFF: ['D', '>'],
   TFF: ['T', '>'],
   JKFF: ['J', '>', 'K'],
@@ -77,6 +84,9 @@ const DELAYS: Partial<Record<ComponentKind, number>> = {
   XOR: 3,
   // RS ラッチは NOR をたすきに組んだ構成、エッジトリガ型はさらにゲートを重ねた構成なので、その段数に合わせる
   RS: 2,
+  // EN 付きの RS ラッチと D ラッチは、EN で入力を通すゲートの後ろに RS ラッチを置いた構成
+  RSEN: 3,
+  DLATCH: 3,
   DFF: 3,
   TFF: 3,
   JKFF: 3,
@@ -96,7 +106,7 @@ export interface Ports {
 }
 
 export function isFlipFlop(kind: ComponentKind): kind is FlipFlopKind {
-  return kind === 'RS' || kind === 'DFF' || kind === 'TFF' || kind === 'JKFF';
+  return kind === 'RS' || kind === 'RSEN' || kind === 'DLATCH' || kind === 'DFF' || kind === 'TFF' || kind === 'JKFF';
 }
 
 export function inputPinNames(kind: ComponentKind): string[] {

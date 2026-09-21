@@ -38,7 +38,20 @@ describe('statusHints', () => {
   });
 
   it('部品を選ぶと、その部品の説明と、移動・削除の方法を出す', () => {
-    for (const kind of ['INPUT', 'OUTPUT', 'CLOCK', 'HIGH', 'CUSTOM', 'RS', 'DFF', 'TFF', 'JKFF', 'AND'] as const) {
+    for (const kind of [
+      'INPUT',
+      'OUTPUT',
+      'CLOCK',
+      'HIGH',
+      'CUSTOM',
+      'RS',
+      'RSEN',
+      'DLATCH',
+      'DFF',
+      'TFF',
+      'JKFF',
+      'AND',
+    ] as const) {
       const result = hints({ selectedComponent: comp(kind) });
       expect(result).toContain('ドラッグで移動');
       expect(result.length).toBeGreaterThan(1);

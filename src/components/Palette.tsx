@@ -12,7 +12,7 @@ import styles from './Palette.module.css';
 const GROUPS: { title: string; kinds: ComponentKind[] }[] = [
   { title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
   { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
-  { title: 'ラッチ', kinds: ['RS'] },
+  { title: 'ラッチ', kinds: ['RS', 'RSEN', 'DLATCH'] },
   { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
 ];
 
@@ -29,6 +29,8 @@ const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
   NOR: 'OR の反転。すべての入力が OFF のときだけ ON',
   XOR: '2つの入力が異なるとき ON',
   RS: 'S で ON、R で OFF にして値を保持する。クロックはなく、入力にすぐ反応する',
+  RSEN: 'EN が ON の間だけ、S で ON、R で OFF にする。EN が OFF の間は値を保持する',
+  DLATCH: 'EN が ON の間は D の値をそのまま出し、OFF になると直前の値を保持する',
   DFF: 'CLK が OFF から ON になった瞬間に D の値を取り込み、保持する',
   TFF: 'CLK が OFF から ON になった瞬間に、T が ON なら出力を反転する',
   JKFF: 'CLK が OFF から ON になった瞬間に、J で ON、K で OFF、両方 ON なら反転する',

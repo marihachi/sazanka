@@ -255,6 +255,48 @@ describe('保持と、段をつないだときの動き', () => {
     expect(r.values.get('l:0')).toBe(false);
   });
 
+  function rsen(set: boolean, en: boolean, reset: boolean): Circuit {
+    return {
+      components: [
+        comp('s', 'INPUT', { on: set }),
+        comp('e', 'INPUT', { on: en }),
+        comp('r', 'INPUT', { on: reset }),
+        comp('l', 'RSEN'),
+      ],
+      wires: [wire('s', 0, 'l', 0), wire('e', 0, 'l', 1), wire('r', 0, 'l', 2)],
+    };
+  }
+
+  it('EN 付きの RS ラッチは、EN が ON の間だけ S / R が効く', () => {
+    let r = settle(rsen(true, false, false)); // EN が OFF なので S は効かない
+    expect(r.values.get('l:0')).toBe(false);
+    r = settle(rsen(true, true, false), r);
+    expect(r.values.get('l:0')).toBe(true);
+    r = settle(rsen(false, false, true), r); // EN が OFF の間は R も効かず、値を保つ
+    expect(r.values.get('l:0')).toBe(true);
+    r = settle(rsen(true, true, true), r); // 両方 ON はリセット優先
+    expect(r.values.get('l:0')).toBe(false);
+  });
+
+  function dLatch(d: boolean, en: boolean): Circuit {
+    return {
+      components: [comp('d', 'INPUT', { on: d }), comp('e', 'INPUT', { on: en }), comp('l', 'DLATCH')],
+      wires: [wire('d', 0, 'l', 0), wire('e', 0, 'l', 1)],
+    };
+  }
+
+  it('D ラッチは EN が ON の間 D に追従し、OFF にすると直前の値を保つ', () => {
+    let r = settle(dLatch(true, true));
+    expect(r.values.get('l:0')).toBe(true);
+    expect(r.values.get('l:1')).toBe(false); // Q̄
+    r = settle(dLatch(false, true), r); // EN が ON の間は追従する (D-FF と違い、エッジを待たない)
+    expect(r.values.get('l:0')).toBe(false);
+    r = settle(dLatch(true, true), r);
+    r = settle(dLatch(true, false), r); // EN を OFF にして保持
+    r = settle(dLatch(false, false), r); // EN が OFF の間は D を変えても出力は変わらない
+    expect(r.values.get('l:0')).toBe(true);
+  });
+
   function tff(t: boolean, clk: boolean): Circuit {
     return {
       components: [comp('t', 'INPUT', { on: t }), comp('c', 'INPUT', { on: clk }), comp('f', 'TFF')],

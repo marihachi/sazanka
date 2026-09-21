@@ -79,6 +79,18 @@ export function statusHints(ctx: HintContext): string[] {
           'クロックはなく、S / R が変わるとすぐに Q が変わる',
           ...move,
         ];
+      case 'RSEN':
+        return [
+          'EN が ON の間だけ、S で Q を ON、R で Q を OFF にする (両方 ON なら OFF)',
+          'EN が OFF の間は、S / R を変えても Q は変わらない',
+          ...move,
+        ];
+      case 'DLATCH':
+        return [
+          'EN が ON の間は、Q が D に追従する',
+          'EN を OFF にすると、その直前の D を保持する。D-FF と違い、EN が ON の間ずっと D の変化が出力に出る',
+          ...move,
+        ];
       case 'DFF':
         return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
       case 'TFF':

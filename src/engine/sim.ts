@@ -13,7 +13,7 @@ export function pinKey(comp: string, pin: number): string {
 export interface FlipFlopState {
   q: boolean;
   /**
-   * 前回観測した CLK (立ち上がり検出用)。RS は使わない。
+   * 前回観測した CLK (立ち上がり検出用)。ラッチ (RS, RSEN, DLATCH) は使わない。
    * 前回の結果がない (ページを開いた直後など) ときは OFF から始まるので、
    * その時点で CLK が ON なら、立ち上がりとみなして1回動く
    */
@@ -79,6 +79,17 @@ function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFl
     // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先
     const [set, reset] = ins;
     return { q: reset ? false : set ? true : s.q, clk: false };
+  }
+  if (kind === 'RSEN') {
+    // EN 付きの RS ラッチ。EN が ON の間だけ S / R が効く (RS と同じくリセット優先)。OFF の間は値を保つ
+    const [set, en, reset] = ins;
+    if (!en) return { q: s.q, clk: false };
+    return { q: reset ? false : set ? true : s.q, clk: false };
+  }
+  if (kind === 'DLATCH') {
+    // D ラッチ。EN が ON の間は Q が D に追従し、OFF の間は値を保つ
+    const [d, en] = ins;
+    return { q: en ? d : s.q, clk: false };
   }
   const clk = ins[CLK_PIN];
   if (!clk || s.clk) return { q: s.q, clk };

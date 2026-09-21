@@ -1,6 +1,8 @@
 import type { ComponentKind } from '../engine/component';
 import andIcon from '../assets/icons/and.svg';
 import clockIcon from '../assets/icons/clock.svg';
+import rsenIcon from '../assets/icons/rsen.svg';
+import dlatchIcon from '../assets/icons/dlatch.svg';
 import dffIcon from '../assets/icons/dff.svg';
 import highIcon from '../assets/icons/high.svg';
 import inputIcon from '../assets/icons/input.svg';
@@ -28,6 +30,8 @@ const ICONS: Partial<Record<ComponentKind, string>> = {
   NOR: norIcon,
   XOR: xorIcon,
   RS: rsIcon,
+  RSEN: rsenIcon,
+  DLATCH: dlatchIcon,
   DFF: dffIcon,
   TFF: tffIcon,
   JKFF: jkffIcon,

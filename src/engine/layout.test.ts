@@ -38,6 +38,8 @@ describe('ピンの位置', () => {
       'XOR',
       'BUF',
       'RS',
+      'RSEN',
+      'DLATCH',
       'DFF',
       'TFF',
       'JKFF',

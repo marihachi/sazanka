@@ -5,7 +5,7 @@ import { LABELS } from './parts';
 import styles from './ComponentView.module.css';
 
 /** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
-const BODY_LABELS: Partial<Record<ComponentKind, string>> = { RS: 'RS' };
+const BODY_LABELS: Partial<Record<ComponentKind, string>> = { RS: 'RS', RSEN: 'RS', DLATCH: 'DL' };
 
 interface ComponentViewProps {
   comp: Component;
