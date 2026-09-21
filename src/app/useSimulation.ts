@@ -8,6 +8,8 @@ export const TICK_MS = 10;
 export const CLOCK_HALF_TICKS = 50;
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
+/** 「1 段戻す」ために覚えておく tick 数 */
+const HISTORY_TICKS = 300;
 
 /** CLOCK が ON/OFF を一往復する時間 (秒)。ヒントの文言に使う */
 export const CLOCK_PERIOD_SECONDS = (CLOCK_HALF_TICKS * 2 * TICK_MS) / 1000;
@@ -42,6 +44,12 @@ export function useSimulation(
   /** 回路ごとの結果。タブを切り替えても、その回路の状態を保つ */
   const results = useRef(new Map<string, SimResult>());
   const ticks = useRef(0);
+  /** 戻すために覚えておく、少し前までの結果。toggled はその tick で CLOCK を反転したか */
+  const past = useRef<{ sim: SimResult; toggled: boolean }[]>([]);
+  /** 直前のプロジェクトの変化が、自分で反転した CLOCK によるものか */
+  const clockChange = useRef(false);
+  /** 前回の描画で見たプロジェクト。変わっていれば回路が編集された */
+  const lastProject = useRef(project);
   // タイマーからは、常に最新のプロジェクトと開いている回路を見る
   const latest = useRef({ project, circuitId });
   latest.current = { project, circuitId };
@@ -50,16 +58,27 @@ export function useSimulation(
   function advance(): boolean {
     const { project: p, circuitId: id } = latest.current;
     ticks.current += 1;
-    if (
-      ticks.current % CLOCK_HALF_TICKS === 0 &&
-      p.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'))
-    ) {
+    const toggled =
+      ticks.current % CLOCK_HALF_TICKS === 0 && p.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
+    if (toggled) {
+      clockChange.current = true;
       setProject(toggleClocks);
     }
+    past.current.push({ sim: current.current, toggled });
+    if (past.current.length > HISTORY_TICKS) past.current.shift();
     current.current = step(p, id, current.current);
     results.current.set(id, current.current);
     // stableTicks が 0 なら、この tick で値が変わった
     return current.current.stableTicks === 0;
+  }
+
+  // 回路を編集したら、戻せる状態は捨てる。編集前の値に戻しても、今の回路とは噛み合わないため。
+  // CLOCK の反転は自分で起こした変化なので、そのままにする。
+  // ボタンの押せる / 押せないをこの描画に間に合わせるため、効果ではなく描画中に見る
+  if (lastProject.current !== project) {
+    lastProject.current = project;
+    if (clockChange.current) clockChange.current = false;
+    else past.current = [];
   }
 
   const hasClock = project.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
@@ -108,7 +127,27 @@ export function useSimulation(
       advance();
       setSim(current.current);
     },
+    /** 戻せる状態が残っているか */
+    canStepBack: past.current.length > 0,
+    /** 一時停止中に 1 tick 戻す */
+    stepBack: () => {
+      const last = past.current.pop();
+      if (!last) return;
+      ticks.current -= 1;
+      // CLOCK を反転した tick を戻すので、もう一度反転して元に戻す
+      if (last.toggled) {
+        clockChange.current = true;
+        setProject(toggleClocks);
+      }
+      current.current = last.sim;
+      results.current.set(latest.current.circuitId, last.sim);
+      setSim(last.sim);
+    },
     /** 回路を削除したときなど、覚えている結果を捨てる */
-    forget: (id?: string) => (id ? results.current.delete(id) : results.current.clear()),
+    forget: (id?: string) => {
+      past.current = [];
+      if (id) results.current.delete(id);
+      else results.current.clear();
+    },
   };
 }

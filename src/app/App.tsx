@@ -67,7 +67,11 @@ export function App() {
     }));
   }
 
-  const { sim, running, toggleRunning, stepOnce, forget } = useSimulation(project, circuit.id, history.replace);
+  const { sim, running, toggleRunning, stepOnce, stepBack, canStepBack, forget } = useSimulation(
+    project,
+    circuit.id,
+    history.replace,
+  );
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
 
@@ -333,6 +337,8 @@ export function App() {
         running={running}
         onToggleRunning={toggleRunning}
         onStep={stepOnce}
+        onStepBack={stepBack}
+        canStepBack={canStepBack}
       />
       <div className="workspace">
         <Palette
