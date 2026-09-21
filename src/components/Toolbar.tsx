@@ -1,6 +1,9 @@
 import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
 import newIcon from '../assets/icons/new.svg';
+import pauseIcon from '../assets/icons/pause.svg';
+import playIcon from '../assets/icons/play.svg';
+import stepIcon from '../assets/icons/step.svg';
 import plusIcon from '../assets/icons/plus.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
@@ -14,11 +17,28 @@ interface ToolbarProps {
   onRedo: () => void;
   onAddModule: () => void;
   onNew: () => void;
+  /** シミュレーションが動いているか */
+  running: boolean;
+  onToggleRunning: () => void;
+  /** 一時停止中に1段だけ進める */
+  onStep: () => void;
   onExport: () => void;
   onImport: () => void;
 }
 
-export function Toolbar({ canUndo, canRedo, onUndo, onRedo, onAddModule, onNew, onExport, onImport }: ToolbarProps) {
+export function Toolbar({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onAddModule,
+  onNew,
+  onExport,
+  onImport,
+  running,
+  onToggleRunning,
+  onStep,
+}: ToolbarProps) {
   return (
     <div className={styles.toolbar}>
       <button className={styles.tool} onClick={onNew} title="空のプロジェクトを新しく作る">
@@ -41,6 +61,18 @@ export function Toolbar({ canUndo, canRedo, onUndo, onRedo, onAddModule, onNew, 
       <button className={styles.tool} onClick={onRedo} disabled={!canRedo} title="やり直し (Ctrl+Shift+Z / Ctrl+Y)">
         <ToolIcon src={redoIcon} />
         やり直し
+      </button>
+      <span className={styles.divider} />
+      <button
+        className={styles.tool}
+        onClick={onToggleRunning}
+        title={running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'}
+      >
+        <ToolIcon src={running ? pauseIcon : playIcon} />
+        {running ? '一時停止' : '再開'}
+      </button>
+      <button className={styles.tool} onClick={onStep} disabled={running} title="1 段だけ時間を進める">
+        <ToolIcon src={stepIcon} />1 段進める
       </button>
       <span className={styles.divider} />
       <button className={styles.tool} onClick={onAddModule}>
