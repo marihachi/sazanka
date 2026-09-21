@@ -80,3 +80,11 @@
   opacity: 1;
   background: rgba(255, 255, 255, 0.08);
 }
+
+/* ドラッグして並べ替えている最中のタブ */
+.tab.dragging {
+  opacity: 1;
+  outline: 1px dashed var(--accent);
+  outline-offset: -2px;
+  cursor: grabbing;
+}

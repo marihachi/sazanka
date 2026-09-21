@@ -28,6 +28,18 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
 }
 
 /**
+ * モジュールの回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
+ * メイン回路は先頭に固定なので、メイン回路は動かさず、メイン回路より前にも置かない
+ */
+export function moveCircuit(project: Project, id: string, index: number): Project {
+  const moving = project.circuits.find((d) => d.id === id);
+  if (!moving || id === MAIN_ID) return project;
+  const rest = project.circuits.filter((d) => d.id !== id);
+  const at = Math.min(Math.max(index, 1), rest.length);
+  return { ...project, circuits: [...rest.slice(0, at), moving, ...rest.slice(at)] };
+}
+
+/**
  * INPUT / CLOCK の ON/OFF (部品の on) を外す。保存と共有には含めない (開発者の方針)。
  * フリップフロップの状態など、動かしている間のほかの状態も保存しないので、開き直すと回路はすべて初めの状態から動く
  */

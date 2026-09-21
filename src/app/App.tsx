@@ -19,7 +19,7 @@ import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import { newId, type Circuit, type PinRef } from '../engine/circuit';
-import { emptyProject, findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
+import { emptyProject, findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../engine/project';
 import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
 
@@ -387,6 +387,8 @@ export function App() {
         onRename={renameCircuit}
         onCancelRename={() => setEditing(null)}
         onDeleteCurrent={deleteCircuit}
+        // タブの並びは保存データの回路の順なので、元に戻す対象にする
+        onReorder={(id, index) => setProject((p) => moveCircuit(p, id, index))}
       />
       <Toolbar
         canUndo={history.canUndo}

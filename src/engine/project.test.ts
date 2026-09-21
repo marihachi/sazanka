@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Component } from './component';
-import { checkProject, emptyProject, findDef, MAIN_ID } from './project';
+import { checkProject, emptyProject, findDef, MAIN_ID, moveCircuit, type Project } from './project';
 
 function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };
@@ -57,4 +57,21 @@ describe('checkProject', () => {
       expect(checkProject(value)).toBeTypeOf('string');
     });
   }
+});
+
+describe('moveCircuit', () => {
+  const project: Project = {
+    circuits: ['main', 'a', 'b', 'c'].map((id) => ({ id, name: id, components: [], wires: [] })),
+  };
+  const ids = (p: Project) => p.circuits.map((d) => d.id);
+
+  it('モジュールを指定した位置に移す', () => {
+    expect(ids(moveCircuit(project, 'c', 1))).toEqual(['main', 'c', 'a', 'b']);
+    expect(ids(moveCircuit(project, 'a', 3))).toEqual(['main', 'b', 'c', 'a']);
+  });
+
+  it('メイン回路は先頭に固定。動かさず、その前にも置かない', () => {
+    expect(ids(moveCircuit(project, MAIN_ID, 2))).toEqual(['main', 'a', 'b', 'c']);
+    expect(ids(moveCircuit(project, 'b', 0))).toEqual(['main', 'b', 'a', 'c']);
+  });
 });
