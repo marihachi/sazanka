@@ -45,7 +45,7 @@ export interface SimResult {
 }
 
 /** これだけの tick、値が変わらなければ落ち着いたとみなす。いちばん長い遅延 (XOR の 3) より長くとる */
-const SETTLED_TICKS = 4;
+export const SETTLED_TICKS = 4;
 
 /** 落ち着かないまま、これだけの tick が過ぎたら発振とみなす */
 const OSCILLATION_TICKS = 50;
