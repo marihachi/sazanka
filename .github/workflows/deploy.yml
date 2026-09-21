@@ -1,9 +1,9 @@
-# main に push したら、ビルドして GitHub Pages に公開する
+# pagesブランチ に push したら、ビルドして GitHub Pages に公開する
 name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [pages]
   # 手動でも実行できるようにする
   workflow_dispatch:
 
