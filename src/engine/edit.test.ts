@@ -71,4 +71,20 @@ describe('edit', () => {
   it('スイッチの ON/OFF を切り替える', () => {
     expect(toggleSwitch(base, 'a').components[0].on).toBe(true);
   });
+
+  it('配線は末尾に足す。つないだ順に並ぶ', () => {
+    const c = connect(base, 'w4', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 });
+    expect(c.wires.map((w) => w.id)).toEqual(['w1', 'w2', 'w4']);
+  });
+
+  it('何もつながっていない入力ピンを外しても、何も変わらない', () => {
+    const c = disconnect(base, { comp: 'a', pin: 0 });
+    expect(c.wires).toEqual(base.wires);
+  });
+
+  it('ない部品を指しても、何も変わらない', () => {
+    expect(removeComponent(base, 'ない').components).toEqual(base.components);
+    expect(moveComponent(base, 'ない', { x: 9, y: 9 }).components).toEqual(base.components);
+    expect(toggleSwitch(base, 'ない').components).toEqual(base.components);
+  });
 });

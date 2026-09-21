@@ -94,6 +94,8 @@ describe('simulate', () => {
       wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
     });
     expect(r.unstable).toBe(true);
+    // 落ち着かなくても、その時点の値は返す
+    expect(r.values.get('n:0')).toBeTypeOf('boolean');
   });
 
   it('NOR で組んだ RS ラッチが状態を保持する', () => {

@@ -104,4 +104,15 @@ describe('share', () => {
     ];
     for (const p of broken) expect(parse(withProject(p)).ok).toBe(false);
   });
+
+  it('ON/OFF やラベル、モジュールの参照も保ったまま往復する', () => {
+    const result = parse(serializeProject(project));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const [main] = result.project.circuits;
+    expect(main.components[0]).toMatchObject({ kind: 'INPUT', on: true, x: 0, y: 0 });
+    expect(main.components[1]).toMatchObject({ kind: 'CUSTOM', custom: 'mod' });
+    // モジュールの参照先 (回路の ID) は付け直さない
+    expect(result.project.circuits[1].id).toBe('mod');
+  });
 });
