@@ -9,12 +9,20 @@ import { classNames } from './classNames';
 import { MaskIcon, PartIcon } from './Icons';
 import styles from './Palette.module.css';
 
-const GROUPS: { title: string; kinds: ComponentKind[] }[] = [
-  { title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
-  { title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
-  { title: 'ラッチ', kinds: ['RS', 'RSEN', 'DLATCH'] },
-  { title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
+/**
+ * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
+ * 変えると、利用者が折り畳んでいた状態が失われる (見出しの title は変えてよい)
+ */
+const GROUPS: { id: string; title: string; kinds: ComponentKind[] }[] = [
+  { id: 'io', title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
+  { id: 'gate', title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
+  { id: 'latch', title: 'ラッチ', kinds: ['RS', 'RSEN', 'DLATCH'] },
+  { id: 'flipflop', title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
 ];
+
+/** モジュールのグループ。部品のグループと同じく、id は変えない */
+const MODULE_GROUP = { id: 'module', title: 'モジュール' };
+const GROUP_IDS = [...GROUPS.map((g) => g.id), MODULE_GROUP.id];
 
 /** パレットの部品のツールチップ。部品の働きを1文で説明する */
 const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
@@ -48,7 +56,7 @@ interface PaletteProps {
   /** 部品をドラッグ中か。'trash' は削除エリアの上 */
   dragMode: 'none' | 'moving' | 'trash';
   trashRef: React.Ref<HTMLDivElement>;
-  /** 折り畳んでいるグループの見出し */
+  /** 折り畳んでいるグループの ID */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
   onAdd: (kind: ComponentKind, custom?: string) => void;
@@ -56,10 +64,10 @@ interface PaletteProps {
 
 /** 左側のパネル。部品の一覧と、下端の削除エリア */
 export function Palette({ modules, dragMode, trashRef, collapsed, onCollapsedChange, onAdd }: PaletteProps) {
-  const allCollapsed = GROUP_TITLES.every((t) => collapsed.includes(t));
+  const allCollapsed = GROUP_IDS.every((id) => collapsed.includes(id));
   const toggleLabel = allCollapsed ? 'すべて展開' : 'すべて折りたたむ';
-  const onToggleGroup = (title: string) =>
-    onCollapsedChange(collapsed.includes(title) ? collapsed.filter((t) => t !== title) : [...collapsed, title]);
+  const onToggleGroup = (id: string) =>
+    onCollapsedChange(collapsed.includes(id) ? collapsed.filter((c) => c !== id) : [...collapsed, id]);
 
   return (
     <div className={styles.sidebar}>
@@ -68,20 +76,20 @@ export function Palette({ modules, dragMode, trashRef, collapsed, onCollapsedCha
           className={styles.tool}
           title={toggleLabel}
           aria-label={toggleLabel}
-          onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_TITLES)}
+          onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_IDS)}
         >
           <MaskIcon src={allCollapsed ? expandAllIcon : collapseAllIcon} className={styles.toolIcon} />
         </button>
       </div>
       <aside className={styles.palette}>
         {GROUPS.map((group) => (
-          <PaletteGroup key={group.title} title={group.title} collapsed={collapsed} onToggle={onToggleGroup}>
+          <PaletteGroup key={group.id} id={group.id} title={group.title} collapsed={collapsed} onToggle={onToggleGroup}>
             {group.kinds.map((k) => (
               <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => onAdd(k)} />
             ))}
           </PaletteGroup>
         ))}
-        <PaletteGroup title={MODULE_GROUP} collapsed={collapsed} onToggle={onToggleGroup}>
+        <PaletteGroup id={MODULE_GROUP.id} title={MODULE_GROUP.title} collapsed={collapsed} onToggle={onToggleGroup}>
           {modules.map(({ def, blocked }) => (
             <PaletteItem
               key={def.id}
@@ -110,23 +118,21 @@ export function Palette({ modules, dragMode, trashRef, collapsed, onCollapsedCha
   );
 }
 
-const MODULE_GROUP = 'モジュール';
-const GROUP_TITLES = [...GROUPS.map((g) => g.title), MODULE_GROUP];
-
 interface PaletteGroupProps {
+  id: string;
   title: string;
   collapsed: string[];
-  onToggle: (title: string) => void;
+  onToggle: (id: string) => void;
   children: React.ReactNode;
 }
 
 /** 見出しをクリックすると折り畳めるグループ */
-function PaletteGroup({ title, collapsed, onToggle, children }: PaletteGroupProps) {
-  const open = !collapsed.includes(title);
+function PaletteGroup({ id, title, collapsed, onToggle, children }: PaletteGroupProps) {
+  const open = !collapsed.includes(id);
   return (
     <section className={open ? undefined : styles.collapsed}>
       <h3>
-        <button className={styles.groupToggle} aria-expanded={open} onClick={() => onToggle(title)}>
+        <button className={styles.groupToggle} aria-expanded={open} onClick={() => onToggle(id)}>
           <MaskIcon src={chevronIcon} className={styles.chevron} />
           {title}
         </button>

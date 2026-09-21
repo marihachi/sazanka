@@ -66,7 +66,7 @@ export function saveProject(project: Project) {
 
 const COLLAPSED_KEY = 'sazanka.paletteCollapsed';
 
-/** パレットで折り畳んでいるグループの見出し */
+/** パレットで折り畳んでいるグループの ID (Palette.tsx の GROUPS)。知らない ID は無視される */
 export function loadCollapsedGroups(): string[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]');
@@ -76,9 +76,9 @@ export function loadCollapsedGroups(): string[] {
   }
 }
 
-export function saveCollapsedGroups(titles: string[]) {
+export function saveCollapsedGroups(ids: string[]) {
   try {
-    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(titles));
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(ids));
   } catch {
     // 保存できない環境では無視
   }
