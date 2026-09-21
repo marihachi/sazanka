@@ -1,4 +1,4 @@
-import type { Component } from '../engine/circuit';
+import type { Component } from '../engine/component';
 import { CLOCK_PERIOD_SECONDS } from './useSimulation';
 
 /** 何も操作していないときに順に表示するヒント */

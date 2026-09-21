@@ -16,17 +16,10 @@ import { TabBar } from '../components/TabBar';
 import { Toolbar } from '../components/Toolbar';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
-import { newId, type Component, type PinRef, type ComponentKind } from '../engine/circuit';
-import {
-  portsOf,
-  circuitsUsing,
-  dependsOn,
-  emptyProject,
-  findDef,
-  MAIN_ID,
-  type CircuitDef,
-  type Project,
-} from '../engine/project';
+import type { Component, ComponentKind } from '../engine/component';
+import { newId, type PinRef } from '../engine/circuit';
+import { emptyProject, findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
+import { portsOf, circuitsUsing, dependsOn } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
 
 import { statusHints } from './hints';

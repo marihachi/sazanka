@@ -1,15 +1,9 @@
+// 回路の評価: 時間を 1 tick ずつ進め、ピンの値とフリップフロップの状態を求める。
+// モジュールは flatten.ts で展開してから評価する
+
 import { flattenProject } from './flatten';
-import {
-  delayOf,
-  type Circuit,
-  type Component,
-  type PinRef,
-  inputCount,
-  isFlipFlop,
-  outputCount,
-  type FlipFlopKind,
-  CLK_PIN,
-} from './circuit';
+import { delayOf, type Component, inputCount, isFlipFlop, outputCount, type FlipFlopKind, CLK_PIN } from './component';
+import type { Circuit, PinRef } from './circuit';
 import type { Project } from './project';
 
 export function pinKey(comp: string, pin: number): string {
@@ -32,7 +26,7 @@ export interface SimResult {
   /** フリップフロップの内部状態 */
   flipFlops: Map<string, FlipFlopState>;
   /**
-   * 遅延中の値。部品ごとに、これから出る出力を古い順に並べたもの (長さは delayOf(kind))。
+   * 遅延のある部品が、これから出す出力の待ち行列。先に出すものから順に並べる (長さは delayOf(kind))。
    * 遅延のない部品は持たない
    */
   pending: Map<string, boolean[][]>;
@@ -79,7 +73,7 @@ function evalGate(c: Component, ins: boolean[]): boolean {
   }
 }
 
-/** フリップフロップの次状態。ins は入力ピンの値 (INPUT_PINS の順) */
+/** フリップフロップの次の状態。ins は入力ピンの値 (ピン番号の順) */
 function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFlopState {
   if (kind === 'RS') {
     // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先

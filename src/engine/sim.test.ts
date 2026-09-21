@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { Circuit, Component, Wire, FlipFlopKind, GateKind } from './circuit';
-import { dependsOn, MAIN_ID, portsOf, type CircuitDef, type Project } from './project';
+import type { Component, FlipFlopKind, GateKind } from './component';
+import type { Circuit, Wire } from './circuit';
+import { MAIN_ID, type CircuitDef, type Project } from './project';
+import { dependsOn, portsOf } from './module';
 import { stepCircuit, step, type SimResult } from './sim';
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../engine/circuit';
+import type { Component } from '../engine/component';
 import { MAIN_ID, type CircuitDef, type Project } from '../engine/project';
 import { keepSwitchStates } from './switchStates';
 

@@ -1,4 +1,6 @@
-import { type Component, type Ports, isFlipFlop } from './circuit';
+// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置
+
+import { type Component, type Ports, isFlipFlop } from './component';
 
 export const GRID = 20;
 
@@ -93,7 +95,8 @@ export function clampPosition(c: Component, ports: Ports, p: Point, width: numbe
 
 /**
  * 複数の部品をまとめて delta だけ動かすとき、どれもはみ出さないように delta を縮める。
- * 部品の今の位置は、はみ出していない前提 (縮めた delta は、先に調べた部品も収まったままになる)
+ * 部品の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
+ * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
  */
 export function clampMove(items: { c: Component; ports: Ports }[], delta: Point, width: number, height: number): Point {
   let d = delta;

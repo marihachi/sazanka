@@ -2,7 +2,7 @@ import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
 import trashIcon from '../assets/icons/trash.svg';
-import type { ComponentKind } from '../engine/circuit';
+import type { ComponentKind } from '../engine/component';
 import type { CircuitDef } from '../engine/project';
 import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
 import { classNames } from './classNames';

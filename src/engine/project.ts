@@ -1,16 +1,8 @@
-// プロジェクト (メイン回路と複数のモジュール)、モジュールのピンの決め方、外から来たデータの検証。
-// 回路そのもののデータと部品の種類の仕様は circuit.ts にある
+// プロジェクト (メイン回路と複数のモジュール) の構造と、外から来たデータの検証。
+// モジュールのピンの決め方と回路同士の依存は module.ts にある
 
-import {
-  inputPinNames,
-  isFlipFlop,
-  outputCount,
-  type Circuit,
-  type Component,
-  type ComponentKind,
-  type Ports,
-  type Wire,
-} from './circuit';
+import { PLACEABLE_KINDS, type Component, type ComponentKind } from './component';
+import type { Circuit, Wire } from './circuit';
 import { isObject } from './util';
 
 export const MAIN_ID = 'main';
@@ -35,66 +27,6 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
   return project.circuits.find((d) => d.id === id);
 }
 
-function byPosition(a: Component, b: Component): number {
-  return a.y - b.y || a.x - b.x;
-}
-
-/** モジュールのピンになる INPUT / OUTPUT (上から順) */
-export function portComponents(def: Circuit): { inputs: Component[]; outputs: Component[] } {
-  return {
-    inputs: def.components.filter((c) => c.kind === 'INPUT').sort(byPosition),
-    outputs: def.components.filter((c) => c.kind === 'OUTPUT').sort(byPosition),
-  };
-}
-
-export function portsOf(c: Component, project: Project): Ports {
-  if (c.kind === 'CUSTOM') {
-    const def = findDef(project, c.custom);
-    if (!def) return { inputs: [], outputs: [] };
-    const { inputs, outputs } = portComponents(def);
-    return { inputs: inputs.map((k) => k.label ?? ''), outputs: outputs.map((k) => k.label ?? '') };
-  }
-  return {
-    inputs: inputPinNames(c.kind),
-    outputs: isFlipFlop(c.kind) ? ['Q', 'Q̄'] : Array(outputCount(c.kind)).fill(''),
-  };
-}
-
-/** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */
-export function dependsOn(project: Project, a: string, b: string, seen = new Set<string>()): boolean {
-  if (seen.has(a)) return false;
-  seen.add(a);
-  const def = findDef(project, a);
-  if (!def) return false;
-  return def.components.some(
-    (c) => c.kind === 'CUSTOM' && c.custom !== undefined && (c.custom === b || dependsOn(project, c.custom, b, seen)),
-  );
-}
-
-/** モジュール id を部品として直接置いている回路 */
-export function circuitsUsing(project: Project, id: string): CircuitDef[] {
-  return project.circuits.filter((d) => d.components.some((c) => c.kind === 'CUSTOM' && c.custom === id));
-}
-
-/** 共有データに置ける部品の種類。BUF は展開用の内部の部品なので含めない */
-const KINDS = new Set<ComponentKind>([
-  'AND',
-  'OR',
-  'NOT',
-  'NAND',
-  'NOR',
-  'XOR',
-  'RS',
-  'DFF',
-  'TFF',
-  'JKFF',
-  'INPUT',
-  'CLOCK',
-  'HIGH',
-  'OUTPUT',
-  'CUSTOM',
-]);
-
 function isPinRef(p: unknown): p is Wire['from'] {
   return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
 }
@@ -107,7 +39,7 @@ function isComponent(c: unknown): c is Component {
   return (
     isObject(c) &&
     typeof c.id === 'string' &&
-    KINDS.has(c.kind as ComponentKind) &&
+    PLACEABLE_KINDS.has(c.kind as ComponentKind) &&
     typeof c.x === 'number' &&
     typeof c.y === 'number'
   );

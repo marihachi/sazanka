@@ -1,5 +1,9 @@
+// 回路の編集 (部品・配線・ラベルの追加や変更や削除)。どれも新しい回路を返し、元の回路は書き換えない。
+// 元に戻す対象にするかどうかは app/ 側で決める
+
 import { Point } from './layout';
-import type { Circuit, Component, PinRef } from './circuit';
+import type { Component } from './component';
+import type { Circuit, PinRef } from './circuit';
 
 function updateComponent<T extends Circuit>(circuit: T, id: string, update: (c: Component) => Component): T {
   return { ...circuit, components: circuit.components.map((c) => (c.id === id ? update(c) : c)) };

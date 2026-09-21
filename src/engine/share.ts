@@ -1,3 +1,5 @@
+// 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
+
 import type { PinRef } from './circuit';
 import { type CircuitDef, type Project, checkProject } from './project';
 import { isObject } from './util';
@@ -13,10 +15,11 @@ interface ShareData {
 }
 
 /**
- * 回路の部品と配線の ID を、partId / wireId (引数は何番目か) で付け直し、配線の接続先も合わせる。
- * 書き出すときは、読みやすいよう回路ごとに part-1、wire-1 からの連番にする。
- * 読み込むときは、アプリ内の ID の付け方 (ランダム) にそろえる。
- * ID は回路の中でだけ一意であればよい。回路の ID はモジュールの参照に使うので変えない
+ * 回路の部品と配線の ID を付け直し、配線がつなぐ部品の ID も合わせて直す。
+ * 新しい ID は partId / wireId で作る (引数は、その部品や配線が何番目か)。
+ * 書き出すときは、JSON を読みやすくするため、回路ごとに part-1、wire-1 からの連番にする。
+ * 読み込むときは、アプリの中と同じランダムな ID にそろえる。
+ * ID は回路の中で重ならなければよい。回路の ID はモジュールの参照に使っているので変えない
  */
 function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (index: number) => string): CircuitDef {
   const ids = new Map(def.components.map((c, i) => [c.id, partId(i)]));

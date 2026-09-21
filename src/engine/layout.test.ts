@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { bodySize, clampMove, clampPosition, GRID, inputPinPos, outputPinPos, snap } from './layout';
-import type { Component, ComponentKind } from './circuit';
-import { portsOf, type Project } from './project';
+import type { Component, ComponentKind } from './component';
+import type { Project } from './project';
+import { portsOf } from './module';
 
 describe('clampPosition', () => {
   const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };

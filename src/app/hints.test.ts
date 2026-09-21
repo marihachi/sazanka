@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../engine/circuit';
+import type { Component } from '../engine/component';
 import { statusHints, type HintContext } from './hints';
 
 const base: HintContext = {

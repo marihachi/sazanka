@@ -1,5 +1,5 @@
 // 部品をコンポーネントをまたいで扱うための情報。パレット、シート、シート上の部品で共有する
-import type { ComponentKind } from '../engine/circuit';
+import type { ComponentKind } from '../engine/component';
 
 /** 部品の表示名 */
 export const LABELS: Partial<Record<ComponentKind, string>> = {
