@@ -18,7 +18,7 @@ import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
-import { newId, type PinRef } from '../engine/circuit';
+import { newId, type Circuit, type PinRef } from '../engine/circuit';
 import { emptyProject, findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
 import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
@@ -47,6 +47,10 @@ export function App() {
   const [sheetSize, setSheetSize] = useState<SheetSize>({ width: 0, height: 0 });
   /** 回路ごとの表示位置と倍率。元に戻す対象にはしない */
   const [views, setViews] = useState(loadViews);
+  /** コピーした部品と配線 */
+  const [clipboard, setClipboard] = useState<Circuit | null>(null);
+  /** 貼り付ける位置を選んでいる部品と配線。クリックした位置で確定する */
+  const [placing, setPlacing] = useState<Circuit | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(() =>
     loaded.error ? { message: `${loaded.error}空のプロジェクトで開きます。` } : null,
@@ -75,6 +79,13 @@ export function App() {
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
+  // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
+  // 固定しないと、部品を置くたびに「回路全体が見える表示」が計算し直され、画面が勝手に動いてしまう
+  const viewSaved = circuit.id in views;
+  const sheetReady = sheetSize.width > 0 && sheetSize.height > 0;
+  useEffect(() => {
+    if (!viewSaved && sheetReady) setViews((vs) => ({ ...vs, [circuit.id]: view }));
+  }, [viewSaved, sheetReady, circuit.id, view]);
 
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
   const paletteModules: PaletteModule[] = project.circuits
@@ -90,6 +101,7 @@ export function App() {
     }));
 
   function openCircuit(id: string) {
+    setPlacing(null);
     setCurrentId(id);
     setSelection(null);
     setPending(null);
@@ -112,6 +124,42 @@ export function App() {
   function deleteComponents(ids: string[], record = true) {
     setCircuit((cur) => edit.removeComponents(cur, ids), record);
     setSelection(null);
+  }
+
+  function copySelection() {
+    if (selection?.type !== 'comp') return;
+    setClipboard(edit.extractComponents(circuit, selection.ids));
+  }
+
+  function cutSelection() {
+    if (selection?.type !== 'comp') return;
+    copySelection();
+    deleteComponents(selection.ids);
+  }
+
+  /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
+  function startPaste() {
+    if (!clipboard || clipboard.components.length === 0) return;
+    // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
+    const blocked = clipboard.components.find(
+      (c) => c.kind === 'CUSTOM' && c.custom && (c.custom === circuit.id || dependsOn(project, c.custom, circuit.id)),
+    );
+    if (blocked) {
+      const name = findDef(project, blocked.custom)?.name ?? '';
+      setDialog({ message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません` });
+      return;
+    }
+    setPending(null);
+    setPlacing(clipboard);
+  }
+
+  /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
+  function paste(delta: Point) {
+    if (!placing) return;
+    const clone = edit.cloneComponents(placing, newId, delta);
+    setCircuit((cur) => edit.addParts(cur, clone));
+    setSelection({ type: 'comp', ids: clone.components.map((c) => c.id) });
+    setPlacing(null);
   }
 
   function deleteSelection() {
@@ -184,12 +232,16 @@ export function App() {
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
+    onCopy: copySelection,
+    onCut: cutSelection,
+    onPaste: startPaste,
     onSelectAll: () => {
       setPending(null);
       const ids = circuit.components.map((c) => c.id);
       setSelection(ids.length > 0 ? { type: 'comp', ids } : null);
     },
     onEscape: () => {
+      setPlacing(null);
       setPending(null);
       setSelection(null);
     },
@@ -311,6 +363,7 @@ export function App() {
   const hints = statusHints({
     dragMode,
     wiring: !!pending,
+    placing: !!placing,
     editing: !!editing,
     wireSelected: selection?.type === 'wire',
     selectedComponent:
@@ -385,6 +438,8 @@ export function App() {
           onComponentDoubleClick={onCompDoubleClick}
           onLabelCommit={setLabel}
           onLabelCancel={() => setEditing(null)}
+          placing={placing}
+          onPlace={paste}
         />
       </div>
       <StatusBar hints={hints} unstable={sim.unstable} />

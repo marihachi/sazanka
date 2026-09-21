@@ -11,6 +11,7 @@ const IDLE_HINTS = [
   '部品を左下の削除エリアへドラッグすると削除',
   '何もないところからドラッグすると範囲選択。選んだ部品はまとめて動かしたり削除したりできる',
   'Shift+クリックで部品を選択に追加・解除、Ctrl+A ですべて選択',
+  'Ctrl+C でコピー、Ctrl+X で切り取り。Ctrl+V の後、クリックした位置に貼り付け',
   'ホイール (トラックパッドではピンチ) で拡大縮小。中ボタンか Space を押しながらドラッグすると表示を移動',
   'スマホでは2本指で表示を移動・拡大縮小',
   '右下のボタンで拡大縮小。□ のボタンで回路全体を表示、倍率を押すと等倍に戻る',
@@ -37,6 +38,8 @@ export interface HintContext {
   dragMode: 'none' | 'moving' | 'trash';
   /** 配線の途中 */
   wiring: boolean;
+  /** 貼り付ける位置を選んでいる */
+  placing: boolean;
   /** 名前やラベルを編集中 */
   editing: boolean;
   wireSelected: boolean;
@@ -52,6 +55,7 @@ export interface HintContext {
 export function statusHints(ctx: HintContext): string[] {
   if (ctx.dragMode === 'trash') return ['離すと削除します'];
   if (ctx.dragMode === 'moving') return ['左下の削除エリアで離すと削除します'];
+  if (ctx.placing) return ['クリックした位置に貼り付け ・ Esc で取り消し'];
   if (ctx.wiring) return ['接続先の入力ピンをクリック ・ Esc で取り消し'];
   if (ctx.editing) return ['Enter で確定 ・ Esc で取り消し'];
   if (ctx.wireSelected) return ['Delete で配線を削除'];
@@ -60,6 +64,7 @@ export function statusHints(ctx: HintContext): string[] {
       'ドラッグでまとめて移動',
       'Delete か、左下の削除エリアへドラッグでまとめて削除',
       'Shift+クリックで選択に追加・解除',
+      'Ctrl+C でコピー、Ctrl+X で切り取り',
     ];
   }
   const c = ctx.selectedComponent;

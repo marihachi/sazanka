@@ -7,6 +7,9 @@ export interface Shortcuts {
   onRedo: () => void;
   onDelete: () => void;
   onSelectAll: () => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
   onEscape: () => void;
 }
 
@@ -35,6 +38,13 @@ export function useShortcuts(shortcuts: Shortcuts) {
       if (mod && key === 'a') {
         e.preventDefault();
         s.onSelectAll();
+        return;
+      }
+      if (mod && (key === 'c' || key === 'x' || key === 'v')) {
+        e.preventDefault();
+        if (key === 'c') s.onCopy();
+        else if (key === 'x') s.onCut();
+        else s.onPaste();
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') s.onDelete();

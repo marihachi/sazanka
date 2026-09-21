@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   bodySize,
   clampMove,
+  componentBounds,
   GRID,
   inputPinPos,
   outputPinPos,
@@ -11,7 +12,7 @@ import {
   snap,
 } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
-import type { PinRef } from '../engine/circuit';
+import type { Circuit, PinRef } from '../engine/circuit';
 import { findDef, type CircuitDef, type Project } from '../engine/project';
 import { portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
@@ -125,6 +126,10 @@ interface SheetProps {
   onComponentDoubleClick: (c: Component) => void;
   onLabelCommit: (id: string, value: string) => void;
   onLabelCancel: () => void;
+  /** 貼り付ける位置を選んでいる部品と配線 (コピー元の位置のまま)。ポインターについて動き、クリックで確定する */
+  placing: Circuit | null;
+  /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
+  onPlace: (delta: Point) => void;
 }
 
 /** 回路を描き、部品のドラッグ・配線・パレットからのドロップを受け付けるシート */
@@ -153,6 +158,8 @@ export function Sheet({
   onComponentDoubleClick,
   onLabelCommit,
   onLabelCancel,
+  placing,
+  onPlace,
 }: SheetProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
@@ -165,8 +172,10 @@ export function Sheet({
   /** Space を押している間は、ドラッグで表示を移動する */
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
-  /** 配線中の線の先 (回路の座標) */
-  const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
+  /** ポインターの位置 (回路の座標)。配線中の線の先と、貼り付ける部品の位置に使う。シートの上に来るまでは null */
+  const [mouse, setMouse] = useState<Point | null>(null);
+  /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
+  const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
   /** 入力ピン (pinKey) → つながっている配線 */
   const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
@@ -250,6 +259,7 @@ export function Sheet({
   /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
   function cancelGesture() {
     dragRef.current = null;
+    placeDownRef.current = null;
     setBand(null);
     onDragModeChange('none');
   }
@@ -258,6 +268,18 @@ export function Sheet({
    * 子要素 (部品やピン) より先に受け取り、表示の移動と拡大縮小を始める。
    * 始めた場合は子要素に届けず、部品のドラッグや配線が始まらないようにする
    */
+  /**
+   * 貼り付ける部品を、回路の点 at を中心に置くときの、コピー元からのずれ。
+   * グリッドに合わせ、シートからはみ出さないように縮める
+   */
+  function placeDelta(part: Circuit, at: Point): Point {
+    const items = part.components.map((c) => ({ c, ports: portsOf(c, project) }));
+    const rects = items.map(({ c, ports }) => componentBounds(c, ports));
+    const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
+    const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
+    return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) });
+  }
+
   function onPointerDownCapture(e: React.PointerEvent) {
     const svg = svgRef.current!;
     if (e.pointerType === 'touch') {
@@ -281,6 +303,12 @@ export function Sheet({
       svg.setPointerCapture(e.pointerId);
       panRef.current = { pointerId: e.pointerId, start: toScreenLocal(svg, e), view };
       setPanning(true);
+      return;
+    }
+    if (placing && e.button === 0) {
+      // 貼り付けの位置を選んでいる間は、部品の選択やドラッグを始めない
+      e.stopPropagation();
+      placeDownRef.current = { pointerId: e.pointerId, start: { x: e.clientX, y: e.clientY } };
     }
   }
 
@@ -435,6 +463,14 @@ export function Sheet({
 
   function onPointerUp(e: React.PointerEvent) {
     if (endView(e)) return;
+    const placeDown = placeDownRef.current;
+    if (placeDown && placeDown.pointerId === e.pointerId) {
+      placeDownRef.current = null;
+      // 押したまま大きく動かしたら、貼り付けない (指で画面をなぞっただけのときなど)
+      const moved = Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >= DRAG_THRESHOLD * 2;
+      if (placing && !moved) onPlace(placeDelta(placing, toLocal(e)));
+      return;
+    }
     setBand(null);
     const drag = dragRef.current;
     dragRef.current = null;
@@ -594,7 +630,45 @@ export function Sheet({
             />
           )}
 
-          {pending && pendingFrom && (
+          {placing &&
+            (() => {
+              // まだポインターがシートに来ていなければ (スマホなど)、表示している範囲の真ん中に置く
+              const d = placeDelta(placing, mouse ?? toWorld(view, center()));
+              const parts = new Map(placing.components.map((c) => [c.id, c]));
+              return (
+                <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>
+                  {placing.wires.map((w) => {
+                    const from = parts.get(w.from.comp)!;
+                    const to = parts.get(w.to.comp)!;
+                    const d = wirePath(
+                      outputPinPos(from, portsOf(from, project), w.from.pin),
+                      inputPinPos(to, portsOf(to, project), w.to.pin),
+                    );
+                    return <path key={w.id} className={styles.wire} d={d} />;
+                  })}
+                  {placing.components.map((c) => {
+                    const ports = portsOf(c, project);
+                    return (
+                      <ComponentView
+                        key={c.id}
+                        comp={c}
+                        ports={ports}
+                        name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                        outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, () => false)}
+                        inputValues={ports.inputs.map(() => false)}
+                        selected
+                        onBodyDown={() => {}}
+                        onBodyDoubleClick={() => {}}
+                        onInputPinDown={() => {}}
+                        onOutputPinDown={() => {}}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })()}
+
+          {pending && pendingFrom && mouse && (
             <path
               className={styles.pending}
               d={wirePath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}

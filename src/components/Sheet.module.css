@@ -70,3 +70,9 @@
   stroke: var(--border);
   fill: none;
 }
+
+/* 貼り付ける位置を選んでいる部品。ポインターに付いて動くだけで、操作は受け付けない */
+.ghost {
+  opacity: 0.5;
+  pointer-events: none;
+}

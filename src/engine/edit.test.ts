@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   addComponent,
+  addParts,
+  cloneComponents,
+  extractComponents,
   connect,
   disconnect,
   moveComponent,
@@ -112,5 +115,32 @@ describe('複数の部品の編集', () => {
       { id: 'g', x: 80, y: 0 },
       { id: 'o', x: 200, y: 40 },
     ]);
+  });
+});
+
+describe('コピーと貼り付け', () => {
+  it('取り出すのは選んだ部品と、その部品同士をつなぐ配線だけ', () => {
+    const part = extractComponents(base, ['a', 'g']);
+    expect(part.components.map((c) => c.id)).toEqual(['a', 'g']);
+    // b→g と g→o は選んでいない部品とつながるので含めない
+    expect(part.wires.map((w) => w.id)).toEqual(['w1']);
+  });
+
+  it('複製すると新しい ID が付き、配線のつなぎ先も新しい ID になる', () => {
+    let n = 0;
+    const clone = cloneComponents(extractComponents(base, ['a', 'g']), () => `n${++n}`, { x: 40, y: 40 });
+    const [a, g] = clone.components;
+    expect([a.id, g.id]).toEqual(['n1', 'n2']);
+    expect([a.x, a.y, g.x, g.y]).toEqual([40, 40, 120, 40]);
+    expect(clone.wires).toEqual([{ id: 'n3', from: { comp: 'n1', pin: 0 }, to: { comp: 'n2', pin: 0 } }]);
+  });
+
+  it('貼り付けると、元の部品と配線はそのまま残る', () => {
+    let n = 0;
+    const clone = cloneComponents(extractComponents(base, ['a', 'g']), () => `n${++n}`, { x: 40, y: 40 });
+    const c = addParts(base, clone);
+    expect(c.components).toHaveLength(base.components.length + 2);
+    expect(c.wires).toHaveLength(base.wires.length + 1);
+    expect(c.components.slice(0, base.components.length)).toEqual(base.components);
   });
 });

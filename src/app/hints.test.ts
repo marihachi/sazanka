@@ -5,6 +5,7 @@ import { statusHints, type HintContext } from './hints';
 const base: HintContext = {
   dragMode: 'none',
   wiring: false,
+  placing: false,
   editing: false,
   wireSelected: false,
   multipleSelected: false,
