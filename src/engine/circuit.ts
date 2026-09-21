@@ -61,6 +61,31 @@ const INPUT_PINS: Partial<Record<ComponentKind, string[]>> = {
   JKFF: ['J', '>', 'K'],
 };
 
+/**
+ * 部品の遅延 (何 tick 後に出力へ現れるか)。ここに書かない種類は遅延なし (0)。
+ * NAND / NOR を 1 段とし、AND / OR はそれを反転した 2 段、XOR は 3 段として実物に近づけている。
+ * フリップフロップは、それらを組み合わせた構成の段数で数える。
+ * 遅延なしなのは、部品ではなく端子である INPUT / CLOCK / HIGH / OUTPUT と、
+ * モジュールのピンを表す内部用の BUF (モジュールにしただけで遅れないようにするため)
+ */
+const DELAYS: Partial<Record<ComponentKind, number>> = {
+  NOT: 1,
+  NAND: 1,
+  NOR: 1,
+  AND: 2,
+  OR: 2,
+  XOR: 3,
+  // RS ラッチは NOR をたすきに組んだ構成、エッジトリガ型はさらにゲートを重ねた構成なので、その段数に合わせる
+  RS: 2,
+  DFF: 3,
+  TFF: 3,
+  JKFF: 3,
+};
+
+export function delayOf(kind: ComponentKind): number {
+  return DELAYS[kind] ?? 0;
+}
+
 /** エッジトリガ型フリップフロップの CLK 入力のピン番号。JK も CLK を真ん中 (J, >, K) に置いてそろえている */
 export const CLK_PIN = 1;
 

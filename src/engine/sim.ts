@@ -1,5 +1,6 @@
 import { flattenProject } from './flatten';
 import {
+  delayOf,
   type Circuit,
   type Component,
   type PinRef,
@@ -26,13 +27,28 @@ export interface FlipFlopState {
 }
 
 export interface SimResult {
-  /** 出力ピンの値。キーは pinKey(comp, pin)。OUTPUT は入力値を pin 0 に持つ */
+  /** 今出ている出力ピンの値。キーは pinKey(comp, pin)。OUTPUT は入力値を pin 0 に持つ */
   values: Map<string, boolean>;
   /** フリップフロップの内部状態 */
   flipFlops: Map<string, FlipFlopState>;
-  /** 規定回数内に安定しなかった (発振) */
+  /**
+   * 遅延中の値。部品ごとに、これから出る出力を古い順に並べたもの (長さは delayOf(kind))。
+   * 遅延のない部品は持たない
+   */
+  pending: Map<string, boolean[][]>;
+  /** 値が変わらずに続いた tick 数。SETTLED_TICKS 以上で落ち着いたとみなす */
+  stableTicks: number;
+  /** 落ち着かないまま続いている tick 数。発振の判定に使う */
+  activeTicks: number;
+  /** 発振とみなしている (入力を変えていないのに値が変わり続けている) */
   unstable: boolean;
 }
+
+/** これだけの tick、値が変わらなければ落ち着いたとみなす。いちばん長い遅延 (XOR の 3) より長くとる */
+export const SETTLED_TICKS = 4;
+
+/** 落ち着かないまま、これだけの tick が過ぎたら発振とみなす */
+const OSCILLATION_TICKS = 50;
 
 /** フリップフロップ以外の部品の出力 (pin 0)。CUSTOM は展開済みの前提なので来ない */
 function evalGate(c: Component, ins: boolean[]): boolean {
@@ -86,85 +102,116 @@ function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFl
 }
 
 /**
- * 全部品を繰り返し評価し、値が変化しなくなるまで伝播させる。
- * フィードバックループやフリップフロップの状態を保つため、前回の結果を受け取れる。
+ * 時間を 1 tick 進める。
  *
  * 流れ:
- * 1. 各出力ピンの値を、前回の結果 (なければ OFF) で初期化する
- * 2. 入力ピンごとに、そこへ値を送る出力ピン (配線の接続元) を引けるようにする
- * 3. 全部品を評価する。値が1つも変わらなくなったら安定したとみなして終える。
- *    maxIter 回繰り返しても変わり続ける場合は発振とみなす
+ * 1. 遅延のある部品が、遅延の分だけ前に計算した値を出す (その間ずっと同じ値だったときだけ)
+ * 2. 遅延のない部品 (INPUT、CLOCK、HIGH、OUTPUT と、モジュールのピンの BUF) を、値が落ち着くまで伝える
+ * 3. 遅延のある部品が、落ち着いた値から次に出す値を計算して、待ち行列に入れる
+ *
+ * 2 と 3 は全部品を同じ値から見るので、部品を並べた順番で結果が変わることはない。
  */
-export function simulateCore(circuit: Circuit, prev?: SimResult, maxIter = 100): SimResult {
-  // 1. 初期値。
-  //    前回の値から始めるのは、ラッチのように出力が自分の入力に戻る回路で、保持している値を失わないため。
-  //    OFF から始め直すと、保持していた値が失われる (落ち着かずに発振することもある)
+export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   const values = new Map<string, boolean>();
   const flipFlops = new Map<string, FlipFlopState>();
+  const pending = new Map<string, boolean[][]>();
   for (const c of circuit.components) {
     // 出力ピンのない OUTPUT も、表示する値を置くために pin 0 を持つ
     for (let p = 0; p < Math.max(outputCount(c.kind), 1); p++) {
       const k = pinKey(c.id, p);
       values.set(k, prev?.values.get(k) ?? false);
     }
-    if (isFlipFlop(c.kind)) {
-      // 内部状態 (Q と前回の CLK) を引き継ぎ、出力 Q / Q̄ をそれに合わせる
-      const s = prev?.flipFlops.get(c.id) ?? { q: false, clk: false };
-      flipFlops.set(c.id, { ...s });
-      values.set(pinKey(c.id, 0), s.q);
-      values.set(pinKey(c.id, 1), !s.q);
-    }
+    if (isFlipFlop(c.kind)) flipFlops.set(c.id, { ...(prev?.flipFlops.get(c.id) ?? { q: false, clk: false }) });
   }
 
-  // 2. 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる配線は1本だけなので、1つに決まる
+  // 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる配線は1本だけなので、1つに決まる
   const driver = new Map<string, PinRef>();
   for (const w of circuit.wires) driver.set(pinKey(w.to.comp, w.to.pin), w.from);
 
-  // 3. 値が変わらなくなるまで、全部品の評価を繰り返す
-  for (let i = 0; i < maxIter; i++) {
-    let changed = false;
-    // 入力は、この回の評価を始める前の値 (snapshot) から読む。
-    // 評価中に書き換えた値を同じ回のうちに読むと、部品を並べた順番で結果が変わってしまうため。
-    // 全部品が同時に切り替わる扱いになり、値は1回の繰り返しで配線1本分ずつ伝わっていく
-    const snapshot = new Map(values);
-    const set = (k: string, v: boolean) => {
-      if (v !== values.get(k)) {
-        values.set(k, v);
-        changed = true;
-      }
-    };
-    for (const c of circuit.components) {
-      // 入力ピンの値を集める。何もつながっていない入力ピンは OFF
-      const ins: boolean[] = [];
-      for (let p = 0; p < inputCount(c.kind); p++) {
-        const d = driver.get(pinKey(c.id, p));
-        ins.push(d ? (snapshot.get(pinKey(d.comp, d.pin)) ?? false) : false);
-      }
-      if (isFlipFlop(c.kind)) {
-        // 状態はすぐに更新する。CLK の値も一緒に記録するので、同じ立ち上がりで2回動くことはない。
-        // ゲート遅延がないため、CLK と D などが同じ操作で同時に変わると、
-        // どちらの変化が先に届くか (経由するゲートの段数) で、取り込む値が変わることがある
-        const s = nextState(c.kind, ins, flipFlops.get(c.id)!);
-        flipFlops.set(c.id, s);
-        set(pinKey(c.id, 0), s.q);
-        set(pinKey(c.id, 1), !s.q);
-      } else {
-        set(pinKey(c.id, 0), evalGate(c, ins));
-      }
+  /** 入力ピンの値。何もつながっていない入力ピンは OFF */
+  function inputsOf(c: Component, from: Map<string, boolean>): boolean[] {
+    const ins: boolean[] = [];
+    for (let p = 0; p < inputCount(c.kind); p++) {
+      const d = driver.get(pinKey(c.id, p));
+      ins.push(d ? (from.get(pinKey(d.comp, d.pin)) ?? false) : false);
     }
-    if (!changed) return { values, flipFlops, unstable: false };
+    return ins;
   }
-  // 規定回数を超えても値が変わり続けた。途中の値のまま返す
-  return { values, flipFlops, unstable: true };
+
+  let changed = false;
+  const emit = (id: string, out: boolean[]) => {
+    out.forEach((v, pin) => {
+      const k = pinKey(id, pin);
+      if (values.get(k) !== v) changed = true;
+      values.set(k, v);
+    });
+  };
+
+  const delayed = circuit.components.filter((c) => delayOf(c.kind) > 0);
+  const immediate = circuit.components.filter((c) => delayOf(c.kind) === 0);
+
+  // 1. 待たせていた値を出す。前回の結果がなければ、落ち着いた状態から始める。
+  //    出すのは、遅延の間ずっと同じ値だったときだけ。
+  //    遅延より短い入力の変化は、実物のゲートと同じく出力に現れない
+  for (const c of delayed) {
+    const queue = prev?.pending.get(c.id);
+    if (queue && queue.every((out) => out.every((v, pin) => v === queue[0][pin]))) emit(c.id, queue[0]);
+  }
+
+  // 2. 遅延のない部品は、この tick のうちに伝える。BUF がつながっていても遅れないようにするため、
+  //    値が変わらなくなるまで繰り返す (遅延のない部品だけの輪は作れないので、必ず止まる)
+  for (let i = 0; i < immediate.length + 1; i++) {
+    const now = new Map(values);
+    let moved = false;
+    for (const c of immediate) {
+      const v = evalGate(c, inputsOf(c, now));
+      if (now.get(pinKey(c.id, 0)) !== v) moved = true;
+      emit(c.id, [v]);
+    }
+    if (!moved) break;
+  }
+
+  // 3. 遅延のある部品が、次に出す値を計算する
+  const now = new Map(values);
+  for (const c of delayed) {
+    const ins = inputsOf(c, now);
+    let next: boolean[];
+    if (isFlipFlop(c.kind)) {
+      // 状態はこの tick で更新する。CLK の値も一緒に記録するので、同じ立ち上がりで2回動くことはない
+      const state = nextState(c.kind, ins, flipFlops.get(c.id)!);
+      flipFlops.set(c.id, state);
+      next = [state.q, !state.q];
+    } else {
+      next = [evalGate(c, ins)];
+    }
+    const queue = prev?.pending.get(c.id);
+    if (queue) {
+      pending.set(c.id, [...queue.slice(1), next]);
+    } else {
+      // 前回の結果がないときは、待ち行列を今の値で埋めて落ち着いた状態から始める
+      pending.set(
+        c.id,
+        Array.from({ length: delayOf(c.kind) }, () => next),
+      );
+      emit(c.id, next);
+    }
+  }
+
+  // 落ち着いた (何 tick か続けて値が変わらない) 状態から、どれだけ離れているかを数える。
+  // 振動しているときは値が変わる tick と変わらない tick が交互に来ることもあるので、
+  // 「変わり続けた回数」ではなく「落ち着いていない間の長さ」で見る
+  const stableTicks = changed ? 0 : (prev?.stableTicks ?? 0) + 1;
+  const activeTicks = stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
+  return { values, flipFlops, pending, stableTicks, activeTicks, unstable: activeTicks > OSCILLATION_TICKS };
 }
 
 /**
- * 回路定義 id を最上位としてシミュレーションする (モジュールを展開してから評価する入口)。
+ * プロジェクトの時間を 1 tick 進める (モジュールを展開してから評価する入口)。
  * 最上位に置かれたモジュールの出力ピンの値も values に含める。
  */
-export function simulate(project: Project, id: string, prev?: SimResult): SimResult {
+export function step(project: Project, id: string, prev?: SimResult): SimResult {
   const { circuit, modules } = flattenProject(project, id);
-  const result = simulateCore(circuit, prev);
+  const result = stepCircuit(circuit, prev);
   for (const [compId, mod] of modules) {
     mod.outputs.forEach((id, pin) => result.values.set(pinKey(compId, pin), result.values.get(pinKey(id, 0)) ?? false));
   }

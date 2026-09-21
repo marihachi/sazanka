@@ -5,7 +5,7 @@
 - `engine/` … 回路のデータと計算処理。React や DOM に依存させない。
   - `circuit.ts` … 回路1つ分のデータと、部品の種類ごとの仕様
   - `project.ts` … プロジェクトの構造、モジュールのピン、データの検証
-  - `sim.ts` … 回路の評価
+  - `sim.ts` … 回路の評価（1 tick ずつ進める）
   - `flatten.ts` … モジュールの展開
   - `edit.ts` … 回路の編集
   - `layout.ts` … 部品の大きさとピンの座標
@@ -17,7 +17,7 @@
   - `App.tsx` … 画面の組み立てと編集操作
   - `storage.ts` … localStorage への保存
   - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
-  - `useClock.ts` … クロックの進行。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
+  - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1段送り。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
 - `style.css` … 色の変数とページ全体のスタイル。どのコンポーネントからも使うものだけを置く。
 - `assets/` … SVG。
 

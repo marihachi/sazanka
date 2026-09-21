@@ -1,5 +1,5 @@
 import type { Component } from '../engine/circuit';
-import { CLOCK_HALF_PERIOD } from './useClock';
+import { CLOCK_PERIOD_SECONDS } from './useSimulation';
 
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
@@ -12,6 +12,8 @@ const IDLE_HINTS = [
   'Ctrl+Z で元に戻す、Ctrl+Shift+Z (Ctrl+Y) でやり直し。INPUT の ON/OFF は元に戻す対象外',
   'フリップフロップ (D / T / JK) は、CLK (>) が OFF から ON になった瞬間だけ動く',
   'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
+  '部品には遅延がある。信号は1段ずつ、時間をかけて伝わる',
+  '「一時停止」してから「1 段進める」「1 段戻す」で、信号が伝わる様子を1段ずつ行き来できる',
   '「モジュールを追加」で回路を部品としてまとめられる',
   '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
   'モジュールの中の INPUT / OUTPUT がピンになる。ダブルクリックでラベルを付けるとピン名になる',
@@ -59,7 +61,7 @@ export function statusHints(ctx: HintContext): string[] {
       case 'HIGH':
         return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':
-        return [`${(CLOCK_HALF_PERIOD * 2) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
+        return [`${CLOCK_PERIOD_SECONDS} 秒周期で ON/OFF を繰り返す`, ...move];
       case 'RS':
         return [
           'S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)',

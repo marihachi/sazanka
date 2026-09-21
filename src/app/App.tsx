@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
 import {
   Dialog,
@@ -27,10 +27,10 @@ import {
   type Project,
 } from '../engine/project';
 import { parseProject, serializeProject } from '../engine/share';
-import { type SimResult, simulate } from '../engine/sim';
+
 import { statusHints } from './hints';
 import { loadCollapsedGroups, loadProject, saveCollapsedGroups, saveProject } from './storage';
-import { useClock } from './useClock';
+import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
 
@@ -57,9 +57,6 @@ export function App() {
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
-  /** 回路ごとの前回のシミュレーション結果 */
-  const prevResults = useRef(new Map<string, SimResult>());
-
   const circuit = findDef(project, currentId) ?? project.circuits[0];
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
@@ -70,12 +67,11 @@ export function App() {
     }));
   }
 
-  const sim = useMemo(() => simulate(project, circuit.id, prevResults.current.get(circuit.id)), [project, circuit.id]);
-  useEffect(() => {
-    prevResults.current.set(circuit.id, sim);
-  }, [sim, circuit.id]);
-
-  useClock(project, history.replace);
+  const { sim, running, toggleRunning, stepOnce, stepBack, canStepBack, forget } = useSimulation(
+    project,
+    circuit.id,
+    history.replace,
+  );
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
 
@@ -173,7 +169,7 @@ export function App() {
       danger: true,
       onConfirm: () => {
         setProject((p) => ({ circuits: p.circuits.filter((d) => d.id !== id) }));
-        prevResults.current.delete(id);
+        forget(id);
         openCircuit(MAIN_ID);
       },
     });
@@ -245,7 +241,7 @@ export function App() {
   /** プロジェクト全体を置き換える (新規作成、読み込み)。元に戻すで戻せる */
   function replaceProject(next: Project) {
     setProject(() => next);
-    prevResults.current.clear();
+    forget();
     openCircuit(MAIN_ID);
     setEditing(null);
   }
@@ -338,6 +334,11 @@ export function App() {
         onNew={newProject}
         onExport={exportProject}
         onImport={importProject}
+        running={running}
+        onToggleRunning={toggleRunning}
+        onStep={stepOnce}
+        onStepBack={stepBack}
+        canStepBack={canStepBack}
       />
       <div className="workspace">
         <Palette

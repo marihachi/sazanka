@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest';
 import type { Circuit, Component, Wire, FlipFlopKind, GateKind } from './circuit';
 import { dependsOn, MAIN_ID, portsOf, type CircuitDef, type Project } from './project';
-import { simulateCore, simulate, type SimResult } from './sim';
+import { stepCircuit, step, type SimResult } from './sim';
+
+/**
+ * 値が落ち着くまで (または最大 ticks まで) 時間を進める。
+ * 遅延の待ち行列に値が残っていることがあるので、いちばん長い遅延 (XOR の 3) より長く変化がないことを見る
+ */
+function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
+  let r = prev;
+  for (let i = 0; i < ticks; i++) {
+    r = stepCircuit(circuit, r);
+    if (r.stableTicks > 3) break;
+  }
+  return r!;
+}
+
+/** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
+function settleProject(project: Project, id: string, prev?: SimResult, ticks = 30): SimResult {
+  let r = prev;
+  for (let i = 0; i < ticks; i++) {
+    r = step(project, id, r);
+    if (r.stableTicks > 3) break;
+  }
+  return r!;
+}
 
 function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
   const comps: Component[] = [
@@ -18,7 +41,7 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
       { id: 'w3', from: { comp: 'g', pin: 0 }, to: { comp: 'o', pin: 0 } },
     ],
   };
-  return simulateCore(circuit).values.get('o:0')!;
+  return settle(circuit).values.get('o:0')!;
 }
 
 describe('simulate', () => {
@@ -43,7 +66,7 @@ describe('simulate', () => {
 
   /** 入力スイッチ a の値を部品 g の pin 0 に入れたときの g の出力 */
   function oneInput(kind: 'NOT' | 'BUF', a: boolean): boolean {
-    const r = simulateCore({
+    const r = settle({
       components: [
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
         { id: 'g', kind, x: 0, y: 0 },
@@ -59,7 +82,7 @@ describe('simulate', () => {
   });
 
   it('何もつながっていない入力ピンは OFF として扱う', () => {
-    const r = simulateCore({
+    const r = settle({
       components: [
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
         { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
@@ -72,7 +95,7 @@ describe('simulate', () => {
   });
 
   it('HIGH は何もつながなくても常に ON を出す', () => {
-    const r = simulateCore({
+    const r = settle({
       components: [
         { id: 'h', kind: 'HIGH', x: 0, y: 0 },
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
@@ -84,15 +107,20 @@ describe('simulate', () => {
   });
 
   it('CLOCK は on の値をそのまま出す', () => {
-    const r = simulateCore({ components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }], wires: [] });
+    const r = settle({ components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }], wires: [] });
     expect(r.values.get('k:0')).toBe(true);
   });
 
   it('NOT の発振ループを検出する', () => {
-    const r = simulateCore({
-      components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
-      wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
-    });
+    // 遅延があるので毎 tick 反転し続ける。しばらく続いたところで発振とみなす
+    const r = settle(
+      {
+        components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
+        wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+      },
+      undefined,
+      80,
+    );
     expect(r.unstable).toBe(true);
     // 落ち着かなくても、その時点の値は返す
     expect(r.values.get('n:0')).toBeTypeOf('boolean');
@@ -113,13 +141,13 @@ describe('simulate', () => {
         { id: '4', from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
       ],
     });
-    let r = simulateCore(build(true, false));
+    let r = settle(build(true, false));
     expect(r.values.get('q:0')).toBe(true);
-    r = simulateCore(build(false, false), r);
+    r = settle(build(false, false), r);
     expect(r.values.get('q:0')).toBe(true);
-    r = simulateCore(build(false, true), r);
+    r = settle(build(false, true), r);
     expect(r.values.get('q:0')).toBe(false);
-    r = simulateCore(build(false, false), r);
+    r = settle(build(false, false), r);
     expect(r.values.get('q:0')).toBe(false);
   });
 
@@ -139,7 +167,7 @@ describe('simulate', () => {
     function run(kind: FlipFlopKind, steps: boolean[][]): boolean[] {
       let r: SimResult | undefined;
       return steps.map((ins) => {
-        r = simulateCore(build(kind, ins), r);
+        r = settle(build(kind, ins), r);
         expect(r.values.get('f:1')).toBe(!r.values.get('f:0'));
         return r.values.get('f:0')!;
       });
@@ -196,7 +224,7 @@ describe('simulate', () => {
       expect(run('DFF', [[H, H]])).toEqual([H]);
     });
 
-    it('RS ラッチはクロックなしで入力にすぐ反応する', () => {
+    it('RS ラッチはクロックなしで、S / R の変化だけで動く', () => {
       // [S, R]
       expect(
         run('RS', [
@@ -300,7 +328,7 @@ describe('モジュール', () => {
       [true, true],
     ]) {
       const project: Project = { circuits: [mainWith('ha', 2, 2, [a, b]), halfAdder] };
-      const r = simulate(project, MAIN_ID);
+      const r = settleProject(project, MAIN_ID);
       expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([a !== b, a && b]);
       // 最上位のモジュールの出力ピンにも値が入る
       expect(r.values.get('u:1')).toBe(a && b);
@@ -311,7 +339,7 @@ describe('モジュール', () => {
     for (let n = 0; n < 8; n++) {
       const ins = [!!(n & 1), !!(n & 2), !!(n & 4)];
       const project: Project = { circuits: [mainWith('fa', 3, 2, ins), halfAdder, fullAdder] };
-      const r = simulate(project, MAIN_ID);
+      const r = settleProject(project, MAIN_ID);
       const sum = ins.filter(Boolean).length;
       expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([sum % 2 === 1, sum >= 2]);
     }
@@ -326,7 +354,7 @@ describe('モジュール', () => {
     };
     let r: SimResult | undefined;
     const step = (d: boolean, clk: boolean) => {
-      r = simulate({ circuits: [mainWith('reg', 2, 1, [d, clk]), reg] }, MAIN_ID, r);
+      r = settleProject({ circuits: [mainWith('reg', 2, 1, [d, clk]), reg] }, MAIN_ID, r);
       return r.values.get('o0:0');
     };
     expect(step(true, false)).toBe(false);
@@ -341,7 +369,7 @@ describe('モジュール', () => {
     main.components.push(comp('o2', 'OUTPUT', 40));
     main.wires.push(wire('u', 2, 'o2', 0));
     const project: Project = { circuits: [main, halfAdder] };
-    const r = simulate(project, MAIN_ID);
+    const r = settleProject(project, MAIN_ID);
     expect(r.values.get('o1:0')).toBe(true);
     expect(r.values.get('o2:0')).toBe(false);
   });
@@ -353,6 +381,6 @@ describe('モジュール', () => {
     expect(dependsOn(project, 'a', 'b')).toBe(true);
     expect(dependsOn(project, 'b', 'a')).toBe(true);
     expect(dependsOn(project, 'a', MAIN_ID)).toBe(false);
-    expect(() => simulate(project, MAIN_ID)).not.toThrow();
+    expect(() => settleProject(project, MAIN_ID)).not.toThrow();
   });
 });
