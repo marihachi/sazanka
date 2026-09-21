@@ -4,6 +4,7 @@ import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
 import { classNames } from './classNames';
 import styles from './Dialogs.module.css';
+import { DEFAULT_PREFERENCES, isTickMs, MAX_TICK_MS, MIN_TICK_MS, type Preferences } from './preferences';
 
 // ブラウザの prompt / confirm / alert は VS Code 内のブラウザなどで動かないため、画面内の UI で代替する
 
@@ -306,6 +307,81 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
             </details>
           ))}
         </details>
+        <div className={styles.dialogButtons}>
+          <button ref={closeRef} className={styles.primary} onClick={onClose}>
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 環境設定のウィンドウ。利用者ごとの設定で、プロジェクトには含めない。変えた値はすぐに反映する (保存は呼び出し側) */
+export function PreferencesDialog({
+  preferences,
+  clockPeriodTicks,
+  onChange,
+  onClose,
+}: {
+  preferences: Preferences;
+  /** CLOCK が ON/OFF を一往復する tick 数。周期の表示に使う */
+  clockPeriodTicks: number;
+  onChange: (preferences: Preferences) => void;
+  onClose: () => void;
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => closeRef.current?.focus(), []);
+  // 入力の途中 (空欄や範囲外) は反映せず、使える値になったときだけ反映する
+  const [tickText, setTickText] = useState(String(preferences.tickMs));
+  const tickValid = isTickMs(Number(tickText)) && tickText.trim() !== '';
+  const clockSeconds = (clockPeriodTicks * preferences.tickMs) / 1000;
+
+  return (
+    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
+      <div
+        className={styles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-title"
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
+      >
+        <h2 id="preferences-title">環境設定</h2>
+        <label className={styles.field}>
+          <span>シミュレーションで 1 段を進める間隔 (ms)</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={MIN_TICK_MS}
+            max={MAX_TICK_MS}
+            step={1}
+            value={tickText}
+            aria-invalid={!tickValid}
+            onChange={(e) => {
+              setTickText(e.target.value);
+              const v = Number(e.target.value);
+              if (e.target.value.trim() !== '' && isTickMs(v)) onChange({ ...preferences, tickMs: v });
+            }}
+            // 使えない値のまま離れたら、今の値に戻す
+            onBlur={() => setTickText(String(preferences.tickMs))}
+          />
+        </label>
+        <p className={classNames(styles.help, !tickValid && styles.invalid)}>
+          {tickValid
+            ? `大きくするとゆっくり進み、信号が1段ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。今の CLOCK の周期は ${clockSeconds} 秒です。`
+            : `${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
+        </p>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={preferences.showGrid}
+            onChange={(e) => onChange({ ...preferences, showGrid: e.target.checked })}
+          />
+          シートに方眼を表示する
+        </label>
         <div className={styles.dialogButtons}>
           <button ref={closeRef} className={styles.primary} onClick={onClose}>
             閉じる

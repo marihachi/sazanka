@@ -1,5 +1,5 @@
 import type { Component } from '../engine/component';
-import { CLOCK_PERIOD_SECONDS } from './useSimulation';
+import { CLOCK_HALF_TICKS } from './useSimulation';
 
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
@@ -50,6 +50,8 @@ export interface HintContext {
   unstable: boolean;
   /** モジュールのタブを開いている */
   inModule: boolean;
+  /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期の表示に使う */
+  tickMs: number;
 }
 
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する */
@@ -81,7 +83,7 @@ export function statusHints(ctx: HintContext): string[] {
       case 'HIGH':
         return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':
-        return [`${CLOCK_PERIOD_SECONDS} 秒周期で ON/OFF を繰り返す`, ...move];
+        return [`${Math.round(CLOCK_HALF_TICKS * 2 * ctx.tickMs) / 1000} 秒周期で ON/OFF を繰り返す`, ...move];
       case 'RS':
         return [
           'S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)',

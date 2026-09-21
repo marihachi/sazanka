@@ -1,6 +1,7 @@
 import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
 import infoIcon from '../assets/icons/info.svg';
+import preferencesIcon from '../assets/icons/preferences.svg';
 import logo from '../assets/logo.svg';
 import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
@@ -17,6 +18,7 @@ interface HeaderProps {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onPreferences: () => void;
   onAbout: () => void;
 }
 
@@ -24,7 +26,17 @@ interface HeaderProps {
  * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、書き出し、読み込み、元に戻す、やり直し)。
  * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーにある
  */
-export function Header({ onNew, onExport, onImport, canUndo, canRedo, onUndo, onRedo, onAbout }: HeaderProps) {
+export function Header({
+  onNew,
+  onExport,
+  onImport,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onPreferences,
+  onAbout,
+}: HeaderProps) {
   return (
     <header className={styles.header}>
       <h1>
@@ -55,9 +67,14 @@ export function Header({ onNew, onExport, onImport, canUndo, canRedo, onUndo, on
           disabled={!canRedo}
         />
       </nav>
-      <button className={styles.about} onClick={onAbout} title="このアプリについて" aria-label="このアプリについて">
-        <MaskIcon src={infoIcon} className={styles.aboutIcon} />
-      </button>
+      <div className={styles.end}>
+        <button className={styles.about} onClick={onPreferences} title="環境設定" aria-label="環境設定">
+          <MaskIcon src={preferencesIcon} className={styles.aboutIcon} />
+        </button>
+        <button className={styles.about} onClick={onAbout} title="このアプリについて" aria-label="このアプリについて">
+          <MaskIcon src={infoIcon} className={styles.aboutIcon} />
+        </button>
+      </div>
     </header>
   );
 }

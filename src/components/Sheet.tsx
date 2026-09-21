@@ -135,6 +135,8 @@ interface SheetProps {
   /** 表示位置と倍率 (スクロールと拡大縮小) */
   view: View;
   onViewChange: (view: View) => void;
+  /** 方眼を表示するか (環境設定) */
+  showGrid: boolean;
   /** パレットから部品がドロップされた */
   onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
@@ -175,6 +177,7 @@ export function Sheet({
   onResize,
   view,
   onViewChange,
+  showGrid,
   onAdd,
   onMoveStart,
   onMove,
@@ -620,7 +623,7 @@ export function Sheet({
             <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" strokeWidth={1 / view.scale} />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
         {/* シートの外 (部品を置けない範囲)。画面全体から、シートの範囲をくり抜いて塗る */}
         <path
           className={styles.outside}

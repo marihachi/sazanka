@@ -1,4 +1,5 @@
 import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
+import { DEFAULT_PREFERENCES, isTickMs, type Preferences } from '../components/preferences';
 import { isView, type View } from '../components/view';
 import { isObject } from '../engine/util';
 
@@ -100,6 +101,30 @@ export function loadViews(): Record<string, View> {
 export function saveViews(views: Record<string, View>) {
   try {
     localStorage.setItem(VIEWS_KEY, JSON.stringify(views));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const PREFERENCES_KEY = 'sazanka.preferences';
+
+/** 利用者ごとの環境設定。読めない項目は既定値にする */
+export function loadPreferences(): Preferences {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}');
+    if (!isObject(value)) return DEFAULT_PREFERENCES;
+    return {
+      tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
+      showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
+    };
+  } catch {
+    return DEFAULT_PREFERENCES;
+  }
+}
+
+export function savePreferences(preferences: Preferences) {
+  try {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
   } catch {
     // 保存できない環境では無視
   }

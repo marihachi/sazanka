@@ -2,17 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { Project } from '../engine/project';
 import { SETTLED_TICKS, step, type SimResult } from '../engine/sim';
 
-/** 時間を 1 tick 進める間隔 (ms)。画面の更新間隔とは別で、これより短くしてよい */
-export const TICK_MS = 10;
 /** CLOCK が反転する周期 (tick)。半周期ぶん */
 export const CLOCK_HALF_TICKS = 50;
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
 /** 「1 段戻す」ために覚えておく tick 数 */
 const HISTORY_TICKS = 300;
-
-/** CLOCK が ON/OFF を一往復する時間 (秒)。ヒントの文言に使う */
-export const CLOCK_PERIOD_SECONDS = (CLOCK_HALF_TICKS * 2 * TICK_MS) / 1000;
 
 /** すべての CLOCK を反転させる */
 function toggleClocks(project: Project): Project {
@@ -37,6 +32,8 @@ export function useSimulation(
   project: Project,
   circuitId: string,
   setProject: React.Dispatch<React.SetStateAction<Project>>,
+  /** 時間を 1 tick 進める間隔 (ms、環境設定)。画面の更新間隔とは別で、それより短くてよい */
+  tickMs: number,
 ) {
   const current = useRef<SimResult>(step(project, circuitId));
   const [sim, setSim] = useState<SimResult>(current.current);
@@ -53,6 +50,8 @@ export function useSimulation(
   // タイマーからは、常に最新のプロジェクトと開いている回路を見る
   const latest = useRef({ project, circuitId });
   latest.current = { project, circuitId };
+  const tickMsRef = useRef(tickMs);
+  tickMsRef.current = tickMs;
 
   /** 計算だけを 1 tick 進める (画面には渡さない)。値が変わったかを返す */
   function advance(): boolean {
@@ -93,8 +92,10 @@ export function useSimulation(
     const onFrame = (now: number) => {
       carry += now - last;
       last = now;
-      const count = Math.min(Math.floor(carry / TICK_MS), MAX_TICKS_PER_FRAME);
-      carry -= count * TICK_MS;
+      // 間隔を変えても、ループを作り直さずに次のフレームから効かせる
+      const interval = tickMsRef.current;
+      const count = Math.min(Math.floor(carry / interval), MAX_TICKS_PER_FRAME);
+      carry -= count * interval;
       let changed = false;
       for (let i = 0; i < count; i++) changed = advance() || changed;
       stepped ||= count > 0;

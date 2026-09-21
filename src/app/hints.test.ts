@@ -11,6 +11,7 @@ const base: HintContext = {
   multipleSelected: false,
   unstable: false,
   inModule: false,
+  tickMs: 10,
 };
 
 function hints(ctx: Partial<HintContext>): string[] {

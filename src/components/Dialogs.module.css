@@ -85,6 +85,38 @@
   outline: none;
 }
 
+.dialog .field select {
+  padding: 6px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+}
+
+/* 入力欄の下の補足の説明 */
+.dialog .help {
+  margin: 6px 0 16px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* 入力が使えない値のときの説明 */
+.dialog .help.invalid {
+  color: #ef5350;
+  opacity: 1;
+}
+
+/* チェックボックスと、その説明の文 */
+.dialog .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
 .dialog .field input:focus {
   border-color: var(--accent);
 }

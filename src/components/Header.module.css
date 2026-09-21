@@ -29,11 +29,17 @@
   overflow-x: auto;
 }
 
-/* このアプリについて */
+/* 右端の、設定とこのアプリについて */
+.end {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  margin-left: auto;
+}
+
 .about {
   display: flex;
   align-items: center;
-  margin-left: auto;
   padding: 4px;
   background: transparent;
   color: var(--text);

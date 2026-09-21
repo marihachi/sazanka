@@ -4,6 +4,7 @@ import {
   AboutDialog,
   Dialog,
   PromptDialog,
+  PreferencesDialog,
   TextDialog,
   type DialogRequest,
   type PromptRequest,
@@ -24,8 +25,17 @@ import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
 
 import { statusHints } from './hints';
-import { loadCollapsedGroups, loadProject, loadViews, saveCollapsedGroups, saveProject, saveViews } from './storage';
-import { useSimulation } from './useSimulation';
+import {
+  loadCollapsedGroups,
+  loadProject,
+  loadPreferences,
+  loadViews,
+  saveCollapsedGroups,
+  saveProject,
+  savePreferences,
+  saveViews,
+} from './storage';
+import { CLOCK_HALF_TICKS, useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
 
@@ -58,6 +68,8 @@ export function App() {
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [preferences, setPreferences] = useState(loadPreferences);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
@@ -75,10 +87,12 @@ export function App() {
     project,
     circuit.id,
     history.replace,
+    preferences.tickMs,
   );
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
+  useEffect(() => savePreferences(preferences), [preferences]);
   // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
   // 固定しないと、部品を置くたびに「回路全体が見える表示」が計算し直され、画面が勝手に動いてしまう
   const viewSaved = circuit.id in views;
@@ -228,7 +242,7 @@ export function App() {
   }
 
   useShortcuts({
-    enabled: !dialog && !promptDialog && !textDialog && !aboutOpen,
+    enabled: !dialog && !promptDialog && !textDialog && !aboutOpen && !preferencesOpen,
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
@@ -373,6 +387,7 @@ export function App() {
     multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
     unstable: sim.unstable,
     inModule: circuit.id !== MAIN_ID,
+    tickMs: preferences.tickMs,
   });
 
   return (
@@ -385,6 +400,7 @@ export function App() {
         canRedo={history.canRedo}
         onUndo={undoEdit}
         onRedo={redoEdit}
+        onPreferences={() => setPreferencesOpen(true)}
         onAbout={() => setAboutOpen(true)}
       />
       <TabBar
@@ -430,6 +446,7 @@ export function App() {
           trashRef={trashRef}
           onResize={setSheetSize}
           view={view}
+          showGrid={preferences.showGrid}
           onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
           onAdd={addComponent}
           onMoveStart={history.checkpoint}
@@ -453,6 +470,14 @@ export function App() {
       {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
       {textDialog && <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
+      {preferencesOpen && (
+        <PreferencesDialog
+          preferences={preferences}
+          clockPeriodTicks={CLOCK_HALF_TICKS * 2}
+          onChange={setPreferences}
+          onClose={() => setPreferencesOpen(false)}
+        />
+      )}
     </div>
   );
 }
