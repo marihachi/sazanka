@@ -9,6 +9,9 @@
   width: 100%;
   height: 100%;
   user-select: none;
+  /* 指でのドラッグをブラウザのスクロールやズームに取られないようにする。
+     指定しないと、動かし始めてすぐに pointercancel が来てドラッグが止まる */
+  touch-action: none;
 }
 
 .wire {
