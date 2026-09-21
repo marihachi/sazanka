@@ -109,19 +109,19 @@ export function App() {
     if (custom) c.custom = custom;
     Object.assign(c, clampPosition(c, portsOf(c, project), c, sheetSize.width, sheetSize.height));
     setCircuit((cur) => edit.addComponent(cur, c));
-    setSelection({ type: 'comp', id: c.id });
+    setSelection({ type: 'comp', ids: [c.id] });
   }
 
-  /** 部品と、それにつながる配線を削除する */
-  function deleteComponent(id: string, record = true) {
-    setCircuit((cur) => edit.removeComponent(cur, id), record);
+  /** 部品と、それらにつながる配線を削除する */
+  function deleteComponents(ids: string[], record = true) {
+    setCircuit((cur) => edit.removeComponents(cur, ids), record);
     setSelection(null);
   }
 
   function deleteSelection() {
     if (!selection) return;
     if (selection.type === 'comp') {
-      deleteComponent(selection.id);
+      deleteComponents(selection.ids);
       return;
     }
     const id = selection.id;
@@ -187,6 +187,11 @@ export function App() {
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
+    onSelectAll: () => {
+      setPending(null);
+      const ids = circuit.components.map((c) => c.id);
+      setSelection(ids.length > 0 ? { type: 'comp', ids } : null);
+    },
     onEscape: () => {
       setPending(null);
       setSelection(null);
@@ -221,9 +226,9 @@ export function App() {
     }
   }
 
-  function moveComponent(id: string, position: Point) {
+  function moveComponents(positions: Map<string, Point>) {
     // ドラッグ中の移動は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-    setCircuit((cur) => edit.moveComponent(cur, id, position), false);
+    setCircuit((cur) => edit.moveComponents(cur, positions), false);
   }
 
   function toggleInput(id: string) {
@@ -309,7 +314,11 @@ export function App() {
     wiring: !!pending,
     editing: !!editing,
     wireSelected: selection?.type === 'wire',
-    selectedComponent: selection?.type === 'comp' ? circuit.components.find((c) => c.id === selection.id) : undefined,
+    selectedComponent:
+      selection?.type === 'comp' && selection.ids.length === 1
+        ? circuit.components.find((c) => c.id === selection.ids[0])
+        : undefined,
+    multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
     unstable: sim.unstable,
     inModule: circuit.id !== MAIN_ID,
   });
@@ -366,9 +375,9 @@ export function App() {
           onResize={setSheetSize}
           onAdd={addComponent}
           onMoveStart={history.checkpoint}
-          onMove={moveComponent}
+          onMove={moveComponents}
           // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
-          onDropOnTrash={(id, moved) => deleteComponent(id, !moved)}
+          onDropOnTrash={(ids, moved) => deleteComponents(ids, !moved)}
           onToggle={toggleInput}
           onConnect={connect}
           onDisconnect={disconnect}

@@ -7,6 +7,7 @@ const base: HintContext = {
   wiring: false,
   editing: false,
   wireSelected: false,
+  multipleSelected: false,
   unstable: false,
   inModule: false,
 };

@@ -90,3 +90,16 @@ export function clampPosition(c: Component, ports: Ports, p: Point, width: numbe
     y: Math.min(Math.max(p.y, minY), maxY),
   };
 }
+
+/**
+ * 複数の部品をまとめて delta だけ動かすとき、どれもはみ出さないように delta を縮める。
+ * 部品の今の位置は、はみ出していない前提 (縮めた delta は、先に調べた部品も収まったままになる)
+ */
+export function clampMove(items: { c: Component; ports: Ports }[], delta: Point, width: number, height: number): Point {
+  let d = delta;
+  for (const { c, ports } of items) {
+    const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y }, width, height);
+    d = { x: p.x - c.x, y: p.y - c.y };
+  }
+  return d;
+}

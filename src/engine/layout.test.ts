@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, snap } from './layout';
+import { bodySize, clampMove, clampPosition, GRID, inputPinPos, outputPinPos, snap } from './layout';
 import type { Component, ComponentKind } from './circuit';
 import { portsOf, type Project } from './project';
 
@@ -127,5 +127,22 @@ describe('snap', () => {
     expect([snap(0), snap(9), snap(11), snap(-11)]).toEqual([0, 0, 20, -20]);
     // -9 は -0 になるため、値として比べる
     expect(snap(-9) === 0).toBe(true);
+  });
+});
+
+describe('clampMove', () => {
+  const ports = { inputs: ['', ''], outputs: [''] };
+  const items = [
+    { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
+    { c: { id: 'b', kind: 'AND', x: 200, y: 20 } as Component, ports },
+  ];
+
+  it('どれもはみ出さなければそのまま', () => {
+    expect(clampMove(items, { x: 20, y: 0 }, 400, 300)).toEqual({ x: 20, y: 0 });
+  });
+
+  it('どれか1つでもはみ出すなら、全体の移動を縮める', () => {
+    // b は上に 20 までしか動けない。a は左に 80 までしか動けない
+    expect(clampMove(items, { x: -200, y: -100 }, 400, 300)).toEqual({ x: -80, y: -20 });
   });
 });

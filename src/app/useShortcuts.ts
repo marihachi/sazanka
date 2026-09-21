@@ -6,6 +6,7 @@ export interface Shortcuts {
   onUndo: () => void;
   onRedo: () => void;
   onDelete: () => void;
+  onSelectAll: () => void;
   onEscape: () => void;
 }
 
@@ -29,6 +30,11 @@ export function useShortcuts(shortcuts: Shortcuts) {
         e.preventDefault();
         if (key === 'y' || e.shiftKey) s.onRedo();
         else s.onUndo();
+        return;
+      }
+      if (mod && key === 'a') {
+        e.preventDefault();
+        s.onSelectAll();
         return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') s.onDelete();

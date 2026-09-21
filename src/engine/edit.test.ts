@@ -4,7 +4,9 @@ import {
   connect,
   disconnect,
   moveComponent,
+  moveComponents,
   removeComponent,
+  removeComponents,
   removeWire,
   setLabel,
   toggleSwitch,
@@ -86,5 +88,29 @@ describe('edit', () => {
     expect(removeComponent(base, 'ない').components).toEqual(base.components);
     expect(moveComponent(base, 'ない', { x: 9, y: 9 }).components).toEqual(base.components);
     expect(toggleSwitch(base, 'ない').components).toEqual(base.components);
+  });
+});
+
+describe('複数の部品の編集', () => {
+  it('まとめて削除すると、それらにつながる配線も消える', () => {
+    const c = removeComponents(base, ['a', 'g']);
+    expect(c.components.map((x) => x.id)).toEqual(['b', 'o']);
+    expect(c.wires).toEqual([]);
+  });
+
+  it('まとめて動かす。指定しない部品はそのまま', () => {
+    const c = moveComponents(
+      base,
+      new Map([
+        ['a', { x: 20, y: 20 }],
+        ['o', { x: 200, y: 40 }],
+      ]),
+    );
+    expect(c.components.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
+      { id: 'a', x: 20, y: 20 },
+      { id: 'b', x: 0, y: 40 },
+      { id: 'g', x: 80, y: 0 },
+      { id: 'o', x: 200, y: 40 },
+    ]);
   });
 });

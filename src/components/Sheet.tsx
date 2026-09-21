@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { bodySize, clampPosition, GRID, inputPinPos, outputPinPos, Point, snap } from '../engine/layout';
+import { bodySize, clampMove, GRID, inputPinPos, outputPinPos, Point, snap } from '../engine/layout';
 import type { Component, PinRef, ComponentKind } from '../engine/circuit';
 import { portsOf, findDef, type CircuitDef, type Project } from '../engine/project';
 import { pinKey, type SimResult } from '../engine/sim';
@@ -9,7 +9,8 @@ import { InlineInput } from './Dialogs';
 import { DRAG_MIME, type PaletteDrag } from './parts';
 import styles from './Sheet.module.css';
 
-export type Selection = { type: 'comp' | 'wire'; id: string } | null;
+/** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
+export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
 export type DragMode = 'none' | 'moving' | 'trash';
 
@@ -19,14 +20,26 @@ export interface SheetSize {
 }
 
 interface Drag {
+  /** 押した部品 */
   id: string;
+  /** 押した位置と、押した部品の位置の差 */
   offset: Point;
+  /** 一緒に動かす部品 (押した部品を含む) と、ドラッグ開始時の位置 */
+  origins: Map<string, Point>;
   moved: boolean;
   /** このドラッグで onMoveStart を呼んだか */
   started: boolean;
   pointerId: number;
   /** 押した位置 (クライアント座標) */
   start: Point;
+}
+
+/** 範囲選択 */
+interface Band {
+  start: Point;
+  end: Point;
+  /** Shift を押して始めたときの、元の選択 (範囲内の部品を追加する) */
+  base: string[];
 }
 
 /** 押した位置からこれ以上動いたらドラッグとみなす (px) */
@@ -57,9 +70,9 @@ interface SheetProps {
   onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
   onMoveStart: () => void;
-  onMove: (id: string, position: Point) => void;
+  onMove: (positions: Map<string, Point>) => void;
   /** 削除エリアで離された。moved はそれまでに位置を動かしたか */
-  onDropOnTrash: (id: string, moved: boolean) => void;
+  onDropOnTrash: (ids: string[], moved: boolean) => void;
   /** INPUT が (ドラッグせずに) クリックされた */
   onToggle: (id: string) => void;
   onConnect: (from: PinRef, to: PinRef) => void;
@@ -97,10 +110,12 @@ export function Sheet({
 }: SheetProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<Drag | null>(null);
+  const [band, setBand] = useState<Band | null>(null);
   const [mouse, setMouse] = useState<Point>({ x: 0, y: 0 });
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
   /** 入力ピン (pinKey) → つながっている配線 */
   const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
+  const selectedIds = useMemo(() => new Set(selection?.type === 'comp' ? selection.ids : []), [selection]);
 
   // 部品を追加するときにはみ出さない位置へ置けるよう、大きさを知らせる
   useEffect(() => {
@@ -120,21 +135,65 @@ export function Sheet({
 
   function onCompPointerDown(e: React.PointerEvent, c: Component) {
     e.stopPropagation();
+    if (e.shiftKey) {
+      // Shift+クリックは選択に追加・解除するだけで、ドラッグは始めない
+      const ids = selectedIds.has(c.id) ? [...selectedIds].filter((id) => id !== c.id) : [...selectedIds, c.id];
+      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+      return;
+    }
+    // 選択中の部品を押したら、選択中の部品をまとめて動かす
+    const ids = selectedIds.has(c.id) ? [...selectedIds] : [c.id];
     const p = toLocal(e);
     dragRef.current = {
       id: c.id,
       offset: { x: p.x - c.x, y: p.y - c.y },
+      origins: new Map(
+        ids.flatMap((id) => {
+          const o = compMap.get(id);
+          return o ? [[id, { x: o.x, y: o.y }] as const] : [];
+        }),
+      ),
       moved: false,
       started: false,
       pointerId: e.pointerId,
       start: { x: e.clientX, y: e.clientY },
     };
-    onSelect({ type: 'comp', id: c.id });
+    if (!selectedIds.has(c.id)) onSelect({ type: 'comp', ids });
+  }
+
+  /** 範囲に全体が収まる部品 */
+  function componentsIn(a: Point, b: Point): string[] {
+    const left = Math.min(a.x, b.x);
+    const right = Math.max(a.x, b.x);
+    const top = Math.min(a.y, b.y);
+    const bottom = Math.max(a.y, b.y);
+    return circuit.components
+      .filter((c) => {
+        const { w, h } = bodySize(c, portsOf(c, project));
+        return c.x >= left && c.y >= top && c.x + w <= right && c.y + h <= bottom;
+      })
+      .map((c) => c.id);
+  }
+
+  /** 何もないところを押したら、範囲選択を始める */
+  function onBackgroundPointerDown(e: React.PointerEvent) {
+    onPendingChange(null);
+    const base = e.shiftKey && selection?.type === 'comp' ? selection.ids : [];
+    onSelect(base.length > 0 ? { type: 'comp', ids: base } : null);
+    const p = toLocal(e);
+    svgRef.current!.setPointerCapture(e.pointerId);
+    setBand({ start: p, end: p, base });
   }
 
   function onPointerMove(e: React.PointerEvent) {
     const p = toLocal(e);
     setMouse(p);
+    if (band) {
+      setBand({ ...band, end: p });
+      const ids = [...new Set([...band.base, ...componentsIn(band.start, p)])];
+      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+      return;
+    }
     const drag = dragRef.current;
     if (!drag) return;
     const svg = svgRef.current!;
@@ -155,37 +214,48 @@ export function Sheet({
       return;
     }
     if (drag.moved) onDragModeChange('moving');
-    const c = compMap.get(drag.id);
-    if (!c) return;
+    const anchor = drag.origins.get(drag.id)!;
+    // ドラッグ開始時の位置からの移動量を、どの部品もはみ出さないように縮める
+    const items = [...drag.origins].flatMap(([id, o]) => {
+      const c = compMap.get(id);
+      return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
+    });
     const svgRect = svg.getBoundingClientRect();
-    const pos = clampPosition(
-      c,
-      portsOf(c, project),
-      { x: snap(p.x - drag.offset.x), y: snap(p.y - drag.offset.y) },
+    const d = clampMove(
+      items,
+      { x: snap(p.x - drag.offset.x) - anchor.x, y: snap(p.y - drag.offset.y) - anchor.y },
       svgRect.width,
       svgRect.height,
     );
-    if (c.x === pos.x && c.y === pos.y) return;
+    const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
+    const unchanged = [...positions].every(([id, pos]) => {
+      const c = compMap.get(id)!;
+      return c.x === pos.x && c.y === pos.y;
+    });
+    if (unchanged) return;
     drag.moved = true;
     onDragModeChange('moving');
     if (!drag.started) {
       onMoveStart();
       drag.started = true;
     }
-    onMove(drag.id, pos);
+    onMove(positions);
   }
 
   function onPointerUp() {
+    setBand(null);
     const drag = dragRef.current;
     dragRef.current = null;
     onDragModeChange('none');
     if (!drag) return;
     if (dragMode === 'trash') {
-      onDropOnTrash(drag.id, drag.started);
+      onDropOnTrash([...drag.origins.keys()], drag.started);
       return;
     }
-    // 動かさずに離したスイッチはトグル
-    if (!drag.moved && compMap.get(drag.id)?.kind === 'INPUT') onToggle(drag.id);
+    if (drag.moved) return;
+    // 動かさずに離したら、押した部品だけを選ぶ。スイッチはトグル
+    onSelect({ type: 'comp', ids: [drag.id] });
+    if (compMap.get(drag.id)?.kind === 'INPUT') onToggle(drag.id);
   }
 
   function onInputPinDown(e: React.PointerEvent, c: Component, pin: number) {
@@ -229,12 +299,10 @@ export function Sheet({
         onPointerUp={onPointerUp}
         onPointerCancel={() => {
           dragRef.current = null;
+          setBand(null);
           onDragModeChange('none');
         }}
-        onPointerDown={() => {
-          onPendingChange(null);
-          onSelect(null);
-        }}
+        onPointerDown={onBackgroundPointerDown}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
         }}
@@ -289,7 +357,7 @@ export function Sheet({
                 const w = wireTo.get(pinKey(c.id, i));
                 return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
               })}
-              selected={selection?.type === 'comp' && selection.id === c.id}
+              selected={selectedIds.has(c.id)}
               onBodyDown={(e) => onCompPointerDown(e, c)}
               onBodyDoubleClick={() => onComponentDoubleClick(c)}
               onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
@@ -300,6 +368,16 @@ export function Sheet({
             />
           );
         })}
+
+        {band && (
+          <rect
+            className={styles.band}
+            x={Math.min(band.start.x, band.end.x)}
+            y={Math.min(band.start.y, band.end.y)}
+            width={Math.abs(band.end.x - band.start.x)}
+            height={Math.abs(band.end.y - band.start.y)}
+          />
+        )}
 
         {pending && pendingFrom && (
           <path

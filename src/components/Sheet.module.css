@@ -40,6 +40,13 @@
   pointer-events: none;
 }
 
+.band {
+  fill: color-mix(in srgb, var(--accent) 12%, transparent);
+  stroke: var(--accent);
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
 .label-input {
   position: absolute;
   font-size: 13px;
