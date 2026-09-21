@@ -5,7 +5,7 @@ Webで動作する論理回路シミュレータ。
 ![image](screenshot.png)
 
 以下のページで最新版を公開しています:  
-https://marihachi.logical-flower.net/sazanka/ 
+https://marihachi.logical-flower.net/sazanka/
 
 ## License
 
