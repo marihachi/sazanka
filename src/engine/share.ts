@@ -1,7 +1,7 @@
 // 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
 
 import type { PinRef } from './circuit';
-import { type CircuitDef, type Project, checkProject } from './project';
+import { type CircuitDef, type Project, checkProject, withoutSwitchStates } from './project';
 import { isObject } from './util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
@@ -40,7 +40,7 @@ export function serializeProject(project: Project): string {
     project: {
       // 作者名は、入力されていなければ含めない
       ...(author && { author }),
-      circuits: project.circuits.map((d) =>
+      circuits: withoutSwitchStates(project).circuits.map((d) =>
         renameIds(
           d,
           (i) => `part-${i + 1}`,
@@ -71,6 +71,7 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   }
   const error = checkProject(data.project);
   if (error) return { ok: false, error: `回路データが壊れています (${error})` };
-  const project = data.project as Project;
+  // 古いデータには ON/OFF が入っていることがあるが、使わない
+  const project = withoutSwitchStates(data.project as Project);
   return { ok: true, project: { ...project, circuits: project.circuits.map((d) => renameIds(d, newId, newId)) } };
 }

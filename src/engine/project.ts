@@ -27,6 +27,17 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
   return project.circuits.find((d) => d.id === id);
 }
 
+/**
+ * INPUT / CLOCK の ON/OFF (部品の on) を外す。保存と共有には含めない (開発者の方針)。
+ * フリップフロップの状態など、動かしている間のほかの状態も保存しないので、開き直すと回路はすべて初めの状態から動く
+ */
+export function withoutSwitchStates(project: Project): Project {
+  return {
+    ...project,
+    circuits: project.circuits.map((d) => ({ ...d, components: d.components.map(({ on: _, ...c }) => c) })),
+  };
+}
+
 function isPinRef(p: unknown): p is Wire['from'] {
   return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
 }

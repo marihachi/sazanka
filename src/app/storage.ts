@@ -1,4 +1,4 @@
-import { checkProject, emptyProject, type Project } from '../engine/project';
+import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
 import { isView, type View } from '../components/view';
 import { isObject } from '../engine/util';
 
@@ -51,11 +51,12 @@ export function readStored(raw: string | null): LoadResult {
   if (checkProject(project) !== undefined) {
     return { project: emptyProject(), error: '保存データが壊れていたため読み込めませんでした。' };
   }
-  return { project: project as Project };
+  // 古いデータには ON/OFF が入っていることがあるが、使わない
+  return { project: withoutSwitchStates(project as Project) };
 }
 
 export function saveProject(project: Project) {
-  const data: StoredData = { version: STORAGE_VERSION, project };
+  const data: StoredData = { version: STORAGE_VERSION, project: withoutSwitchStates(project) };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {

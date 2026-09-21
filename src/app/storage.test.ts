@@ -13,6 +13,17 @@ describe('readStored', () => {
     expect(readStored(JSON.stringify({ version: 1, project }))).toEqual({ project });
   });
 
+  it('INPUT / CLOCK の ON/OFF は読み込まない (古いデータには入っている)', () => {
+    const withSwitch = {
+      circuits: [
+        { id: 'main', name: 'メイン', components: [{ id: 'a', kind: 'INPUT', x: 20, y: 0, on: true }], wires: [] },
+      ],
+    };
+    const result = readStored(JSON.stringify({ version: 1, project: withSwitch }));
+    expect(result.error).toBeUndefined();
+    expect(result.project.circuits[0].components[0].on).toBeUndefined();
+  });
+
   it('新しい版のデータは読み込まず、理由を返す', () => {
     const result = readStored(JSON.stringify({ version: 99, project }));
     expect(result.project).toEqual(emptyProject());

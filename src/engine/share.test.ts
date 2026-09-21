@@ -39,7 +39,7 @@ describe('share', () => {
         {
           ...main,
           components: [
-            { ...main.components[0], id: 'part-1' },
+            { id: 'part-1', kind: 'INPUT', x: 0, y: 0 }, // ON/OFF (on) は書き出さない
             { ...main.components[1], id: 'part-2' },
           ],
           wires: [{ id: 'wire-1', from: { comp: 'part-1', pin: 0 }, to: { comp: 'part-2', pin: 0 } }],
@@ -58,7 +58,7 @@ describe('share', () => {
           {
             ...main,
             components: [
-              { ...main.components[0], id: 'id1' },
+              { id: 'id1', kind: 'INPUT', x: 0, y: 0 },
               { ...main.components[1], id: 'id2' },
             ],
             wires: [{ id: 'id3', from: { comp: 'id1', pin: 0 }, to: { comp: 'id2', pin: 0 } }],
@@ -105,12 +105,20 @@ describe('share', () => {
     for (const p of broken) expect(parse(withProject(p)).ok).toBe(false);
   });
 
-  it('ON/OFF やラベル、モジュールの参照も保ったまま往復する', () => {
+  it('INPUT / CLOCK の ON/OFF は書き出さず、読み込んでも使わない', () => {
+    expect(serializeProject(project)).not.toContain('"on"');
+    // ON/OFF を含む古いデータを読み込んでも、OFF から始まる
+    const old = JSON.stringify({ app: 'sazanka', version: 1, project });
+    const result = parse(old);
+    expect(result.ok && result.project.circuits[0].components[0].on).toBeUndefined();
+  });
+
+  it('ラベルやモジュールの参照は保ったまま往復する', () => {
     const result = parse(serializeProject(project));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const [main] = result.project.circuits;
-    expect(main.components[0]).toMatchObject({ kind: 'INPUT', on: true, x: 0, y: 0 });
+    expect(main.components[0]).toMatchObject({ kind: 'INPUT', x: 0, y: 0 });
     expect(main.components[1]).toMatchObject({ kind: 'CUSTOM', custom: 'mod' });
     // モジュールの参照先 (回路の ID) は付け直さない
     expect(result.project.circuits[1].id).toBe('mod');
