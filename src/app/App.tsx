@@ -13,7 +13,7 @@ import { Header } from '../components/Header';
 import { Palette, type PaletteModule } from '../components/Palette';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
-import { Toolbar } from '../components/Toolbar';
+import { SheetToolbar } from '../components/SheetToolbar';
 import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, Point, snap } from '../engine/layout';
@@ -377,7 +377,16 @@ export function App() {
 
   return (
     <div className="app">
-      <Header onAbout={() => setAboutOpen(true)} />
+      <Header
+        onNew={newProject}
+        onExport={exportProject}
+        onImport={importProject}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onUndo={undoEdit}
+        onRedo={redoEdit}
+        onAbout={() => setAboutOpen(true)}
+      />
       <TabBar
         circuits={project.circuits}
         currentId={circuit.id}
@@ -386,24 +395,17 @@ export function App() {
         onStartRename={(id) => setEditing({ type: 'tab', id })}
         onRename={renameCircuit}
         onCancelRename={() => setEditing(null)}
-        onDeleteCurrent={deleteCircuit}
+        onAddModule={createModule}
         // タブの並びは保存データの回路の順なので、元に戻す対象にする
         onReorder={(id, index) => setProject((p) => moveCircuit(p, id, index))}
       />
-      <Toolbar
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        onUndo={undoEdit}
-        onRedo={redoEdit}
-        onAddModule={createModule}
-        onNew={newProject}
-        onExport={exportProject}
-        onImport={importProject}
+      <SheetToolbar
         running={running}
         onToggleRunning={toggleRunning}
         onStep={stepOnce}
         onStepBack={stepBack}
         canStepBack={canStepBack}
+        onDeleteModule={circuit.id !== MAIN_ID ? deleteCircuit : undefined}
       />
       <div className="workspace">
         <Palette

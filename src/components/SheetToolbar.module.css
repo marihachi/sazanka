@@ -1,0 +1,14 @@
+/* 選択中のタブと同じ色にして、タブとつながって見せる。下の作業領域 (パレットとシート) との間に線を引く */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+/* 右端に寄せる操作 */
+.end {
+  margin-left: auto;
+}

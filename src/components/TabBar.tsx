@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
-import trashIcon from '../assets/icons/trash.svg';
+import plusIcon from '../assets/icons/plus.svg';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
 import { classNames } from './classNames';
-import { ToolIcon } from './Icons';
 import styles from './TabBar.module.css';
+import { ToolButton } from './ToolButton';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -15,8 +15,8 @@ interface TabBarProps {
   onStartRename: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onCancelRename: () => void;
-  /** 開いているモジュールを削除する */
-  onDeleteCurrent: () => void;
+  /** モジュールを追加する (タブの末尾の「+」) */
+  onAddModule: () => void;
   /** モジュールのタブを、回路の一覧の index 番目に移した */
   onReorder: (id: string, index: number) => void;
 }
@@ -42,7 +42,7 @@ export function TabBar({
   onStartRename,
   onRename,
   onCancelRename,
-  onDeleteCurrent,
+  onAddModule,
   onReorder,
 }: TabBarProps) {
   const [drag, setDrag] = useState<TabDrag | null>(null);
@@ -125,14 +125,9 @@ export function TabBar({
           ),
         )}
       </div>
-      {currentId !== MAIN_ID && (
-        <div className={styles.tabbarActions}>
-          <button className={styles.tool} onClick={onDeleteCurrent}>
-            <ToolIcon src={trashIcon} />
-            モジュールを削除
-          </button>
-        </div>
-      )}
+      <div className={styles.add}>
+        <ToolButton icon={plusIcon} label="モジュールを追加" onClick={onAddModule} iconOnly />
+      </div>
     </div>
   );
 }
