@@ -169,3 +169,30 @@
 .dialog .about-text {
   text-align: center;
 }
+
+/* このアプリについて: 同梱しているライブラリのライセンス。開いたときだけ全文を出す */
+.licenses {
+  margin: 8px 0 4px;
+  font-size: 12px;
+}
+
+.licenses summary {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.license {
+  margin: 6px 0 0 12px;
+}
+
+.license pre {
+  max-height: 160px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
