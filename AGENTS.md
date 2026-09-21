@@ -7,8 +7,7 @@
 ## ドキュメント一覧
 
 - [作業の進め方](docs/agent/workflow.md) — 言語、検証、コミット、公開
-- [ソースの構成](docs/agent/structure.md) — `src/` のフォルダ分けと依存の向き
-- [コードの置き場所の決め方](docs/agent/code-placement.md) — 先に構成を決め、依存が素直になるように移す
+- [ソースの構成](docs/agent/structure.md) — `src/` のフォルダ分けと依存の向き、コードの置き場所の決め方とリファクタリング
 - [シミュレーション](docs/agent/simulation.md) — 評価モデルの前提と、壊してはいけない不変条件
 - [編集と元に戻す](docs/agent/editing.md) — 元に戻す対象の決め方
 - [保存データ](docs/agent/persistence.md) — localStorage の互換性
