@@ -11,6 +11,7 @@ import {
   removeComponent,
   removeComponents,
   removeWire,
+  setWirePoints,
   setLabel,
   toggleSwitch,
 } from './edit';
@@ -142,5 +143,48 @@ describe('コピーと貼り付け', () => {
     expect(c.components).toHaveLength(base.components.length + 2);
     expect(c.wires).toHaveLength(base.wires.length + 1);
     expect(c.components.slice(0, base.components.length)).toEqual(base.components);
+  });
+});
+
+describe('配線の折れる点', () => {
+  const points = [{ x: 40, y: 200 }];
+
+  it('配線するときに置いた折れる点を持つ。なければ項目ごと省く', () => {
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
+    expect(c.wires.find((w) => w.id === 'w9')?.points).toEqual(points);
+    const plain = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 });
+    expect(plain.wires.find((w) => w.id === 'w9')).not.toHaveProperty('points');
+  });
+
+  it('両端の部品を一緒に動かすと折れる点も動き、片方だけなら折れる点を消す', () => {
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
+    const both = moveComponents(
+      c,
+      new Map([
+        ['a', { x: 20, y: 20 }],
+        ['o', { x: 180, y: 20 }],
+      ]),
+    );
+    expect(both.wires.find((w) => w.id === 'w9')?.points).toEqual([{ x: 60, y: 220 }]);
+    const one = moveComponents(c, new Map([['a', { x: 20, y: 20 }]]));
+    expect(one.wires.find((w) => w.id === 'w9')).not.toHaveProperty('points');
+  });
+
+  it('複製すると、折れる点も部品と同じだけずれる', () => {
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
+    let n = 0;
+    const clone = cloneComponents(extractComponents(c, ['a', 'o']), () => `n${++n}`, { x: 100, y: 0 });
+    expect(clone.wires[0].points).toEqual([{ x: 140, y: 200 }]);
+  });
+});
+
+describe('setWirePoints', () => {
+  it('配線の折れる点を置き換え、空なら項目ごと省く', () => {
+    const moved = setWirePoints(base, 'w3', [{ x: 140, y: 40 }]);
+    expect(moved.wires.find((w) => w.id === 'w3')?.points).toEqual([{ x: 140, y: 40 }]);
+    const reset = setWirePoints(moved, 'w3', []);
+    expect(reset.wires.find((w) => w.id === 'w3')).not.toHaveProperty('points');
+    // ほかの配線はそのまま
+    expect(moved.wires.filter((w) => w.id !== 'w3')).toEqual(base.wires.filter((w) => w.id !== 'w3'));
   });
 });

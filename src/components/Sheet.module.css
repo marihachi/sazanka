@@ -41,6 +41,14 @@
   cursor: pointer;
 }
 
+/* 配線の中央の縦線。左右にドラッグして動かせる */
+.wire-middle {
+  stroke: transparent;
+  stroke-width: 10;
+  fill: none;
+  cursor: ew-resize;
+}
+
 .pending {
   stroke: var(--accent);
   stroke-dasharray: 4 4;

@@ -13,6 +13,8 @@ export interface Wire {
   id: string;
   from: PinRef; // 出力ピン
   to: PinRef; // 入力ピン
+  /** 利用者が置いた、配線の折れる点 (シートの座標、並び順に通る)。なければ中間で1回折れる形 */
+  points?: { x: number; y: number }[];
 }
 
 export interface PinRef {

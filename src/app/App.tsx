@@ -285,9 +285,9 @@ export function App() {
     setCircuit((cur) => edit.toggleSwitch(cur, id), false);
   }
 
-  function connect(from: PinRef, to: PinRef) {
+  function connect(from: PinRef, to: PinRef, points: Point[]) {
     const id = newId();
-    setCircuit((cur) => edit.connect(cur, id, from, to));
+    setCircuit((cur) => edit.connect(cur, id, from, to, points));
   }
 
   function disconnect(to: PinRef) {
@@ -432,6 +432,8 @@ export function App() {
           onAdd={addComponent}
           onMoveStart={history.checkpoint}
           onMove={moveComponents}
+          // ドラッグ中は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
+          onWirePointsChange={(id, points) => setCircuit((cur) => edit.setWirePoints(cur, id, points), false)}
           // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
           onDropOnTrash={(ids, moved) => deleteComponents(ids, !moved)}
           onToggle={toggleInput}

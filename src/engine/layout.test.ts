@@ -10,6 +10,7 @@ import {
   inputPinPos,
   outputPinPos,
   snap,
+  wireRoute,
 } from './layout';
 import type { Component, ComponentKind } from './component';
 import type { Project } from './project';
@@ -175,5 +176,35 @@ describe('componentBounds', () => {
   it('モジュールは本体の上の名前の分も含める', () => {
     const mod: Component = { id: 'm', kind: 'CUSTOM', x: 100, y: 100 };
     expect(componentBounds(mod, { inputs: [''], outputs: [''] }).top).toBe(80);
+  });
+});
+
+describe('wireRoute', () => {
+  const axisAligned = (route: { x: number; y: number }[]) =>
+    route.every((p, i) => i === 0 || p.x === route[i - 1].x || p.y === route[i - 1].y);
+
+  it('折れる点がなければ、中間で1回折れる', () => {
+    expect(wireRoute({ x: 0, y: 0 }, [], { x: 100, y: 40 })).toEqual([
+      { x: 0, y: 0 },
+      { x: 60, y: 0 },
+      { x: 60, y: 40 },
+      { x: 100, y: 40 },
+    ]);
+  });
+
+  it('折れる点を順に通り、縦横の線だけでつなぐ', () => {
+    const points = [
+      { x: 200, y: 100 },
+      { x: 60, y: 200 },
+    ];
+    const route = wireRoute({ x: 0, y: 0 }, points, { x: 300, y: 300 });
+    expect(axisAligned(route)).toBe(true);
+    for (const p of points) expect(route).toContainEqual(p);
+  });
+
+  it('入力ピンへは横から入る', () => {
+    const route = wireRoute({ x: 0, y: 0 }, [{ x: 200, y: 100 }], { x: 300, y: 300 });
+    const [a, b] = route.slice(-2);
+    expect(a.y).toBe(b.y);
   });
 });

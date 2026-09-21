@@ -27,7 +27,7 @@ function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (
   return {
     ...def,
     components: def.components.map((c) => ({ ...c, id: ids.get(c.id)! })),
-    wires: def.wires.map((w, i) => ({ id: wireId(i), from: ref(w.from), to: ref(w.to) })),
+    wires: def.wires.map((w, i) => ({ ...w, id: wireId(i), from: ref(w.from), to: ref(w.to) })),
   };
 }
 

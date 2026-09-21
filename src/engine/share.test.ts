@@ -124,3 +124,23 @@ describe('share', () => {
     expect(result.project.circuits[1].id).toBe('mod');
   });
 });
+
+describe('配線の折れる点', () => {
+  const withPoints: Project = {
+    circuits: [
+      { ...project.circuits[0], wires: [{ ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] }] },
+      project.circuits[1],
+    ],
+  };
+
+  it('書き出して読み込んでも、折れる点を保つ', () => {
+    const result = parse(serializeProject(withPoints));
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([{ x: 60, y: 100 }]);
+  });
+
+  it('折れる点の形が正しくなければ読み込まない', () => {
+    const wire = { ...withPoints.circuits[0].wires[0], points: [{ x: '1', y: 0 }] };
+    const broken = { circuits: [{ ...withPoints.circuits[0], wires: [wire] }, project.circuits[1]] };
+    expect(parse(withProject(broken)).ok).toBe(false);
+  });
+});

@@ -54,8 +54,18 @@ function isPinRef(p: unknown): p is Wire['from'] {
   return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
 }
 
+function isPoint(p: unknown): boolean {
+  return isObject(p) && typeof p.x === 'number' && typeof p.y === 'number';
+}
+
 function isWire(w: unknown): w is Wire {
-  return isObject(w) && typeof w.id === 'string' && isPinRef(w.from) && isPinRef(w.to);
+  return (
+    isObject(w) &&
+    typeof w.id === 'string' &&
+    isPinRef(w.from) &&
+    isPinRef(w.to) &&
+    (w.points === undefined || (Array.isArray(w.points) && w.points.every(isPoint)))
+  );
 }
 
 function isComponent(c: unknown): c is Component {
