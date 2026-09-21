@@ -29,6 +29,12 @@
   border-radius: 6px;
 }
 
+/* 書き出し・読み込み: 複数行の文字列を読みやすくするため、少し広くする */
+.dialog.wide {
+  width: min(520px, calc(100vw - 32px));
+  max-width: none;
+}
+
 .dialog p {
   margin: 0 0 16px;
   line-height: 1.6;
@@ -105,9 +111,10 @@
   border-color: #ef5350;
 }
 
+/* ダイアログの幅いっぱいに広げる。幅を決め打ちすると、ダイアログからはみ出す */
 .dialog .text {
   display: block;
-  width: min(480px, 80vw);
+  width: 100%;
   height: 160px;
   padding: 6px 8px;
   background: var(--bg);

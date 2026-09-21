@@ -210,7 +210,7 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
   return (
     <div className={styles.dialogBackdrop} onPointerDown={onClose}>
       <form
-        className={styles.dialog}
+        className={classNames(styles.dialog, styles.wide)}
         role="dialog"
         aria-modal="true"
         aria-labelledby="text-title"
