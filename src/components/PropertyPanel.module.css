@@ -1,0 +1,72 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 8px;
+  width: 200px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  font-size: 13px;
+  overflow-y: auto;
+}
+
+/* 狭い画面では、部品を選んでいない間は出さない (シートを狭くしすぎないため) */
+@media (max-width: 720px) {
+  .panel {
+    width: 160px;
+  }
+
+  .panel.idle {
+    display: none;
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+.kind {
+  margin: 0;
+  font-weight: bold;
+}
+
+.empty {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.field input {
+  padding: 5px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+.help {
+  opacity: 0.7;
+}
+
+.help.invalid {
+  color: #ef5350;
+  opacity: 1;
+}

@@ -42,7 +42,7 @@ export interface SimResult {
 export const SETTLED_TICKS = 4;
 
 /** 落ち着かないまま、これだけの tick が過ぎたら発振とみなす */
-const OSCILLATION_TICKS = 50;
+export const OSCILLATION_TICKS = 50;
 
 /** フリップフロップ以外の部品の出力 (pin 0)。CUSTOM は展開済みの前提なので来ない */
 function evalGate(c: Component, ins: boolean[]): boolean {

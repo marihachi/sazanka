@@ -1,7 +1,7 @@
 // プロジェクト (メイン回路と複数のモジュール) の構造と、外から来たデータの検証。
 // モジュールのピンの決め方と回路同士の依存は module.ts にある
 
-import { PLACEABLE_KINDS, type Component, type ComponentKind } from './component';
+import { isClockPeriod, PLACEABLE_KINDS, type Component, type ComponentKind } from './component';
 import type { Circuit, Wire } from './circuit';
 import { isObject } from './util';
 
@@ -74,7 +74,8 @@ function isComponent(c: unknown): c is Component {
     typeof c.id === 'string' &&
     PLACEABLE_KINDS.has(c.kind as ComponentKind) &&
     typeof c.x === 'number' &&
-    typeof c.y === 'number'
+    typeof c.y === 'number' &&
+    (c.period === undefined || isClockPeriod(c.period))
   );
 }
 

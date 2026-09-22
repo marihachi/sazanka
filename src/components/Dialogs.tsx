@@ -320,13 +320,10 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
 /** 環境設定のウィンドウ。利用者ごとの設定で、プロジェクトには含めない。変えた値はすぐに反映する (保存は呼び出し側) */
 export function PreferencesDialog({
   preferences,
-  clockPeriodTicks,
   onChange,
   onClose,
 }: {
   preferences: Preferences;
-  /** CLOCK が ON/OFF を一往復する tick 数。周期の表示に使う */
-  clockPeriodTicks: number;
   onChange: (preferences: Preferences) => void;
   onClose: () => void;
 }) {
@@ -335,7 +332,6 @@ export function PreferencesDialog({
   // 入力の途中 (空欄や範囲外) は反映せず、使える値になったときだけ反映する
   const [tickText, setTickText] = useState(String(preferences.tickMs));
   const tickValid = isTickMs(Number(tickText)) && tickText.trim() !== '';
-  const clockSeconds = (clockPeriodTicks * preferences.tickMs) / 1000;
 
   return (
     <div className={styles.dialogBackdrop} onPointerDown={onClose}>
@@ -371,7 +367,7 @@ export function PreferencesDialog({
         </label>
         <p className={classNames(styles.help, !tickValid && styles.invalid)}>
           {tickValid
-            ? `大きくするとゆっくり進み、信号が1段ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。今の CLOCK の周期は ${clockSeconds} 秒です。`
+            ? `大きくするとゆっくり進み、信号が1段ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`
             : `${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
         </p>
         <label className={styles.check}>

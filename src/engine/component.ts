@@ -13,6 +13,8 @@ export interface Component {
   label?: string;
   /** CUSTOM が参照する回路定義の ID */
   custom?: string;
+  /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
+  period?: number;
 }
 
 /**
@@ -142,4 +144,27 @@ export function outputPinNames(kind: ComponentKind): string[] {
 export function outputCount(kind: ComponentKind): number {
   if (kind === 'OUTPUT' || kind === 'CUSTOM') return 0;
   return isFlipFlop(kind) ? 2 : 1; // フリップフロップは Q, Q̄
+}
+
+/** CLOCK の周期 (一往復の tick 数) の既定値と、設定できる範囲 */
+export const DEFAULT_CLOCK_PERIOD = 100;
+export const MIN_CLOCK_PERIOD = 2;
+export const MAX_CLOCK_PERIOD = 10000;
+
+export function isClockPeriod(v: unknown): v is number {
+  return Number.isInteger(v) && (v as number) >= MIN_CLOCK_PERIOD && (v as number) <= MAX_CLOCK_PERIOD;
+}
+
+/** CLOCK の周期 (一往復の tick 数) */
+export function clockPeriodOf(c: Component): number {
+  return c.period ?? DEFAULT_CLOCK_PERIOD;
+}
+
+/**
+ * CLOCK が、時刻 tick の時点で ON/OFF を切り替えるか。
+ * 前半の半周期は OFF、後半は ON。周期が奇数なら、ON と OFF の長さは 1 tick 違う
+ */
+export function clockFlipsAt(c: Component, tick: number): boolean {
+  const period = clockPeriodOf(c);
+  return Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period);
 }

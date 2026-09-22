@@ -144,3 +144,16 @@ describe('配線の折れる点', () => {
     expect(parse(withProject(broken)).ok).toBe(false);
   });
 });
+
+describe('CLOCK の周期', () => {
+  it('範囲外の周期を持つ部品は読み込まない', () => {
+    const main = project.circuits[0];
+    const broken = {
+      circuits: [
+        { ...main, components: [{ id: 'c', kind: 'CLOCK', x: 20, y: 0, period: 0 }], wires: [] },
+        project.circuits[1],
+      ],
+    };
+    expect(parse(withProject(broken)).ok).toBe(false);
+  });
+});

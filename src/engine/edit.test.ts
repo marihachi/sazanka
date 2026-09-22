@@ -12,6 +12,7 @@ import {
   removeComponents,
   removeWire,
   setWirePoints,
+  setClockPeriod,
   setLabel,
   toggleSwitch,
 } from './edit';
@@ -186,5 +187,12 @@ describe('setWirePoints', () => {
     expect(reset.wires.find((w) => w.id === 'w3')).not.toHaveProperty('points');
     // ほかの配線はそのまま
     expect(moved.wires.filter((w) => w.id !== 'w3')).toEqual(base.wires.filter((w) => w.id !== 'w3'));
+  });
+});
+
+describe('setClockPeriod', () => {
+  it('CLOCK の周期を変える', () => {
+    const c = setClockPeriod(base, 'a', 20);
+    expect(c.components.find((x) => x.id === 'a')?.period).toBe(20);
   });
 });

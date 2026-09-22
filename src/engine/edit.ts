@@ -75,6 +75,11 @@ export function toggleSwitch<T extends Circuit>(circuit: T, id: string): T {
   return updateComponent(circuit, id, (c) => ({ ...c, on: !c.on }));
 }
 
+/** CLOCK の周期 (一往復の tick 数) を変える */
+export function setClockPeriod<T extends Circuit>(circuit: T, id: string, period: number): T {
+  return updateComponent(circuit, id, (c) => ({ ...c, period }));
+}
+
 /** 空白だけのラベルは、ラベルなしにする */
 export function setLabel<T extends Circuit>(circuit: T, id: string, value: string): T {
   return updateComponent(circuit, id, (c) => ({ ...c, label: value.trim() || undefined }));

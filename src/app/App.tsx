@@ -12,6 +12,7 @@ import {
 } from '../components/Dialogs';
 import { Header } from '../components/Header';
 import { Palette, type PaletteModule } from '../components/Palette';
+import { PropertyPanel } from '../components/PropertyPanel';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
 import { SheetToolbar } from '../components/SheetToolbar';
@@ -35,7 +36,7 @@ import {
   savePreferences,
   saveViews,
 } from './storage';
-import { CLOCK_HALF_TICKS, useSimulation } from './useSimulation';
+import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
 
@@ -374,16 +375,19 @@ export function App() {
     });
   }
 
+  /** 1つだけ選んでいる部品。プロパティ欄とヒントに使う */
+  const selectedComponent =
+    selection?.type === 'comp' && selection.ids.length === 1
+      ? circuit.components.find((c) => c.id === selection.ids[0])
+      : undefined;
+
   const hints = statusHints({
     dragMode,
     wiring: !!pending,
     placing: !!placing,
     editing: !!editing,
     wireSelected: selection?.type === 'wire',
-    selectedComponent:
-      selection?.type === 'comp' && selection.ids.length === 1
-        ? circuit.components.find((c) => c.id === selection.ids[0])
-        : undefined,
+    selectedComponent,
     multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
     unstable: sim.unstable,
     inModule: circuit.id !== MAIN_ID,
@@ -464,6 +468,16 @@ export function App() {
           placing={placing}
           onPlace={paste}
         />
+        <PropertyPanel
+          component={selectedComponent}
+          moduleName={
+            selectedComponent?.kind === 'CUSTOM' ? findDef(project, selectedComponent.custom)?.name : undefined
+          }
+          tickMs={preferences.tickMs}
+          onEditStart={history.checkpoint}
+          // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
+          onClockPeriodChange={(id, period) => setCircuit((cur) => edit.setClockPeriod(cur, id, period), false)}
+        />
       </div>
       <StatusBar hints={hints} unstable={sim.unstable} />
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
@@ -473,7 +487,6 @@ export function App() {
       {preferencesOpen && (
         <PreferencesDialog
           preferences={preferences}
-          clockPeriodTicks={CLOCK_HALF_TICKS * 2}
           onChange={setPreferences}
           onClose={() => setPreferencesOpen(false)}
         />
