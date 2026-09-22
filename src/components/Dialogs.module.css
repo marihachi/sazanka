@@ -95,6 +95,39 @@
   font-size: 14px;
 }
 
+/* アクセントカラーの色見本 */
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.dialog .swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* 今の色。文字色の輪で囲む */
+.dialog .swatch.current {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.color-input {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 /* 入力欄の下の補足の説明 */
 .dialog .help {
   margin: 6px 0 16px;
@@ -129,7 +162,7 @@
 }
 
 .dialog button.primary {
-  background: #134e48;
+  background: var(--accent-dim);
   border-color: var(--accent);
 }
 
@@ -202,7 +235,7 @@
 .about-logo {
   width: 153px;
   height: 42px;
-  background-color: var(--accent);
+  background-color: var(--brand);
 }
 
 .dialog .about-text {

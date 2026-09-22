@@ -11,7 +11,12 @@
   --text: #ccc;
   --line: #888;
   --on: #4fc3f7;
-  --accent: #2dd4bf;
+  /* ロゴの色。アクセントカラーと違い、環境設定では変わらない (ブラウザのタブのアイコンも同じ色) */
+  --brand: lightseagreen;
+  /* 既定のアクセントカラー。環境設定で変えると、App.tsx が差し替える (preferences.ts の既定値と合わせる) */
+  --accent: #20b2aa;
+  /* アクセントカラーを暗くした色 (主ボタンの背景など)。アクセントカラーを変えると一緒に変わる */
+  --accent-dim: color-mix(in srgb, var(--accent) 35%, #111);
   color-scheme: dark;
 }
 

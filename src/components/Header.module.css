@@ -17,7 +17,7 @@
 .logo {
   width: 102px;
   height: 28px;
-  background-color: var(--accent);
+  background-color: var(--brand);
 }
 
 /* プロジェクト全体の操作。入りきらない幅では横にスクロールする */

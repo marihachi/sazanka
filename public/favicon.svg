@@ -3,7 +3,7 @@
     <!-- ロゴと同じ、先のとがった花びら -->
     <path id="petal" d="M14,12 C10.6,9.6 10.6,5.4 14,1.8 C17.4,5.4 17.4,9.6 14,12 Z"/>
   </defs>
-  <g fill="#2dd4bf">
+  <g fill="lightseagreen">
     <use href="#petal"/>
     <use href="#petal" transform="rotate(72 14 14)"/>
     <use href="#petal" transform="rotate(144 14 14)"/>

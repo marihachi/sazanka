@@ -4,7 +4,14 @@ import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
 import { classNames } from './classNames';
 import styles from './Dialogs.module.css';
-import { DEFAULT_PREFERENCES, isTickMs, MAX_TICK_MS, MIN_TICK_MS, type Preferences } from './preferences';
+import {
+  ACCENT_PRESETS,
+  DEFAULT_PREFERENCES,
+  isTickMs,
+  MAX_TICK_MS,
+  MIN_TICK_MS,
+  type Preferences,
+} from './preferences';
 
 // ブラウザの prompt / confirm / alert は VS Code 内のブラウザなどで動かないため、画面内の UI で代替する
 
@@ -378,6 +385,32 @@ export function PreferencesDialog({
           />
           シートに方眼を表示する
         </label>
+        <div className={styles.field}>
+          <span id="accent-label">アクセントカラー</span>
+          <div className={styles.swatches} role="group" aria-labelledby="accent-label">
+            {ACCENT_PRESETS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                className={classNames(styles.swatch, preferences.accent === p.value && styles.current)}
+                style={{ background: p.value }}
+                title={p.label}
+                aria-label={p.label}
+                aria-pressed={preferences.accent === p.value}
+                onClick={() => onChange({ ...preferences, accent: p.value })}
+              />
+            ))}
+            {/* 用意した色以外も選べる */}
+            <input
+              type="color"
+              className={styles.colorInput}
+              value={preferences.accent}
+              title="ほかの色を選ぶ"
+              aria-label="ほかの色を選ぶ"
+              onChange={(e) => onChange({ ...preferences, accent: e.target.value })}
+            />
+          </div>
+        </div>
         <div className={styles.dialogButtons}>
           <button ref={closeRef} className={styles.primary} onClick={onClose}>
             閉じる

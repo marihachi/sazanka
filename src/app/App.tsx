@@ -94,6 +94,8 @@ export function App() {
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
   useEffect(() => savePreferences(preferences), [preferences]);
+  // アクセントカラーは、ページ全体の色の変数を差し替えて反映する
+  useEffect(() => document.documentElement.style.setProperty('--accent', preferences.accent), [preferences.accent]);
   // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
   // 固定しないと、部品を置くたびに「回路全体が見える表示」が計算し直され、画面が勝手に動いてしまう
   const viewSaved = circuit.id in views;

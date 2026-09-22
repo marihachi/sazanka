@@ -1,5 +1,5 @@
 import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
-import { DEFAULT_PREFERENCES, isTickMs, type Preferences } from '../components/preferences';
+import { DEFAULT_PREFERENCES, isAccent, isTickMs, type Preferences } from '../components/preferences';
 import { isView, type View } from '../components/view';
 import { isObject } from '../engine/util';
 
@@ -116,6 +116,7 @@ export function loadPreferences(): Preferences {
     return {
       tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
       showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
+      accent: isAccent(value.accent) ? value.accent : DEFAULT_PREFERENCES.accent,
     };
   } catch {
     return DEFAULT_PREFERENCES;
