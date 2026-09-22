@@ -347,7 +347,7 @@ export function PreferencesDialog({
       >
         <h2 id="preferences-title">環境設定</h2>
         <label className={styles.field}>
-          <span>シミュレーションで 1 段を進める間隔 (ms)</span>
+          <span>シミュレーションで 1 tick を進める間隔 (ms)</span>
           <input
             type="number"
             inputMode="numeric"
@@ -367,7 +367,7 @@ export function PreferencesDialog({
         </label>
         <p className={classNames(styles.help, !tickValid && styles.invalid)}>
           {tickValid
-            ? `大きくするとゆっくり進み、信号が1段ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`
+            ? `大きくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`
             : `${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
         </p>
         <label className={styles.check}>

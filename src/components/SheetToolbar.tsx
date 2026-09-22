@@ -10,9 +10,9 @@ interface SheetToolbarProps {
   /** シミュレーションが動いているか */
   running: boolean;
   onToggleRunning: () => void;
-  /** 一時停止中に1段だけ進める */
+  /** 一時停止中に 1 tick だけ進める */
   onStep: () => void;
-  /** 一時停止中に1段だけ戻す */
+  /** 一時停止中に 1 tick だけ戻す */
   onStepBack: () => void;
   canStepBack: boolean;
   /** 開いている回路がモジュールなら、それを削除する。メイン回路では出さない */
@@ -41,12 +41,18 @@ export function SheetToolbar({
       />
       <ToolButton
         icon={stepBackIcon}
-        label="1 段戻す"
-        title="1 段だけ時間を戻す"
+        label="1 tick 戻す"
+        title="1 tick だけ時間を戻す"
         onClick={onStepBack}
         disabled={running || !canStepBack}
       />
-      <ToolButton icon={stepIcon} label="1 段進める" title="1 段だけ時間を進める" onClick={onStep} disabled={running} />
+      <ToolButton
+        icon={stepIcon}
+        label="1 tick 進める"
+        title="1 tick だけ時間を進める"
+        onClick={onStep}
+        disabled={running}
+      />
       {onDeleteModule && (
         <div className={styles.end}>
           <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} />

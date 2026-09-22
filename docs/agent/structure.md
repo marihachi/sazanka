@@ -24,7 +24,7 @@
   - `App.tsx` … 画面の組み立てと編集操作
   - `storage.ts` … localStorage への保存
   - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
-  - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1段送り。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
+  - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
 - `style.css` … 色の変数とページ全体のスタイル。どのコンポーネントからも使うものだけを置く。
 - `assets/` … SVG。
 

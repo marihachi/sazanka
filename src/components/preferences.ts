@@ -2,7 +2,7 @@
 
 export interface Preferences {
   /**
-   * シミュレーションで 1 段 (1 tick) を進める間隔 (ms)。大きいほどゆっくり進む。
+   * シミュレーションで 1 tick を進める間隔 (ms)。大きいほどゆっくり進む。
    * CLOCK の周期も tick 数で決まるので、同じだけ伸びる
    */
   tickMs: number;

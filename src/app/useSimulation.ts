@@ -5,7 +5,7 @@ import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from '../engin
 
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
-/** 「1 段戻す」ために覚えておく tick 数 */
+/** 「1 tick 戻す」ために覚えておく tick 数 */
 const HISTORY_TICKS = 300;
 
 /** CLOCK を指す文字列 (回路 ID と部品 ID)。どの回路の CLOCK も、それぞれの周期で動く */
@@ -41,7 +41,7 @@ function toggleClocks(keys: readonly string[]) {
 
 /**
  * 時間を進めるシミュレーション。
- * 1 tick ごとに回路を1段ぶん進め、CLOCK をそれぞれの周期 (部品の period) で反転させる。
+ * 1 tick ごとに回路を進め、CLOCK をそれぞれの周期 (部品の period) で反転させる。
  *
  * 計算は ref の中で進め、画面へはフレームごとにそのときの値を渡す。
  * tick を短くしても画面の更新回数は増えないので、信号の伝わり方を細かくしつつ描画は軽いままにできる。
