@@ -14,7 +14,9 @@ import styles from './Palette.module.css';
  * 変えると、利用者が折り畳んでいた状態が失われる (見出しの title は変えてよい)
  */
 const GROUPS: { id: string; title: string; kinds: ComponentKind[] }[] = [
-  { id: 'io', title: '入出力', kinds: ['INPUT', 'CLOCK', 'HIGH', 'OUTPUT'] },
+  // INPUT / OUTPUT はモジュールのピンにもなる。自分で信号を出す CLOCK / HIGH は「信号源」に分ける
+  { id: 'io', title: '入出力', kinds: ['INPUT', 'OUTPUT'] },
+  { id: 'source', title: '信号源', kinds: ['CLOCK', 'HIGH'] },
   { id: 'gate', title: '論理ゲート', kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] },
   { id: 'latch', title: 'ラッチ', kinds: ['RS', 'RSEN', 'DLATCH'] },
   { id: 'flipflop', title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
