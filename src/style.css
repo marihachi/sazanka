@@ -17,6 +17,8 @@
   --accent: #20b2aa;
   /* アクセントカラーを暗くした色 (主ボタンの背景など)。アクセントカラーを変えると一緒に変わる */
   --accent-dim: color-mix(in srgb, var(--accent) 35%, #111);
+  /* 危険な操作 (モジュールの削除など) の文字の色 */
+  --danger: #ef5350;
   color-scheme: dark;
 }
 

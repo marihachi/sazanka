@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28">
+  <defs>
+    <!-- logo.svg と同じ、先のとがった花びら -->
+    <path id="petal" d="M14,12 C10.6,9.6 10.6,5.4 14,1.8 C17.4,5.4 17.4,9.6 14,12 Z"/>
+  </defs>
+  <!-- logo.svg から花だけを抜き出したもの (ヘッダーに使う)。マスクとして使うので黒で描く -->
+  <g fill="#000">
+    <use href="#petal"/>
+    <use href="#petal" transform="rotate(72 14 14)"/>
+    <use href="#petal" transform="rotate(144 14 14)"/>
+    <use href="#petal" transform="rotate(216 14 14)"/>
+    <use href="#petal" transform="rotate(288 14 14)"/>
+    <circle cx="14" cy="14" r="1.3"/>
+  </g>
+</svg>

@@ -20,6 +20,15 @@
   background: #333;
 }
 
+/* 危険な操作。文字もアイコンも赤にする (アイコンは文字色で塗っている) */
+.tool.danger {
+  color: var(--danger);
+}
+
+.tool.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
 .tool:disabled {
   opacity: 0.4;
   cursor: default;

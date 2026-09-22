@@ -55,7 +55,7 @@ export function SheetToolbar({
       />
       {onDeleteModule && (
         <div className={styles.end}>
-          <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} />
+          <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
 import infoIcon from '../assets/icons/info.svg';
 import preferencesIcon from '../assets/icons/preferences.svg';
-import logo from '../assets/logo.svg';
+import logoMark from '../assets/logo-mark.svg';
 import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
@@ -40,7 +40,7 @@ export function Header({
   return (
     <header className={styles.header}>
       <h1>
-        <MaskIcon src={logo} className={styles.logo} />
+        <MaskIcon src={logoMark} className={styles.logo} />
         <span className="visually-hidden">sazanka</span>
       </h1>
       <nav className={styles.actions} aria-label="プロジェクトの操作">
