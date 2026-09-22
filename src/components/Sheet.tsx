@@ -14,8 +14,8 @@ import {
 } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import type { Circuit, PinRef } from '../engine/circuit';
-import { findDef, type CircuitDef, type Project } from '../engine/project';
-import { portsOf } from '../engine/module';
+import { findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
+import { portComponents, portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
@@ -206,6 +206,15 @@ export function Sheet({
   /** 入力ピン (pinKey) → つながっている配線 */
   const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
   const selectedIds = useMemo(() => new Set(selection?.type === 'comp' ? selection.ids : []), [selection]);
+  /**
+   * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。INPUT と OUTPUT で別々に数える。
+   * メイン回路はピンにならないので空
+   */
+  const pinNumbers = useMemo(() => {
+    if (circuit.id === MAIN_ID) return new Map<string, number>();
+    const { inputs, outputs } = portComponents(circuit);
+    return new Map([...inputs, ...outputs].map((c) => [c.id, (c.kind === 'INPUT' ? inputs : outputs).indexOf(c) + 1]));
+  }, [circuit]);
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {
@@ -687,6 +696,7 @@ export function Sheet({
                   return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
                 })}
                 selected={selectedIds.has(c.id)}
+                pinNumber={pinNumbers.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
                 onBodyDoubleClick={() => onComponentDoubleClick(c)}
                 onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}

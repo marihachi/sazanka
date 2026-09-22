@@ -29,7 +29,7 @@ const IDLE_HINTS = [
 const MODULE_HINTS = [
   'タブをダブルクリックすると、モジュールの名前を変更できる',
   'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
-  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる (上から順)',
+  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる。部品の上の #1, #2… がピンの番号',
   'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
   'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
 ];
@@ -75,17 +75,11 @@ export function statusHints(ctx: HintContext): string[] {
     const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
     switch (c.kind) {
       case 'INPUT':
-        return [
-          'クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる',
-          ...move,
-        ];
+        return ['クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる', ...move];
       case 'OUTPUT':
-        return [
-          '入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる',
-          ...move,
-        ];
+        return ['入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる', ...move];
       case 'CUSTOM':
-        return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
+        return ['ダブルクリックで中身を開く', 'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る', ...move];
       case 'HIGH':
         return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':

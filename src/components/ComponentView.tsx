@@ -16,6 +16,8 @@ interface ComponentViewProps {
   outputValues: boolean[];
   inputValues: boolean[];
   selected: boolean;
+  /** モジュールの中の INPUT / OUTPUT のとき、外から見たピンの番号 (1 から)。部品の上に表示する */
+  pinNumber?: number;
   onBodyDown: (e: React.PointerEvent) => void;
   onBodyDoubleClick: () => void;
   onInputPinDown: (e: React.PointerEvent, pin: number) => void;
@@ -29,6 +31,7 @@ export function ComponentView({
   outputValues,
   inputValues,
   selected,
+  pinNumber,
   onBodyDown,
   onBodyDoubleClick,
   onInputPinDown,
@@ -36,6 +39,11 @@ export function ComponentView({
 }: ComponentViewProps) {
   const { w, h } = bodySize(c, ports);
   const value = outputValues[0];
+  const numberBadge = pinNumber !== undefined && (
+    <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
+      #{pinNumber}
+    </text>
+  );
   const lamp = value ? 'var(--on)' : '#333';
 
   let body: React.ReactNode;
@@ -49,6 +57,7 @@ export function ComponentView({
             {c.label}
           </text>
         )}
+        {numberBadge}
       </>
     );
   } else if (c.kind === 'CLOCK') {
@@ -84,6 +93,7 @@ export function ComponentView({
             {c.label}
           </text>
         )}
+        {numberBadge}
       </>
     );
   } else {

@@ -35,6 +35,14 @@
   pointer-events: none;
 }
 
+/* モジュールの中の INPUT / OUTPUT の上に出す、外から見たピンの番号 */
+.pin-number {
+  fill: var(--accent);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
 .pin-label.end {
   text-anchor: end;
 }
