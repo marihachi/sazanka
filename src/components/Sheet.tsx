@@ -19,7 +19,6 @@ import { portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
-import { InlineInput } from './Dialogs';
 import { DRAG_MIME, type PaletteDrag } from './parts';
 import styles from './Sheet.module.css';
 import { overview, toScreen, toWorld, zoomAt, type View } from './view';
@@ -127,8 +126,6 @@ interface SheetProps {
   onPendingChange: (pending: PinRef | null) => void;
   dragMode: DragMode;
   onDragModeChange: (mode: DragMode) => void;
-  /** ラベルを編集中の部品 */
-  labelEditingId?: string;
   /** 部品をここにドロップすると削除する要素 */
   trashRef: React.RefObject<HTMLElement | null>;
   onResize: (size: SheetSize) => void;
@@ -153,8 +150,6 @@ interface SheetProps {
   /** 入力ピンにつながった配線を外す */
   onDisconnect: (to: PinRef) => void;
   onComponentDoubleClick: (c: Component) => void;
-  onLabelCommit: (id: string, value: string) => void;
-  onLabelCancel: () => void;
   /** 貼り付ける位置を選んでいる部品と配線 (コピー元の位置のまま)。ポインターについて動き、クリックで確定する */
   placing: Circuit | null;
   /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
@@ -172,7 +167,6 @@ export function Sheet({
   onPendingChange,
   dragMode,
   onDragModeChange,
-  labelEditingId,
   trashRef,
   onResize,
   view,
@@ -187,8 +181,6 @@ export function Sheet({
   onConnect,
   onDisconnect,
   onComponentDoubleClick,
-  onLabelCommit,
-  onLabelCancel,
   placing,
   onPlace,
 }: SheetProps) {
@@ -564,14 +556,6 @@ export function Sheet({
     onAdd(kind, custom, { x: p.x - GRID, y: p.y - GRID });
   }
 
-  /** ラベル入力欄は部品の真上に置く。入力欄は拡大縮小せず、位置だけ表示に合わせる */
-  function labelInputPosition(c: Component): React.CSSProperties {
-    const { w } = bodySize(c, portsOf(c, project));
-    const width = 120;
-    const p = toScreen(view, { x: c.x + w / 2, y: c.y });
-    return { left: Math.max(0, p.x - width / 2), top: Math.max(0, p.y - 30), width };
-  }
-
   /**
    * 配線中の仮の線。クリックで確定したときと同じ形に描く。
    * 入力ピンの上にマウスがあれば、そのピンへ入る最後の区間の形 (縦→横)。
@@ -597,7 +581,6 @@ export function Sheet({
   const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
 
   const pendingFrom = pending && compMap.get(pending.comp);
-  const labelTarget = labelEditingId ? compMap.get(labelEditingId) : undefined;
 
   return (
     <div className={styles.sheetWrap}>
@@ -781,17 +764,6 @@ export function Sheet({
         onReset={() => onViewChange(zoomAt(view, center(), 1))}
         onFit={fit}
       />
-      {labelTarget && (
-        <InlineInput
-          key={labelTarget.id}
-          className={styles.labelInput}
-          style={labelInputPosition(labelTarget)}
-          initial={labelTarget.label ?? ''}
-          placeholder="ラベル"
-          onCommit={(v) => onLabelCommit(labelTarget.id, v)}
-          onCancel={onLabelCancel}
-        />
-      )}
     </div>
   );
 }

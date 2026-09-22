@@ -14,21 +14,30 @@ interface PropertyPanelProps {
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
   onEditStart: () => void;
   onClockPeriodChange: (id: string, period: number) => void;
+  /** INPUT / OUTPUT のラベルを変えた */
+  onLabelChange: (id: string, label: string) => void;
 }
 
 /**
  * シートの右側の、選んだ部品の項目を編集する欄。
  * 狭い画面では、部品を選んでいる間だけ出す (シートを狭くしすぎないため)
  */
-export function PropertyPanel({ component, moduleName, tickMs, onEditStart, onClockPeriodChange }: PropertyPanelProps) {
+export function PropertyPanel({
+  component,
+  moduleName,
+  tickMs,
+  onEditStart,
+  onClockPeriodChange,
+  onLabelChange,
+}: PropertyPanelProps) {
   return (
     <aside className={classNames(styles.panel, !component && styles.idle)} aria-label="部品のプロパティ">
       <h3 className={styles.title}>プロパティ</h3>
       {component ? (
         <>
           <p className={styles.kind}>{moduleName ?? LABELS[component.kind] ?? component.kind}</p>
+          {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {component.kind === 'CLOCK' ? (
-            // 部品を選び直したら、入力中の文字は捨てて、その部品の値から始める
             <ClockPeriodField
               key={component.id}
               clock={component}
@@ -36,6 +45,8 @@ export function PropertyPanel({ component, moduleName, tickMs, onEditStart, onCl
               onEditStart={onEditStart}
               onChange={onClockPeriodChange}
             />
+          ) : component.kind === 'INPUT' || component.kind === 'OUTPUT' ? (
+            <LabelField key={component.id} component={component} onEditStart={onEditStart} onChange={onLabelChange} />
           ) : (
             <p className={styles.empty}>この部品に設定できる項目はありません</p>
           )}
@@ -44,6 +55,62 @@ export function PropertyPanel({ component, moduleName, tickMs, onEditStart, onCl
         <p className={styles.empty}>部品を1つ選ぶと、その部品の項目を編集できます</p>
       )}
     </aside>
+  );
+}
+
+/**
+ * 入力欄を触っている間の変更を、1回の操作として元に戻せるようにする。
+ * 反映する前に begin を呼ぶと、最初の1回だけ onEditStart (履歴を積む) を呼ぶ。欄を離れたら end を呼ぶ
+ */
+function useEditSession(onEditStart: () => void) {
+  const editing = useRef(false);
+  return {
+    begin() {
+      if (editing.current) return;
+      onEditStart();
+      editing.current = true;
+    },
+    end() {
+      editing.current = false;
+    },
+  };
+}
+
+/**
+ * INPUT / OUTPUT のラベルの入力欄。入力したらすぐに反映する。
+ * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
+ */
+function LabelField({
+  component,
+  onEditStart,
+  onChange,
+}: {
+  component: Component;
+  onEditStart: () => void;
+  onChange: (id: string, label: string) => void;
+}) {
+  const [text, setText] = useState(component.label ?? '');
+  const session = useEditSession(onEditStart);
+
+  return (
+    <label className={styles.field}>
+      <span>ラベル</span>
+      <input
+        value={text}
+        placeholder="ラベルなし"
+        onChange={(e) => {
+          setText(e.target.value);
+          session.begin();
+          onChange(component.id, e.target.value);
+        }}
+        onBlur={session.end}
+        onKeyDown={(e) => {
+          // Enter で区切る。続けて変えたら、それは別の操作として元に戻せる
+          if (e.key === 'Enter') session.end();
+        }}
+      />
+      <span className={styles.help}>モジュールの中では、外から見たピンの名前になります</span>
+    </label>
   );
 }
 
@@ -68,23 +135,19 @@ function ClockPeriodField({
   const value = Number(text);
   const valid = text.trim() !== '' && isClockPeriod(value);
 
-  /** 欄を触っている間に、もう履歴を積んだか */
-  const editing = useRef(false);
+  const session = useEditSession(onEditStart);
 
   function change(next: string) {
     setText(next);
     const v = Number(next);
     if (next.trim() === '' || !isClockPeriod(v) || v === period) return;
-    if (!editing.current) {
-      onEditStart();
-      editing.current = true;
-    }
+    session.begin();
     onChange(clock.id, v);
   }
 
   /** 欄を離れた。使えない値のままなら、今の値に戻す */
   function finish() {
-    editing.current = false;
+    session.end();
     setText(String(period));
   }
 

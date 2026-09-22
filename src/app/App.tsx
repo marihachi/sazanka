@@ -40,8 +40,8 @@ import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
 
-/** その場で編集中の名前。tab はモジュール名、label は INPUT / OUTPUT のラベル */
-type Editing = { type: 'tab' | 'label'; id: string } | null;
+/** その場で編集中の名前 (タブのモジュール名) */
+type Editing = { type: 'tab'; id: string } | null;
 
 export function App() {
   const [loaded] = useState(loadProject);
@@ -237,11 +237,6 @@ export function App() {
     });
   }
 
-  function setLabel(id: string, value: string) {
-    setEditing(null);
-    setCircuit((cur) => edit.setLabel(cur, id, value));
-  }
-
   useShortcuts({
     enabled: !dialog && !promptDialog && !textDialog && !aboutOpen && !preferencesOpen,
     onUndo: undoEdit,
@@ -285,8 +280,6 @@ export function App() {
   function onCompDoubleClick(c: Component) {
     if (c.kind === 'CUSTOM' && c.custom && findDef(project, c.custom)) {
       openCircuit(c.custom);
-    } else if (c.kind === 'INPUT' || c.kind === 'OUTPUT') {
-      setEditing({ type: 'label', id: c.id });
     }
   }
 
@@ -446,7 +439,6 @@ export function App() {
           onPendingChange={setPending}
           dragMode={dragMode}
           onDragModeChange={setDragMode}
-          labelEditingId={editing?.type === 'label' ? editing.id : undefined}
           trashRef={trashRef}
           onResize={setSheetSize}
           view={view}
@@ -463,8 +455,6 @@ export function App() {
           onConnect={connect}
           onDisconnect={disconnect}
           onComponentDoubleClick={onCompDoubleClick}
-          onLabelCommit={setLabel}
-          onLabelCancel={() => setEditing(null)}
           placing={placing}
           onPlace={paste}
         />
@@ -477,6 +467,7 @@ export function App() {
           onEditStart={history.checkpoint}
           // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
           onClockPeriodChange={(id, period) => setCircuit((cur) => edit.setClockPeriod(cur, id, period), false)}
+          onLabelChange={(id, label) => setCircuit((cur) => edit.setLabel(cur, id, label), false)}
         />
       </div>
       <StatusBar hints={hints} unstable={sim.unstable} />

@@ -22,7 +22,7 @@ const IDLE_HINTS = [
   '「一時停止」してから「1 段進める」「1 段戻す」で、信号が伝わる様子を1段ずつ行き来できる',
   'タブの「+」でモジュールを追加すると、回路を部品としてまとめられる',
   '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
-  'モジュールの中の INPUT / OUTPUT がピンになる。ダブルクリックでラベルを付けるとピン名になる',
+  'モジュールの中の INPUT / OUTPUT がピンになる。プロパティ欄でラベルを付けるとピン名になる',
 ];
 
 /** モジュールのタブを開いているときに追加で表示するヒント */
@@ -41,7 +41,7 @@ export interface HintContext {
   wiring: boolean;
   /** 貼り付ける位置を選んでいる */
   placing: boolean;
-  /** 名前やラベルを編集中 */
+  /** タブの名前を編集中 */
   editing: boolean;
   wireSelected: boolean;
   selectedComponent?: Component;
@@ -75,9 +75,9 @@ export function statusHints(ctx: HintContext): string[] {
     const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
     switch (c.kind) {
       case 'INPUT':
-        return ['クリックで ON/OFF', 'ダブルクリックでラベルを編集', ...move];
+        return ['クリックで ON/OFF', '右のプロパティ欄でラベルを編集', ...move];
       case 'OUTPUT':
-        return ['ダブルクリックでラベルを編集', ...move];
+        return ['右のプロパティ欄でラベルを編集', ...move];
       case 'CUSTOM':
         return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
       case 'HIGH':

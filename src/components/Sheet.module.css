@@ -64,11 +64,6 @@
   pointer-events: none;
 }
 
-.label-input {
-  position: absolute;
-  font-size: 13px;
-}
-
 /* 部品を置けない範囲 (シートの外)。方眼の上に重ねて隠す */
 .outside {
   fill: var(--outside);
