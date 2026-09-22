@@ -385,6 +385,14 @@ export function PreferencesDialog({
           />
           シートに方眼を表示する
         </label>
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={preferences.roundWires}
+            onChange={(e) => onChange({ ...preferences, roundWires: e.target.checked })}
+          />
+          配線の角を丸める
+        </label>
         <div className={styles.field}>
           <span id="accent-label">アクセントカラー</span>
           <div className={styles.swatches} role="group" aria-labelledby="accent-label">

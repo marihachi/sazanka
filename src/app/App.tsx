@@ -445,6 +445,7 @@ export function App() {
           onResize={setSheetSize}
           view={view}
           showGrid={preferences.showGrid}
+          roundWires={preferences.roundWires}
           onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
           onAdd={addComponent}
           onMoveStart={history.checkpoint}

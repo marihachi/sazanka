@@ -116,6 +116,7 @@ export function loadPreferences(): Preferences {
     return {
       tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
       showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
+      roundWires: typeof value.roundWires === 'boolean' ? value.roundWires : DEFAULT_PREFERENCES.roundWires,
       accent: isAccent(value.accent) ? value.accent : DEFAULT_PREFERENCES.accent,
     };
   } catch {

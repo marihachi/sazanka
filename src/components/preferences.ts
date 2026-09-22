@@ -8,11 +8,13 @@ export interface Preferences {
   tickMs: number;
   /** シートに方眼を表示するか */
   showGrid: boolean;
+  /** 配線の角を丸めるか */
+  roundWires: boolean;
   /** アクセントカラー (#rrggbb)。style.css の --accent を差し替える */
   accent: string;
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { tickMs: 10, showGrid: true, accent: '#20b2aa' };
+export const DEFAULT_PREFERENCES: Preferences = { tickMs: 10, showGrid: true, roundWires: true, accent: '#20b2aa' };
 
 /** すぐに選べるアクセントカラー。先頭が既定 */
 export const ACCENT_PRESETS: { value: string; label: string }[] = [

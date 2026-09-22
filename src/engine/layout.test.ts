@@ -199,7 +199,31 @@ describe('wireRoute', () => {
     ];
     const route = wireRoute({ x: 0, y: 0 }, points, { x: 300, y: 300 });
     expect(axisAligned(route)).toBe(true);
-    for (const p of points) expect(route).toContainEqual(p);
+    // 置いた点は、どこかの区間の上を通る (曲がらない点は、点の並びからは省かれる)
+    const onRoute = (p: { x: number; y: number }) =>
+      route.some((q, i) => {
+        if (i === 0) return false;
+        const r = route[i - 1];
+        return (
+          p.x >= Math.min(q.x, r.x) &&
+          p.x <= Math.max(q.x, r.x) &&
+          p.y >= Math.min(q.y, r.y) &&
+          p.y <= Math.max(q.y, r.y)
+        );
+      });
+    for (const p of points) expect(onRoute(p)).toBe(true);
+  });
+
+  it('両端が同じ高さなら、折れずにまっすぐつなぐ', () => {
+    expect(wireRoute({ x: 0, y: 40 }, [], { x: 100, y: 40 })).toEqual([
+      { x: 0, y: 40 },
+      { x: 100, y: 40 },
+    ]);
+    // 折れる点が一直線に並んでいても、長さ 0 の区間や曲がらない角を残さない
+    expect(wireRoute({ x: 0, y: 40 }, [{ x: 60, y: 40 }], { x: 100, y: 40 })).toEqual([
+      { x: 0, y: 40 },
+      { x: 100, y: 40 },
+    ]);
   });
 
   it('入力ピンへは横から入る', () => {

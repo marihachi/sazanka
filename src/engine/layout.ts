@@ -127,17 +127,31 @@ export function componentBounds(c: Component, ports: Ports): Rect {
  * 最後の区間だけ縦→横、ほかは横→縦の順に曲がる。折れる点がなければ、中間で1回折れる形にする
  */
 export function wireRoute(from: Point, points: readonly Point[], to: Point): Point[] {
+  const route: Point[] = [from];
   if (points.length === 0) {
     const mid = snap((from.x + to.x) / 2);
-    return [from, { x: mid, y: from.y }, { x: mid, y: to.y }, to];
+    route.push({ x: mid, y: from.y }, { x: mid, y: to.y });
+  } else {
+    let cur = from;
+    for (const p of points) {
+      route.push({ x: p.x, y: cur.y }, p);
+      cur = p;
+    }
+    route.push({ x: cur.x, y: to.y });
   }
-  const route: Point[] = [from];
-  let cur = from;
-  for (const p of points) {
-    route.push({ x: p.x, y: cur.y }, p);
-    cur = p;
-  }
-  route.push({ x: cur.x, y: to.y }, to);
-  // 同じ点が続く (まっすぐ並んでいて曲がらない) ところは省く
-  return route.filter((p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y);
+  route.push(to);
+  return simplify(route);
+}
+
+/**
+ * 同じ点が続くところと、前後とまっすぐ並んで曲がらない点を省く。
+ * 両端が同じ高さのときなどに、長さ 0 の区間や、曲がらない「角」が残らないようにする
+ */
+function simplify(route: Point[]): Point[] {
+  const distinct = route.filter((p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y);
+  return distinct.filter((p, i) => {
+    if (i === 0 || i === distinct.length - 1) return true;
+    const [a, b] = [distinct[i - 1], distinct[i + 1]];
+    return !((a.x === p.x && p.x === b.x) || (a.y === p.y && p.y === b.y));
+  });
 }

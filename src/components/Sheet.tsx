@@ -109,10 +109,34 @@ function midpoint(a: Point, b: Point): Point {
 }
 
 /** 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (layout.ts の wireRoute) */
-function wirePath(from: Point, points: readonly Point[], to: Point): string {
-  return `M${wireRoute(from, points, to)
-    .map((p) => `${p.x},${p.y}`)
-    .join(' L')}`;
+/** 配線の角を丸めるときの半径 (px)。短い区間では、隣の角と重ならないよう区間の長さの半分までに抑える */
+const WIRE_CORNER_RADIUS = 6;
+
+/**
+ * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (layout.ts の wireRoute)。
+ * round なら、曲がり角を丸める (環境設定)
+ */
+function wirePath(from: Point, points: readonly Point[], to: Point, round: boolean): string {
+  const route = wireRoute(from, points, to);
+  if (!round) return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;
+  let d = `M${route[0].x},${route[0].y}`;
+  for (let i = 1; i < route.length - 1; i++) {
+    const [a, b, c] = [route[i - 1], route[i], route[i + 1]];
+    const inLen = Math.hypot(b.x - a.x, b.y - a.y);
+    const outLen = Math.hypot(c.x - b.x, c.y - b.y);
+    const r = Math.min(WIRE_CORNER_RADIUS, inLen / 2, outLen / 2);
+    // 長さ 0 の区間があると向きが決まらないので、丸めずに角のまま通る (wireRoute が省くので、通常は来ない)
+    if (r === 0) {
+      d += ` L${b.x},${b.y}`;
+      continue;
+    }
+    // 角の少し手前まで直線で行き、角を制御点にした曲線で、角の少し先へつなぐ
+    const before = { x: b.x - ((b.x - a.x) / inLen) * r, y: b.y - ((b.y - a.y) / inLen) * r };
+    const after = { x: b.x + ((c.x - b.x) / outLen) * r, y: b.y + ((c.y - b.y) / outLen) * r };
+    d += ` L${before.x},${before.y} Q${b.x},${b.y} ${after.x},${after.y}`;
+  }
+  const end = route[route.length - 1];
+  return `${d} L${end.x},${end.y}`;
 }
 
 interface SheetProps {
@@ -134,6 +158,8 @@ interface SheetProps {
   onViewChange: (view: View) => void;
   /** 方眼を表示するか (環境設定) */
   showGrid: boolean;
+  /** 配線の角を丸めるか (環境設定) */
+  roundWires: boolean;
   /** パレットから部品がドロップされた */
   onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
@@ -172,6 +198,7 @@ export function Sheet({
   view,
   onViewChange,
   showGrid,
+  roundWires,
   onAdd,
   onMoveStart,
   onMove,
@@ -576,12 +603,12 @@ export function Sheet({
       for (let i = 0; i < ports.inputs.length; i++) {
         const tip = inputPinPos(c, ports, i);
         // ピンの丸 (半径 6) の上にあるとき
-        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) return wirePath(from, pendingPoints, tip);
+        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) return wirePath(from, pendingPoints, tip, roundWires);
       }
     }
     // 折れる点はグリッドに合わせて置くので、仮の線もグリッドに合わせた位置へ引く
     const p = { x: snap(at.x), y: snap(at.y) };
-    return wirePath(from, [...pendingPoints, p], p);
+    return wirePath(from, [...pendingPoints, p], p, roundWires);
   }
 
   const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
@@ -642,7 +669,7 @@ export function Sheet({
             if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
             const a = outputPinPos(from, fromPorts, w.from.pin);
             const b = inputPinPos(to, toPorts, w.to.pin);
-            const d = wirePath(a, w.points ?? [], b);
+            const d = wirePath(a, w.points ?? [], b, roundWires);
             const midX = middleX(a, w.points ?? [], b);
             const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
             const selected = selection?.type === 'wire' && selection.id === w.id;
@@ -734,6 +761,7 @@ export function Sheet({
                       outputPinPos(from, portsOf(from, project), w.from.pin),
                       w.points ?? [],
                       inputPinPos(to, portsOf(to, project), w.to.pin),
+                      roundWires,
                     );
                     return <path key={w.id} className={styles.wire} d={d} />;
                   })}
