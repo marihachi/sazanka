@@ -26,10 +26,10 @@ const GROUP_IDS = [...GROUPS.map((g) => g.id), MODULE_GROUP.id];
 
 /** パレットの部品のツールチップ。部品の働きを1文で説明する */
 const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
-  INPUT: '入力スイッチ。クリックで ON/OFF を切り替える',
+  INPUT: '入力スイッチ。クリックで ON/OFF を切り替える。モジュールの中に置くと、そのモジュールの入力ピンになる',
   CLOCK: '一定の周期で ON/OFF を繰り返す',
   HIGH: '常に ON を出力する',
-  OUTPUT: '入力が ON のとき点灯するランプ',
+  OUTPUT: '入力が ON のとき点灯するランプ。モジュールの中に置くと、そのモジュールの出力ピンになる',
   AND: 'すべての入力が ON のとき ON',
   OR: 'どれかの入力が ON のとき ON',
   NOT: '入力を反転する',

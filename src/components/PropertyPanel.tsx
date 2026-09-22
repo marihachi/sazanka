@@ -109,7 +109,7 @@ function LabelField({
           if (e.key === 'Enter') session.end();
         }}
       />
-      <span className={styles.help}>モジュールの中では、外から見たピンの名前になります</span>
+      <span className={styles.help}>モジュールの中では、ピンの名前になります</span>
     </label>
   );
 }

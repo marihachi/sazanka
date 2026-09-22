@@ -75,9 +75,15 @@ export function statusHints(ctx: HintContext): string[] {
     const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
     switch (c.kind) {
       case 'INPUT':
-        return ['クリックで ON/OFF', '右のプロパティ欄でラベルを編集', ...move];
+        return [
+          'クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる',
+          ...move,
+        ];
       case 'OUTPUT':
-        return ['右のプロパティ欄でラベルを編集', ...move];
+        return [
+          '入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる',
+          ...move,
+        ];
       case 'CUSTOM':
         return ['ダブルクリックで中身を開く', 'ピンの並びは、中の INPUT / OUTPUT の上からの順', ...move];
       case 'HIGH':
