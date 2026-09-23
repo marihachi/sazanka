@@ -21,11 +21,15 @@ export function StatusBar({ hints, unstable }: StatusBarProps) {
   /** マウスが載っている間は切り替えを止める */
   const [paused, setPaused] = useState(false);
   // ヒントの内容が変わったら最初から表示し直す
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hintKey が変わったことをきっかけに戻すための依存
   useEffect(() => setIndex(0), [hintKey]);
   const hint = hints[index % hints.length];
   // 読み終えられるだけの時間を置いてから次のヒントへ切り替える
+  // biome-ignore lint/correctness/useExhaustiveDependencies: index は、同じ文言のヒントが続いてもタイマーを張り直すための依存
   useEffect(() => {
-    if (hints.length < 2 || paused) return;
+    if (hints.length < 2 || paused) {
+      return;
+    }
     const timer = setTimeout(() => setIndex((i) => i + 1), hintDuration(hint));
     return () => clearTimeout(timer);
   }, [hint, index, hints.length, paused]);

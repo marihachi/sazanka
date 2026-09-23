@@ -13,6 +13,7 @@ import {
 } from './component';
 import type { Circuit, PinRef } from './circuit';
 import type { Project } from './project';
+import { mustGet } from './util';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;
@@ -184,10 +185,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   //    遅延より短い入力の変化は、実物のゲートと同じく出力に現れない
   for (const c of delayed) {
     const queue = prev?.pending.get(c.id);
-    if (
-      queue &&
-      queue.every((out) => out.every((v, pin) => v === queue[0][pin]))
-    ) {
+    if (queue?.every((out) => out.every((v, pin) => v === queue[0][pin]))) {
       emit(c.id, queue[0]);
     }
   }
@@ -204,7 +202,9 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
       }
       emit(c.id, [v]);
     }
-    if (!moved) break;
+    if (!moved) {
+      break;
+    }
   }
 
   // 3. 遅延のある部品が、次に出す値を計算する
@@ -214,7 +214,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     let next: boolean[];
     if (isFlipFlopKind(c.kind)) {
       // 状態はこの tick で更新する。CLK の値も一緒に記録するので、同じ立ち上がりで2回動くことはない
-      const state = nextState(c.kind, ins, flipFlops.get(c.id)!);
+      const state = nextState(c.kind, ins, mustGet(flipFlops, c.id));
       flipFlops.set(c.id, state);
       next = [state.q, !state.q];
     } else {
@@ -261,12 +261,12 @@ export function step(
   const { circuit, modules } = flattenProject(project, id);
   const result = stepCircuit(circuit, prev);
   for (const [compId, mod] of modules) {
-    mod.outputs.forEach((id, pin) =>
+    mod.outputs.forEach((id, pin) => {
       result.values.set(
         pinKey(compId, pin),
         result.values.get(pinKey(id, 0)) ?? false,
-      ),
-    );
+      );
+    });
   }
   return result;
 }

@@ -152,7 +152,9 @@ export function loadPreferences(): Preferences {
     const value: unknown = JSON.parse(
       localStorage.getItem(PREFERENCES_KEY) ?? '{}',
     );
-    if (!isObject(value)) return DEFAULT_PREFERENCES;
+    if (!isObject(value)) {
+      return DEFAULT_PREFERENCES;
+    }
     return {
       tickMs: isTickMs(value.tickMs)
         ? value.tickMs

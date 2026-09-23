@@ -1,7 +1,7 @@
 // シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置
 
 import { type Component, isFlipFlopKind } from './component';
-import { Ports } from './module';
+import type { Ports } from './module';
 
 export const GRID = 20;
 
@@ -176,7 +176,9 @@ function simplify(route: Point[]): Point[] {
     (p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y,
   );
   return distinct.filter((p, i) => {
-    if (i === 0 || i === distinct.length - 1) return true;
+    if (i === 0 || i === distinct.length - 1) {
+      return true;
+    }
     const [a, b] = [distinct[i - 1], distinct[i + 1]];
     return !((a.x === p.x && p.x === b.x) || (a.y === p.y && p.y === b.y));
   });

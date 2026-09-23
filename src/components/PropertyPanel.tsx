@@ -84,7 +84,9 @@ function useEditSession(onEditStart: () => void) {
   const editing = useRef(false);
   return {
     begin() {
-      if (editing.current) return;
+      if (editing.current) {
+        return;
+      }
       onEditStart();
       editing.current = true;
     },
@@ -162,7 +164,9 @@ function ClockPeriodField({
   function change(next: string) {
     setText(next);
     const v = Number(next);
-    if (next.trim() === '' || !isClockPeriod(v) || v === period) return;
+    if (next.trim() === '' || !isClockPeriod(v) || v === period) {
+      return;
+    }
     session.begin();
     onChange(clock.id, v);
   }

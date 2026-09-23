@@ -28,7 +28,9 @@ export function useShortcuts(shortcuts: Shortcuts) {
       const typing =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-      if (!s.enabled || typing) return;
+      if (!s.enabled || typing) {
+        return;
+      }
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       if (mod && (key === 'z' || key === 'y')) {

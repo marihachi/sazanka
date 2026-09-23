@@ -44,11 +44,14 @@ export function InlineInput({
     ref.current?.select();
   }, []);
 
-  function finish(commit: boolean) {
-    if (done.current) return;
+  /** value は確定するときの入力欄の値 (取り消すときは使わない) */
+  function finish(commit: boolean, value: string) {
+    if (done.current) {
+      return;
+    }
     done.current = true;
     if (commit) {
-      onCommit(ref.current!.value);
+      onCommit(value);
     } else {
       onCancel();
     }
@@ -63,13 +66,13 @@ export function InlineInput({
       placeholder={placeholder}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
-          finish(true);
+          finish(true, e.currentTarget.value);
         }
         if (e.key === 'Escape') {
-          finish(false);
+          finish(false, e.currentTarget.value);
         }
       }}
-      onBlur={() => finish(true)}
+      onBlur={(e) => finish(true, e.currentTarget.value)}
       onPointerDown={(e) => e.stopPropagation()}
     />
   );
@@ -110,8 +113,13 @@ export function Dialog({
       >
         <p>{request.message}</p>
         <div className={styles.dialogButtons}>
-          {request.onConfirm && <button onClick={onClose}>キャンセル</button>}
+          {request.onConfirm && (
+            <button type="button" onClick={onClose}>
+              キャンセル
+            </button>
+          )}
           <button
+            type="button"
             ref={confirmRef}
             className={request.danger ? styles.danger : undefined}
             onClick={() => {
@@ -158,7 +166,9 @@ export function PromptDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
-    if (error) return;
+    if (error) {
+      return;
+    }
     onClose();
     request.onSubmit(value.trim());
   }
@@ -237,8 +247,9 @@ export function TextDialog({
   request: TextRequest;
   onClose: () => void;
 }) {
+  const { field } = request;
   const [value, setValue] = useState(request.initial);
-  const [fieldValue, setFieldValue] = useState(request.field?.initial ?? '');
+  const [fieldValue, setFieldValue] = useState(field?.initial ?? '');
   const [status, setStatus] = useState<{ error: boolean; text: string } | null>(
     null,
   );
@@ -278,16 +289,16 @@ export function TextDialog({
       >
         <h2 id="text-title">{request.title}</h2>
         <p>{request.message}</p>
-        {request.field && (
+        {field && (
           <label className={classNames(styles.field, styles.inline)}>
-            <span>{request.field.label}</span>
+            <span>{field.label}</span>
             <input
               value={fieldValue}
-              placeholder={request.field.placeholder}
+              placeholder={field.placeholder}
               onChange={(e) => {
                 setFieldValue(e.target.value);
                 setStatus(null);
-                const text = request.field!.onChange(e.target.value);
+                const text = field.onChange(e.target.value);
                 if (text !== undefined) {
                   setValue(text);
                 }
@@ -381,7 +392,12 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           ))}
         </details>
         <div className={styles.dialogButtons}>
-          <button ref={closeRef} className={styles.primary} onClick={onClose}>
+          <button
+            type="button"
+            ref={closeRef}
+            className={styles.primary}
+            onClick={onClose}
+          >
             閉じる
           </button>
         </div>
@@ -469,6 +485,7 @@ export function PreferencesDialog({
         </label>
         <div className={styles.field}>
           <span id="accent-label">アクセントカラー</span>
+          {/* biome-ignore lint/a11y/useSemanticElements: fieldset にすると既定の枠と余白が付くので、role=group で同じ意味を持たせている */}
           <div
             className={styles.swatches}
             role="group"
@@ -503,7 +520,12 @@ export function PreferencesDialog({
           </div>
         </div>
         <div className={styles.dialogButtons}>
-          <button ref={closeRef} className={styles.primary} onClick={onClose}>
+          <button
+            type="button"
+            ref={closeRef}
+            className={styles.primary}
+            onClick={onClose}
+          >
             閉じる
           </button>
         </div>

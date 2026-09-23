@@ -1,7 +1,7 @@
 // 部品のデータと、部品の種類ごとの仕様 (ピン、遅延)。
 // 部品を並べた回路は circuit.ts、モジュールのピンは module.ts にある
 
-import { isObject, SetElement } from './util';
+import { isObject, type SetElement } from './util';
 
 /** 部品 */
 export interface Component {
@@ -45,8 +45,12 @@ type PlaceableComponentKind = GateKind | FlipFlopKind | OtherComponentKind;
 function isPlaceableComponentKind(
   kind: string,
 ): kind is PlaceableComponentKind {
-  if (isGateKind(kind)) return true;
-  if (isFlipFlopKind(kind)) return true;
+  if (isGateKind(kind)) {
+    return true;
+  }
+  if (isFlipFlopKind(kind)) {
+    return true;
+  }
   return isOtherComponentKind(kind);
 }
 
@@ -123,7 +127,9 @@ export const CLK_PIN = 1;
 
 export function inputPinNames(kind: ComponentKind): string[] {
   const names = INPUT_PINS[kind];
-  if (names) return names;
+  if (names) {
+    return names;
+  }
   return Array(inputCount(kind)).fill('');
 }
 
@@ -158,7 +164,9 @@ export function outputPinNames(kind: ComponentKind): string[] {
 }
 
 export function outputCount(kind: ComponentKind): number {
-  if (kind === 'OUTPUT' || kind === 'CUSTOM') return 0;
+  if (kind === 'OUTPUT' || kind === 'CUSTOM') {
+    return 0;
+  }
   return isFlipFlopKind(kind) ? 2 : 1; // フリップフロップは Q, Q̄
 }
 

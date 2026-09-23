@@ -93,6 +93,7 @@ export function Palette({
     <div className={styles.sidebar}>
       <div className={styles.toolbar}>
         <button
+          type="button"
           className={styles.tool}
           title={toggleLabel}
           aria-label={toggleLabel}
@@ -180,6 +181,7 @@ function PaletteGroup({
     <section className={open ? undefined : styles.collapsed}>
       <h3>
         <button
+          type="button"
           className={styles.groupToggle}
           aria-expanded={open}
           onClick={() => onToggle(id)}
@@ -213,6 +215,7 @@ function PaletteItem({
   const disabled = !!disabledReason;
   return (
     <button
+      type="button"
       className={classNames(styles.item, kind === 'CUSTOM' && styles.custom)}
       disabled={disabled}
       // 置けないモジュールは、説明よりも置けない理由を見せる

@@ -26,6 +26,7 @@ export function ZoomControls({
     // ボタンを押したときに、シートの範囲選択などが始まらないようにする
     <div className={styles.zoom} onPointerDown={(e) => e.stopPropagation()}>
       <button
+        type="button"
         className={styles.button}
         onClick={onZoomOut}
         title="縮小"
@@ -33,10 +34,16 @@ export function ZoomControls({
       >
         <ToolIcon src={minusIcon} />
       </button>
-      <button className={styles.percent} onClick={onReset} title="等倍に戻す">
+      <button
+        type="button"
+        className={styles.percent}
+        onClick={onReset}
+        title="等倍に戻す"
+      >
         {Math.round(scale * 100)}%
       </button>
       <button
+        type="button"
         className={styles.button}
         onClick={onZoomIn}
         title="拡大"
@@ -45,6 +52,7 @@ export function ZoomControls({
         <ToolIcon src={plusIcon} />
       </button>
       <button
+        type="button"
         className={styles.button}
         onClick={onFit}
         title="回路全体を表示"

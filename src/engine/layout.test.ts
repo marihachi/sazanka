@@ -236,7 +236,9 @@ describe('wireRoute', () => {
     // 置いた点は、どこかの区間の上を通る (曲がらない点は、点の並びからは省かれる)
     const onRoute = (p: { x: number; y: number }) =>
       route.some((q, i) => {
-        if (i === 0) return false;
+        if (i === 0) {
+          return false;
+        }
         const r = route[i - 1];
         return (
           p.x >= Math.min(q.x, r.x) &&

@@ -55,7 +55,9 @@ export function TabBar({
 
   function onPointerDown(e: React.PointerEvent, id: string) {
     // メイン回路は先頭に固定なので動かさない
-    if (id === MAIN_ID || e.button !== 0) return;
+    if (id === MAIN_ID || e.button !== 0) {
+      return;
+    }
     setDrag({
       id,
       pointerId: e.pointerId,
@@ -66,7 +68,9 @@ export function TabBar({
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!drag || e.pointerId !== drag.pointerId) return;
+    if (!drag || e.pointerId !== drag.pointerId) {
+      return;
+    }
     if (!drag.started && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) {
       return;
     }
@@ -84,7 +88,9 @@ export function TabBar({
   }
 
   function onPointerUp(e: React.PointerEvent) {
-    if (!drag || e.pointerId !== drag.pointerId) return;
+    if (!drag || e.pointerId !== drag.pointerId) {
+      return;
+    }
     setDrag(null);
     if (
       drag.started &&
@@ -114,6 +120,7 @@ export function TabBar({
             />
           ) : (
             <button
+              type="button"
               key={d.id}
               ref={(el) => {
                 if (el) {

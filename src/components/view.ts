@@ -95,7 +95,9 @@ export function circuitBounds(
   const rects = circuit.components.map((c) =>
     componentBounds(c, portsOf(c, project)),
   );
-  if (rects.length === 0) return undefined;
+  if (rects.length === 0) {
+    return undefined;
+  }
   return {
     left: Math.min(...rects.map((r) => r.left)),
     top: Math.min(...rects.map((r) => r.top)),
@@ -122,7 +124,9 @@ export function overview(
 
 /** 保存データから読んだ値が、表示として使えるか */
 export function isView(v: unknown): v is View {
-  if (typeof v !== 'object' || v === null) return false;
+  if (typeof v !== 'object' || v === null) {
+    return false;
+  }
   const { x, y, scale } = v as Record<string, unknown>;
   return (
     Number.isFinite(x) &&

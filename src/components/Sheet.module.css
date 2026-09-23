@@ -17,6 +17,7 @@
 /* Space を押している間と、表示を移動している間 */
 .sheet.panning,
 .sheet.panning * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
   cursor: grab !important;
 }
 

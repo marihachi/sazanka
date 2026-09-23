@@ -6,7 +6,7 @@ import {
   GRID,
   inputPinPos,
   outputPinPos,
-  Point,
+  type Point,
   SHEET_HEIGHT,
   SHEET_WIDTH,
   snap,
@@ -22,6 +22,7 @@ import {
 } from '../engine/project';
 import { portComponents, portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
+import { mustGet } from '../engine/util';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
 import { DRAG_MIME, type PaletteDrag } from './parts';
@@ -31,7 +32,9 @@ import { ZoomControls } from './ZoomControls';
 
 /** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
 export type Selection =
-  { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
+  | { type: 'comp'; ids: string[] }
+  | { type: 'wire'; id: string }
+  | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
 export type DragMode = 'none' | 'moving' | 'trash';
 
@@ -96,9 +99,15 @@ function middleX(
   points: readonly Point[],
   to: Point,
 ): number | undefined {
-  if (from.y === to.y) return undefined;
-  if (points.length === 0) return snap((from.x + to.x) / 2);
-  if (points.length === 1 && points[0].y === from.y) return points[0].x;
+  if (from.y === to.y) {
+    return undefined;
+  }
+  if (points.length === 0) {
+    return snap((from.x + to.x) / 2);
+  }
+  if (points.length === 1 && points[0].y === from.y) {
+    return points[0].x;
+  }
   return undefined;
 }
 
@@ -136,7 +145,9 @@ function wirePath(
   round: boolean,
 ): string {
   const route = wireRoute(from, points, to);
-  if (!round) return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;
+  if (!round) {
+    return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;
+  }
   let d = `M${route[0].x},${route[0].y}`;
   for (let i = 1; i < route.length - 1; i++) {
     const [a, b, c] = [route[i - 1], route[i], route[i + 1]];
@@ -236,6 +247,14 @@ export function Sheet({
   onPlace,
 }: SheetProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  /** シートの svg。イベントはシートが表示されてからしか起きないので、ハンドラーの中では必ずある */
+  function sheetSvg(): SVGSVGElement {
+    const svg = svgRef.current;
+    if (!svg) {
+      throw new Error('シートの svg がまだありません');
+    }
+    return svg;
+  }
   const dragRef = useRef<Drag | null>(null);
   const wireDragRef = useRef<WireDrag | null>(null);
   const [band, setBand] = useState<Band | null>(null);
@@ -274,7 +293,9 @@ export function Sheet({
    * メイン回路はピンにならないので空
    */
   const pinNumbers = useMemo(() => {
-    if (circuit.id === MAIN_ID) return new Map<string, number>();
+    if (circuit.id === MAIN_ID) {
+      return new Map<string, number>();
+    }
     const { inputs, outputs } = portComponents(circuit);
     return new Map(
       [...inputs, ...outputs].map((c) => [
@@ -286,7 +307,10 @@ export function Sheet({
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {
-    const svg = svgRef.current!;
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
     const observer = new ResizeObserver(() => {
       const rect = svg.getBoundingClientRect();
       setSize({ width: rect.width, height: rect.height });
@@ -307,8 +331,12 @@ export function Sheet({
   // ホイールで拡大縮小する。トラックパッドのピンチも Ctrl 付きのホイールとして届く。
   // React の onWheel は passive で登録されて preventDefault できず、ページごと拡大されてしまうので、直接登録する
   useEffect(() => {
-    const svg = svgRef.current!;
-    function onWheel(e: WheelEvent) {
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
+    // 関数宣言にすると、上で絞り込んだ svg の型が中に届かないので、関数式にする
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       // 行単位で届く環境 (Firefox など) では、おおよそのピクセル数に直す
       const delta =
@@ -319,7 +347,7 @@ export function Sheet({
       onViewChangeRef.current(
         zoomAt(v, toScreenLocal(svg, e), v.scale * factor),
       );
-    }
+    };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
   }, []);
@@ -327,11 +355,15 @@ export function Sheet({
   // Space を押している間は、ドラッグで表示を移動する
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.code !== 'Space') return;
+      if (e.code !== 'Space') {
+        return;
+      }
       const typing =
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement;
-      if (typing) return;
+      if (typing) {
+        return;
+      }
       // フォーカスしているボタンが押されたり、ページがスクロールしたりしないようにする
       e.preventDefault();
       setSpaceHeld(e.type === 'keydown');
@@ -350,17 +382,17 @@ export function Sheet({
 
   /** ポインターの位置を、回路の座標にする */
   function toLocal(e: { clientX: number; clientY: number }): Point {
-    return toWorld(view, toScreenLocal(svgRef.current!, e));
+    return toWorld(view, toScreenLocal(sheetSvg(), e));
   }
 
   /** 表示している範囲の真ん中 (画面の座標) */
   function center(): Point {
-    const rect = svgRef.current!.getBoundingClientRect();
+    const rect = sheetSvg().getBoundingClientRect();
     return { x: rect.width / 2, y: rect.height / 2 };
   }
 
   function fit() {
-    const rect = svgRef.current!.getBoundingClientRect();
+    const rect = sheetSvg().getBoundingClientRect();
     onViewChange(overview(circuit, project, rect.width, rect.height));
   }
 
@@ -399,7 +431,7 @@ export function Sheet({
   }
 
   function onPointerDownCapture(e: React.PointerEvent) {
-    const svg = svgRef.current!;
+    const svg = sheetSvg();
     if (e.pointerType === 'touch') {
       const touches = touchesRef.current;
       touches.set(e.pointerId, toScreenLocal(svg, e));
@@ -443,14 +475,16 @@ export function Sheet({
 
   /** 表示の移動・拡大縮小の途中なら進めて true を返す */
   function moveView(e: React.PointerEvent): boolean {
-    const svg = svgRef.current!;
+    const svg = sheetSvg();
     const touches = touchesRef.current;
     if (touches.has(e.pointerId)) {
       touches.set(e.pointerId, toScreenLocal(svg, e));
     }
     const pinch = pinchRef.current;
     if (pinch) {
-      if (touches.size < 2) return true;
+      if (touches.size < 2) {
+        return true;
+      }
       const [a, b] = [...touches.values()];
       const mid = midpoint(a, b);
       const scale =
@@ -555,12 +589,14 @@ export function Sheet({
     const base = e.shiftKey && selection?.type === 'comp' ? selection.ids : [];
     onSelect(base.length > 0 ? { type: 'comp', ids: base } : null);
     const p = toLocal(e);
-    svgRef.current!.setPointerCapture(e.pointerId);
+    sheetSvg().setPointerCapture(e.pointerId);
     setBand({ start: p, end: p, base });
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (moveView(e)) return;
+    if (moveView(e)) {
+      return;
+    }
     const p = toLocal(e);
     setMouse(p);
     const wireDrag = wireDragRef.current;
@@ -574,7 +610,7 @@ export function Sheet({
         ) {
           return;
         }
-        svgRef.current!.setPointerCapture(e.pointerId);
+        sheetSvg().setPointerCapture(e.pointerId);
         // ドラッグ全体を1回の操作として元に戻せるようにする
         onMoveStart();
         wireDrag.started = true;
@@ -589,8 +625,10 @@ export function Sheet({
       return;
     }
     const drag = dragRef.current;
-    if (!drag) return;
-    const svg = svgRef.current!;
+    if (!drag) {
+      return;
+    }
+    const svg = sheetSvg();
     if (!svg.hasPointerCapture(drag.pointerId)) {
       // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
       if (
@@ -619,7 +657,7 @@ export function Sheet({
     if (drag.moved) {
       onDragModeChange('moving');
     }
-    const anchor = drag.origins.get(drag.id)!;
+    const anchor = mustGet(drag.origins, drag.id);
     // ドラッグ開始時の位置からの移動量を、どの部品もはみ出さないように縮める
     const items = [...drag.origins].flatMap(([id, o]) => {
       const c = compMap.get(id);
@@ -633,10 +671,12 @@ export function Sheet({
       items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]),
     );
     const unchanged = [...positions].every(([id, pos]) => {
-      const c = compMap.get(id)!;
+      const c = mustGet(compMap, id);
       return c.x === pos.x && c.y === pos.y;
     });
-    if (unchanged) return;
+    if (unchanged) {
+      return;
+    }
     drag.moved = true;
     onDragModeChange('moving');
     if (!drag.started) {
@@ -647,7 +687,9 @@ export function Sheet({
   }
 
   function onPointerUp(e: React.PointerEvent) {
-    if (endView(e)) return;
+    if (endView(e)) {
+      return;
+    }
     if (wireDragRef.current?.pointerId === e.pointerId) {
       wireDragRef.current = null;
       return;
@@ -671,12 +713,16 @@ export function Sheet({
     const drag = dragRef.current;
     dragRef.current = null;
     onDragModeChange('none');
-    if (!drag) return;
+    if (!drag) {
+      return;
+    }
     if (dragMode === 'trash') {
       onDropOnTrash([...drag.origins.keys()], drag.started);
       return;
     }
-    if (drag.moved) return;
+    if (drag.moved) {
+      return;
+    }
     // 動かさずに離したら、押した部品だけを選ぶ。スイッチはトグル
     onSelect({ type: 'comp', ids: [drag.id] });
     if (compMap.get(drag.id)?.kind === 'INPUT') {
@@ -698,7 +744,9 @@ export function Sheet({
 
   function onDrop(e: React.DragEvent) {
     const data = e.dataTransfer.getData(DRAG_MIME);
-    if (!data) return;
+    if (!data) {
+      return;
+    }
     e.preventDefault();
     const { kind, custom } = JSON.parse(data) as PaletteDrag;
     const p = toLocal(e);
@@ -736,6 +784,7 @@ export function Sheet({
 
   return (
     <div className={styles.sheetWrap}>
+      {/* biome-ignore lint/a11y/noSvgWithoutTitle: 描画面なので題は付けない (title を付けるとシート全体にツールチップが出る) */}
       <svg
         ref={svgRef}
         className={classNames(
@@ -746,7 +795,9 @@ export function Sheet({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={(e) => {
-          if (endView(e)) return;
+          if (endView(e)) {
+            return;
+          }
           cancelGesture();
         }}
         onPointerDown={onBackgroundPointerDown}
@@ -794,7 +845,9 @@ export function Sheet({
           {circuit.wires.map((w) => {
             const from = compMap.get(w.from.comp);
             const to = compMap.get(w.to.comp);
-            if (!from || !to) return null;
+            if (!from || !to) {
+              return null;
+            }
             const fromPorts = portsOf(from, project);
             const toPorts = portsOf(to, project);
             // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
@@ -909,8 +962,8 @@ export function Sheet({
                   transform={`translate(${d.x} ${d.y})`}
                 >
                   {placing.wires.map((w) => {
-                    const from = parts.get(w.from.comp)!;
-                    const to = parts.get(w.to.comp)!;
+                    const from = mustGet(parts, w.from.comp);
+                    const to = mustGet(parts, w.to.comp);
                     const d = wirePath(
                       outputPinPos(from, portsOf(from, project), w.from.pin),
                       w.points ?? [],

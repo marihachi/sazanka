@@ -186,7 +186,9 @@ describe('share', () => {
   it('ラベルやモジュールの参照は保ったまま往復する', () => {
     const result = parse(serializeProject(project));
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) {
+      return;
+    }
     const [main] = result.project.circuits;
     expect(main.components[0]).toMatchObject({ kind: 'INPUT', x: 0, y: 0 });
     expect(main.components[1]).toMatchObject({ kind: 'CUSTOM', custom: 'mod' });

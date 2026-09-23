@@ -19,7 +19,9 @@ export function replace<T>(h: History<T>, next: T): History<T> {
 
 /** 今の状態を履歴に積んでから置き換える。変化がなければ何もしない */
 export function commit<T>(h: History<T>, next: T): History<T> {
-  if (next === h.present) return h;
+  if (next === h.present) {
+    return h;
+  }
   return {
     past: [...h.past, h.present].slice(-LIMIT),
     present: next,
@@ -44,7 +46,9 @@ export function undo<T>(
   h: History<T>,
   merge: (restored: T, current: T) => T = (r) => r,
 ): History<T> {
-  if (h.past.length === 0) return h;
+  if (h.past.length === 0) {
+    return h;
+  }
   return {
     past: h.past.slice(0, -1),
     present: merge(h.past[h.past.length - 1], h.present),
@@ -56,7 +60,9 @@ export function redo<T>(
   h: History<T>,
   merge: (restored: T, current: T) => T = (r) => r,
 ): History<T> {
-  if (h.future.length === 0) return h;
+  if (h.future.length === 0) {
+    return h;
+  }
   return {
     past: [...h.past, h.present].slice(-LIMIT),
     present: merge(h.future[0], h.present),

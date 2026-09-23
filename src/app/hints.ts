@@ -56,15 +56,23 @@ export interface HintContext {
 
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する */
 export function statusHints(ctx: HintContext): string[] {
-  if (ctx.dragMode === 'trash') return ['離すと削除します'];
-  if (ctx.dragMode === 'moving') return ['左下の削除エリアで離すと削除します'];
-  if (ctx.placing) return ['クリックした位置に貼り付け ・ Esc で取り消し'];
+  if (ctx.dragMode === 'trash') {
+    return ['離すと削除します'];
+  }
+  if (ctx.dragMode === 'moving') {
+    return ['左下の削除エリアで離すと削除します'];
+  }
+  if (ctx.placing) {
+    return ['クリックした位置に貼り付け ・ Esc で取り消し'];
+  }
   if (ctx.wiring) {
     return [
       '接続先の入力ピンをクリック ・ 何もないところのクリックで折れる点を追加 ・ Esc で取り消し',
     ];
   }
-  if (ctx.editing) return ['Enter で確定 ・ Esc で取り消し'];
+  if (ctx.editing) {
+    return ['Enter で確定 ・ Esc で取り消し'];
+  }
   if (ctx.wireSelected) {
     return ['Delete で配線を削除 ・ 中央の縦線はドラッグで左右に動かせる'];
   }

@@ -126,8 +126,13 @@ export function useSimulation(
     d.components.some((c) => c.kind === 'CLOCK'),
   );
 
+  // advance は ref 越しに最新の状態を見るので、貼り直さなくてよい。
+  // project と circuitId は中では使わないが、回路を触ったら止まったループを動かし直すために並べている
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 上の理由で依存を絞っている
   useEffect(() => {
-    if (!running) return;
+    if (!running) {
+      return;
+    }
     let frame = 0;
     let last = performance.now();
     let carry = 0;
@@ -157,17 +162,14 @@ export function useSimulation(
     };
     frame = requestAnimationFrame(onFrame);
     return () => cancelAnimationFrame(frame);
-    // advance は ref 越しに最新の状態を見るので、貼り直さなくてよい
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, hasClock, project, circuitId]);
 
   // タブを切り替えたら、その回路の前回の結果から続ける
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 開いている回路が変わったときだけ入れ替える (project の変更では入れ替えない)
   useEffect(() => {
     current.current =
       results.current.get(circuitId) ?? step(project, circuitId);
     setSim(current.current);
-    // 開いている回路が変わったときだけ入れ替える
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [circuitId]);
 
   return {
@@ -184,7 +186,9 @@ export function useSimulation(
     /** 一時停止中に 1 tick 戻す */
     stepBack: () => {
       const last = past.current.pop();
-      if (!last) return;
+      if (!last) {
+        return;
+      }
       ticks.current -= 1;
       // CLOCK を反転した tick を戻すので、もう一度反転して元に戻す
       if (last.toggled.length > 0) {

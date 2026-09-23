@@ -11,12 +11,14 @@ import { step, stepCircuit, type SimResult } from './sim';
  * 遅延の待ち行列に値が残っていることがあるので、いちばん長い遅延 (XOR の 3) より長く変化がないことを見る
  */
 function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
-  let r = prev;
-  for (let i = 0; i < ticks; i++) {
+  let r = stepCircuit(circuit, prev);
+  for (let i = 1; i < ticks; i++) {
+    if (r.stableTicks > 3) {
+      break;
+    }
     r = stepCircuit(circuit, r);
-    if (r.stableTicks > 3) break;
   }
-  return r!;
+  return r;
 }
 
 /** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
@@ -26,12 +28,14 @@ function settleProject(
   prev?: SimResult,
   ticks = 30,
 ): SimResult {
-  let r = prev;
-  for (let i = 0; i < ticks; i++) {
+  let r = step(project, id, prev);
+  for (let i = 1; i < ticks; i++) {
+    if (r.stableTicks > 3) {
+      break;
+    }
     r = step(project, id, r);
-    if (r.stableTicks > 3) break;
   }
-  return r!;
+  return r;
 }
 
 function comp(
@@ -464,7 +468,9 @@ describe('ゲート遅延', () => {
     };
     for (let t = 0; t <= 10; t++) {
       r = stepCircuit(on, r);
-      if (r.values.get('out:0') !== before) return t;
+      if (r.values.get('out:0') !== before) {
+        return t;
+      }
     }
     return -1;
   }

@@ -1,6 +1,6 @@
 import type { Component, ComponentKind } from '../engine/component';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
-import { Ports } from '../engine/module';
+import type { Ports } from '../engine/module';
 import { classNames } from './classNames';
 import styles from './ComponentView.module.css';
 import { LABELS } from './parts';
@@ -162,6 +162,7 @@ export function ComponentView({
         {ports.inputs.map((label, i) =>
           label ? (
             <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
               key={i}
               className={styles.pinLabel}
               x={c.x + 4}
@@ -174,6 +175,7 @@ export function ComponentView({
         {ports.outputs.map((label, i) =>
           label ? (
             <text
+              // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
               key={i}
               className={classNames(styles.pinLabel, styles.end)}
               x={c.x + w - 4}
@@ -188,6 +190,7 @@ export function ComponentView({
   }
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: シートはマウスとタッチで操作する描画面で、キーボードでの操作は用意していない
     <g
       className={selected ? styles.selected : undefined}
       onPointerDown={onBodyDown}
@@ -197,7 +200,10 @@ export function ComponentView({
       {inputValues.map((v, i) => {
         const p = inputPinPos(c, ports, i);
         return (
-          <g key={i}>
+          <g
+            // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+            key={i}
+          >
             <line
               className={classNames(styles.lead, v && styles.on)}
               x1={p.x}
@@ -218,7 +224,10 @@ export function ComponentView({
       {ports.outputs.map((_, i) => {
         const p = outputPinPos(c, ports, i);
         return (
-          <g key={i}>
+          <g
+            // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+            key={i}
+          >
             <line
               className={classNames(styles.lead, outputValues[i] && styles.on)}
               x1={c.x + w}

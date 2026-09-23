@@ -80,6 +80,7 @@ export function Header({
       </nav>
       <div className={styles.end}>
         <button
+          type="button"
           className={styles.about}
           onClick={onPreferences}
           title="環境設定"
@@ -88,6 +89,7 @@ export function Header({
           <MaskIcon src={preferencesIcon} className={styles.aboutIcon} />
         </button>
         <button
+          type="button"
           className={styles.about}
           onClick={onAbout}
           title="このアプリについて"

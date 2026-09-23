@@ -1,9 +1,10 @@
 // 回路の編集 (部品・配線・ラベルの追加や変更や削除、コピーと貼り付け)。どれも新しい回路を返し、元の回路は書き換えない。
 // 元に戻す対象にするかどうかは app/ 側で決める
 
-import { Point } from './layout';
+import type { Point } from './layout';
 import type { Component } from './component';
 import type { Circuit, PinRef, Wire } from './circuit';
+import { mustGet } from './util';
 
 function updateComponent<T extends Circuit>(
   circuit: T,
@@ -80,7 +81,9 @@ export function moveComponents<T extends Circuit>(
     wires: circuit.wires.map((w) => {
       const a = deltas.get(w.from.comp);
       const b = deltas.get(w.to.comp);
-      if (!w.points || (!a && !b)) return w;
+      if (!w.points || (!a && !b)) {
+        return w;
+      }
       if (!a || !b || a.x !== b.x || a.y !== b.y) {
         const { points: _, ...rest } = w;
         return rest;
@@ -166,11 +169,14 @@ export function cloneComponents(
   delta: Point,
 ): Circuit {
   const ids = new Map(part.components.map((c) => [c.id, newId()]));
-  const ref = (p: PinRef): PinRef => ({ comp: ids.get(p.comp)!, pin: p.pin });
+  const ref = (p: PinRef): PinRef => ({
+    comp: mustGet(ids, p.comp),
+    pin: p.pin,
+  });
   return {
     components: part.components.map((c) => ({
       ...c,
-      id: ids.get(c.id)!,
+      id: mustGet(ids, c.id),
       x: c.x + delta.x,
       y: c.y + delta.y,
     })),
@@ -204,7 +210,9 @@ export function setWirePoints<T extends Circuit>(
   return {
     ...circuit,
     wires: circuit.wires.map((w) => {
-      if (w.id !== id) return w;
+      if (w.id !== id) {
+        return w;
+      }
       if (points.length > 0) {
         return { ...w, points };
       }

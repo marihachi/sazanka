@@ -32,7 +32,9 @@ function flattenInto(
     if (c.kind === 'CUSTOM') {
       const child = findDef(project, c.custom);
       // 見つからない・循環している参照は無視
-      if (!child || stack.includes(child.id)) continue;
+      if (!child || stack.includes(child.id)) {
+        continue;
+      }
       const childPrefix = `${prefix}${c.id}/`;
       flattenInto(project, child, childPrefix, out, [...stack, child.id]);
       const { inputs, outputs } = portComponents(child);

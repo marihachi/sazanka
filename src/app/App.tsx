@@ -23,7 +23,7 @@ import { TabBar } from '../components/TabBar';
 import { SheetToolbar } from '../components/SheetToolbar';
 import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
-import { clampPosition, GRID, Point, snap } from '../engine/layout';
+import { clampPosition, GRID, type Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import { newId, type Circuit, type PinRef } from '../engine/circuit';
 import {
@@ -190,19 +190,25 @@ export function App() {
   }
 
   function copySelection() {
-    if (selection?.type !== 'comp') return;
+    if (selection?.type !== 'comp') {
+      return;
+    }
     setClipboard(edit.extractComponents(circuit, selection.ids));
   }
 
   function cutSelection() {
-    if (selection?.type !== 'comp') return;
+    if (selection?.type !== 'comp') {
+      return;
+    }
     copySelection();
     deleteComponents(selection.ids);
   }
 
   /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
   function startPaste() {
-    if (!clipboard || clipboard.components.length === 0) return;
+    if (!clipboard || clipboard.components.length === 0) {
+      return;
+    }
     // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
     const blocked = clipboard.components.find(
       (c) =>
@@ -223,7 +229,9 @@ export function App() {
 
   /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
   function paste(delta: Point) {
-    if (!placing) return;
+    if (!placing) {
+      return;
+    }
     const clone = edit.cloneComponents(placing, newId, delta);
     setCircuit((cur) => edit.addParts(cur, clone));
     setSelection({ type: 'comp', ids: clone.components.map((c) => c.id) });
@@ -231,7 +239,9 @@ export function App() {
   }
 
   function deleteSelection() {
-    if (!selection) return;
+    if (!selection) {
+      return;
+    }
     if (selection.type === 'comp') {
       deleteComponents(selection.ids);
       return;
@@ -275,7 +285,9 @@ export function App() {
   function renameCircuit(id: string, value: string) {
     const name = value.trim();
     setEditing(null);
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     setProject((p) => ({
       circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)),
     }));
@@ -335,13 +347,17 @@ export function App() {
 
   function undoEdit() {
     // ドラッグ中は、ドラッグの開始時点との整合が崩れるので受け付けない
-    if (dragMode !== 'none') return;
+    if (dragMode !== 'none') {
+      return;
+    }
     history.undo();
     resetInteraction();
   }
 
   function redoEdit() {
-    if (dragMode !== 'none') return;
+    if (dragMode !== 'none') {
+      return;
+    }
     history.redo();
     resetInteraction();
   }
@@ -431,7 +447,9 @@ export function App() {
       confirmLabel: '読み込む',
       onSubmit: (text) => {
         const result = parseProject(text.trim(), newId);
-        if (!result.ok) return result.error;
+        if (!result.ok) {
+          return result.error;
+        }
         replaceProject(result.project);
         if (result.project.author) {
           setDialog({

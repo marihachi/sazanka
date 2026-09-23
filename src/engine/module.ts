@@ -57,12 +57,16 @@ export function dependsOn(
   b: string,
   seen = new Set<string>(),
 ): boolean {
-  if (seen.has(a)) return false;
+  if (seen.has(a)) {
+    return false;
+  }
 
   seen.add(a);
   const def = findDef(project, a);
 
-  if (!def) return false;
+  if (!def) {
+    return false;
+  }
 
   return def.components.some(
     (c) =>

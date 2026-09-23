@@ -4,18 +4,21 @@ import type { Circuit, Wire } from './circuit';
 import { MAIN_ID, type CircuitDef, type Project } from './project';
 import { dependsOn, portsOf } from './module';
 import { stepCircuit, step, type SimResult } from './sim';
+import { mustGet } from './util';
 
 /**
  * 値が落ち着くまで (または最大 ticks まで) 時間を進める。
  * 遅延の待ち行列に値が残っていることがあるので、いちばん長い遅延 (XOR の 3) より長く変化がないことを見る
  */
 function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
-  let r = prev;
-  for (let i = 0; i < ticks; i++) {
+  let r = stepCircuit(circuit, prev);
+  for (let i = 1; i < ticks; i++) {
+    if (r.stableTicks > 3) {
+      break;
+    }
     r = stepCircuit(circuit, r);
-    if (r.stableTicks > 3) break;
   }
-  return r!;
+  return r;
 }
 
 /** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
@@ -25,12 +28,14 @@ function settleProject(
   prev?: SimResult,
   ticks = 30,
 ): SimResult {
-  let r = prev;
-  for (let i = 0; i < ticks; i++) {
+  let r = step(project, id, prev);
+  for (let i = 1; i < ticks; i++) {
+    if (r.stableTicks > 3) {
+      break;
+    }
     r = step(project, id, r);
-    if (r.stableTicks > 3) break;
   }
-  return r!;
+  return r;
 }
 
 function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
@@ -48,7 +53,7 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
       { id: 'w3', from: { comp: 'g', pin: 0 }, to: { comp: 'o', pin: 0 } },
     ],
   };
-  return settle(circuit).values.get('o:0')!;
+  return mustGet(settle(circuit).values, 'o:0');
 }
 
 describe('simulate', () => {
@@ -82,7 +87,7 @@ describe('simulate', () => {
         { id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
       ],
     });
-    return r.values.get('g:0')!;
+    return mustGet(r.values, 'g:0');
   }
 
   it('NOT は反転し、BUF はそのまま出す', () => {
@@ -178,13 +183,15 @@ describe('simulate', () => {
     function build(kind: FlipFlopKind, ins: boolean[]): Circuit {
       return {
         components: [
-          ...ins.map((on, i): Component => ({
-            id: `in${i}`,
-            kind: 'INPUT',
-            x: 0,
-            y: 0,
-            on,
-          })),
+          ...ins.map(
+            (on, i): Component => ({
+              id: `in${i}`,
+              kind: 'INPUT',
+              x: 0,
+              y: 0,
+              on,
+            }),
+          ),
           { id: 'f', kind, x: 0, y: 0 },
         ],
         wires: ins.map((_, i) => ({
@@ -201,7 +208,7 @@ describe('simulate', () => {
       return steps.map((ins) => {
         r = settle(build(kind, ins), r);
         expect(r.values.get('f:1')).toBe(!r.values.get('f:0'));
-        return r.values.get('f:0')!;
+        return mustGet(r.values, 'f:0');
       });
     }
 

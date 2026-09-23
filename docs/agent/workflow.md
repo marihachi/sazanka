@@ -1,8 +1,9 @@
 # 作業の進め方
 
 - 開発者とのやりとり、UI の文言、コードコメントは日本語。開発者の画面に出るものはすべて含む。返答の本文だけでなく、ツールを呼ぶときに付ける説明や、確認用スクリプトが出す文言のように、作業の途中で表示されるものも日本語で書く。
-- 変更後は `npm run format` で整形し（Prettier）、`npx tsc -b`、`npm test`、`npx vite build` を通す。`npm run build` は型チェックとビルドをまとめて行う。整形されているかの確認だけなら `npm run format:check`。
-- 改行コードは LF に統一している（`.gitattributes` と Prettier の設定）。Windows などで `core.autocrlf=true` の環境では、`.gitattributes` がないと Git から取り出したファイルが CRLF になり、整形チェックに引っかかる。
+- 変更後は `npm run format` で整形し（Biome）、`npm run lint`、`npx tsc -b`、`npm test`、`npx vite build` を通す。`npm run build` は型チェックとビルドをまとめて行う。整形と Lint をまとめて確かめるなら `npm run check`、整形されているかだけなら `npm run format:check`。
+  - Markdown は Biome の対象外なので、整形されない。ドキュメントは手で整える。
+- 改行コードは LF に統一している（`.gitattributes` と `biome.json`）。Windows などで `core.autocrlf=true` の環境では、`.gitattributes` がないと Git から取り出したファイルが CRLF になり、整形チェックに引っかかる。
 - 画面や操作に関わる変更をしたら、ヘッドレスブラウザで動作を確かめる（開発者の方針）。テストとビルドが通るだけで済ませない。やり方は下の「ヘッドレスブラウザでの動作確認」にまとめている。
   - どうしても確かめられなかった場合は、報告にそう明記する。
 - コミットは開発者に頼まれたときだけ行う。
@@ -44,4 +45,4 @@
 
 ## Claude Code
 
-- Edit / Write でファイルを編集するたびに、フック（`.claude/settings.json` → `.claude/hooks/format.mjs`）が Prettier で整形する。シェルからの書き込み（sed、スクリプトなど）には効かないので、その場合は自分で整形する。
+- Edit / Write でファイルを編集するたびに、フック（`.claude/settings.json` → `.claude/hooks/format.mjs`）が Biome で整形する。Lint の指摘は直さないので、`npm run lint` で確かめる。シェルからの書き込み（sed、スクリプトなど）には効かないので、その場合は自分で整形する。

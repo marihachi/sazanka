@@ -30,6 +30,7 @@ export function ToolButton({
 }: ToolButtonProps) {
   return (
     <button
+      type="button"
       className={classNames(
         styles.tool,
         iconOnly && styles.iconOnly,

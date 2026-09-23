@@ -42,7 +42,9 @@ export function moveCircuit(
   index: number,
 ): Project {
   const moving = project.circuits.find((d) => d.id === id);
-  if (!moving || id === MAIN_ID) return project;
+  if (!moving || id === MAIN_ID) {
+    return project;
+  }
   const rest = project.circuits.filter((d) => d.id !== id);
   const at = Math.min(Math.max(index, 1), rest.length);
   return {
@@ -78,7 +80,9 @@ function checkCircuit(def: unknown): string | undefined {
   }
   const compIds = new Set<string>();
   for (const c of def.components as unknown[]) {
-    if (!isComponent(c)) return `「${def.name}」に不正な部品があります`;
+    if (!isComponent(c)) {
+      return `「${def.name}」に不正な部品があります`;
+    }
     if (compIds.has(c.id)) {
       return `「${def.name}」で部品の ID が重複しています: ${c.id}`;
     }
@@ -110,9 +114,13 @@ export function checkProject(project: unknown): string | undefined {
   const ids = new Set<string>();
   for (const def of circuits) {
     const error = checkCircuit(def);
-    if (error) return error;
+    if (error) {
+      return error;
+    }
     const { id } = def as CircuitDef;
-    if (ids.has(id)) return `回路の ID が重複しています: ${id}`;
+    if (ids.has(id)) {
+      return `回路の ID が重複しています: ${id}`;
+    }
     ids.add(id);
   }
   for (const def of circuits as CircuitDef[]) {

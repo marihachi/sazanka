@@ -7,7 +7,7 @@ import {
   checkProject,
   withoutSwitchStates,
 } from './project';
-import { isObject } from './util';
+import { isObject, mustGet } from './util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
 const SHARE_VERSION = 1;
@@ -38,7 +38,7 @@ function renameIds(
   });
   return {
     ...def,
-    components: def.components.map((c) => ({ ...c, id: ids.get(c.id)! })),
+    components: def.components.map((c) => ({ ...c, id: mustGet(ids, c.id) })),
     wires: def.wires.map((w, i) => ({
       ...w,
       id: wireId(i),
@@ -70,7 +70,8 @@ export function serializeProject(project: Project): string {
 }
 
 export type ParseResult =
-  { ok: true; project: Project } | { ok: false; error: string };
+  | { ok: true; project: Project }
+  | { ok: false; error: string };
 
 /**
  * 共有用の JSON を読み込む。部品と配線の ID は newId で付け直す。
