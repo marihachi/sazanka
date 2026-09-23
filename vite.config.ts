@@ -47,6 +47,17 @@ function licenses(): Plugin {
 }
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        // ライブラリ (React など) とアプリのコードを別のチャンクに分ける。
+        // ライブラリは変更が少ないので、アプリだけを直したときにブラウザのキャッシュが効く
+        advancedChunks: {
+          groups: [{ name: 'vendor', test: /node_modules/ }],
+        },
+      },
+    },
+  },
   // GitHub Pages では https://<ユーザー名>.github.io/sazanka/ に置かれるので、その位置から読めるようにする
   base: '/sazanka/',
   plugins: [react(), licenses()],
