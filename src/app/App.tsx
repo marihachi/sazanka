@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
+import {
+  Sheet,
+  type SheetSize,
+  type DragMode,
+  type Selection,
+} from '../components/Sheet';
 import {
   AboutDialog,
   Dialog,
@@ -18,10 +23,17 @@ import { TabBar } from '../components/TabBar';
 import { SheetToolbar } from '../components/SheetToolbar';
 import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
-import { clampPosition, GRID, Point, snap } from '../engine/layout';
+import { clampPosition, GRID, type Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import { newId, type Circuit, type PinRef } from '../engine/circuit';
-import { emptyProject, findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../engine/project';
+import {
+  emptyProject,
+  findDef,
+  MAIN_ID,
+  moveCircuit,
+  type CircuitDef,
+  type Project,
+} from '../engine/project';
 import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
 import { parseProject, serializeProject } from '../engine/share';
 
@@ -55,7 +67,10 @@ export function App() {
   const trashRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>('none');
   /** クリックで部品を追加するとき、表示している範囲の真ん中に置くために使う */
-  const [sheetSize, setSheetSize] = useState<SheetSize>({ width: 0, height: 0 });
+  const [sheetSize, setSheetSize] = useState<SheetSize>({
+    width: 0,
+    height: 0,
+  });
   /** 回路ごとの表示位置と倍率。元に戻す対象にはしない */
   const [views, setViews] = useState(loadViews);
   /** コピーした部品と配線 */
@@ -64,7 +79,9 @@ export function App() {
   const [placing, setPlacing] = useState<Circuit | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
   const [dialog, setDialog] = useState<DialogRequest | null>(() =>
-    loaded.error ? { message: `${loaded.error}空のプロジェクトで開きます。` } : null,
+    loaded.error
+      ? { message: `${loaded.error}空のプロジェクトで開きます。` }
+      : null,
   );
   const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
   const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
@@ -74,7 +91,9 @@ export function App() {
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
-  const view = views[circuit.id] ?? overview(circuit, project, sheetSize.width, sheetSize.height);
+  const view =
+    views[circuit.id] ??
+    overview(circuit, project, sheetSize.width, sheetSize.height);
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
   function setCircuit(update: (c: CircuitDef) => CircuitDef, record = true) {
@@ -84,24 +103,36 @@ export function App() {
     }));
   }
 
-  const { sim, running, toggleRunning, stepOnce, stepBack, canStepBack, forget } = useSimulation(
-    project,
-    circuit.id,
-    history.replace,
-    preferences.tickMs,
-  );
+  const {
+    sim,
+    running,
+    toggleRunning,
+    stepOnce,
+    stepBack,
+    canStepBack,
+    forget,
+  } = useSimulation(project, circuit.id, history.replace, preferences.tickMs);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
   useEffect(() => savePreferences(preferences), [preferences]);
   // アクセントカラーは、ページ全体の色の変数を差し替えて反映する
-  useEffect(() => document.documentElement.style.setProperty('--accent', preferences.accent), [preferences.accent]);
+  useEffect(
+    () =>
+      document.documentElement.style.setProperty(
+        '--accent',
+        preferences.accent,
+      ),
+    [preferences.accent],
+  );
   // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
   // 固定しないと、部品を置くたびに「回路全体が見える表示」が計算し直され、画面が勝手に動いてしまう
   const viewSaved = circuit.id in views;
   const sheetReady = sheetSize.width > 0 && sheetSize.height > 0;
   useEffect(() => {
-    if (!viewSaved && sheetReady) setViews((vs) => ({ ...vs, [circuit.id]: view }));
+    if (!viewSaved && sheetReady) {
+      setViews((vs) => ({ ...vs, [circuit.id]: view }));
+    }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
   /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
@@ -127,11 +158,26 @@ export function App() {
   /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */
   function addComponent(kind: ComponentKind, custom?: string, at?: Point) {
     const n = circuit.components.length;
-    const center = toWorld(view, { x: sheetSize.width / 2, y: sheetSize.height / 2 });
-    const base = at ?? { x: center.x - GRID * 2 + (n % 10) * GRID, y: center.y - GRID * 2 + (n % 10) * GRID };
-    const c: Component = { id: newId(), kind, x: snap(base.x), y: snap(base.y) };
-    if (kind === 'INPUT' || kind === 'CLOCK') c.on = false;
-    if (custom) c.custom = custom;
+    const center = toWorld(view, {
+      x: sheetSize.width / 2,
+      y: sheetSize.height / 2,
+    });
+    const base = at ?? {
+      x: center.x - GRID * 2 + (n % 10) * GRID,
+      y: center.y - GRID * 2 + (n % 10) * GRID,
+    };
+    const c: Component = {
+      id: newId(),
+      kind,
+      x: snap(base.x),
+      y: snap(base.y),
+    };
+    if (kind === 'INPUT' || kind === 'CLOCK') {
+      c.on = false;
+    }
+    if (custom) {
+      c.custom = custom;
+    }
     Object.assign(c, clampPosition(c, portsOf(c, project), c));
     setCircuit((cur) => edit.addComponent(cur, c));
     setSelection({ type: 'comp', ids: [c.id] });
@@ -144,26 +190,37 @@ export function App() {
   }
 
   function copySelection() {
-    if (selection?.type !== 'comp') return;
+    if (selection?.type !== 'comp') {
+      return;
+    }
     setClipboard(edit.extractComponents(circuit, selection.ids));
   }
 
   function cutSelection() {
-    if (selection?.type !== 'comp') return;
+    if (selection?.type !== 'comp') {
+      return;
+    }
     copySelection();
     deleteComponents(selection.ids);
   }
 
   /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
   function startPaste() {
-    if (!clipboard || clipboard.components.length === 0) return;
+    if (!clipboard || clipboard.components.length === 0) {
+      return;
+    }
     // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
     const blocked = clipboard.components.find(
-      (c) => c.kind === 'CUSTOM' && c.custom && (c.custom === circuit.id || dependsOn(project, c.custom, circuit.id)),
+      (c) =>
+        c.kind === 'CUSTOM' &&
+        c.custom &&
+        (c.custom === circuit.id || dependsOn(project, c.custom, circuit.id)),
     );
     if (blocked) {
       const name = findDef(project, blocked.custom)?.name ?? '';
-      setDialog({ message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません` });
+      setDialog({
+        message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
+      });
       return;
     }
     setPending(null);
@@ -172,7 +229,9 @@ export function App() {
 
   /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
   function paste(delta: Point) {
-    if (!placing) return;
+    if (!placing) {
+      return;
+    }
     const clone = edit.cloneComponents(placing, newId, delta);
     setCircuit((cur) => edit.addParts(cur, clone));
     setSelection({ type: 'comp', ids: clone.components.map((c) => c.id) });
@@ -180,7 +239,9 @@ export function App() {
   }
 
   function deleteSelection() {
-    if (!selection) return;
+    if (!selection) {
+      return;
+    }
     if (selection.type === 'comp') {
       deleteComponents(selection.ids);
       return;
@@ -194,16 +255,27 @@ export function App() {
   function createModule() {
     const names = new Set(project.circuits.map((d) => d.name));
     let n = project.circuits.length;
-    while (names.has(`モジュール${n}`)) n++;
+    while (names.has(`モジュール${n}`)) {
+      n++;
+    }
     setPromptDialog({
       title: 'モジュールを追加',
       label: '名前',
       initial: `モジュール${n}`,
       confirmLabel: '追加',
       validate: (name) =>
-        !name ? '名前を入力してください' : names.has(name) ? '同じ名前の回路がすでにあります' : undefined,
+        !name
+          ? '名前を入力してください'
+          : names.has(name)
+            ? '同じ名前の回路がすでにあります'
+            : undefined,
       onSubmit: (name) => {
-        const def: CircuitDef = { id: newId(), name, components: [], wires: [] };
+        const def: CircuitDef = {
+          id: newId(),
+          name,
+          components: [],
+          wires: [],
+        };
         setProject((p) => ({ circuits: [...p.circuits, def] }));
         openCircuit(def.id);
       },
@@ -213,8 +285,12 @@ export function App() {
   function renameCircuit(id: string, value: string) {
     const name = value.trim();
     setEditing(null);
-    if (!name) return;
-    setProject((p) => ({ circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)) }));
+    if (!name) {
+      return;
+    }
+    setProject((p) => ({
+      circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)),
+    }));
   }
 
   function deleteCircuit() {
@@ -231,7 +307,9 @@ export function App() {
       confirmLabel: '削除',
       danger: true,
       onConfirm: () => {
-        setProject((p) => ({ circuits: p.circuits.filter((d) => d.id !== id) }));
+        setProject((p) => ({
+          circuits: p.circuits.filter((d) => d.id !== id),
+        }));
         forget(id);
         setViews(({ [id]: _, ...rest }) => rest);
         openCircuit(MAIN_ID);
@@ -240,7 +318,8 @@ export function App() {
   }
 
   useShortcuts({
-    enabled: !dialog && !promptDialog && !textDialog && !aboutOpen && !preferencesOpen,
+    enabled:
+      !dialog && !promptDialog && !textDialog && !aboutOpen && !preferencesOpen,
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
@@ -268,13 +347,17 @@ export function App() {
 
   function undoEdit() {
     // ドラッグ中は、ドラッグの開始時点との整合が崩れるので受け付けない
-    if (dragMode !== 'none') return;
+    if (dragMode !== 'none') {
+      return;
+    }
     history.undo();
     resetInteraction();
   }
 
   function redoEdit() {
-    if (dragMode !== 'none') return;
+    if (dragMode !== 'none') {
+      return;
+    }
     history.redo();
     resetInteraction();
   }
@@ -327,7 +410,8 @@ export function App() {
   function exportProject() {
     setTextDialog({
       title: '書き出し',
-      message: 'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
+      message:
+        'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
       initial: serializeProject(project),
       readOnly: true,
       field: {
@@ -357,14 +441,21 @@ export function App() {
   function importProject() {
     setTextDialog({
       title: '読み込み',
-      message: '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
+      message:
+        '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
       initial: '',
       confirmLabel: '読み込む',
       onSubmit: (text) => {
         const result = parseProject(text.trim(), newId);
-        if (!result.ok) return result.error;
+        if (!result.ok) {
+          return result.error;
+        }
         replaceProject(result.project);
-        if (result.project.author) setDialog({ message: `「${result.project.author}」さんの回路を読み込みました。` });
+        if (result.project.author) {
+          setDialog({
+            message: `「${result.project.author}」さんの回路を読み込みました。`,
+          });
+        }
         return undefined;
       },
     });
@@ -451,7 +542,9 @@ export function App() {
           onMoveStart={history.checkpoint}
           onMove={moveComponents}
           // ドラッグ中は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-          onWirePointsChange={(id, points) => setCircuit((cur) => edit.setWirePoints(cur, id, points), false)}
+          onWirePointsChange={(id, points) =>
+            setCircuit((cur) => edit.setWirePoints(cur, id, points), false)
+          }
           // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
           onDropOnTrash={(ids, moved) => deleteComponents(ids, !moved)}
           onToggle={toggleInput}
@@ -464,19 +557,32 @@ export function App() {
         <PropertyPanel
           component={selectedComponent}
           moduleName={
-            selectedComponent?.kind === 'CUSTOM' ? findDef(project, selectedComponent.custom)?.name : undefined
+            selectedComponent?.kind === 'CUSTOM'
+              ? findDef(project, selectedComponent.custom)?.name
+              : undefined
           }
           tickMs={preferences.tickMs}
           onEditStart={history.checkpoint}
           // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
-          onClockPeriodChange={(id, period) => setCircuit((cur) => edit.setClockPeriod(cur, id, period), false)}
-          onLabelChange={(id, label) => setCircuit((cur) => edit.setLabel(cur, id, label), false)}
+          onClockPeriodChange={(id, period) =>
+            setCircuit((cur) => edit.setClockPeriod(cur, id, period), false)
+          }
+          onLabelChange={(id, label) =>
+            setCircuit((cur) => edit.setLabel(cur, id, label), false)
+          }
         />
       </div>
       <StatusBar hints={hints} unstable={sim.unstable} />
       {dialog && <Dialog request={dialog} onClose={() => setDialog(null)} />}
-      {promptDialog && <PromptDialog request={promptDialog} onClose={() => setPromptDialog(null)} />}
-      {textDialog && <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />}
+      {promptDialog && (
+        <PromptDialog
+          request={promptDialog}
+          onClose={() => setPromptDialog(null)}
+        />
+      )}
+      {textDialog && (
+        <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />
+      )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {preferencesOpen && (
         <PreferencesDialog

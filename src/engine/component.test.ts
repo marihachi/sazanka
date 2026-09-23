@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { clockFlipsAt, clockPeriodOf, DEFAULT_CLOCK_PERIOD, isClockPeriod, type Component } from './component';
+import {
+  clockFlipsAt,
+  clockPeriodOf,
+  DEFAULT_CLOCK_PERIOD,
+  isClockPeriod,
+  type Component,
+} from './component';
 
-const clock = (period?: number): Component => ({ id: 'c', kind: 'CLOCK', x: 0, y: 0, ...(period && { period }) });
+const clock = (period?: number): Component => ({
+  id: 'c',
+  kind: 'CLOCK',
+  x: 0,
+  y: 0,
+  ...(period && { period }),
+});
 
 /** 1 tick 目から ticks tick 目までに切り替わる時刻 */
 function flips(c: Component, ticks: number): number[] {
-  return Array.from({ length: ticks }, (_, i) => i + 1).filter((t) => clockFlipsAt(c, t));
+  return Array.from({ length: ticks }, (_, i) => i + 1).filter((t) =>
+    clockFlipsAt(c, t),
+  );
 }
 
 describe('CLOCK の周期', () => {

@@ -10,16 +10,25 @@ describe('readStored', () => {
   });
 
   it('版付きの保存データを読み込む', () => {
-    expect(readStored(JSON.stringify({ version: 1, project }))).toEqual({ project });
+    expect(readStored(JSON.stringify({ version: 1, project }))).toEqual({
+      project,
+    });
   });
 
   it('INPUT / CLOCK の ON/OFF は読み込まない (古いデータには入っている)', () => {
     const withSwitch = {
       circuits: [
-        { id: 'main', name: 'メイン', components: [{ id: 'a', kind: 'INPUT', x: 20, y: 0, on: true }], wires: [] },
+        {
+          id: 'main',
+          name: 'メイン',
+          components: [{ id: 'a', kind: 'INPUT', x: 20, y: 0, on: true }],
+          wires: [],
+        },
       ],
     };
-    const result = readStored(JSON.stringify({ version: 1, project: withSwitch }));
+    const result = readStored(
+      JSON.stringify({ version: 1, project: withSwitch }),
+    );
     expect(result.error).toBeUndefined();
     expect(result.project.circuits[0].components[0].on).toBeUndefined();
   });

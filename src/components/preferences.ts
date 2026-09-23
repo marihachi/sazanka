@@ -14,7 +14,12 @@ export interface Preferences {
   accent: string;
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { tickMs: 10, showGrid: true, roundWires: true, accent: '#20b2aa' };
+export const DEFAULT_PREFERENCES: Preferences = {
+  tickMs: 10,
+  showGrid: true,
+  roundWires: true,
+  accent: '#20b2aa',
+};
 
 /** すぐに選べるアクセントカラー。先頭が既定 */
 export const ACCENT_PRESETS: { value: string; label: string }[] = [
@@ -38,5 +43,9 @@ export const MAX_TICK_MS = 1000;
 
 /** 間隔として使える値か (範囲内の整数) */
 export function isTickMs(v: unknown): v is number {
-  return Number.isInteger(v) && (v as number) >= MIN_TICK_MS && (v as number) <= MAX_TICK_MS;
+  return (
+    Number.isInteger(v) &&
+    (v as number) >= MIN_TICK_MS &&
+    (v as number) <= MAX_TICK_MS
+  );
 }

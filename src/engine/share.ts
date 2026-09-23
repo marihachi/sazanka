@@ -1,8 +1,13 @@
 // 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
 
 import type { PinRef } from './circuit';
-import { type CircuitDef, type Project, checkProject, withoutSwitchStates } from './project';
-import { isObject } from './util';
+import {
+  type CircuitDef,
+  type Project,
+  checkProject,
+  withoutSwitchStates,
+} from './project';
+import { isObject, mustGet } from './util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
 const SHARE_VERSION = 1;
@@ -21,13 +26,25 @@ interface ShareData {
  * 読み込むときは、アプリの中と同じランダムな ID にそろえる。
  * ID は回路の中で重ならなければよい。回路の ID はモジュールの参照に使っているので変えない
  */
-function renameIds(def: CircuitDef, partId: (index: number) => string, wireId: (index: number) => string): CircuitDef {
+function renameIds(
+  def: CircuitDef,
+  partId: (index: number) => string,
+  wireId: (index: number) => string,
+): CircuitDef {
   const ids = new Map(def.components.map((c, i) => [c.id, partId(i)]));
-  const ref = (p: PinRef): PinRef => ({ comp: ids.get(p.comp) ?? p.comp, pin: p.pin });
+  const ref = (p: PinRef): PinRef => ({
+    comp: ids.get(p.comp) ?? p.comp,
+    pin: p.pin,
+  });
   return {
     ...def,
-    components: def.components.map((c) => ({ ...c, id: ids.get(c.id)! })),
-    wires: def.wires.map((w, i) => ({ ...w, id: wireId(i), from: ref(w.from), to: ref(w.to) })),
+    components: def.components.map((c) => ({ ...c, id: mustGet(ids, c.id) })),
+    wires: def.wires.map((w, i) => ({
+      ...w,
+      id: wireId(i),
+      from: ref(w.from),
+      to: ref(w.to),
+    })),
   };
 }
 
@@ -52,7 +69,9 @@ export function serializeProject(project: Project): string {
   return JSON.stringify(data);
 }
 
-export type ParseResult = { ok: true; project: Project } | { ok: false; error: string };
+export type ParseResult =
+  | { ok: true; project: Project }
+  | { ok: false; error: string };
 
 /**
  * 共有用の JSON を読み込む。部品と配線の ID は newId で付け直す。
@@ -65,13 +84,26 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   } catch {
     return { ok: false, error: 'JSON として読み取れません' };
   }
-  if (!isObject(data) || data.app !== 'sazanka') return { ok: false, error: 'sazanka の回路データではありません' };
+  if (!isObject(data) || data.app !== 'sazanka') {
+    return { ok: false, error: 'sazanka の回路データではありません' };
+  }
   if (typeof data.version !== 'number' || data.version > SHARE_VERSION) {
-    return { ok: false, error: '新しい版の sazanka で作られたデータのため読み込めません' };
+    return {
+      ok: false,
+      error: '新しい版の sazanka で作られたデータのため読み込めません',
+    };
   }
   const error = checkProject(data.project);
-  if (error) return { ok: false, error: `回路データが壊れています (${error})` };
+  if (error) {
+    return { ok: false, error: `回路データが壊れています (${error})` };
+  }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
   const project = withoutSwitchStates(data.project as Project);
-  return { ok: true, project: { ...project, circuits: project.circuits.map((d) => renameIds(d, newId, newId)) } };
+  return {
+    ok: true,
+    project: {
+      ...project,
+      circuits: project.circuits.map((d) => renameIds(d, newId, newId)),
+    },
+  };
 }

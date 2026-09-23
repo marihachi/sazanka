@@ -1,5 +1,11 @@
 import { useRef, useState } from 'react';
-import { clockPeriodOf, isClockPeriod, MAX_CLOCK_PERIOD, MIN_CLOCK_PERIOD, type Component } from '../engine/component';
+import {
+  clockPeriodOf,
+  isClockPeriod,
+  MAX_CLOCK_PERIOD,
+  MIN_CLOCK_PERIOD,
+  type Component,
+} from '../engine/component';
 import { classNames } from './classNames';
 import { LABELS } from './parts';
 import styles from './PropertyPanel.module.css';
@@ -31,11 +37,16 @@ export function PropertyPanel({
   onLabelChange,
 }: PropertyPanelProps) {
   return (
-    <aside className={classNames(styles.panel, !component && styles.idle)} aria-label="部品のプロパティ">
+    <aside
+      className={classNames(styles.panel, !component && styles.idle)}
+      aria-label="部品のプロパティ"
+    >
       <h3 className={styles.title}>プロパティ</h3>
       {component ? (
         <>
-          <p className={styles.kind}>{moduleName ?? LABELS[component.kind] ?? component.kind}</p>
+          <p className={styles.kind}>
+            {moduleName ?? LABELS[component.kind] ?? component.kind}
+          </p>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {component.kind === 'CLOCK' ? (
             <ClockPeriodField
@@ -46,13 +57,20 @@ export function PropertyPanel({
               onChange={onClockPeriodChange}
             />
           ) : component.kind === 'INPUT' || component.kind === 'OUTPUT' ? (
-            <LabelField key={component.id} component={component} onEditStart={onEditStart} onChange={onLabelChange} />
+            <LabelField
+              key={component.id}
+              component={component}
+              onEditStart={onEditStart}
+              onChange={onLabelChange}
+            />
           ) : (
             <p className={styles.empty}>この部品に設定できる項目はありません</p>
           )}
         </>
       ) : (
-        <p className={styles.empty}>部品を1つ選ぶと、その部品の項目を編集できます</p>
+        <p className={styles.empty}>
+          部品を1つ選ぶと、その部品の項目を編集できます
+        </p>
       )}
     </aside>
   );
@@ -66,7 +84,9 @@ function useEditSession(onEditStart: () => void) {
   const editing = useRef(false);
   return {
     begin() {
-      if (editing.current) return;
+      if (editing.current) {
+        return;
+      }
       onEditStart();
       editing.current = true;
     },
@@ -106,10 +126,14 @@ function LabelField({
         onBlur={session.end}
         onKeyDown={(e) => {
           // Enter で区切る。続けて変えたら、それは別の操作として元に戻せる
-          if (e.key === 'Enter') session.end();
+          if (e.key === 'Enter') {
+            session.end();
+          }
         }}
       />
-      <span className={styles.help}>モジュールの中では、ピンの名前になります</span>
+      <span className={styles.help}>
+        モジュールの中では、ピンの名前になります
+      </span>
     </label>
   );
 }
@@ -140,7 +164,9 @@ function ClockPeriodField({
   function change(next: string) {
     setText(next);
     const v = Number(next);
-    if (next.trim() === '' || !isClockPeriod(v) || v === period) return;
+    if (next.trim() === '' || !isClockPeriod(v) || v === period) {
+      return;
+    }
     session.begin();
     onChange(clock.id, v);
   }
@@ -166,7 +192,9 @@ function ClockPeriodField({
         onBlur={finish}
         onKeyDown={(e) => {
           // Enter で区切る。続けて変えたら、それは別の操作として元に戻せる
-          if (e.key === 'Enter') finish();
+          if (e.key === 'Enter') {
+            finish();
+          }
         }}
       />
       <span className={classNames(styles.help, !valid && styles.invalid)}>

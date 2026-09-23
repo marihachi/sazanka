@@ -19,10 +19,23 @@ interface ToolButtonProps {
  * アイコン付きのボタン (ヘッダー、シートのツールバー、タブの「+」で共有)。
  * 狭い画面では文字を隠してアイコンだけにする。文字は aria-label とツールチップに残す
  */
-export function ToolButton({ icon, label, title, onClick, disabled, iconOnly, danger }: ToolButtonProps) {
+export function ToolButton({
+  icon,
+  label,
+  title,
+  onClick,
+  disabled,
+  iconOnly,
+  danger,
+}: ToolButtonProps) {
   return (
     <button
-      className={classNames(styles.tool, iconOnly && styles.iconOnly, danger && styles.danger)}
+      type="button"
+      className={classNames(
+        styles.tool,
+        iconOnly && styles.iconOnly,
+        danger && styles.danger,
+      )}
       onClick={onClick}
       disabled={disabled}
       title={title ?? label}

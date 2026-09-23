@@ -44,7 +44,12 @@ export function Header({
         <span className="visually-hidden">sazanka</span>
       </h1>
       <nav className={styles.actions} aria-label="プロジェクトの操作">
-        <ToolButton icon={newIcon} label="新規作成" title="空のプロジェクトを新しく作る" onClick={onNew} />
+        <ToolButton
+          icon={newIcon}
+          label="新規作成"
+          title="空のプロジェクトを新しく作る"
+          onClick={onNew}
+        />
         <ToolButton
           icon={exportIcon}
           label="書き出し"
@@ -58,7 +63,13 @@ export function Header({
           onClick={onImport}
         />
         <ToolDivider />
-        <ToolButton icon={undoIcon} label="元に戻す" title="元に戻す (Ctrl+Z)" onClick={onUndo} disabled={!canUndo} />
+        <ToolButton
+          icon={undoIcon}
+          label="元に戻す"
+          title="元に戻す (Ctrl+Z)"
+          onClick={onUndo}
+          disabled={!canUndo}
+        />
         <ToolButton
           icon={redoIcon}
           label="やり直し"
@@ -68,10 +79,22 @@ export function Header({
         />
       </nav>
       <div className={styles.end}>
-        <button className={styles.about} onClick={onPreferences} title="環境設定" aria-label="環境設定">
+        <button
+          type="button"
+          className={styles.about}
+          onClick={onPreferences}
+          title="環境設定"
+          aria-label="環境設定"
+        >
           <MaskIcon src={preferencesIcon} className={styles.aboutIcon} />
         </button>
-        <button className={styles.about} onClick={onAbout} title="このアプリについて" aria-label="このアプリについて">
+        <button
+          type="button"
+          className={styles.about}
+          onClick={onAbout}
+          title="このアプリについて"
+          aria-label="このアプリについて"
+        >
           <MaskIcon src={infoIcon} className={styles.aboutIcon} />
         </button>
       </div>

@@ -8,7 +8,7 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/format.mjs\"",
             "timeout": 30,
-            "statusMessage": "Prettier で整形中"
+            "statusMessage": "Biome で整形中"
           }
         ]
       }

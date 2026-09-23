@@ -3,7 +3,12 @@ import type { Component } from '../engine/component';
 import { MAIN_ID, type CircuitDef, type Project } from '../engine/project';
 import { keepSwitchStates } from './switchStates';
 
-function comp(id: string, kind: Component['kind'], y = 0, extra: Partial<Component> = {}): Component {
+function comp(
+  id: string,
+  kind: Component['kind'],
+  y = 0,
+  extra: Partial<Component> = {},
+): Component {
   return { id, kind, x: 0, y, ...extra };
 }
 
@@ -15,11 +20,20 @@ describe('keepSwitchStates', () => {
   it('INPUT / CLOCK の ON/OFF だけ今の値を引き継ぎ、ほかは戻した状態のまま', () => {
     const restored: Project = {
       circuits: [
-        main([comp('i', 'INPUT', 0, { on: false }), comp('k', 'CLOCK', 0, { on: false }), comp('g', 'AND', 100)]),
+        main([
+          comp('i', 'INPUT', 0, { on: false }),
+          comp('k', 'CLOCK', 0, { on: false }),
+          comp('g', 'AND', 100),
+        ]),
       ],
     };
     const current: Project = {
-      circuits: [main([comp('i', 'INPUT', 40, { on: true }), comp('k', 'CLOCK', 0, { on: true })])],
+      circuits: [
+        main([
+          comp('i', 'INPUT', 40, { on: true }),
+          comp('k', 'CLOCK', 0, { on: true }),
+        ]),
+      ],
     };
     const merged = keepSwitchStates(restored, current);
     expect(merged.circuits[0].components).toEqual([

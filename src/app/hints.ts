@@ -56,12 +56,26 @@ export interface HintContext {
 
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する */
 export function statusHints(ctx: HintContext): string[] {
-  if (ctx.dragMode === 'trash') return ['離すと削除します'];
-  if (ctx.dragMode === 'moving') return ['左下の削除エリアで離すと削除します'];
-  if (ctx.placing) return ['クリックした位置に貼り付け ・ Esc で取り消し'];
-  if (ctx.wiring) return ['接続先の入力ピンをクリック ・ 何もないところのクリックで折れる点を追加 ・ Esc で取り消し'];
-  if (ctx.editing) return ['Enter で確定 ・ Esc で取り消し'];
-  if (ctx.wireSelected) return ['Delete で配線を削除 ・ 中央の縦線はドラッグで左右に動かせる'];
+  if (ctx.dragMode === 'trash') {
+    return ['離すと削除します'];
+  }
+  if (ctx.dragMode === 'moving') {
+    return ['左下の削除エリアで離すと削除します'];
+  }
+  if (ctx.placing) {
+    return ['クリックした位置に貼り付け ・ Esc で取り消し'];
+  }
+  if (ctx.wiring) {
+    return [
+      '接続先の入力ピンをクリック ・ 何もないところのクリックで折れる点を追加 ・ Esc で取り消し',
+    ];
+  }
+  if (ctx.editing) {
+    return ['Enter で確定 ・ Esc で取り消し'];
+  }
+  if (ctx.wireSelected) {
+    return ['Delete で配線を削除 ・ 中央の縦線はドラッグで左右に動かせる'];
+  }
   if (ctx.multipleSelected) {
     return [
       'ドラッグでまとめて移動',
@@ -72,14 +86,27 @@ export function statusHints(ctx: HintContext): string[] {
   }
   const c = ctx.selectedComponent;
   if (c) {
-    const move = ['ドラッグで移動', 'Delete か、左下の削除エリアへドラッグで削除'];
+    const move = [
+      'ドラッグで移動',
+      'Delete か、左下の削除エリアへドラッグで削除',
+    ];
     switch (c.kind) {
       case 'INPUT':
-        return ['クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる', ...move];
+        return [
+          'クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる',
+          ...move,
+        ];
       case 'OUTPUT':
-        return ['入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる', ...move];
+        return [
+          '入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる',
+          ...move,
+        ];
       case 'CUSTOM':
-        return ['ダブルクリックで中身を開く', 'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る', ...move];
+        return [
+          'ダブルクリックで中身を開く',
+          'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る',
+          ...move,
+        ];
       case 'HIGH':
         return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':
@@ -108,13 +135,23 @@ export function statusHints(ctx: HintContext): string[] {
       case 'DFF':
         return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
       case 'TFF':
-        return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
+        return [
+          'CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する',
+          ...move,
+        ];
       case 'JKFF':
-        return ['CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する', ...move];
+        return [
+          'CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する',
+          ...move,
+        ];
       default:
         return move;
     }
   }
-  if (ctx.unstable) return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];
+  if (ctx.unstable) {
+    return [
+      '発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている',
+    ];
+  }
   return ctx.inModule ? [...MODULE_HINTS, ...IDLE_HINTS] : IDLE_HINTS;
 }

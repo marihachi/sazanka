@@ -36,7 +36,9 @@ export function SheetToolbar({
       <ToolButton
         icon={running ? pauseIcon : playIcon}
         label={running ? '一時停止' : '再開'}
-        title={running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'}
+        title={
+          running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'
+        }
         onClick={onToggleRunning}
       />
       <ToolButton
@@ -55,7 +57,12 @@ export function SheetToolbar({
       />
       {onDeleteModule && (
         <div className={styles.end}>
-          <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
+          <ToolButton
+            icon={trashIcon}
+            label="モジュールを削除"
+            onClick={onDeleteModule}
+            danger
+          />
         </div>
       )}
     </div>

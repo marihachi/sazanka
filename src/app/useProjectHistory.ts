@@ -1,6 +1,13 @@
 import { useCallback, useState } from 'react';
 import type { Project } from '../engine/project';
-import { checkpoint, commit, initHistory, redo, replace, undo } from './history';
+import {
+  checkpoint,
+  commit,
+  initHistory,
+  redo,
+  replace,
+  undo,
+} from './history';
 import { keepSwitchStates } from './switchStates';
 
 type Update = React.SetStateAction<Project>;
@@ -18,9 +25,15 @@ export function useProjectHistory(initial: () => Project) {
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     /** 編集操作。元に戻せる */
-    commit: useCallback((u: Update) => setHistory((h) => commit(h, apply(u, h.present))), []),
+    commit: useCallback(
+      (u: Update) => setHistory((h) => commit(h, apply(u, h.present))),
+      [],
+    ),
     /** 元に戻す対象でない変更 (スイッチ、クロック、ドラッグ中の移動) */
-    replace: useCallback((u: Update) => setHistory((h) => replace(h, apply(u, h.present))), []),
+    replace: useCallback(
+      (u: Update) => setHistory((h) => replace(h, apply(u, h.present))),
+      [],
+    ),
     /** ここから後の replace を、1回の操作として元に戻せるようにする (ドラッグの開始時) */
     checkpoint: useCallback(() => setHistory(checkpoint), []),
     undo: useCallback(() => setHistory((h) => undo(h, keepSwitchStates)), []),
