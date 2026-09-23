@@ -2,7 +2,7 @@
 // モジュールは flatten.ts で展開してから評価する
 
 import { flattenProject } from './flatten';
-import { delayOf, type Component, inputCount, isFlipFlop, outputCount, type FlipFlopKind, CLK_PIN } from './component';
+import { delayOf, type Component, inputCount, isFlipFlopKind, outputCount, type FlipFlopKind, CLK_PIN } from './component';
 import type { Circuit, PinRef } from './circuit';
 import type { Project } from './project';
 
@@ -126,7 +126,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
       const k = pinKey(c.id, p);
       values.set(k, prev?.values.get(k) ?? false);
     }
-    if (isFlipFlop(c.kind)) flipFlops.set(c.id, { ...(prev?.flipFlops.get(c.id) ?? { q: false, clk: false }) });
+    if (isFlipFlopKind(c.kind)) flipFlops.set(c.id, { ...(prev?.flipFlops.get(c.id) ?? { q: false, clk: false }) });
   }
 
   // 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる配線は1本だけなので、1つに決まる
@@ -181,7 +181,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   for (const c of delayed) {
     const ins = inputsOf(c, now);
     let next: boolean[];
-    if (isFlipFlop(c.kind)) {
+    if (isFlipFlopKind(c.kind)) {
       // 状態はこの tick で更新する。CLK の値も一緒に記録するので、同じ立ち上がりで2回動くことはない
       const state = nextState(c.kind, ins, flipFlops.get(c.id)!);
       flipFlops.set(c.id, state);

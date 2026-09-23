@@ -1,8 +1,8 @@
 // プロジェクト (メイン回路と複数のモジュール) の構造と、外から来たデータの検証。
 // モジュールのピンの決め方と回路同士の依存は module.ts にある
 
-import { isClockPeriod, PLACEABLE_KINDS, type Component, type ComponentKind } from './component';
-import type { Circuit, Wire } from './circuit';
+import { isComponent } from './component';
+import { isWire, type Circuit } from './circuit';
 import { isObject } from './util';
 
 export const MAIN_ID = 'main';
@@ -48,35 +48,6 @@ export function withoutSwitchStates(project: Project): Project {
     ...project,
     circuits: project.circuits.map((d) => ({ ...d, components: d.components.map(({ on: _, ...c }) => c) })),
   };
-}
-
-function isPinRef(p: unknown): p is Wire['from'] {
-  return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
-}
-
-function isPoint(p: unknown): boolean {
-  return isObject(p) && typeof p.x === 'number' && typeof p.y === 'number';
-}
-
-function isWire(w: unknown): w is Wire {
-  return (
-    isObject(w) &&
-    typeof w.id === 'string' &&
-    isPinRef(w.from) &&
-    isPinRef(w.to) &&
-    (w.points === undefined || (Array.isArray(w.points) && w.points.every(isPoint)))
-  );
-}
-
-function isComponent(c: unknown): c is Component {
-  return (
-    isObject(c) &&
-    typeof c.id === 'string' &&
-    PLACEABLE_KINDS.has(c.kind as ComponentKind) &&
-    typeof c.x === 'number' &&
-    typeof c.y === 'number' &&
-    (c.period === undefined || isClockPeriod(c.period))
-  );
 }
 
 function checkCircuit(def: unknown): string | undefined {

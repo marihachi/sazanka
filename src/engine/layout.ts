@@ -1,6 +1,7 @@
 // シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置
 
-import { type Component, type Ports, isFlipFlop } from './component';
+import { type Component, isFlipFlopKind } from './component';
+import { Ports } from './module';
 
 export const GRID = 20;
 
@@ -26,7 +27,7 @@ function isTerminal(c: Component): boolean {
 export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
   if (isTerminal(c)) {
     return { w: 40, h: 40 };
-  } else if (isFlipFlop(c.kind)) {
+  } else if (isFlipFlopKind(c.kind)) {
     return { w: 60, h: 80 };
   } else if (c.kind === 'CUSTOM') {
     const n = Math.max(ports.inputs.length, ports.outputs.length, 1);
@@ -45,7 +46,7 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
   if (isTerminal(c)) {
     // 入力ピンがあるのは OUTPUT だけ (1本)
     y = c.y + h / 2;
-  } else if (isFlipFlop(c.kind)) {
+  } else if (isFlipFlopKind(c.kind)) {
     y = c.y + GRID * (pin + 1);
   } else if (c.kind === 'CUSTOM') {
     y = c.y + GRID * (pin + 1);
@@ -64,7 +65,7 @@ export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
   if (isTerminal(c)) {
     // 出力ピンがあるのは OUTPUT 以外 (1本)
     y = c.y + h / 2;
-  } else if (isFlipFlop(c.kind)) {
+  } else if (isFlipFlopKind(c.kind)) {
     // Q と Q̄ は上下端から1グリッド内側
     y = pin === 0 ? c.y + GRID : c.y + h - GRID;
   } else if (c.kind === 'CUSTOM') {

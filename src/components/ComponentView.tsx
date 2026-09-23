@@ -1,8 +1,9 @@
-import type { Component, Ports, ComponentKind } from '../engine/component';
+import type { Component, ComponentKind } from '../engine/component';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
+import { Ports } from '../engine/module';
 import { classNames } from './classNames';
-import { LABELS } from './parts';
 import styles from './ComponentView.module.css';
+import { LABELS } from './parts';
 
 /** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
 const BODY_LABELS: Partial<Record<ComponentKind, string>> = { RS: 'RS', RSEN: 'RS', DLATCH: 'DL' };
