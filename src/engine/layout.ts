@@ -17,7 +17,12 @@ export function snap(v: number): number {
 
 /** 入出力の部品 (INPUT、CLOCK、HIGH、OUTPUT)。どれも小さな正方形で、ピンは中央に1本 */
 function isTerminal(c: Component): boolean {
-  return c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'HIGH' || c.kind === 'OUTPUT';
+  return (
+    c.kind === 'INPUT' ||
+    c.kind === 'CLOCK' ||
+    c.kind === 'HIGH' ||
+    c.kind === 'OUTPUT'
+  );
 }
 
 /**
@@ -52,8 +57,11 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
     y = c.y + GRID * (pin + 1);
   } else {
     // 論理ゲート: 1入力 (NOT、BUF) は中央、2入力は上下端から1グリッド内側
-    if (ports.inputs.length === 1) y = c.y + h / 2;
-    else y = pin === 0 ? c.y + GRID : c.y + h - GRID;
+    if (ports.inputs.length === 1) {
+      y = c.y + h / 2;
+    } else {
+      y = pin === 0 ? c.y + GRID : c.y + h - GRID;
+    }
   }
   return { x: c.x - GRID, y };
 }
@@ -87,7 +95,10 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
   // 左右はピンの先端まで、上はモジュール名 (本体の上に描く) の分も含める
   const minX = GRID;
   const minY = c.kind === 'CUSTOM' ? GRID : 0;
-  const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID);
+  const maxX = Math.max(
+    minX,
+    Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID,
+  );
   const maxY = Math.max(minY, Math.floor((SHEET_HEIGHT - h) / GRID) * GRID);
   return {
     x: Math.min(Math.max(p.x, minX), maxX),
@@ -100,7 +111,10 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
  * 部品の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
  * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
  */
-export function clampMove(items: { c: Component; ports: Ports }[], delta: Point): Point {
+export function clampMove(
+  items: { c: Component; ports: Ports }[],
+  delta: Point,
+): Point {
   let d = delta;
   for (const { c, ports } of items) {
     const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
@@ -119,7 +133,12 @@ export interface Rect {
 
 export function componentBounds(c: Component, ports: Ports): Rect {
   const { w, h } = bodySize(c, ports);
-  return { left: c.x - GRID, top: c.kind === 'CUSTOM' ? c.y - GRID : c.y, right: c.x + w + GRID, bottom: c.y + h };
+  return {
+    left: c.x - GRID,
+    top: c.kind === 'CUSTOM' ? c.y - GRID : c.y,
+    right: c.x + w + GRID,
+    bottom: c.y + h,
+  };
 }
 
 /**
@@ -127,7 +146,11 @@ export function componentBounds(c: Component, ports: Ports): Rect {
  * 点と点の間は縦横の線でつなぐ。出力ピンからは横に出て、入力ピンへは横から入るよう、
  * 最後の区間だけ縦→横、ほかは横→縦の順に曲がる。折れる点がなければ、中間で1回折れる形にする
  */
-export function wireRoute(from: Point, points: readonly Point[], to: Point): Point[] {
+export function wireRoute(
+  from: Point,
+  points: readonly Point[],
+  to: Point,
+): Point[] {
   const route: Point[] = [from];
   if (points.length === 0) {
     const mid = snap((from.x + to.x) / 2);
@@ -149,7 +172,9 @@ export function wireRoute(from: Point, points: readonly Point[], to: Point): Poi
  * 両端が同じ高さのときなどに、長さ 0 の区間や、曲がらない「角」が残らないようにする
  */
 function simplify(route: Point[]): Point[] {
-  const distinct = route.filter((p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y);
+  const distinct = route.filter(
+    (p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y,
+  );
   return distinct.filter((p, i) => {
     if (i === 0 || i === distinct.length - 1) return true;
     const [a, b] = [distinct[i - 1], distinct[i + 1]];

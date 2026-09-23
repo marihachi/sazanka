@@ -1,5 +1,15 @@
-import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
-import { DEFAULT_PREFERENCES, isAccent, isTickMs, type Preferences } from '../components/preferences';
+import {
+  checkProject,
+  emptyProject,
+  withoutSwitchStates,
+  type Project,
+} from '../engine/project';
+import {
+  DEFAULT_PREFERENCES,
+  isAccent,
+  isTickMs,
+  type Preferences,
+} from '../components/preferences';
 import { isView, type View } from '../components/view';
 import { isObject } from '../engine/util';
 
@@ -35,29 +45,47 @@ export function loadProject(): LoadResult {
 
 /** 保存されていた文字列を読み込む (localStorage に触らない部分) */
 export function readStored(raw: string | null): LoadResult {
-  if (!raw) return { project: emptyProject() };
+  if (!raw) {
+    return { project: emptyProject() };
+  }
   let data: unknown;
   try {
     data = JSON.parse(raw);
   } catch {
-    return { project: emptyProject(), error: '保存データが壊れていたため読み込めませんでした。' };
+    return {
+      project: emptyProject(),
+      error: '保存データが壊れていたため読み込めませんでした。',
+    };
   }
   if (!isObject(data) || typeof data.version !== 'number') {
-    return { project: emptyProject(), error: '保存データが壊れていたため読み込めませんでした。' };
+    return {
+      project: emptyProject(),
+      error: '保存データが壊れていたため読み込めませんでした。',
+    };
   }
   if (data.version > STORAGE_VERSION) {
-    return { project: emptyProject(), error: '新しい版の sazanka で保存されたデータのため読み込めませんでした。' };
+    return {
+      project: emptyProject(),
+      error:
+        '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
+    };
   }
   const { project } = data as unknown as StoredData;
   if (checkProject(project) !== undefined) {
-    return { project: emptyProject(), error: '保存データが壊れていたため読み込めませんでした。' };
+    return {
+      project: emptyProject(),
+      error: '保存データが壊れていたため読み込めませんでした。',
+    };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
   return { project: withoutSwitchStates(project as Project) };
 }
 
 export function saveProject(project: Project) {
-  const data: StoredData = { version: STORAGE_VERSION, project: withoutSwitchStates(project) };
+  const data: StoredData = {
+    version: STORAGE_VERSION,
+    project: withoutSwitchStates(project),
+  };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
@@ -70,8 +98,12 @@ const COLLAPSED_KEY = 'sazanka.paletteCollapsed';
 /** パレットで折り畳んでいるグループの ID (Palette.tsx の GROUPS)。知らない ID は無視される */
 export function loadCollapsedGroups(): string[] {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]');
-    return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+    const value: unknown = JSON.parse(
+      localStorage.getItem(COLLAPSED_KEY) ?? '[]',
+    );
+    return Array.isArray(value)
+      ? value.filter((v) => typeof v === 'string')
+      : [];
   } catch {
     return [];
   }
@@ -91,8 +123,14 @@ const VIEWS_KEY = 'sazanka.views';
 export function loadViews(): Record<string, View> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(VIEWS_KEY) ?? '{}');
-    if (!isObject(value)) return {};
-    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, View] => isView(entry[1])));
+    if (!isObject(value)) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(value).filter((entry): entry is [string, View] =>
+        isView(entry[1]),
+      ),
+    );
   } catch {
     return {};
   }
@@ -111,13 +149,25 @@ const PREFERENCES_KEY = 'sazanka.preferences';
 /** 利用者ごとの環境設定。読めない項目は既定値にする */
 export function loadPreferences(): Preferences {
   try {
-    const value: unknown = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}');
+    const value: unknown = JSON.parse(
+      localStorage.getItem(PREFERENCES_KEY) ?? '{}',
+    );
     if (!isObject(value)) return DEFAULT_PREFERENCES;
     return {
-      tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
-      showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
-      roundWires: typeof value.roundWires === 'boolean' ? value.roundWires : DEFAULT_PREFERENCES.roundWires,
-      accent: isAccent(value.accent) ? value.accent : DEFAULT_PREFERENCES.accent,
+      tickMs: isTickMs(value.tickMs)
+        ? value.tickMs
+        : DEFAULT_PREFERENCES.tickMs,
+      showGrid:
+        typeof value.showGrid === 'boolean'
+          ? value.showGrid
+          : DEFAULT_PREFERENCES.showGrid,
+      roundWires:
+        typeof value.roundWires === 'boolean'
+          ? value.roundWires
+          : DEFAULT_PREFERENCES.roundWires,
+      accent: isAccent(value.accent)
+        ? value.accent
+        : DEFAULT_PREFERENCES.accent,
     };
   } catch {
     return DEFAULT_PREFERENCES;

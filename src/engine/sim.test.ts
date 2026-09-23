@@ -19,7 +19,12 @@ function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
 }
 
 /** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
-function settleProject(project: Project, id: string, prev?: SimResult, ticks = 30): SimResult {
+function settleProject(
+  project: Project,
+  id: string,
+  prev?: SimResult,
+  ticks = 30,
+): SimResult {
   let r = prev;
   for (let i = 0; i < ticks; i++) {
     r = step(project, id, r);
@@ -73,14 +78,22 @@ describe('simulate', () => {
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
         { id: 'g', kind, x: 0, y: 0 },
       ],
-      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
+      wires: [
+        { id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
+      ],
     });
     return r.values.get('g:0')!;
   }
 
   it('NOT は反転し、BUF はそのまま出す', () => {
-    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([true, false]);
-    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([false, true]);
+    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([
+      true,
+      false,
+    ]);
+    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([
+      false,
+      true,
+    ]);
   });
 
   it('何もつながっていない入力ピンは OFF として扱う', () => {
@@ -102,14 +115,19 @@ describe('simulate', () => {
         { id: 'h', kind: 'HIGH', x: 0, y: 0 },
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
       ],
-      wires: [{ id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+      wires: [
+        { id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } },
+      ],
     });
     expect(r.values.get('h:0')).toBe(true);
     expect(r.values.get('n:0')).toBe(false);
   });
 
   it('CLOCK は on の値をそのまま出す', () => {
-    const r = settle({ components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }], wires: [] });
+    const r = settle({
+      components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }],
+      wires: [],
+    });
     expect(r.values.get('k:0')).toBe(true);
   });
 
@@ -118,7 +136,9 @@ describe('simulate', () => {
     const r = settle(
       {
         components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
-        wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+        wires: [
+          { id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } },
+        ],
       },
       undefined,
       80,
@@ -158,10 +178,20 @@ describe('simulate', () => {
     function build(kind: FlipFlopKind, ins: boolean[]): Circuit {
       return {
         components: [
-          ...ins.map((on, i): Component => ({ id: `in${i}`, kind: 'INPUT', x: 0, y: 0, on })),
+          ...ins.map((on, i): Component => ({
+            id: `in${i}`,
+            kind: 'INPUT',
+            x: 0,
+            y: 0,
+            on,
+          })),
           { id: 'f', kind, x: 0, y: 0 },
         ],
-        wires: ins.map((_, i) => ({ id: `w${i}`, from: { comp: `in${i}`, pin: 0 }, to: { comp: 'f', pin: i } })),
+        wires: ins.map((_, i) => ({
+          id: `w${i}`,
+          from: { comp: `in${i}`, pin: 0 },
+          to: { comp: 'f', pin: i },
+        })),
       };
     }
 
@@ -241,12 +271,21 @@ describe('simulate', () => {
   });
 });
 
-function comp(id: string, kind: Component['kind'], y = 0, extra: Partial<Component> = {}): Component {
+function comp(
+  id: string,
+  kind: Component['kind'],
+  y = 0,
+  extra: Partial<Component> = {},
+): Component {
   return { id, kind, x: 0, y, ...extra };
 }
 
 function wire(from: string, fromPin: number, to: string, toPin: number): Wire {
-  return { id: `${from}.${fromPin}-${to}.${toPin}`, from: { comp: from, pin: fromPin }, to: { comp: to, pin: toPin } };
+  return {
+    id: `${from}.${fromPin}-${to}.${toPin}`,
+    from: { comp: from, pin: fromPin },
+    to: { comp: to, pin: toPin },
+  };
 }
 
 /** 半加算器: 入力 A, B / 出力 S, C */
@@ -297,14 +336,21 @@ const fullAdder: CircuitDef = {
   ],
 };
 
-function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): CircuitDef {
+function mainWith(
+  custom: string,
+  nIn: number,
+  nOut: number,
+  ins: boolean[],
+): CircuitDef {
   return {
     id: MAIN_ID,
     name: 'メイン',
     components: [
       ...ins.map((on, i) => comp(`i${i}`, 'INPUT', i * 20, { on })),
       comp('u', 'CUSTOM', 0, { custom }),
-      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT', j * 20)),
+      ...Array.from({ length: nOut }, (_, j) =>
+        comp(`o${j}`, 'OUTPUT', j * 20),
+      ),
     ],
     wires: [
       ...Array.from({ length: nIn }, (_, i) => wire(`i${i}`, 0, 'u', i)),
@@ -315,7 +361,9 @@ function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): Ci
 
 describe('モジュール', () => {
   it('ピン名は INPUT / OUTPUT のラベルを上から順に並べたもの', () => {
-    const project: Project = { circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder] };
+    const project: Project = {
+      circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
+    };
     expect(portsOf(comp('u', 'CUSTOM', 0, { custom: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
@@ -329,9 +377,14 @@ describe('モジュール', () => {
       [true, false],
       [true, true],
     ]) {
-      const project: Project = { circuits: [mainWith('ha', 2, 2, [a, b]), halfAdder] };
+      const project: Project = {
+        circuits: [mainWith('ha', 2, 2, [a, b]), halfAdder],
+      };
       const r = settleProject(project, MAIN_ID);
-      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([a !== b, a && b]);
+      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([
+        a !== b,
+        a && b,
+      ]);
       // 最上位のモジュールの出力ピンにも値が入る
       expect(r.values.get('u:1')).toBe(a && b);
     }
@@ -340,10 +393,15 @@ describe('モジュール', () => {
   it('入れ子のモジュール (全加算器)', () => {
     for (let n = 0; n < 8; n++) {
       const ins = [!!(n & 1), !!(n & 2), !!(n & 4)];
-      const project: Project = { circuits: [mainWith('fa', 3, 2, ins), halfAdder, fullAdder] };
+      const project: Project = {
+        circuits: [mainWith('fa', 3, 2, ins), halfAdder, fullAdder],
+      };
       const r = settleProject(project, MAIN_ID);
       const sum = ins.filter(Boolean).length;
-      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([sum % 2 === 1, sum >= 2]);
+      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([
+        sum % 2 === 1,
+        sum >= 2,
+      ]);
     }
   });
 
@@ -351,12 +409,25 @@ describe('モジュール', () => {
     const reg: CircuitDef = {
       id: 'reg',
       name: 'Reg',
-      components: [comp('d', 'INPUT', 0), comp('clk', 'INPUT', 20), comp('ff', 'DFF'), comp('q', 'OUTPUT')],
-      wires: [wire('d', 0, 'ff', 0), wire('clk', 0, 'ff', 1), wire('ff', 0, 'q', 0)],
+      components: [
+        comp('d', 'INPUT', 0),
+        comp('clk', 'INPUT', 20),
+        comp('ff', 'DFF'),
+        comp('q', 'OUTPUT'),
+      ],
+      wires: [
+        wire('d', 0, 'ff', 0),
+        wire('clk', 0, 'ff', 1),
+        wire('ff', 0, 'q', 0),
+      ],
     };
     let r: SimResult | undefined;
     const step = (d: boolean, clk: boolean) => {
-      r = settleProject({ circuits: [mainWith('reg', 2, 1, [d, clk]), reg] }, MAIN_ID, r);
+      r = settleProject(
+        { circuits: [mainWith('reg', 2, 1, [d, clk]), reg] },
+        MAIN_ID,
+        r,
+      );
       return r.values.get('o0:0');
     };
     expect(step(true, false)).toBe(false);
@@ -377,8 +448,18 @@ describe('モジュール', () => {
   });
 
   it('循環参照は展開しない', () => {
-    const a: CircuitDef = { id: 'a', name: 'A', components: [comp('s', 'CUSTOM', 0, { custom: 'b' })], wires: [] };
-    const b: CircuitDef = { id: 'b', name: 'B', components: [comp('s', 'CUSTOM', 0, { custom: 'a' })], wires: [] };
+    const a: CircuitDef = {
+      id: 'a',
+      name: 'A',
+      components: [comp('s', 'CUSTOM', 0, { custom: 'b' })],
+      wires: [],
+    };
+    const b: CircuitDef = {
+      id: 'b',
+      name: 'B',
+      components: [comp('s', 'CUSTOM', 0, { custom: 'a' })],
+      wires: [],
+    };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };
     expect(dependsOn(project, 'a', 'b')).toBe(true);
     expect(dependsOn(project, 'b', 'a')).toBe(true);

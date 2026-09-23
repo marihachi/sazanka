@@ -3,7 +3,11 @@ import type { Component } from './component';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import { circuitsUsing, dependsOn, portComponents, portsOf } from './module';
 
-function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
+function comp(
+  id: string,
+  kind: Component['kind'],
+  extra: Partial<Component> = {},
+): Component {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -11,8 +15,18 @@ describe('circuitsUsing', () => {
   it('モジュールを直接置いている回路を返す', () => {
     const project: Project = {
       circuits: [
-        { id: MAIN_ID, name: 'メイン', components: [comp('m', 'CUSTOM', { custom: 'a' })], wires: [] },
-        { id: 'a', name: 'A', components: [comp('n', 'CUSTOM', { custom: 'b' })], wires: [] },
+        {
+          id: MAIN_ID,
+          name: 'メイン',
+          components: [comp('m', 'CUSTOM', { custom: 'a' })],
+          wires: [],
+        },
+        {
+          id: 'a',
+          name: 'A',
+          components: [comp('n', 'CUSTOM', { custom: 'b' })],
+          wires: [],
+        },
         { id: 'b', name: 'B', components: [], wires: [] },
       ],
     };
@@ -55,26 +69,57 @@ describe('モジュールのピン', () => {
         },
       ],
     };
-    expect(portsOf(comp('u', 'CUSTOM', { custom: 'm' }), project)).toEqual({ inputs: ['A', ''], outputs: ['S'] });
+    expect(portsOf(comp('u', 'CUSTOM', { custom: 'm' }), project)).toEqual({
+      inputs: ['A', ''],
+      outputs: ['S'],
+    });
     // 参照先がなければピンなし
-    expect(portsOf(comp('u', 'CUSTOM', { custom: 'ない' }), project)).toEqual({ inputs: [], outputs: [] });
+    expect(portsOf(comp('u', 'CUSTOM', { custom: 'ない' }), project)).toEqual({
+      inputs: [],
+      outputs: [],
+    });
   });
 
   it('モジュール以外のピン名は種類で決まる', () => {
     const project = emptyProject();
-    expect(portsOf(comp('g', 'AND'), project)).toEqual({ inputs: ['', ''], outputs: [''] });
-    expect(portsOf(comp('n', 'NOT'), project)).toEqual({ inputs: [''], outputs: [''] });
-    expect(portsOf(comp('f', 'JKFF'), project)).toEqual({ inputs: ['J', '>', 'K'], outputs: ['Q', 'Q̄'] });
-    expect(portsOf(comp('i', 'INPUT'), project)).toEqual({ inputs: [], outputs: [''] });
-    expect(portsOf(comp('o', 'OUTPUT'), project)).toEqual({ inputs: [''], outputs: [] });
+    expect(portsOf(comp('g', 'AND'), project)).toEqual({
+      inputs: ['', ''],
+      outputs: [''],
+    });
+    expect(portsOf(comp('n', 'NOT'), project)).toEqual({
+      inputs: [''],
+      outputs: [''],
+    });
+    expect(portsOf(comp('f', 'JKFF'), project)).toEqual({
+      inputs: ['J', '>', 'K'],
+      outputs: ['Q', 'Q̄'],
+    });
+    expect(portsOf(comp('i', 'INPUT'), project)).toEqual({
+      inputs: [],
+      outputs: [''],
+    });
+    expect(portsOf(comp('o', 'OUTPUT'), project)).toEqual({
+      inputs: [''],
+      outputs: [],
+    });
   });
 });
 
 describe('dependsOn', () => {
   const project: Project = {
     circuits: [
-      { id: MAIN_ID, name: 'メイン', components: [comp('u', 'CUSTOM', { custom: 'a' })], wires: [] },
-      { id: 'a', name: 'A', components: [comp('u', 'CUSTOM', { custom: 'b' })], wires: [] },
+      {
+        id: MAIN_ID,
+        name: 'メイン',
+        components: [comp('u', 'CUSTOM', { custom: 'a' })],
+        wires: [],
+      },
+      {
+        id: 'a',
+        name: 'A',
+        components: [comp('u', 'CUSTOM', { custom: 'b' })],
+        wires: [],
+      },
       { id: 'b', name: 'B', components: [], wires: [] },
     ],
   };

@@ -39,9 +39,21 @@ const ICONS: Partial<Record<ComponentKind, string>> = {
 };
 
 /** SVG をマスクとして使い、文字色 (currentColor) で塗るアイコン。大きさは className で指定する */
-export function MaskIcon({ src, className }: { src: string; className: string }) {
+export function MaskIcon({
+  src,
+  className,
+}: {
+  src: string;
+  className: string;
+}) {
   const mask = `url("${src}") center / contain no-repeat`;
-  return <span className={className} aria-hidden="true" style={{ mask, WebkitMask: mask }} />;
+  return (
+    <span
+      className={className}
+      aria-hidden="true"
+      style={{ mask, WebkitMask: mask }}
+    />
+  );
 }
 
 /** ツールバーなどのボタンに付けるアイコン (16×16) */
@@ -51,5 +63,7 @@ export function ToolIcon({ src }: { src: string }) {
 
 /** 部品の種類ごとのアイコン (32×24) */
 export function PartIcon({ kind }: { kind: ComponentKind }) {
-  return <MaskIcon src={ICONS[kind] ?? moduleIcon} className={styles.partIcon} />;
+  return (
+    <MaskIcon src={ICONS[kind] ?? moduleIcon} className={styles.partIcon} />
+  );
 }

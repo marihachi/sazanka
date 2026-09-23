@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { checkpoint, commit, initHistory, redo, replace, undo } from './history';
+import {
+  checkpoint,
+  commit,
+  initHistory,
+  redo,
+  replace,
+  undo,
+} from './history';
 
 describe('history', () => {
   it('commit した状態を undo / redo で行き来できる', () => {
@@ -41,21 +48,29 @@ describe('history', () => {
   it('checkpoint 以降の replace は1回の操作として戻せる (ドラッグ)', () => {
     let h = initHistory('x=0');
     h = checkpoint(h);
-    for (const s of ['x=1', 'x=2', 'x=3']) h = replace(h, s);
+    for (const s of ['x=1', 'x=2', 'x=3']) {
+      h = replace(h, s);
+    }
     h = undo(h);
     expect(h.present).toBe('x=0');
     expect(redo(h).present).toBe('x=3');
   });
 
   it('merge で今の状態の一部を引き継げる', () => {
-    let h = commit(initHistory({ shape: 'a', on: false }), { shape: 'b', on: false });
+    let h = commit(initHistory({ shape: 'a', on: false }), {
+      shape: 'b',
+      on: false,
+    });
     h = replace(h, { ...h.present, on: true }); // スイッチ操作は履歴に積まない
     h = undo(h, (restored, current) => ({ ...restored, on: current.on }));
     expect(h.present).toEqual({ shape: 'a', on: true });
   });
 
   it('redo でも merge で今の状態の一部を引き継げる', () => {
-    let h = commit(initHistory({ shape: 'a', on: false }), { shape: 'b', on: false });
+    let h = commit(initHistory({ shape: 'a', on: false }), {
+      shape: 'b',
+      on: false,
+    });
     h = undo(h);
     h = replace(h, { ...h.present, on: true });
     h = redo(h, (restored, current) => ({ ...restored, on: current.on }));
@@ -64,7 +79,9 @@ describe('history', () => {
 
   it('履歴は上限を超えると古いものから捨てる', () => {
     let h = initHistory(0);
-    for (let i = 1; i <= 150; i++) h = commit(h, i);
+    for (let i = 1; i <= 150; i++) {
+      h = commit(h, i);
+    }
     expect(h.past.length).toBe(100);
     expect(h.past[0]).toBe(50);
   });

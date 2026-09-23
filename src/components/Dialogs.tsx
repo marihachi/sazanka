@@ -27,7 +27,14 @@ interface InlineInputProps {
 }
 
 /** その場で文字を編集する入力欄。表示と同時にフォーカスし、全選択する */
-export function InlineInput({ initial, className, style, placeholder, onCommit, onCancel }: InlineInputProps) {
+export function InlineInput({
+  initial,
+  className,
+  style,
+  placeholder,
+  onCommit,
+  onCancel,
+}: InlineInputProps) {
   const ref = useRef<HTMLInputElement>(null);
   // Enter で確定した直後の blur で二重に確定しないようにする
   const done = useRef(false);
@@ -40,8 +47,11 @@ export function InlineInput({ initial, className, style, placeholder, onCommit, 
   function finish(commit: boolean) {
     if (done.current) return;
     done.current = true;
-    if (commit) onCommit(ref.current!.value);
-    else onCancel();
+    if (commit) {
+      onCommit(ref.current!.value);
+    } else {
+      onCancel();
+    }
   }
 
   return (
@@ -52,8 +62,12 @@ export function InlineInput({ initial, className, style, placeholder, onCommit, 
       defaultValue={initial}
       placeholder={placeholder}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') finish(true);
-        if (e.key === 'Escape') finish(false);
+        if (e.key === 'Enter') {
+          finish(true);
+        }
+        if (e.key === 'Escape') {
+          finish(false);
+        }
       }}
       onBlur={() => finish(true)}
       onPointerDown={(e) => e.stopPropagation()}
@@ -71,7 +85,13 @@ export interface DialogRequest {
 }
 
 /** 画面内のモーダルダイアログ */
-export function Dialog({ request, onClose }: { request: DialogRequest; onClose: () => void }) {
+export function Dialog({
+  request,
+  onClose,
+}: {
+  request: DialogRequest;
+  onClose: () => void;
+}) {
   const confirmRef = useRef<HTMLButtonElement>(null);
   useEffect(() => confirmRef.current?.focus(), []);
 
@@ -83,7 +103,9 @@ export function Dialog({ request, onClose }: { request: DialogRequest; onClose: 
         aria-modal="true"
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
+          if (e.key === 'Escape') {
+            onClose();
+          }
         }}
       >
         <p>{request.message}</p>
@@ -116,7 +138,13 @@ export interface PromptRequest {
 }
 
 /** 文字を1つ入力してもらう画面内のダイアログ */
-export function PromptDialog({ request, onClose }: { request: PromptRequest; onClose: () => void }) {
+export function PromptDialog({
+  request,
+  onClose,
+}: {
+  request: PromptRequest;
+  onClose: () => void;
+}) {
   const [value, setValue] = useState(request.initial);
   const [touched, setTouched] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -145,7 +173,9 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
         onSubmit={submit}
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
+          if (e.key === 'Escape') {
+            onClose();
+          }
         }}
       >
         <h2 id="prompt-title">{request.title}</h2>
@@ -165,7 +195,11 @@ export function PromptDialog({ request, onClose }: { request: PromptRequest; onC
           <button type="button" onClick={onClose}>
             キャンセル
           </button>
-          <button type="submit" className={styles.primary} disabled={touched && !!error}>
+          <button
+            type="submit"
+            className={styles.primary}
+            disabled={touched && !!error}
+          >
             {request.confirmLabel}
           </button>
         </div>
@@ -196,10 +230,18 @@ export interface TextRequest {
 }
 
 /** 複数行の文字列を見せる・入力してもらう画面内のダイアログ */
-export function TextDialog({ request, onClose }: { request: TextRequest; onClose: () => void }) {
+export function TextDialog({
+  request,
+  onClose,
+}: {
+  request: TextRequest;
+  onClose: () => void;
+}) {
   const [value, setValue] = useState(request.initial);
   const [fieldValue, setFieldValue] = useState(request.field?.initial ?? '');
-  const [status, setStatus] = useState<{ error: boolean; text: string } | null>(null);
+  const [status, setStatus] = useState<{ error: boolean; text: string } | null>(
+    null,
+  );
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -210,9 +252,13 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const error = await request.onSubmit(value);
-    if (error) setStatus({ error: true, text: error });
-    else if (request.doneMessage) setStatus({ error: false, text: request.doneMessage });
-    else onClose();
+    if (error) {
+      setStatus({ error: true, text: error });
+    } else if (request.doneMessage) {
+      setStatus({ error: false, text: request.doneMessage });
+    } else {
+      onClose();
+    }
   }
 
   return (
@@ -225,7 +271,9 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
         onSubmit={submit}
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
+          if (e.key === 'Escape') {
+            onClose();
+          }
         }}
       >
         <h2 id="text-title">{request.title}</h2>
@@ -240,7 +288,9 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
                 setFieldValue(e.target.value);
                 setStatus(null);
                 const text = request.field!.onChange(e.target.value);
-                if (text !== undefined) setValue(text);
+                if (text !== undefined) {
+                  setValue(text);
+                }
               }}
             />
           </label>
@@ -256,7 +306,14 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
             setStatus(null);
           }}
         />
-        <p className={classNames(styles.fieldError, status && !status.error && styles.done)}>{status?.text ?? ' '}</p>
+        <p
+          className={classNames(
+            styles.fieldError,
+            status && !status.error && styles.done,
+          )}
+        >
+          {status?.text ?? ' '}
+        </p>
         <div className={styles.dialogButtons}>
           <button type="button" onClick={onClose}>
             {request.readOnly ? '閉じる' : 'キャンセル'}
@@ -284,23 +341,32 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
         aria-labelledby="about-title"
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
+          if (e.key === 'Escape') {
+            onClose();
+          }
         }}
       >
         <h2 id="about-title" className={styles.aboutTitle}>
           <MaskIcon src={logo} className={styles.aboutLogo} />
           <span className="visually-hidden">sazanka について</span>
         </h2>
-        <p className={styles.aboutText}>ブラウザで動く論理回路シミュレータです。</p>
+        <p className={styles.aboutText}>
+          ブラウザで動く論理回路シミュレータです。
+        </p>
         <ul className={styles.links}>
           <li>
-            <a href="https://github.com/marihachi/sazanka" target="_blank" rel="noreferrer noopener">
+            <a
+              href="https://github.com/marihachi/sazanka"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
               GitHub リポジトリ
             </a>
           </li>
         </ul>
         <p className={styles.note}>
-          MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL) というフォントを使っています。
+          MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL)
+          というフォントを使っています。
         </p>
         {/* 同梱しているライブラリのライセンス文。MIT などは配布物に含めることが条件なので、必ず表示する */}
         <details className={styles.licenses}>
@@ -349,7 +415,9 @@ export function PreferencesDialog({
         aria-labelledby="preferences-title"
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
+          if (e.key === 'Escape') {
+            onClose();
+          }
         }}
       >
         <h2 id="preferences-title">環境設定</h2>
@@ -366,7 +434,9 @@ export function PreferencesDialog({
             onChange={(e) => {
               setTickText(e.target.value);
               const v = Number(e.target.value);
-              if (e.target.value.trim() !== '' && isTickMs(v)) onChange({ ...preferences, tickMs: v });
+              if (e.target.value.trim() !== '' && isTickMs(v)) {
+                onChange({ ...preferences, tickMs: v });
+              }
             }}
             // 使えない値のまま離れたら、今の値に戻す
             onBlur={() => setTickText(String(preferences.tickMs))}
@@ -381,7 +451,9 @@ export function PreferencesDialog({
           <input
             type="checkbox"
             checked={preferences.showGrid}
-            onChange={(e) => onChange({ ...preferences, showGrid: e.target.checked })}
+            onChange={(e) =>
+              onChange({ ...preferences, showGrid: e.target.checked })
+            }
           />
           シートに方眼を表示する
         </label>
@@ -389,18 +461,27 @@ export function PreferencesDialog({
           <input
             type="checkbox"
             checked={preferences.roundWires}
-            onChange={(e) => onChange({ ...preferences, roundWires: e.target.checked })}
+            onChange={(e) =>
+              onChange({ ...preferences, roundWires: e.target.checked })
+            }
           />
           配線の角を丸める
         </label>
         <div className={styles.field}>
           <span id="accent-label">アクセントカラー</span>
-          <div className={styles.swatches} role="group" aria-labelledby="accent-label">
+          <div
+            className={styles.swatches}
+            role="group"
+            aria-labelledby="accent-label"
+          >
             {ACCENT_PRESETS.map((p) => (
               <button
                 key={p.value}
                 type="button"
-                className={classNames(styles.swatch, preferences.accent === p.value && styles.current)}
+                className={classNames(
+                  styles.swatch,
+                  preferences.accent === p.value && styles.current,
+                )}
                 style={{ background: p.value }}
                 title={p.label}
                 aria-label={p.label}
@@ -415,7 +496,9 @@ export function PreferencesDialog({
               value={preferences.accent}
               title="ほかの色を選ぶ"
               aria-label="ほかの色を選ぶ"
-              onChange={(e) => onChange({ ...preferences, accent: e.target.value })}
+              onChange={(e) =>
+                onChange({ ...preferences, accent: e.target.value })
+              }
             />
           </div>
         </div>

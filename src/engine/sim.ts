@@ -2,7 +2,15 @@
 // モジュールは flatten.ts で展開してから評価する
 
 import { flattenProject } from './flatten';
-import { delayOf, type Component, inputCount, isFlipFlopKind, outputCount, type FlipFlopKind, CLK_PIN } from './component';
+import {
+  delayOf,
+  type Component,
+  inputCount,
+  isFlipFlopKind,
+  outputCount,
+  type FlipFlopKind,
+  CLK_PIN,
+} from './component';
 import type { Circuit, PinRef } from './circuit';
 import type { Project } from './project';
 
@@ -74,7 +82,11 @@ function evalGate(c: Component, ins: boolean[]): boolean {
 }
 
 /** フリップフロップの次の状態。ins は入力ピンの値 (ピン番号の順) */
-function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFlopState {
+function nextState(
+  kind: FlipFlopKind,
+  ins: boolean[],
+  s: FlipFlopState,
+): FlipFlopState {
   if (kind === 'RS') {
     // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先
     const [set, reset] = ins;
@@ -83,7 +95,9 @@ function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFl
   if (kind === 'RSEN') {
     // EN 付きの RS ラッチ。EN が ON の間だけ S / R が効く (RS と同じくリセット優先)。OFF の間は値を保つ
     const [set, en, reset] = ins;
-    if (!en) return { q: s.q, clk: false };
+    if (!en) {
+      return { q: s.q, clk: false };
+    }
     return { q: reset ? false : set ? true : s.q, clk: false };
   }
   if (kind === 'DLATCH') {
@@ -92,7 +106,9 @@ function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFl
     return { q: en ? d : s.q, clk: false };
   }
   const clk = ins[CLK_PIN];
-  if (!clk || s.clk) return { q: s.q, clk };
+  if (!clk || s.clk) {
+    return { q: s.q, clk };
+  }
   // 立ち上がりエッジ
   switch (kind) {
     case 'DFF':
@@ -126,12 +142,18 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
       const k = pinKey(c.id, p);
       values.set(k, prev?.values.get(k) ?? false);
     }
-    if (isFlipFlopKind(c.kind)) flipFlops.set(c.id, { ...(prev?.flipFlops.get(c.id) ?? { q: false, clk: false }) });
+    if (isFlipFlopKind(c.kind)) {
+      flipFlops.set(c.id, {
+        ...(prev?.flipFlops.get(c.id) ?? { q: false, clk: false }),
+      });
+    }
   }
 
   // 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる配線は1本だけなので、1つに決まる
   const driver = new Map<string, PinRef>();
-  for (const w of circuit.wires) driver.set(pinKey(w.to.comp, w.to.pin), w.from);
+  for (const w of circuit.wires) {
+    driver.set(pinKey(w.to.comp, w.to.pin), w.from);
+  }
 
   /** 入力ピンの値。何もつながっていない入力ピンは OFF */
   function inputsOf(c: Component, from: Map<string, boolean>): boolean[] {
@@ -147,7 +169,9 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   const emit = (id: string, out: boolean[]) => {
     out.forEach((v, pin) => {
       const k = pinKey(id, pin);
-      if (values.get(k) !== v) changed = true;
+      if (values.get(k) !== v) {
+        changed = true;
+      }
       values.set(k, v);
     });
   };
@@ -160,7 +184,12 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   //    遅延より短い入力の変化は、実物のゲートと同じく出力に現れない
   for (const c of delayed) {
     const queue = prev?.pending.get(c.id);
-    if (queue && queue.every((out) => out.every((v, pin) => v === queue[0][pin]))) emit(c.id, queue[0]);
+    if (
+      queue &&
+      queue.every((out) => out.every((v, pin) => v === queue[0][pin]))
+    ) {
+      emit(c.id, queue[0]);
+    }
   }
 
   // 2. 遅延のない部品は、この tick のうちに伝える。BUF がつながっていても遅れないようにするため、
@@ -170,7 +199,9 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     let moved = false;
     for (const c of immediate) {
       const v = evalGate(c, inputsOf(c, now));
-      if (now.get(pinKey(c.id, 0)) !== v) moved = true;
+      if (now.get(pinKey(c.id, 0)) !== v) {
+        moved = true;
+      }
       emit(c.id, [v]);
     }
     if (!moved) break;
@@ -206,19 +237,36 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   // 振動しているときは値が変わる tick と変わらない tick が交互に来ることもあるので、
   // 「変わり続けた回数」ではなく「落ち着いていない間の長さ」で見る
   const stableTicks = changed ? 0 : (prev?.stableTicks ?? 0) + 1;
-  const activeTicks = stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
-  return { values, flipFlops, pending, stableTicks, activeTicks, unstable: activeTicks > OSCILLATION_TICKS };
+  const activeTicks =
+    stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
+  return {
+    values,
+    flipFlops,
+    pending,
+    stableTicks,
+    activeTicks,
+    unstable: activeTicks > OSCILLATION_TICKS,
+  };
 }
 
 /**
  * プロジェクトの時間を 1 tick 進める (モジュールを展開してから評価する入口)。
  * 最上位に置かれたモジュールの出力ピンの値も values に含める。
  */
-export function step(project: Project, id: string, prev?: SimResult): SimResult {
+export function step(
+  project: Project,
+  id: string,
+  prev?: SimResult,
+): SimResult {
   const { circuit, modules } = flattenProject(project, id);
   const result = stepCircuit(circuit, prev);
   for (const [compId, mod] of modules) {
-    mod.outputs.forEach((id, pin) => result.values.set(pinKey(compId, pin), result.values.get(pinKey(id, 0)) ?? false));
+    mod.outputs.forEach((id, pin) =>
+      result.values.set(
+        pinKey(compId, pin),
+        result.values.get(pinKey(id, 0)) ?? false,
+      ),
+    );
   }
   return result;
 }

@@ -23,7 +23,9 @@ function collectLicenses(): PackageLicense[] {
     const dir = join('node_modules', name);
     const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
     const file = readdirSync(dir).find((f) => /^(licen[cs]e|copying)/i.test(f));
-    if (!file) throw new Error(`${name} のライセンス文のファイルが見つかりません`);
+    if (!file) {
+      throw new Error(`${name} のライセンス文のファイルが見つかりません`);
+    }
     found.set(name, {
       name,
       version: pkg.version,
@@ -42,7 +44,10 @@ function licenses(): Plugin {
   return {
     name: 'sazanka-licenses',
     resolveId: (source) => (source === id ? `\0${id}` : undefined),
-    load: (source) => (source === `\0${id}` ? `export default ${JSON.stringify(collectLicenses())};` : undefined),
+    load: (source) =>
+      source === `\0${id}`
+        ? `export default ${JSON.stringify(collectLicenses())};`
+        : undefined,
   };
 }
 

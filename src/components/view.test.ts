@@ -2,7 +2,17 @@ import { describe, expect, it } from 'vitest';
 import type { Component } from '../engine/component';
 import { SHEET_HEIGHT, SHEET_WIDTH } from '../engine/layout';
 import { MAIN_ID, type Project } from '../engine/project';
-import { centerView, fitView, isView, MAX_SCALE, MIN_SCALE, overview, toScreen, toWorld, zoomAt } from './view';
+import {
+  centerView,
+  fitView,
+  isView,
+  MAX_SCALE,
+  MIN_SCALE,
+  overview,
+  toScreen,
+  toWorld,
+  zoomAt,
+} from './view';
 
 describe('座標の変換', () => {
   it('画面の座標と回路の座標は行き来できる', () => {
@@ -23,14 +33,22 @@ describe('zoomAt', () => {
   });
 
   it('倍率は上限と下限に収める', () => {
-    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 100).scale).toBe(MAX_SCALE);
-    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 0.001).scale).toBe(MIN_SCALE);
+    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 100).scale).toBe(
+      MAX_SCALE,
+    );
+    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 0.001).scale).toBe(
+      MIN_SCALE,
+    );
   });
 });
 
 describe('fitView', () => {
   it('左上から離れた範囲は、全体が画面の真ん中に入る', () => {
-    const v = fitView({ left: 400, top: 300, right: 1600, bottom: 900 }, 400, 300);
+    const v = fitView(
+      { left: 400, top: 300, right: 1600, bottom: 900 },
+      400,
+      300,
+    );
     const topLeft = toScreen(v, { x: 400, y: 300 });
     const bottomRight = toScreen(v, { x: 1600, y: 900 });
     expect(topLeft.x).toBeGreaterThanOrEqual(0);
@@ -42,7 +60,12 @@ describe('fitView', () => {
 
   it('右下の端に寄った回路でも、シートの外は映さない', () => {
     const v = fitView(
-      { left: SHEET_WIDTH - 100, top: SHEET_HEIGHT - 80, right: SHEET_WIDTH, bottom: SHEET_HEIGHT },
+      {
+        left: SHEET_WIDTH - 100,
+        top: SHEET_HEIGHT - 80,
+        right: SHEET_WIDTH,
+        bottom: SHEET_HEIGHT,
+      },
       400,
       300,
     );
@@ -63,7 +86,9 @@ describe('fitView', () => {
   });
 
   it('小さな回路は等倍より大きくしない', () => {
-    expect(fitView({ left: 0, top: 0, right: 40, bottom: 40 }, 400, 300).scale).toBe(1);
+    expect(
+      fitView({ left: 0, top: 0, right: 40, bottom: 40 }, 400, 300).scale,
+    ).toBe(1);
   });
 });
 
@@ -85,7 +110,10 @@ describe('overview', () => {
     const p = project([]);
     const v = overview(p.circuits[0], p, 400, 300);
     expect(v.scale).toBe(1);
-    expect(toScreen(v, { x: SHEET_WIDTH / 2, y: SHEET_HEIGHT / 2 })).toEqual({ x: 200, y: 150 });
+    expect(toScreen(v, { x: SHEET_WIDTH / 2, y: SHEET_HEIGHT / 2 })).toEqual({
+      x: 200,
+      y: 150,
+    });
   });
 
   it('部品のある回路は、部品が画面に入る表示', () => {

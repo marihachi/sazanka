@@ -24,9 +24,14 @@ try {
 
   const source = readFileSync(file, 'utf8');
   const options = await prettier.resolveConfig(file);
-  const formatted = await prettier.format(source, { ...options, filepath: file });
+  const formatted = await prettier.format(source, {
+    ...options,
+    filepath: file,
+  });
   if (formatted !== source) writeFileSync(file, formatted);
 } catch (e) {
   // 編集途中で構文が壊れている場合など。整形せずに終わる
-  console.error(`prettier: ${e instanceof Error ? e.message.split('\n')[0] : e}`);
+  console.error(
+    `prettier: ${e instanceof Error ? e.message.split('\n')[0] : e}`,
+  );
 }

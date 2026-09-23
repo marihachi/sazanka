@@ -21,21 +21,32 @@ describe('clampPosition', () => {
   const ports = { inputs: ['', ''], outputs: [''] };
 
   it('シートの中ならそのまま', () => {
-    expect(clampPosition(and, ports, { x: 100, y: 100 })).toEqual({ x: 100, y: 100 });
+    expect(clampPosition(and, ports, { x: 100, y: 100 })).toEqual({
+      x: 100,
+      y: 100,
+    });
   });
 
   it('左上にはみ出すと、入力ピンの先端が収まる位置に戻す', () => {
-    expect(clampPosition(and, ports, { x: -60, y: -40 })).toEqual({ x: 20, y: 0 });
+    expect(clampPosition(and, ports, { x: -60, y: -40 })).toEqual({
+      x: 20,
+      y: 0,
+    });
   });
 
   it('右下にはみ出すと、出力ピンの先端と本体が収まるグリッド位置に戻す', () => {
     // 幅 60 + 出力ピン 20、高さ 80
-    expect(clampPosition(and, ports, { x: 99999, y: 99999 })).toEqual({ x: SHEET_WIDTH - 80, y: SHEET_HEIGHT - 80 });
+    expect(clampPosition(and, ports, { x: 99999, y: 99999 })).toEqual({
+      x: SHEET_WIDTH - 80,
+      y: SHEET_HEIGHT - 80,
+    });
   });
 
   it('モジュールは本体の上の名前の分も空ける', () => {
     const mod: Component = { id: 'm', kind: 'CUSTOM', x: 0, y: 0 };
-    expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }).y).toBe(20);
+    expect(
+      clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }).y,
+    ).toBe(20);
   });
 });
 
@@ -80,19 +91,34 @@ describe('ピンの位置', () => {
     };
     const onGrid = (v: number) => v % GRID === 0;
     for (const kind of kinds) {
-      const c: Component = { id: 'x', kind, x: 2 * GRID, y: 3 * GRID, custom: 'mod' };
+      const c: Component = {
+        id: 'x',
+        kind,
+        x: 2 * GRID,
+        y: 3 * GRID,
+        custom: 'mod',
+      };
       const ports = portsOf(c, project);
       const pins = [
         ...ports.inputs.map((_, i) => inputPinPos(c, ports, i)),
         ...ports.outputs.map((_, i) => outputPinPos(c, ports, i)),
       ];
-      for (const p of pins) expect(onGrid(p.x) && onGrid(p.y), `${kind} (${p.x}, ${p.y})`).toBe(true);
+      for (const p of pins) {
+        expect(onGrid(p.x) && onGrid(p.y), `${kind} (${p.x}, ${p.y})`).toBe(
+          true,
+        );
+      }
     }
   });
 });
 
 describe('bodySize', () => {
-  const comp = (kind: ComponentKind): Component => ({ id: 'x', kind, x: 0, y: 0 });
+  const comp = (kind: ComponentKind): Component => ({
+    id: 'x',
+    kind,
+    x: 0,
+    y: 0,
+  });
   const none = { inputs: [], outputs: [] };
 
   it('入出力の部品は正方形、ゲートとフリップフロップは同じ高さ', () => {
@@ -105,7 +131,10 @@ describe('bodySize', () => {
 
   it('モジュールはピンの多いほうに合わせて高くなる', () => {
     const size = (nIn: number, nOut: number) =>
-      bodySize(comp('CUSTOM'), { inputs: Array(nIn).fill(''), outputs: Array(nOut).fill('') });
+      bodySize(comp('CUSTOM'), {
+        inputs: Array(nIn).fill(''),
+        outputs: Array(nOut).fill(''),
+      });
     expect(size(0, 0)).toEqual({ w: 80, h: 2 * GRID });
     expect(size(1, 1)).toEqual({ w: 80, h: 2 * GRID });
     expect(size(3, 1)).toEqual({ w: 80, h: 4 * GRID });
@@ -124,7 +153,10 @@ describe('ピンの位置', () => {
 
   it('1入力のゲートは入力も中央', () => {
     const not: Component = { id: 'n', kind: 'NOT', x: 100, y: 100 };
-    expect(inputPinPos(not, { inputs: [''], outputs: [''] }, 0)).toEqual({ x: 80, y: 140 });
+    expect(inputPinPos(not, { inputs: [''], outputs: [''] }, 0)).toEqual({
+      x: 80,
+      y: 140,
+    });
   });
 
   it('フリップフロップは入力が上から順、Q と Q̄ は上下端から1グリッド内側', () => {
@@ -181,7 +213,9 @@ describe('componentBounds', () => {
 
 describe('wireRoute', () => {
   const axisAligned = (route: { x: number; y: number }[]) =>
-    route.every((p, i) => i === 0 || p.x === route[i - 1].x || p.y === route[i - 1].y);
+    route.every(
+      (p, i) => i === 0 || p.x === route[i - 1].x || p.y === route[i - 1].y,
+    );
 
   it('折れる点がなければ、中間で1回折れる', () => {
     expect(wireRoute({ x: 0, y: 0 }, [], { x: 100, y: 40 })).toEqual([
@@ -211,7 +245,9 @@ describe('wireRoute', () => {
           p.y <= Math.max(q.y, r.y)
         );
       });
-    for (const p of points) expect(onRoute(p)).toBe(true);
+    for (const p of points) {
+      expect(onRoute(p)).toBe(true);
+    }
   });
 
   it('両端が同じ高さなら、折れずにまっすぐつなぐ', () => {
@@ -220,14 +256,19 @@ describe('wireRoute', () => {
       { x: 100, y: 40 },
     ]);
     // 折れる点が一直線に並んでいても、長さ 0 の区間や曲がらない角を残さない
-    expect(wireRoute({ x: 0, y: 40 }, [{ x: 60, y: 40 }], { x: 100, y: 40 })).toEqual([
+    expect(
+      wireRoute({ x: 0, y: 40 }, [{ x: 60, y: 40 }], { x: 100, y: 40 }),
+    ).toEqual([
       { x: 0, y: 40 },
       { x: 100, y: 40 },
     ]);
   });
 
   it('入力ピンへは横から入る', () => {
-    const route = wireRoute({ x: 0, y: 0 }, [{ x: 200, y: 100 }], { x: 300, y: 300 });
+    const route = wireRoute({ x: 0, y: 0 }, [{ x: 200, y: 100 }], {
+      x: 300,
+      y: 300,
+    });
     const [a, b] = route.slice(-2);
     expect(a.y).toBe(b.y);
   });

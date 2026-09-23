@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { clockFlipsAt, clockPeriodOf } from '../engine/component';
 import type { Project } from '../engine/project';
-import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from '../engine/sim';
+import {
+  OSCILLATION_TICKS,
+  SETTLED_TICKS,
+  step,
+  type SimResult,
+} from '../engine/sim';
 
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
@@ -17,9 +22,14 @@ function clockKey(circuitId: string, compId: string): string {
  * 時刻 tick の時点で ON/OFF を切り替える CLOCK (プロジェクト全体)。
  * short は、その中に半周期が発振の判定 (OSCILLATION_TICKS) より短い CLOCK があるか
  */
-function clocksFlippingAt(project: Project, tick: number): { keys: string[]; short: boolean } {
+function clocksFlippingAt(
+  project: Project,
+  tick: number,
+): { keys: string[]; short: boolean } {
   const clocks = project.circuits.flatMap((d) =>
-    d.components.filter((c) => c.kind === 'CLOCK' && clockFlipsAt(c, tick)).map((c) => ({ d, c })),
+    d.components
+      .filter((c) => c.kind === 'CLOCK' && clockFlipsAt(c, tick))
+      .map((c) => ({ d, c })),
   );
   return {
     keys: clocks.map(({ d, c }) => clockKey(d.id, c.id)),
@@ -34,7 +44,9 @@ function toggleClocks(keys: readonly string[]) {
     ...project,
     circuits: project.circuits.map((d) => ({
       ...d,
-      components: d.components.map((c) => (set.has(clockKey(d.id, c.id)) ? { ...c, on: !c.on } : c)),
+      components: d.components.map((c) =>
+        set.has(clockKey(d.id, c.id)) ? { ...c, on: !c.on } : c,
+      ),
     })),
   });
 }
@@ -82,13 +94,17 @@ export function useSimulation(
       setProject(toggleClocks(toggled));
     }
     past.current.push({ sim: current.current, toggled });
-    if (past.current.length > HISTORY_TICKS) past.current.shift();
+    if (past.current.length > HISTORY_TICKS) {
+      past.current.shift();
+    }
     current.current = step(p, id, current.current);
     // 周期の短い CLOCK では、遅延のある回路は落ち着く前に次の反転が来る。
     // そのままでは「落ち着かないまま続いている」と数えられて発振と誤って判定されるので、反転するたびに数え直す。
     // その代わり、周期の短い CLOCK を置いた回路では、本当の発振も検出できない。
     // 半周期が判定の長さ以上ある CLOCK なら、反転の間に落ち着くので数え直さず、発振も検出できる
-    if (short) current.current = { ...current.current, activeTicks: 0, unstable: false };
+    if (short) {
+      current.current = { ...current.current, activeTicks: 0, unstable: false };
+    }
     results.current.set(id, current.current);
     // stableTicks が 0 なら、この tick で値が変わった
     return current.current.stableTicks === 0;
@@ -99,11 +115,16 @@ export function useSimulation(
   // ボタンの押せる / 押せないをこの描画に間に合わせるため、効果ではなく描画中に見る
   if (lastProject.current !== project) {
     lastProject.current = project;
-    if (clockChange.current) clockChange.current = false;
-    else past.current = [];
+    if (clockChange.current) {
+      clockChange.current = false;
+    } else {
+      past.current = [];
+    }
   }
 
-  const hasClock = project.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
+  const hasClock = project.circuits.some((d) =>
+    d.components.some((c) => c.kind === 'CLOCK'),
+  );
 
   useEffect(() => {
     if (!running) return;
@@ -120,12 +141,18 @@ export function useSimulation(
       const count = Math.min(Math.floor(carry / interval), MAX_TICKS_PER_FRAME);
       carry -= count * interval;
       let changed = false;
-      for (let i = 0; i < count; i++) changed = advance() || changed;
+      for (let i = 0; i < count; i++) {
+        changed = advance() || changed;
+      }
       stepped ||= count > 0;
       // 画面へ渡すのはフレームに1回だけ。値が変わっていなければ描き直さない
-      if (changed) setSim(current.current);
+      if (changed) {
+        setSim(current.current);
+      }
       // CLOCK がなく、値も落ち着いたら止める。回路を触れば (project が変わるので) また動き出す
-      if (stepped && !hasClock && current.current.stableTicks > SETTLED_TICKS) return;
+      if (stepped && !hasClock && current.current.stableTicks > SETTLED_TICKS) {
+        return;
+      }
       frame = requestAnimationFrame(onFrame);
     };
     frame = requestAnimationFrame(onFrame);
@@ -136,7 +163,8 @@ export function useSimulation(
 
   // タブを切り替えたら、その回路の前回の結果から続ける
   useEffect(() => {
-    current.current = results.current.get(circuitId) ?? step(project, circuitId);
+    current.current =
+      results.current.get(circuitId) ?? step(project, circuitId);
     setSim(current.current);
     // 開いている回路が変わったときだけ入れ替える
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,8 +198,11 @@ export function useSimulation(
     /** 回路を削除したときなど、覚えている結果を捨てる */
     forget: (id?: string) => {
       past.current = [];
-      if (id) results.current.delete(id);
-      else results.current.clear();
+      if (id) {
+        results.current.delete(id);
+      } else {
+        results.current.clear();
+      }
     },
   };
 }

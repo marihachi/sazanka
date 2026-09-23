@@ -7,7 +7,11 @@ import type { Project } from '../engine/project';
 export function keepSwitchStates(restored: Project, current: Project): Project {
   const on = new Map<string, boolean | undefined>();
   for (const d of current.circuits) {
-    for (const c of d.components) if (c.kind === 'INPUT' || c.kind === 'CLOCK') on.set(`${d.id}/${c.id}`, c.on);
+    for (const c of d.components) {
+      if (c.kind === 'INPUT' || c.kind === 'CLOCK') {
+        on.set(`${d.id}/${c.id}`, c.on);
+      }
+    }
   }
   return {
     ...restored,

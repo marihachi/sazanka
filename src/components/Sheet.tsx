@@ -14,7 +14,12 @@ import {
 } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import type { Circuit, PinRef } from '../engine/circuit';
-import { findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
+import {
+  findDef,
+  MAIN_ID,
+  type CircuitDef,
+  type Project,
+} from '../engine/project';
 import { portComponents, portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
 import { ComponentView } from './ComponentView';
@@ -25,7 +30,8 @@ import { overview, toScreen, toWorld, zoomAt, type View } from './view';
 import { ZoomControls } from './ZoomControls';
 
 /** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
-export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
+export type Selection =
+  { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
 export type DragMode = 'none' | 'moving' | 'trash';
 
@@ -85,7 +91,11 @@ interface WireDrag {
  * 中間で1回折れる形の配線なら、その縦線の x 座標。
  * 折れる点がないか、出力ピンと同じ高さに1つだけある (縦線を動かした) 形が対象。縦線がない (両端が同じ高さ) ときは undefined
  */
-function middleX(from: Point, points: readonly Point[], to: Point): number | undefined {
+function middleX(
+  from: Point,
+  points: readonly Point[],
+  to: Point,
+): number | undefined {
   if (from.y === to.y) return undefined;
   if (points.length === 0) return snap((from.x + to.x) / 2);
   if (points.length === 1 && points[0].y === from.y) return points[0].x;
@@ -99,7 +109,10 @@ const DRAG_THRESHOLD = 4;
 const ZOOM_STEP = 1.25;
 
 /** ポインターの位置を、シートの左上からの画面の座標にする */
-function toScreenLocal(svg: SVGSVGElement, e: { clientX: number; clientY: number }): Point {
+function toScreenLocal(
+  svg: SVGSVGElement,
+  e: { clientX: number; clientY: number },
+): Point {
   const rect = svg.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
@@ -116,7 +129,12 @@ const WIRE_CORNER_RADIUS = 6;
  * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (layout.ts の wireRoute)。
  * round なら、曲がり角を丸める (環境設定)
  */
-function wirePath(from: Point, points: readonly Point[], to: Point, round: boolean): string {
+function wirePath(
+  from: Point,
+  points: readonly Point[],
+  to: Point,
+  round: boolean,
+): string {
   const route = wireRoute(from, points, to);
   if (!round) return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;
   let d = `M${route[0].x},${route[0].y}`;
@@ -131,8 +149,14 @@ function wirePath(from: Point, points: readonly Point[], to: Point, round: boole
       continue;
     }
     // 角の少し手前まで直線で行き、角を制御点にした曲線で、角の少し先へつなぐ
-    const before = { x: b.x - ((b.x - a.x) / inLen) * r, y: b.y - ((b.y - a.y) / inLen) * r };
-    const after = { x: b.x + ((c.x - b.x) / outLen) * r, y: b.y + ((c.y - b.y) / outLen) * r };
+    const before = {
+      x: b.x - ((b.x - a.x) / inLen) * r,
+      y: b.y - ((b.y - a.y) / inLen) * r,
+    };
+    const after = {
+      x: b.x + ((c.x - b.x) / outLen) * r,
+      y: b.y + ((c.y - b.y) / outLen) * r,
+    };
     d += ` L${before.x},${before.y} Q${b.x},${b.y} ${after.x},${after.y}`;
   }
   const end = route[route.length - 1];
@@ -215,7 +239,10 @@ export function Sheet({
   const dragRef = useRef<Drag | null>(null);
   const wireDragRef = useRef<WireDrag | null>(null);
   const [band, setBand] = useState<Band | null>(null);
-  const [{ width, height }, setSize] = useState<SheetSize>({ width: 0, height: 0 });
+  const [{ width, height }, setSize] = useState<SheetSize>({
+    width: 0,
+    height: 0,
+  });
   const panRef = useRef<Pan | null>(null);
   const pinchRef = useRef<Pinch | null>(null);
   /** シートに触れている指 (pointerId → 画面の座標)。2本になったら移動と拡大縮小にする */
@@ -229,10 +256,19 @@ export function Sheet({
   const [pendingPoints, setPendingPoints] = useState<Point[]>([]);
   /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
   const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
-  const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
+  const compMap = useMemo(
+    () => new Map(circuit.components.map((c) => [c.id, c])),
+    [circuit],
+  );
   /** 入力ピン (pinKey) → つながっている配線 */
-  const wireTo = useMemo(() => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])), [circuit]);
-  const selectedIds = useMemo(() => new Set(selection?.type === 'comp' ? selection.ids : []), [selection]);
+  const wireTo = useMemo(
+    () => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])),
+    [circuit],
+  );
+  const selectedIds = useMemo(
+    () => new Set(selection?.type === 'comp' ? selection.ids : []),
+    [selection],
+  );
   /**
    * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。INPUT と OUTPUT で別々に数える。
    * メイン回路はピンにならないので空
@@ -240,7 +276,12 @@ export function Sheet({
   const pinNumbers = useMemo(() => {
     if (circuit.id === MAIN_ID) return new Map<string, number>();
     const { inputs, outputs } = portComponents(circuit);
-    return new Map([...inputs, ...outputs].map((c) => [c.id, (c.kind === 'INPUT' ? inputs : outputs).indexOf(c) + 1]));
+    return new Map(
+      [...inputs, ...outputs].map((c) => [
+        c.id,
+        (c.kind === 'INPUT' ? inputs : outputs).indexOf(c) + 1,
+      ]),
+    );
   }, [circuit]);
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
@@ -270,11 +311,14 @@ export function Sheet({
     function onWheel(e: WheelEvent) {
       e.preventDefault();
       // 行単位で届く環境 (Firefox など) では、おおよそのピクセル数に直す
-      const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
+      const delta =
+        e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
       // ピンチは1回の量が小さいので、強めに効かせる
       const factor = Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015));
       const v = viewRef.current;
-      onViewChangeRef.current(zoomAt(v, toScreenLocal(svg, e), v.scale * factor));
+      onViewChangeRef.current(
+        zoomAt(v, toScreenLocal(svg, e), v.scale * factor),
+      );
     }
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -284,7 +328,9 @@ export function Sheet({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.code !== 'Space') return;
-      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      const typing =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
       if (typing) return;
       // フォーカスしているボタンが押されたり、ページがスクロールしたりしないようにする
       e.preventDefault();
@@ -336,10 +382,19 @@ export function Sheet({
    * グリッドに合わせ、シートからはみ出さないように縮める
    */
   function placeDelta(part: Circuit, at: Point): Point {
-    const items = part.components.map((c) => ({ c, ports: portsOf(c, project) }));
+    const items = part.components.map((c) => ({
+      c,
+      ports: portsOf(c, project),
+    }));
     const rects = items.map(({ c, ports }) => componentBounds(c, ports));
-    const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
-    const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
+    const cx =
+      (Math.min(...rects.map((r) => r.left)) +
+        Math.max(...rects.map((r) => r.right))) /
+      2;
+    const cy =
+      (Math.min(...rects.map((r) => r.top)) +
+        Math.max(...rects.map((r) => r.bottom))) /
+      2;
     return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) });
   }
 
@@ -354,7 +409,11 @@ export function Sheet({
           // 1本目の指で始めた操作はやめて、2本指の操作にする
           cancelGesture();
           const [a, b] = [...touches.values()];
-          pinchRef.current = { mid: midpoint(a, b), distance: Math.hypot(a.x - b.x, a.y - b.y), view };
+          pinchRef.current = {
+            mid: midpoint(a, b),
+            distance: Math.hypot(a.x - b.x, a.y - b.y),
+            view,
+          };
         }
         return;
       }
@@ -364,14 +423,21 @@ export function Sheet({
       // 中ボタンを押したときの自動スクロールを出さない
       e.preventDefault();
       svg.setPointerCapture(e.pointerId);
-      panRef.current = { pointerId: e.pointerId, start: toScreenLocal(svg, e), view };
+      panRef.current = {
+        pointerId: e.pointerId,
+        start: toScreenLocal(svg, e),
+        view,
+      };
       setPanning(true);
       return;
     }
     if (placing && e.button === 0) {
       // 貼り付けの位置を選んでいる間は、部品の選択やドラッグを始めない
       e.stopPropagation();
-      placeDownRef.current = { pointerId: e.pointerId, start: { x: e.clientX, y: e.clientY } };
+      placeDownRef.current = {
+        pointerId: e.pointerId,
+        start: { x: e.clientX, y: e.clientY },
+      };
     }
   }
 
@@ -379,22 +445,33 @@ export function Sheet({
   function moveView(e: React.PointerEvent): boolean {
     const svg = svgRef.current!;
     const touches = touchesRef.current;
-    if (touches.has(e.pointerId)) touches.set(e.pointerId, toScreenLocal(svg, e));
+    if (touches.has(e.pointerId)) {
+      touches.set(e.pointerId, toScreenLocal(svg, e));
+    }
     const pinch = pinchRef.current;
     if (pinch) {
       if (touches.size < 2) return true;
       const [a, b] = [...touches.values()];
       const mid = midpoint(a, b);
-      const scale = (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
+      const scale =
+        (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
       // 押した時点で指の間にあった回路の点を、今の指の間に持ってくる
       const zoomed = zoomAt(pinch.view, pinch.mid, scale);
-      onViewChange({ ...zoomed, x: zoomed.x + mid.x - pinch.mid.x, y: zoomed.y + mid.y - pinch.mid.y });
+      onViewChange({
+        ...zoomed,
+        x: zoomed.x + mid.x - pinch.mid.x,
+        y: zoomed.y + mid.y - pinch.mid.y,
+      });
       return true;
     }
     const pan = panRef.current;
     if (pan && pan.pointerId === e.pointerId) {
       const p = toScreenLocal(svg, e);
-      onViewChange({ ...pan.view, x: pan.view.x + p.x - pan.start.x, y: pan.view.y + p.y - pan.start.y });
+      onViewChange({
+        ...pan.view,
+        x: pan.view.x + p.x - pan.start.x,
+        y: pan.view.y + p.y - pan.start.y,
+      });
       return true;
     }
     return false;
@@ -406,7 +483,9 @@ export function Sheet({
     touches.delete(e.pointerId);
     if (pinchRef.current) {
       // 残った指は、すべて離れるまで何もしない (1本目の操作を続きから始めない)
-      if (touches.size === 0) pinchRef.current = null;
+      if (touches.size === 0) {
+        pinchRef.current = null;
+      }
       return true;
     }
     if (panRef.current?.pointerId === e.pointerId) {
@@ -421,7 +500,9 @@ export function Sheet({
     e.stopPropagation();
     if (e.shiftKey) {
       // Shift+クリックは選択に追加・解除するだけで、ドラッグは始めない
-      const ids = selectedIds.has(c.id) ? [...selectedIds].filter((id) => id !== c.id) : [...selectedIds, c.id];
+      const ids = selectedIds.has(c.id)
+        ? [...selectedIds].filter((id) => id !== c.id)
+        : [...selectedIds, c.id];
       onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
       return;
     }
@@ -442,7 +523,9 @@ export function Sheet({
       pointerId: e.pointerId,
       start: { x: e.clientX, y: e.clientY },
     };
-    if (!selectedIds.has(c.id)) onSelect({ type: 'comp', ids });
+    if (!selectedIds.has(c.id)) {
+      onSelect({ type: 'comp', ids });
+    }
   }
 
   /** 範囲に全体が収まる部品 */
@@ -454,7 +537,9 @@ export function Sheet({
     return circuit.components
       .filter((c) => {
         const { w, h } = bodySize(c, portsOf(c, project));
-        return c.x >= left && c.y >= top && c.x + w <= right && c.y + h <= bottom;
+        return (
+          c.x >= left && c.y >= top && c.x + w <= right && c.y + h <= bottom
+        );
       })
       .map((c) => c.id);
   }
@@ -481,7 +566,14 @@ export function Sheet({
     const wireDrag = wireDragRef.current;
     if (wireDrag && wireDrag.pointerId === e.pointerId) {
       if (!wireDrag.started) {
-        if (Math.hypot(e.clientX - wireDrag.start.x, e.clientY - wireDrag.start.y) < DRAG_THRESHOLD) return;
+        if (
+          Math.hypot(
+            e.clientX - wireDrag.start.x,
+            e.clientY - wireDrag.start.y,
+          ) < DRAG_THRESHOLD
+        ) {
+          return;
+        }
         svgRef.current!.setPointerCapture(e.pointerId);
         // ドラッグ全体を1回の操作として元に戻せるようにする
         onMoveStart();
@@ -501,21 +593,32 @@ export function Sheet({
     const svg = svgRef.current!;
     if (!svg.hasPointerCapture(drag.pointerId)) {
       // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
-      if (Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) < DRAG_THRESHOLD) return;
+      if (
+        Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) <
+        DRAG_THRESHOLD
+      ) {
+        return;
+      }
       // シートの外 (削除エリアの上など) に出ても移動イベントを受け取り続ける。
       // 押した時点でキャプチャすると、クリックやダブルクリックが部品に届かなくなるため、ドラッグが始まってから行う
       svg.setPointerCapture(drag.pointerId);
     }
     const rect = trashRef.current?.getBoundingClientRect();
     const overTrash =
-      !!rect && e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+      !!rect &&
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom;
     if (overTrash) {
       // 削除エリアの上では部品は動かさない
       drag.moved = true;
       onDragModeChange('trash');
       return;
     }
-    if (drag.moved) onDragModeChange('moving');
+    if (drag.moved) {
+      onDragModeChange('moving');
+    }
     const anchor = drag.origins.get(drag.id)!;
     // ドラッグ開始時の位置からの移動量を、どの部品もはみ出さないように縮める
     const items = [...drag.origins].flatMap(([id, o]) => {
@@ -526,7 +629,9 @@ export function Sheet({
       x: snap(p.x - drag.offset.x) - anchor.x,
       y: snap(p.y - drag.offset.y) - anchor.y,
     });
-    const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
+    const positions = new Map(
+      items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]),
+    );
     const unchanged = [...positions].every(([id, pos]) => {
       const c = compMap.get(id)!;
       return c.x === pos.x && c.y === pos.y;
@@ -551,8 +656,15 @@ export function Sheet({
     if (placeDown && placeDown.pointerId === e.pointerId) {
       placeDownRef.current = null;
       // 押したまま大きく動かしたら、貼り付けない (指で画面をなぞっただけのときなど)
-      const moved = Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >= DRAG_THRESHOLD * 2;
-      if (placing && !moved) onPlace(placeDelta(placing, toLocal(e)));
+      const moved =
+        Math.hypot(
+          e.clientX - placeDown.start.x,
+          e.clientY - placeDown.start.y,
+        ) >=
+        DRAG_THRESHOLD * 2;
+      if (placing && !moved) {
+        onPlace(placeDelta(placing, toLocal(e)));
+      }
       return;
     }
     setBand(null);
@@ -567,7 +679,9 @@ export function Sheet({
     if (drag.moved) return;
     // 動かさずに離したら、押した部品だけを選ぶ。スイッチはトグル
     onSelect({ type: 'comp', ids: [drag.id] });
-    if (compMap.get(drag.id)?.kind === 'INPUT') onToggle(drag.id);
+    if (compMap.get(drag.id)?.kind === 'INPUT') {
+      onToggle(drag.id);
+    }
   }
 
   function onInputPinDown(e: React.PointerEvent, c: Component, pin: number) {
@@ -603,7 +717,9 @@ export function Sheet({
       for (let i = 0; i < ports.inputs.length; i++) {
         const tip = inputPinPos(c, ports, i);
         // ピンの丸 (半径 6) の上にあるとき
-        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) return wirePath(from, pendingPoints, tip, roundWires);
+        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) {
+          return wirePath(from, pendingPoints, tip, roundWires);
+        }
       }
     }
     // 折れる点はグリッドに合わせて置くので、仮の線もグリッドに合わせた位置へ引く
@@ -622,7 +738,10 @@ export function Sheet({
     <div className={styles.sheetWrap}>
       <svg
         ref={svgRef}
-        className={classNames(styles.sheet, (spaceHeld || panning) && styles.panning)}
+        className={classNames(
+          styles.sheet,
+          (spaceHeld || panning) && styles.panning,
+        )}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -632,14 +751,27 @@ export function Sheet({
         }}
         onPointerDown={onBackgroundPointerDown}
         onDragOver={(e) => {
-          if (e.dataTransfer.types.includes(DRAG_MIME)) e.preventDefault();
+          if (e.dataTransfer.types.includes(DRAG_MIME)) {
+            e.preventDefault();
+          }
         }}
         onDrop={onDrop}
       >
         <defs>
           {/* 方眼は表示と一緒に動かす。線の太さは倍率によらず 1px のままにする */}
-          <pattern id="grid" width={GRID} height={GRID} patternUnits="userSpaceOnUse" patternTransform={transform}>
-            <path d={`M${GRID},0 V${GRID} H0`} fill="none" stroke="var(--grid)" strokeWidth={1 / view.scale} />
+          <pattern
+            id="grid"
+            width={GRID}
+            height={GRID}
+            patternUnits="userSpaceOnUse"
+            patternTransform={transform}
+          >
+            <path
+              d={`M${GRID},0 V${GRID} H0`}
+              fill="none"
+              stroke="var(--grid)"
+              strokeWidth={1 / view.scale}
+            />
           </pattern>
         </defs>
         {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
@@ -666,16 +798,29 @@ export function Sheet({
             const fromPorts = portsOf(from, project);
             const toPorts = portsOf(to, project);
             // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
-            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) return null;
+            if (
+              w.from.pin >= fromPorts.outputs.length ||
+              w.to.pin >= toPorts.inputs.length
+            ) {
+              return null;
+            }
             const a = outputPinPos(from, fromPorts, w.from.pin);
             const b = inputPinPos(to, toPorts, w.to.pin);
             const d = wirePath(a, w.points ?? [], b, roundWires);
             const midX = middleX(a, w.points ?? [], b);
             const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-            const selected = selection?.type === 'wire' && selection.id === w.id;
+            const selected =
+              selection?.type === 'wire' && selection.id === w.id;
             return (
               <g key={w.id}>
-                <path className={classNames(styles.wire, on && styles.on, selected && styles.selected)} d={d} />
+                <path
+                  className={classNames(
+                    styles.wire,
+                    on && styles.on,
+                    selected && styles.selected,
+                  )}
+                  d={d}
+                />
                 <path
                   className={styles.wireHit}
                   d={d}
@@ -713,14 +858,20 @@ export function Sheet({
                 key={c.id}
                 comp={c}
                 ports={ports}
-                name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                name={
+                  c.kind === 'CUSTOM'
+                    ? findDef(project, c.custom)?.name
+                    : undefined
+                }
                 outputValues={Array.from(
                   { length: Math.max(ports.outputs.length, 1) },
                   (_, i) => !!sim.values.get(pinKey(c.id, i)),
                 )}
                 inputValues={ports.inputs.map((_, i) => {
                   const w = wireTo.get(pinKey(c.id, i));
-                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                  return w
+                    ? !!sim.values.get(pinKey(w.from.comp, w.from.pin))
+                    : false;
                 })}
                 selected={selectedIds.has(c.id)}
                 pinNumber={pinNumbers.get(c.id)}
@@ -753,7 +904,10 @@ export function Sheet({
               const d = placeDelta(placing, mouse ?? toWorld(view, center()));
               const parts = new Map(placing.components.map((c) => [c.id, c]));
               return (
-                <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>
+                <g
+                  className={styles.ghost}
+                  transform={`translate(${d.x} ${d.y})`}
+                >
                   {placing.wires.map((w) => {
                     const from = parts.get(w.from.comp)!;
                     const to = parts.get(w.to.comp)!;
@@ -772,8 +926,15 @@ export function Sheet({
                         key={c.id}
                         comp={c}
                         ports={ports}
-                        name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
-                        outputValues={Array.from({ length: Math.max(ports.outputs.length, 1) }, () => false)}
+                        name={
+                          c.kind === 'CUSTOM'
+                            ? findDef(project, c.custom)?.name
+                            : undefined
+                        }
+                        outputValues={Array.from(
+                          { length: Math.max(ports.outputs.length, 1) },
+                          () => false,
+                        )}
                         inputValues={ports.inputs.map(() => false)}
                         selected
                         onBodyDown={() => {}}
@@ -790,15 +951,26 @@ export function Sheet({
           {pending && pendingFrom && mouse && (
             <path
               className={styles.pending}
-              d={pendingPath(outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin), mouse)}
+              d={pendingPath(
+                outputPinPos(
+                  pendingFrom,
+                  portsOf(pendingFrom, project),
+                  pending.pin,
+                ),
+                mouse,
+              )}
             />
           )}
         </g>
       </svg>
       <ZoomControls
         scale={view.scale}
-        onZoomIn={() => onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))}
-        onZoomOut={() => onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))}
+        onZoomIn={() =>
+          onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))
+        }
+        onZoomOut={() =>
+          onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))
+        }
         onReset={() => onViewChange(zoomAt(view, center(), 1))}
         onFit={fit}
       />

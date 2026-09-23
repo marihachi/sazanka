@@ -31,7 +31,11 @@ export function StatusBar({ hints, unstable }: StatusBarProps) {
   }, [hint, index, hints.length, paused]);
 
   return (
-    <footer className={styles.statusbar} onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
+    <footer
+      className={styles.statusbar}
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+    >
       <span key={hint} className={styles.statusHint}>
         {hint}
       </span>

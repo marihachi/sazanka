@@ -12,7 +12,10 @@ export interface Ports {
 }
 
 /** モジュールのピンになる INPUT / OUTPUT (上から順) */
-export function portComponents(def: Circuit): { inputs: Component[]; outputs: Component[] } {
+export function portComponents(def: Circuit): {
+  inputs: Component[];
+  outputs: Component[];
+} {
   // 並び計算
   function byPosition(a: Component, b: Component): number {
     return a.y - b.y || a.x - b.x;
@@ -35,7 +38,10 @@ export function portsOf(c: Component, project: Project): Ports {
 
     const { inputs, outputs } = portComponents(def);
 
-    return { inputs: inputs.map((k) => k.label ?? ''), outputs: outputs.map((k) => k.label ?? '') };
+    return {
+      inputs: inputs.map((k) => k.label ?? ''),
+      outputs: outputs.map((k) => k.label ?? ''),
+    };
   }
 
   return {
@@ -45,7 +51,12 @@ export function portsOf(c: Component, project: Project): Ports {
 }
 
 /** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */
-export function dependsOn(project: Project, a: string, b: string, seen = new Set<string>()): boolean {
+export function dependsOn(
+  project: Project,
+  a: string,
+  b: string,
+  seen = new Set<string>(),
+): boolean {
   if (seen.has(a)) return false;
 
   seen.add(a);
@@ -54,11 +65,16 @@ export function dependsOn(project: Project, a: string, b: string, seen = new Set
   if (!def) return false;
 
   return def.components.some(
-    (c) => c.kind === 'CUSTOM' && c.custom !== undefined && (c.custom === b || dependsOn(project, c.custom, b, seen)),
+    (c) =>
+      c.kind === 'CUSTOM' &&
+      c.custom !== undefined &&
+      (c.custom === b || dependsOn(project, c.custom, b, seen)),
   );
 }
 
 /** モジュール id を部品として直接置いている回路 */
 export function circuitsUsing(project: Project, id: string): CircuitDef[] {
-  return project.circuits.filter((d) => d.components.some((c) => c.kind === 'CUSTOM' && c.custom === id));
+  return project.circuits.filter((d) =>
+    d.components.some((c) => c.kind === 'CUSTOM' && c.custom === id),
+  );
 }

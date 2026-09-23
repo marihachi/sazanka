@@ -11,9 +11,16 @@ const project: Project = {
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: true },
         { id: 'm', kind: 'CUSTOM', x: 100, y: 0, custom: 'mod' },
       ],
-      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } }],
+      wires: [
+        { id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } },
+      ],
     },
-    { id: 'mod', name: 'モジュール1', components: [{ id: 'i', kind: 'INPUT', x: 0, y: 0 }], wires: [] },
+    {
+      id: 'mod',
+      name: 'モジュール1',
+      components: [{ id: 'i', kind: 'INPUT', x: 0, y: 0 }],
+      wires: [],
+    },
   ],
 };
 
@@ -42,7 +49,13 @@ describe('share', () => {
             { id: 'part-1', kind: 'INPUT', x: 0, y: 0 }, // ON/OFF (on) は書き出さない
             { ...main.components[1], id: 'part-2' },
           ],
-          wires: [{ id: 'wire-1', from: { comp: 'part-1', pin: 0 }, to: { comp: 'part-2', pin: 0 } }],
+          wires: [
+            {
+              id: 'wire-1',
+              from: { comp: 'part-1', pin: 0 },
+              to: { comp: 'part-2', pin: 0 },
+            },
+          ],
         },
         { ...mod, components: [{ ...mod.components[0], id: 'part-1' }] },
       ],
@@ -61,20 +74,34 @@ describe('share', () => {
               { id: 'id1', kind: 'INPUT', x: 0, y: 0 },
               { ...main.components[1], id: 'id2' },
             ],
-            wires: [{ id: 'id3', from: { comp: 'id1', pin: 0 }, to: { comp: 'id2', pin: 0 } }],
+            wires: [
+              {
+                id: 'id3',
+                from: { comp: 'id1', pin: 0 },
+                to: { comp: 'id2', pin: 0 },
+              },
+            ],
           },
           { ...mod, components: [{ ...mod.components[0], id: 'id4' }] },
         ],
       },
     });
-    expect(parse(serializeProject(emptyProject()))).toEqual({ ok: true, project: emptyProject() });
+    expect(parse(serializeProject(emptyProject()))).toEqual({
+      ok: true,
+      project: emptyProject(),
+    });
   });
 
   it('作者名はプロジェクトの中に入れて書き出す。空なら含めない', () => {
     const text = serializeProject({ ...project, author: ' さざんか ' });
     expect(JSON.parse(text).project.author).toBe('さざんか');
-    expect(parse(text)).toMatchObject({ ok: true, project: { author: 'さざんか' } });
-    expect(JSON.parse(serializeProject({ ...project, author: '  ' })).project).not.toHaveProperty('author');
+    expect(parse(text)).toMatchObject({
+      ok: true,
+      project: { author: 'さざんか' },
+    });
+    expect(
+      JSON.parse(serializeProject({ ...project, author: '  ' })).project,
+    ).not.toHaveProperty('author');
     expect(parse(withProject({ ...project, author: 1 })).ok).toBe(false);
   });
 
@@ -84,7 +111,9 @@ describe('share', () => {
   });
 
   it('新しい版のデータは読み込まない', () => {
-    expect(parse(JSON.stringify({ app: 'sazanka', version: 99, project })).ok).toBe(false);
+    expect(
+      parse(JSON.stringify({ app: 'sazanka', version: 99, project })).ok,
+    ).toBe(false);
   });
 
   it('壊れた回路データは読み込まない', () => {
@@ -92,17 +121,56 @@ describe('share', () => {
     const broken = [
       { circuits: [] },
       { circuits: [{ ...main, id: 'x' }] },
-      { circuits: [{ ...main, components: [{ id: 'a', kind: 'BUF', x: 0, y: 0 }], wires: [] }] },
-      { circuits: [{ ...main, components: [{ id: 'a', kind: 'AND', x: '0', y: 0 }], wires: [] }] },
-      { circuits: [{ ...main, wires: [{ id: 'w', from: { comp: 'zz', pin: 0 }, to: { comp: 'm', pin: 0 } }] }] },
+      {
+        circuits: [
+          {
+            ...main,
+            components: [{ id: 'a', kind: 'BUF', x: 0, y: 0 }],
+            wires: [],
+          },
+        ],
+      },
+      {
+        circuits: [
+          {
+            ...main,
+            components: [{ id: 'a', kind: 'AND', x: '0', y: 0 }],
+            wires: [],
+          },
+        ],
+      },
+      {
+        circuits: [
+          {
+            ...main,
+            wires: [
+              {
+                id: 'w',
+                from: { comp: 'zz', pin: 0 },
+                to: { comp: 'm', pin: 0 },
+              },
+            ],
+          },
+        ],
+      },
       // 存在しないモジュールへの参照
       { circuits: [main] },
       // 部品 ID の重複
-      { circuits: [{ ...main, components: [main.components[0], main.components[0]], wires: [] }] },
+      {
+        circuits: [
+          {
+            ...main,
+            components: [main.components[0], main.components[0]],
+            wires: [],
+          },
+        ],
+      },
       // 回路 ID の重複
       { circuits: [main, project.circuits[1], project.circuits[1]] },
     ];
-    for (const p of broken) expect(parse(withProject(p)).ok).toBe(false);
+    for (const p of broken) {
+      expect(parse(withProject(p)).ok).toBe(false);
+    }
   });
 
   it('INPUT / CLOCK の ON/OFF は書き出さず、読み込んでも使わない', () => {
@@ -110,7 +178,9 @@ describe('share', () => {
     // ON/OFF を含む古いデータを読み込んでも、OFF から始まる
     const old = JSON.stringify({ app: 'sazanka', version: 1, project });
     const result = parse(old);
-    expect(result.ok && result.project.circuits[0].components[0].on).toBeUndefined();
+    expect(
+      result.ok && result.project.circuits[0].components[0].on,
+    ).toBeUndefined();
   });
 
   it('ラベルやモジュールの参照は保ったまま往復する', () => {
@@ -128,19 +198,34 @@ describe('share', () => {
 describe('配線の折れる点', () => {
   const withPoints: Project = {
     circuits: [
-      { ...project.circuits[0], wires: [{ ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] }] },
+      {
+        ...project.circuits[0],
+        wires: [
+          { ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] },
+        ],
+      },
       project.circuits[1],
     ],
   };
 
   it('書き出して読み込んでも、折れる点を保つ', () => {
     const result = parse(serializeProject(withPoints));
-    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([{ x: 60, y: 100 }]);
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([
+      { x: 60, y: 100 },
+    ]);
   });
 
   it('折れる点の形が正しくなければ読み込まない', () => {
-    const wire = { ...withPoints.circuits[0].wires[0], points: [{ x: '1', y: 0 }] };
-    const broken = { circuits: [{ ...withPoints.circuits[0], wires: [wire] }, project.circuits[1]] };
+    const wire = {
+      ...withPoints.circuits[0].wires[0],
+      points: [{ x: '1', y: 0 }],
+    };
+    const broken = {
+      circuits: [
+        { ...withPoints.circuits[0], wires: [wire] },
+        project.circuits[1],
+      ],
+    };
     expect(parse(withProject(broken)).ok).toBe(false);
   });
 });
@@ -150,7 +235,11 @@ describe('CLOCK の周期', () => {
     const main = project.circuits[0];
     const broken = {
       circuits: [
-        { ...main, components: [{ id: 'c', kind: 'CLOCK', x: 20, y: 0, period: 0 }], wires: [] },
+        {
+          ...main,
+          components: [{ id: 'c', kind: 'CLOCK', x: 20, y: 0, period: 0 }],
+          wires: [],
+        },
         project.circuits[1],
       ],
     };

@@ -1,7 +1,7 @@
 // 部品のデータと、部品の種類ごとの仕様 (ピン、遅延)。
 // 部品を並べた回路は circuit.ts、モジュールのピンは module.ts にある
 
-import { isObject, SetElement } from "./util";
+import { isObject, SetElement } from './util';
 
 /** 部品 */
 export interface Component {
@@ -42,7 +42,9 @@ export type ComponentKind = PlaceableComponentKind | 'BUF';
  */
 type PlaceableComponentKind = GateKind | FlipFlopKind | OtherComponentKind;
 
-function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind {
+function isPlaceableComponentKind(
+  kind: string,
+): kind is PlaceableComponentKind {
   if (isGateKind(kind)) return true;
   if (isFlipFlopKind(kind)) return true;
   return isOtherComponentKind(kind);
@@ -51,14 +53,7 @@ function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind 
 /**
  * 論理ゲート
  */
-const GATE_KINDS = new Set([
-  'AND',
-  'OR',
-  'NOT',
-  'NAND',
-  'NOR',
-  'XOR',
-] as const);
+const GATE_KINDS = new Set(['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] as const);
 
 export type GateKind = SetElement<typeof GATE_KINDS>;
 
@@ -88,10 +83,10 @@ export function isFlipFlopKind(kind: string): kind is FlipFlopKind {
 
 /**
  * 未分類の部品
- * 
+ *
  * HIGH: 常に ON を出力する
  * CUSTOM: モジュール。シミュレーション前に展開される
-*/
+ */
 const OTHER_KINDS = new Set([
   'INPUT',
   'OUTPUT',
@@ -206,7 +201,11 @@ export const MAX_CLOCK_PERIOD = 10000;
 
 /** CLOCK の周期として有効な値か */
 export function isClockPeriod(v: unknown): v is number {
-  return Number.isInteger(v) && (v as number) >= MIN_CLOCK_PERIOD && (v as number) <= MAX_CLOCK_PERIOD;
+  return (
+    Number.isInteger(v) &&
+    (v as number) >= MIN_CLOCK_PERIOD &&
+    (v as number) <= MAX_CLOCK_PERIOD
+  );
 }
 
 /** CLOCK の周期 (一往復の tick 数) */
@@ -220,5 +219,7 @@ export function clockPeriodOf(c: Component): number {
  */
 export function clockFlipsAt(c: Component, tick: number): boolean {
   const period = clockPeriodOf(c);
-  return Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period);
+  return (
+    Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period)
+  );
 }

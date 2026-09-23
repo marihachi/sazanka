@@ -25,14 +25,19 @@ export function useShortcuts(shortcuts: Shortcuts) {
     function onKey(e: KeyboardEvent) {
       const s = ref.current;
       // 文字入力中も、キーを編集操作として扱わない
-      const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      const typing =
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement;
       if (!s.enabled || typing) return;
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       if (mod && (key === 'z' || key === 'y')) {
         e.preventDefault();
-        if (key === 'y' || e.shiftKey) s.onRedo();
-        else s.onUndo();
+        if (key === 'y' || e.shiftKey) {
+          s.onRedo();
+        } else {
+          s.onUndo();
+        }
         return;
       }
       if (mod && key === 'a') {
@@ -42,13 +47,21 @@ export function useShortcuts(shortcuts: Shortcuts) {
       }
       if (mod && (key === 'c' || key === 'x' || key === 'v')) {
         e.preventDefault();
-        if (key === 'c') s.onCopy();
-        else if (key === 'x') s.onCut();
-        else s.onPaste();
+        if (key === 'c') {
+          s.onCopy();
+        } else if (key === 'x') {
+          s.onCut();
+        } else {
+          s.onPaste();
+        }
         return;
       }
-      if (e.key === 'Delete' || e.key === 'Backspace') s.onDelete();
-      if (e.key === 'Escape') s.onEscape();
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        s.onDelete();
+      }
+      if (e.key === 'Escape') {
+        s.onEscape();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

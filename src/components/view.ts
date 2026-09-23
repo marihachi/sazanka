@@ -1,7 +1,14 @@
 // シートの表示 (スクロールと拡大縮小): 回路の座標と画面の座標の変換。
 // 部品の大きさや配置は engine/layout.ts、表示の保存は app/storage.ts にある
 
-import { componentBounds, GRID, SHEET_HEIGHT, SHEET_WIDTH, type Point, type Rect } from '../engine/layout';
+import {
+  componentBounds,
+  GRID,
+  SHEET_HEIGHT,
+  SHEET_WIDTH,
+  type Point,
+  type Rect,
+} from '../engine/layout';
 import type { CircuitDef, Project } from '../engine/project';
 import { portsOf } from '../engine/module';
 
@@ -37,7 +44,11 @@ export function zoomAt(v: View, at: Point, scale: number): View {
 
 /** シートの中央を、幅 width・高さ height の画面の真ん中に置いた等倍の表示。部品のない回路はこの表示で開く (開発者の方針) */
 export function centerView(width: number, height: number): View {
-  return { x: width / 2 - SHEET_WIDTH / 2, y: height / 2 - SHEET_HEIGHT / 2, scale: 1 };
+  return {
+    x: width / 2 - SHEET_WIDTH / 2,
+    y: height / 2 - SHEET_HEIGHT / 2,
+    scale: 1,
+  };
 }
 
 /**
@@ -49,7 +60,11 @@ function hideOutside(v: View, width: number, height: number): View {
     const size = sheet * v.scale;
     return size >= screen ? Math.min(0, Math.max(screen - size, pos)) : pos;
   };
-  return { ...v, x: clamp(v.x, width, SHEET_WIDTH), y: clamp(v.y, height, SHEET_HEIGHT) };
+  return {
+    ...v,
+    x: clamp(v.x, width, SHEET_WIDTH),
+    y: clamp(v.y, height, SHEET_HEIGHT),
+  };
 }
 
 /**
@@ -61,7 +76,9 @@ export function fitView(bounds: Rect, width: number, height: number): View {
   const margin = GRID * 2;
   const w = bounds.right - bounds.left;
   const h = bounds.bottom - bounds.top;
-  const scale = clampScale(Math.min(1, (width - margin * 2) / w, (height - margin * 2) / h));
+  const scale = clampScale(
+    Math.min(1, (width - margin * 2) / w, (height - margin * 2) / h),
+  );
   const centered = {
     x: width / 2 - ((bounds.left + bounds.right) / 2) * scale,
     y: height / 2 - ((bounds.top + bounds.bottom) / 2) * scale,
@@ -71,8 +88,13 @@ export function fitView(bounds: Rect, width: number, height: number): View {
 }
 
 /** 回路全体が占める範囲。部品がなければ undefined */
-export function circuitBounds(circuit: CircuitDef, project: Project): Rect | undefined {
-  const rects = circuit.components.map((c) => componentBounds(c, portsOf(c, project)));
+export function circuitBounds(
+  circuit: CircuitDef,
+  project: Project,
+): Rect | undefined {
+  const rects = circuit.components.map((c) =>
+    componentBounds(c, portsOf(c, project)),
+  );
   if (rects.length === 0) return undefined;
   return {
     left: Math.min(...rects.map((r) => r.left)),
@@ -86,9 +108,16 @@ export function circuitBounds(circuit: CircuitDef, project: Project): Rect | und
  * 回路全体を表示する。部品がなければシートの中央。
  * 表示を保存していない回路を開いたときもこれを使う。既存の回路はシートの左上の近くに部品があるので、中央を表示すると隠れてしまうため
  */
-export function overview(circuit: CircuitDef, project: Project, width: number, height: number): View {
+export function overview(
+  circuit: CircuitDef,
+  project: Project,
+  width: number,
+  height: number,
+): View {
   const bounds = circuitBounds(circuit, project);
-  return bounds && width > 0 && height > 0 ? fitView(bounds, width, height) : centerView(width, height);
+  return bounds && width > 0 && height > 0
+    ? fitView(bounds, width, height)
+    : centerView(width, height);
 }
 
 /** 保存データから読んだ値が、表示として使えるか */

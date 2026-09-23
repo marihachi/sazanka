@@ -24,7 +24,8 @@ export function isWire(w: unknown): w is Wire {
     typeof w.id === 'string' &&
     isPinRef(w.from) &&
     isPinRef(w.to) &&
-    (w.points === undefined || (Array.isArray(w.points) && w.points.every(isPoint)))
+    (w.points === undefined ||
+      (Array.isArray(w.points) && w.points.every(isPoint)))
   );
 }
 
@@ -38,7 +39,12 @@ export interface PinRef {
 }
 
 export function isPinRef(p: unknown): p is Wire['from'] {
-  return isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0;
+  return (
+    isObject(p) &&
+    typeof p.comp === 'string' &&
+    Number.isInteger(p.pin) &&
+    (p.pin as number) >= 0
+  );
 }
 
 /** 部品・配線・回路の ID。回路の中で重ならなければよいので、短いランダムな文字列で足りる */

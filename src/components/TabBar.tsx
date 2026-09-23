@@ -49,7 +49,9 @@ export function TabBar({
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
 
   /** ドラッグ中は、落とす位置に並べ替えて見せる */
-  const shown = drag?.started ? moveCircuit({ circuits }, drag.id, drag.index).circuits : circuits;
+  const shown = drag?.started
+    ? moveCircuit({ circuits }, drag.id, drag.index).circuits
+    : circuits;
 
   function onPointerDown(e: React.PointerEvent, id: string) {
     // メイン回路は先頭に固定なので動かさない
@@ -65,9 +67,13 @@ export function TabBar({
 
   function onPointerMove(e: React.PointerEvent) {
     if (!drag || e.pointerId !== drag.pointerId) return;
-    if (!drag.started && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) return;
+    if (!drag.started && Math.abs(e.clientX - drag.startX) < DRAG_THRESHOLD) {
+      return;
+    }
     // 押した時点でキャプチャすると、ダブルクリック (名前の変更) が効かなくなるので、動き始めてから行う
-    if (!drag.started) (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (!drag.started) {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }
     // ドラッグ中のタブ以外で、中央がポインターより左にあるモジュールのタブの数が、落とす位置
     const others = circuits.filter((d) => d.id !== drag.id && d.id !== MAIN_ID);
     const before = others.filter((d) => {
@@ -80,7 +86,12 @@ export function TabBar({
   function onPointerUp(e: React.PointerEvent) {
     if (!drag || e.pointerId !== drag.pointerId) return;
     setDrag(null);
-    if (drag.started && circuits.findIndex((d) => d.id === drag.id) !== drag.index) onReorder(drag.id, drag.index);
+    if (
+      drag.started &&
+      circuits.findIndex((d) => d.id === drag.id) !== drag.index
+    ) {
+      onReorder(drag.id, drag.index);
+    }
   }
 
   return (
@@ -105,8 +116,11 @@ export function TabBar({
             <button
               key={d.id}
               ref={(el) => {
-                if (el) tabRefs.current.set(d.id, el);
-                else tabRefs.current.delete(d.id);
+                if (el) {
+                  tabRefs.current.set(d.id, el);
+                } else {
+                  tabRefs.current.delete(d.id);
+                }
               }}
               role="tab"
               aria-selected={d.id === currentId}
@@ -118,7 +132,11 @@ export function TabBar({
               onPointerDown={(e) => onPointerDown(e, d.id)}
               onClick={() => onOpen(d.id)}
               onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
-              title={d.id !== MAIN_ID ? 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。' : undefined}
+              title={
+                d.id !== MAIN_ID
+                  ? 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。'
+                  : undefined
+              }
             >
               {d.name}
             </button>
@@ -126,7 +144,12 @@ export function TabBar({
         )}
       </div>
       <div className={styles.add}>
-        <ToolButton icon={plusIcon} label="モジュールを追加" onClick={onAddModule} iconOnly />
+        <ToolButton
+          icon={plusIcon}
+          label="モジュールを追加"
+          onClick={onAddModule}
+          iconOnly
+        />
       </div>
     </div>
   );

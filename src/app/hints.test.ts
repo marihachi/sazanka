@@ -36,7 +36,9 @@ describe('statusHints', () => {
   });
 
   it('操作の途中は、部品を選んでいてもそちらを優先する', () => {
-    expect(hints({ wiring: true, selectedComponent: comp('INPUT') })).toEqual(hints({ wiring: true }));
+    expect(hints({ wiring: true, selectedComponent: comp('INPUT') })).toEqual(
+      hints({ wiring: true }),
+    );
   });
 
   it('部品を選ぶと、その部品の説明と、移動・削除の方法を出す', () => {

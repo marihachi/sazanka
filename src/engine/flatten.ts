@@ -41,23 +41,31 @@ function flattenInto(
         outputs: outputs.map((k) => childPrefix + k.id),
       });
     } else {
-      const kind = inner && (c.kind === 'INPUT' || c.kind === 'OUTPUT') ? 'BUF' : c.kind;
+      const kind =
+        inner && (c.kind === 'INPUT' || c.kind === 'OUTPUT') ? 'BUF' : c.kind;
       out.components.push({ ...c, id: prefix + c.id, kind });
     }
   }
 
   // 配線の端がモジュールのピンなら、展開後の BUF につなぎ替える。
   // モジュールのピンが減って存在しなくなっていたら undefined (その配線は計算に使わない)
-  const resolve = (ref: PinRef, side: 'inputs' | 'outputs'): PinRef | undefined => {
+  const resolve = (
+    ref: PinRef,
+    side: 'inputs' | 'outputs',
+  ): PinRef | undefined => {
     const mod = modules.get(ref.comp);
-    if (!mod) return { comp: prefix + ref.comp, pin: ref.pin };
+    if (!mod) {
+      return { comp: prefix + ref.comp, pin: ref.pin };
+    }
     const id = mod[side][ref.pin];
     return id === undefined ? undefined : { comp: id, pin: 0 };
   };
   for (const w of def.wires) {
     const from = resolve(w.from, 'outputs');
     const to = resolve(w.to, 'inputs');
-    if (from && to) out.wires.push({ id: prefix + w.id, from, to });
+    if (from && to) {
+      out.wires.push({ id: prefix + w.id, from, to });
+    }
   }
   return modules;
 }
@@ -72,6 +80,8 @@ export interface Flattened {
 export function flattenProject(project: Project, id: string): Flattened {
   const def = findDef(project, id);
   const circuit: Circuit = { components: [], wires: [] };
-  if (!def) return { circuit, modules: new Map() };
+  if (!def) {
+    return { circuit, modules: new Map() };
+  }
   return { circuit, modules: flattenInto(project, def, '', circuit, [def.id]) };
 }

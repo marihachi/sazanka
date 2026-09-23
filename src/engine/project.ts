@@ -20,10 +20,15 @@ export interface Project {
 }
 
 export function emptyProject(): Project {
-  return { circuits: [{ id: MAIN_ID, name: 'メイン', components: [], wires: [] }] };
+  return {
+    circuits: [{ id: MAIN_ID, name: 'メイン', components: [], wires: [] }],
+  };
 }
 
-export function findDef(project: Project, id: string | undefined): CircuitDef | undefined {
+export function findDef(
+  project: Project,
+  id: string | undefined,
+): CircuitDef | undefined {
   return project.circuits.find((d) => d.id === id);
 }
 
@@ -31,12 +36,19 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
  * モジュールの回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
  * メイン回路は先頭に固定なので、メイン回路は動かさず、メイン回路より前にも置かない
  */
-export function moveCircuit(project: Project, id: string, index: number): Project {
+export function moveCircuit(
+  project: Project,
+  id: string,
+  index: number,
+): Project {
   const moving = project.circuits.find((d) => d.id === id);
   if (!moving || id === MAIN_ID) return project;
   const rest = project.circuits.filter((d) => d.id !== id);
   const at = Math.min(Math.max(index, 1), rest.length);
-  return { ...project, circuits: [...rest.slice(0, at), moving, ...rest.slice(at)] };
+  return {
+    ...project,
+    circuits: [...rest.slice(0, at), moving, ...rest.slice(at)],
+  };
 }
 
 /**
@@ -46,18 +58,30 @@ export function moveCircuit(project: Project, id: string, index: number): Projec
 export function withoutSwitchStates(project: Project): Project {
   return {
     ...project,
-    circuits: project.circuits.map((d) => ({ ...d, components: d.components.map(({ on: _, ...c }) => c) })),
+    circuits: project.circuits.map((d) => ({
+      ...d,
+      components: d.components.map(({ on: _, ...c }) => c),
+    })),
   };
 }
 
 function checkCircuit(def: unknown): string | undefined {
-  if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string')
+  if (
+    !isObject(def) ||
+    typeof def.id !== 'string' ||
+    typeof def.name !== 'string'
+  ) {
     return '回路の ID か名前がありません';
-  if (!Array.isArray(def.components) || !Array.isArray(def.wires)) return `「${def.name}」の部品か配線がありません`;
+  }
+  if (!Array.isArray(def.components) || !Array.isArray(def.wires)) {
+    return `「${def.name}」の部品か配線がありません`;
+  }
   const compIds = new Set<string>();
   for (const c of def.components as unknown[]) {
     if (!isComponent(c)) return `「${def.name}」に不正な部品があります`;
-    if (compIds.has(c.id)) return `「${def.name}」で部品の ID が重複しています: ${c.id}`;
+    if (compIds.has(c.id)) {
+      return `「${def.name}」で部品の ID が重複しています: ${c.id}`;
+    }
     compIds.add(c.id);
   }
   for (const w of def.wires as unknown[]) {
@@ -73,10 +97,16 @@ function checkCircuit(def: unknown): string | undefined {
  * 共有された JSON のほか、localStorage の保存データを読み込むときにも使う
  */
 export function checkProject(project: unknown): string | undefined {
-  if (!isObject(project) || !Array.isArray(project.circuits)) return '回路の一覧がありません';
-  if (project.author !== undefined && typeof project.author !== 'string') return '作者名が文字列ではありません';
+  if (!isObject(project) || !Array.isArray(project.circuits)) {
+    return '回路の一覧がありません';
+  }
+  if (project.author !== undefined && typeof project.author !== 'string') {
+    return '作者名が文字列ではありません';
+  }
   const circuits = project.circuits as unknown[];
-  if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) return 'メイン回路がありません';
+  if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) {
+    return 'メイン回路がありません';
+  }
   const ids = new Set<string>();
   for (const def of circuits) {
     const error = checkCircuit(def);
@@ -87,8 +117,9 @@ export function checkProject(project: unknown): string | undefined {
   }
   for (const def of circuits as CircuitDef[]) {
     for (const c of def.components) {
-      if (c.kind === 'CUSTOM' && !ids.has(c.custom ?? ''))
+      if (c.kind === 'CUSTOM' && !ids.has(c.custom ?? '')) {
         return `「${def.name}」が存在しないモジュールを参照しています`;
+      }
     }
   }
   return undefined;
