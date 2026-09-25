@@ -13,6 +13,7 @@
 - [編集と元に戻す](docs/agent/editing.md) — 元に戻す対象の決め方
 - [保存データ](docs/agent/persistence.md) — localStorage の互換性
 - [UI](docs/agent/ui.md) — アイコンの置き場所と描画方式
+- [画面操作](docs/agent/interaction.md) — 選択・配線・削除などの操作の割り当て
 - [ライセンス](docs/agent/licenses.md) — 同梱しているライブラリと素材のライセンス表示
 
 ## このドキュメント自体の運用
