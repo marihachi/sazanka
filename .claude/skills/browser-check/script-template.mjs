@@ -21,14 +21,14 @@ const project = {
         wires: [
           {
             id: 'wire-1',
-            from: { component: 'part-1', pin: 0 },
-            to: { component: 'part-2', pin: 0 },
+            from: { comp: 'part-1', pin: 0 },
+            to: { comp: 'part-2', pin: 0 },
             points: [],
           },
           {
             id: 'wire-2',
-            from: { component: 'part-2', pin: 0 },
-            to: { component: 'part-3', pin: 0 },
+            from: { comp: 'part-2', pin: 0 },
+            to: { comp: 'part-3', pin: 0 },
             points: [],
           },
         ],
