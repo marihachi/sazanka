@@ -15,7 +15,7 @@
   - `share.ts` … 共有用 JSON
   - `util.ts` … 型を問わない小さな判定
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。回路を直接書き換えず、「移動した」「接続した」などの出来事をコールバックで知らせる。元に戻す対象にするかどうかは `app/` 側で決める（[編集と元に戻す](editing.md)）。
-  - 各コンポーネントと、その CSS。`parts.ts` … 部品の表示名とドラッグの受け渡し。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結
+  - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`parts.ts` … 部品の表示名とドラッグの受け渡し。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結
 - `app/` … 画面全体の組み立てと状態。
   - `App.tsx` … 画面の組み立てと編集操作
   - `storage.ts` … localStorage への保存

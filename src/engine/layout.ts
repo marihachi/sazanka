@@ -1,4 +1,4 @@
-// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置
+// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置、配線の通り道
 
 import { type Component, isFlipFlopKind } from './component';
 import type { Ports } from './module';
@@ -141,6 +141,44 @@ export function componentBounds(c: Component, ports: Ports): Rect {
   };
 }
 
+/** 点 a と点 b を対角とする範囲に、本体の全体が収まる部品の ID */
+export function componentsInRect(
+  items: { c: Component; ports: Ports }[],
+  a: Point,
+  b: Point,
+): string[] {
+  const left = Math.min(a.x, b.x);
+  const right = Math.max(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const bottom = Math.max(a.y, b.y);
+  return items
+    .filter(({ c, ports }) => {
+      const { w, h } = bodySize(c, ports);
+      return c.x >= left && c.y >= top && c.x + w <= right && c.y + h <= bottom;
+    })
+    .map(({ c }) => c.id);
+}
+
+/**
+ * 部品をまとめて、全体の中心が点 at に来るように動かすときの移動量。
+ * グリッドに合わせ、シートからはみ出さないように縮める (貼り付ける位置に使う)
+ */
+export function placeOffset(
+  items: { c: Component; ports: Ports }[],
+  at: Point,
+): Point {
+  const rects = items.map(({ c, ports }) => componentBounds(c, ports));
+  const cx =
+    (Math.min(...rects.map((r) => r.left)) +
+      Math.max(...rects.map((r) => r.right))) /
+    2;
+  const cy =
+    (Math.min(...rects.map((r) => r.top)) +
+      Math.max(...rects.map((r) => r.bottom))) /
+    2;
+  return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) });
+}
+
 /**
  * 配線が通る点の並び (曲がり角を含む)。from は出力ピンの先、to は入力ピンの先、points は利用者が置いた折れる点。
  * 点と点の間は縦横の線でつなぐ。出力ピンからは横に出て、入力ピンへは横から入るよう、
@@ -182,4 +220,25 @@ function simplify(route: Point[]): Point[] {
     const [a, b] = [distinct[i - 1], distinct[i + 1]];
     return !((a.x === p.x && p.x === b.x) || (a.y === p.y && p.y === b.y));
   });
+}
+
+/**
+ * 中間で1回折れる形の配線なら、その縦線の x 座標。
+ * 折れる点がないか、出力ピンと同じ高さに1つだけある (縦線を動かした) 形が対象。縦線がない (両端が同じ高さ) ときは undefined
+ */
+export function wireMiddleX(
+  from: Point,
+  points: readonly Point[],
+  to: Point,
+): number | undefined {
+  if (from.y === to.y) {
+    return undefined;
+  }
+  if (points.length === 0) {
+    return snap((from.x + to.x) / 2);
+  }
+  if (points.length === 1 && points[0].y === from.y) {
+    return points[0].x;
+  }
+  return undefined;
 }

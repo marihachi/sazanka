@@ -4,12 +4,15 @@ import {
   clampMove,
   clampPosition,
   componentBounds,
+  componentsInRect,
   GRID,
   SHEET_HEIGHT,
   SHEET_WIDTH,
   inputPinPos,
   outputPinPos,
+  placeOffset,
   snap,
+  wireMiddleX,
   wireRoute,
 } from './layout';
 import type { Component, ComponentKind } from './component';
@@ -273,5 +276,73 @@ describe('wireRoute', () => {
     });
     const [a, b] = route.slice(-2);
     expect(a.y).toBe(b.y);
+  });
+});
+
+describe('componentsInRect', () => {
+  const ports = { inputs: ['', ''], outputs: [''] };
+  // AND の本体は 60×80
+  const items = [
+    { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
+    { c: { id: 'b', kind: 'AND', x: 300, y: 100 } as Component, ports },
+  ];
+
+  it('本体の全体が収まる部品だけを選ぶ', () => {
+    expect(
+      componentsInRect(items, { x: 100, y: 100 }, { x: 160, y: 180 }),
+    ).toEqual(['a']);
+  });
+
+  it('一部がかかっただけの部品は選ばない', () => {
+    expect(
+      componentsInRect(items, { x: 100, y: 100 }, { x: 159, y: 180 }),
+    ).toEqual([]);
+  });
+
+  it('範囲の向き (どの角から始めたか) によらない', () => {
+    expect(
+      componentsInRect(items, { x: 400, y: 200 }, { x: 90, y: 90 }),
+    ).toEqual(['a', 'b']);
+  });
+});
+
+describe('placeOffset', () => {
+  const ports = { inputs: ['', ''], outputs: [''] };
+
+  it('全体の中心が指定した点に来るよう、グリッドに合わせて動かす', () => {
+    // 範囲は左右のピンを含めて x: 80〜180、y: 100〜180 なので、中心は (130, 140)
+    const items = [
+      { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
+    ];
+    expect(placeOffset(items, { x: 530, y: 345 })).toEqual({ x: 400, y: 200 });
+  });
+
+  it('シートからはみ出す位置なら縮める', () => {
+    const items = [
+      { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
+    ];
+    expect(placeOffset(items, { x: 0, y: 0 })).toEqual({ x: -80, y: -100 });
+  });
+});
+
+describe('wireMiddleX', () => {
+  it('折れる点がなければ、両端の真ん中をグリッドに合わせた位置', () => {
+    expect(wireMiddleX({ x: 0, y: 0 }, [], { x: 100, y: 60 })).toBe(60);
+  });
+
+  it('出力ピンと同じ高さに折れる点が1つだけなら、その x', () => {
+    expect(
+      wireMiddleX({ x: 0, y: 0 }, [{ x: 20, y: 0 }], { x: 100, y: 60 }),
+    ).toBe(20);
+  });
+
+  it('両端が同じ高さなら、縦線はない', () => {
+    expect(wireMiddleX({ x: 0, y: 0 }, [], { x: 100, y: 0 })).toBeUndefined();
+  });
+
+  it('ほかの形の折れる点があれば対象外', () => {
+    expect(
+      wireMiddleX({ x: 0, y: 0 }, [{ x: 20, y: 40 }], { x: 100, y: 60 }),
+    ).toBeUndefined();
   });
 });
