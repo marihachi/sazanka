@@ -1,6 +1,12 @@
 # Skill の追加・編集
 
-Skill（`.agents/skills/` と `.claude/skills/`）を足すとき、直すときの手順。何を Skill にして何をドキュメントに残すか、なぜ2箇所に置くかは [AGENTS.md](../../AGENTS.md) の「Skill」にある。
+Skill を足すとき、直すときの手順。何を Skill にして何をドキュメントに残すかは [AGENTS.md](../../AGENTS.md) の「手順の Skill 化」にある。
+
+## 置き場所
+
+- Skill はエージェントごとの仕組みで、共通の置き場所が定まっていない。そのため `.agents/skills/` と `.claude/skills/` の両方に、**同じ内容で**置く（`.agents/` を Codex などが、`.claude/` を Claude Code が読む）。片方だけ直さないこと。
+- Skill に対応していないエージェントは考慮しない（開発者の方針）。
+- どんな Skill があるかの一覧は、どこにも持たない。エージェントには利用可能な Skill の名前と `description` が渡されるので、それが唯一の出どころになる。
 
 ## 中身の書き方
 

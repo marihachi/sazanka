@@ -26,6 +26,6 @@ description: AGENTS.md と docs/agent/ のドキュメントを見直して、�
 
 ## 注意
 
-- Skill（`.agents/skills/` と `.claude/skills/`）を直したときは、両方の内容をそろえる（[AGENTS.md](../../../AGENTS.md) の「Skill」）。
+- Skill（`.agents/skills/` と `.claude/skills/`）を直したときは、両方の内容をそろえる（[Skill の追加・編集](../../../docs/agent/skills.md)）。
 - ドキュメントを消すか残すかで迷ったら、決め打ちせずに開発者に聞く。
 - 開発者が手で直した箇所を、整理のついでに元に戻してしまわないよう気を付ける。直す前に `git diff` と `git log` で、直近に手が入った箇所を見ておく。
