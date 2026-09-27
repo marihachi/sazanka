@@ -32,7 +32,7 @@
 }
 
 .wire.selected {
-  stroke: var(--accent);
+  stroke: var(--chakra-colors-accent-solid);
 }
 
 .wire-hit {
@@ -51,7 +51,7 @@
 }
 
 .pending {
-  stroke: var(--accent);
+  stroke: var(--chakra-colors-accent-solid);
   stroke-dasharray: 4 4;
   stroke-width: 2;
   fill: none;
@@ -59,8 +59,8 @@
 }
 
 .band {
-  fill: color-mix(in srgb, var(--accent) 12%, transparent);
-  stroke: var(--accent);
+  fill: color-mix(in srgb, var(--chakra-colors-accent-solid) 12%, transparent);
+  stroke: var(--chakra-colors-accent-solid);
   stroke-dasharray: 4 4;
   pointer-events: none;
 }
@@ -71,7 +71,7 @@
 }
 
 .edge {
-  stroke: var(--border);
+  stroke: var(--chakra-colors-border);
   fill: none;
 }
 

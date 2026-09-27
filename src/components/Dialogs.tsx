@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
+import { Tooltip } from './Tooltip';
 import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
@@ -379,7 +380,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
     <DialogFrame onClose={onClose} initialFocus={closeRef}>
       <ChakraDialog.Header justifyContent="center" pt="8">
         <ChakraDialog.Title display="flex">
-          <MaskIcon src={logo} w="153px" h="42px" bg="var(--brand)" />
+          <MaskIcon src={logo} w="153px" h="42px" bg="brand" />
           <VisuallyHidden>sazanka について</VisuallyHidden>
         </ChakraDialog.Title>
       </ChakraDialog.Header>
@@ -507,43 +508,46 @@ export function PreferencesDialog({
             </Text>
             <HStack gap="2" role="group" aria-labelledby="accent-label">
               {ACCENT_PRESETS.map((p) => (
-                <chakra.button
-                  key={p.value}
-                  type="button"
-                  boxSize="6"
-                  rounded="full"
-                  cursor="pointer"
-                  style={{ background: p.value }}
-                  // 今の色は、文字色の輪で囲む
-                  outline={
-                    preferences.accent === p.value ? '2px solid' : 'none'
-                  }
-                  outlineColor="fg"
-                  outlineOffset="2px"
-                  _focusVisible={{ outline: '2px solid', outlineColor: 'fg' }}
-                  title={p.label}
-                  aria-label={p.label}
-                  aria-pressed={preferences.accent === p.value}
-                  onClick={() => onChange({ ...preferences, accent: p.value })}
-                />
+                <Tooltip key={p.value} content={p.label}>
+                  <chakra.button
+                    type="button"
+                    boxSize="6"
+                    rounded="full"
+                    cursor="pointer"
+                    style={{ background: p.value }}
+                    // 今の色は、文字色の輪で囲む
+                    outline={
+                      preferences.accent === p.value ? '2px solid' : 'none'
+                    }
+                    outlineColor="fg"
+                    outlineOffset="2px"
+                    _focusVisible={{ outline: '2px solid', outlineColor: 'fg' }}
+                    aria-label={p.label}
+                    aria-pressed={preferences.accent === p.value}
+                    onClick={() =>
+                      onChange({ ...preferences, accent: p.value })
+                    }
+                  />
+                </Tooltip>
               ))}
               {/* 用意した色以外も選べる */}
-              <chakra.input
-                type="color"
-                w="8"
-                h="7"
-                p="0.5"
-                bg="transparent"
-                borderWidth="1px"
-                rounded="l2"
-                cursor="pointer"
-                value={preferences.accent}
-                title="ほかの色を選ぶ"
-                aria-label="ほかの色を選ぶ"
-                onChange={(e) =>
-                  onChange({ ...preferences, accent: e.target.value })
-                }
-              />
+              <Tooltip content="ほかの色を選ぶ">
+                <chakra.input
+                  type="color"
+                  w="8"
+                  h="7"
+                  p="0.5"
+                  bg="transparent"
+                  borderWidth="1px"
+                  rounded="l2"
+                  cursor="pointer"
+                  value={preferences.accent}
+                  aria-label="ほかの色を選ぶ"
+                  onChange={(e) =>
+                    onChange({ ...preferences, accent: e.target.value })
+                  }
+                />
+              </Tooltip>
             </HStack>
           </Stack>
         </Stack>

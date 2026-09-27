@@ -48,7 +48,7 @@ export function Header({
       borderBottomWidth="1px"
     >
       <Heading as="h1" display="flex" flexShrink={0}>
-        <MaskIcon src={logoMark} boxSize="7" bg="var(--brand)" />
+        <MaskIcon src={logoMark} boxSize="7" bg="brand" />
         <VisuallyHidden>sazanka</VisuallyHidden>
       </Heading>
       {/* 入りきらない幅では横にスクロールする */}

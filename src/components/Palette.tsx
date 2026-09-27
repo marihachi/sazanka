@@ -8,6 +8,7 @@ import type { CircuitDef } from '../engine/project';
 import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
 import { MaskIcon, PartIcon } from './Icons';
 import { ToolButton } from './ToolButton';
+import { Tooltip } from './Tooltip';
 
 /**
  * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
@@ -247,7 +248,7 @@ function PaletteItem({
   onAdd,
 }: PaletteItemProps) {
   const disabled = !!disabledReason;
-  return (
+  const button = (
     <Button
       variant="outline"
       size="sm"
@@ -261,8 +262,6 @@ function PaletteItem({
       borderStyle={kind === 'CUSTOM' ? 'dashed' : 'solid'}
       _hover={{ borderColor: 'accent.solid' }}
       disabled={disabled}
-      // 置けないモジュールは、説明よりも置けない理由を見せる
-      title={disabledReason ?? DESCRIPTIONS[kind]}
       draggable={!disabled}
       onClick={onAdd}
       onDragStart={(e) => {
@@ -276,5 +275,12 @@ function PaletteItem({
         {label}
       </Box>
     </Button>
+  );
+  return (
+    // 置けないモジュールは、説明よりも置けない理由を見せる
+    <Tooltip content={disabledReason ?? DESCRIPTIONS[kind]}>
+      {/* 押せないボタンはポインターのイベントを出さないので、包んだ要素でツールチップを出す */}
+      {disabled ? <Box w="full">{button}</Box> : button}
+    </Tooltip>
   );
 }

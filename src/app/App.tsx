@@ -1,3 +1,4 @@
+import { Flex } from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
 import {
   Sheet,
@@ -481,7 +482,7 @@ export function App() {
   });
 
   return (
-    <div className="app">
+    <Flex direction="column" h="full">
       <Header
         onNew={newProject}
         onExport={exportProject}
@@ -513,7 +514,7 @@ export function App() {
         canStepBack={canStepBack}
         onDeleteModule={circuit.id !== MAIN_ID ? deleteCircuit : undefined}
       />
-      <div className="workspace">
+      <Flex flex="1" minH="0">
         <Palette
           modules={paletteModules}
           dragMode={dragMode}
@@ -571,7 +572,7 @@ export function App() {
             setCircuit((cur) => edit.setLabel(cur, id, label), false)
           }
         />
-      </div>
+      </Flex>
       <StatusBar hints={hints} unstable={sim.unstable} />
       {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
           Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
@@ -595,6 +596,6 @@ export function App() {
           onClose={() => setPreferencesOpen(false)}
         />
       )}
-    </div>
+    </Flex>
   );
 }

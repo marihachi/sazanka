@@ -6,8 +6,19 @@ import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react';
  */
 const config = defineConfig({
   globalCss: {
-    // ボタンのフォーカスの枠などを、アクセントカラーで出す
-    html: { colorPalette: 'accent' },
+    html: {
+      // ボタンのフォーカスの枠などを、アクセントカラーで出す
+      colorPalette: 'accent',
+      // 既定のアクセントカラー。環境設定で変えると、App.tsx が差し替える (preferences.ts の既定値と合わせる)
+      '--accent': '#20b2aa',
+    },
+    'html, body, #root': {
+      height: '100%',
+      // シートの背景の色 (シートの SVG は背景を塗らない)
+      bg: 'sheet.bg',
+      // アプリは画面全体に収める。一時的なはみ出しでページのスクロールバーを出さない
+      overflow: 'hidden',
+    },
   },
   theme: {
     semanticTokens: {
@@ -23,6 +34,8 @@ const config = defineConfig({
           emphasized: { value: 'color-mix(in srgb, var(--accent) 50%, #111)' },
           focusRing: { value: 'var(--accent)' },
         },
+        // ロゴの色。アクセントカラーと違い、環境設定では変わらない (ブラウザのタブのアイコン public/favicon.svg も同じ色)
+        brand: { value: 'lightseagreen' },
         // シートの色。シートは性能のため CSS Modules のままなので、CSS の変数で参照する
         // (例: var(--chakra-colors-sheet-grid))
         sheet: {

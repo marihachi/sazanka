@@ -4,6 +4,7 @@ import plusIcon from '../assets/icons/plus.svg';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
 import { ToolButton } from './ToolButton';
+import { Tooltip } from './Tooltip';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -127,39 +128,35 @@ export function TabBar({
                 />
               </Box>
             ) : (
-              <Tabs.Trigger
-                key={d.id}
-                value={d.id}
-                ref={(el) => {
-                  if (el) {
-                    tabRefs.current.set(d.id, el);
-                  } else {
-                    tabRefs.current.delete(d.id);
-                  }
-                }}
-                flexShrink={0}
-                maxW="200px"
-                _selected={{ bg: 'bg.panel' }}
-                // ドラッグして並べ替えている最中のタブ
-                {...(drag?.started &&
-                  drag.id === d.id && {
-                    outline: '1px dashed',
-                    outlineColor: 'accent.solid',
-                    outlineOffset: '-2px',
-                    cursor: 'grabbing',
-                  })}
-                onPointerDown={(e) => onPointerDown(e, d.id)}
-                onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
-                title={
-                  d.id !== MAIN_ID
-                    ? 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。'
-                    : undefined
-                }
-              >
-                <Box as="span" truncate>
-                  {d.name}
-                </Box>
-              </Tabs.Trigger>
+              <TabTooltip key={d.id} show={d.id !== MAIN_ID && !drag?.started}>
+                <Tabs.Trigger
+                  value={d.id}
+                  ref={(el) => {
+                    if (el) {
+                      tabRefs.current.set(d.id, el);
+                    } else {
+                      tabRefs.current.delete(d.id);
+                    }
+                  }}
+                  flexShrink={0}
+                  maxW="200px"
+                  _selected={{ bg: 'bg.panel' }}
+                  // ドラッグして並べ替えている最中のタブ
+                  {...(drag?.started &&
+                    drag.id === d.id && {
+                      outline: '1px dashed',
+                      outlineColor: 'accent.solid',
+                      outlineOffset: '-2px',
+                      cursor: 'grabbing',
+                    })}
+                  onPointerDown={(e) => onPointerDown(e, d.id)}
+                  onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
+                >
+                  <Box as="span" truncate>
+                    {d.name}
+                  </Box>
+                </Tabs.Trigger>
+              </TabTooltip>
             ),
           )}
         </Tabs.List>
@@ -174,5 +171,23 @@ export function TabBar({
         />
       </Box>
     </Flex>
+  );
+}
+
+/** モジュールのタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
+function TabTooltip({
+  show,
+  children,
+}: {
+  show: boolean;
+  children: React.ReactElement;
+}) {
+  if (!show) {
+    return children;
+  }
+  return (
+    <Tooltip content="ダブルクリックで名前を変更、ドラッグで並べ替えできます。">
+      {children}
+    </Tooltip>
   );
 }

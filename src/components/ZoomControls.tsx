@@ -1,8 +1,9 @@
 import fitIcon from '../assets/icons/fit.svg';
 import minusIcon from '../assets/icons/minus.svg';
 import plusIcon from '../assets/icons/plus.svg';
-import { ToolIcon } from './Icons';
-import styles from './ZoomControls.module.css';
+import { Button, HStack } from '@chakra-ui/react';
+import { ToolButton } from './ToolButton';
+import { Tooltip } from './Tooltip';
 
 interface ZoomControlsProps {
   scale: number;
@@ -23,43 +24,42 @@ export function ZoomControls({
   onFit,
 }: ZoomControlsProps) {
   return (
-    // ボタンを押したときに、シートの範囲選択などが始まらないようにする
-    <div className={styles.zoom} onPointerDown={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        className={styles.button}
-        onClick={onZoomOut}
-        title="縮小"
-        aria-label="縮小"
-      >
-        <ToolIcon src={minusIcon} />
-      </button>
-      <button
-        type="button"
-        className={styles.percent}
-        onClick={onReset}
-        title="等倍に戻す"
-      >
-        {Math.round(scale * 100)}%
-      </button>
-      <button
-        type="button"
-        className={styles.button}
-        onClick={onZoomIn}
-        title="拡大"
-        aria-label="拡大"
-      >
-        <ToolIcon src={plusIcon} />
-      </button>
-      <button
-        type="button"
-        className={styles.button}
+    <HStack
+      position="absolute"
+      right="3"
+      bottom="3"
+      gap="0.5"
+      p="0.5"
+      bg="bg.panel"
+      borderWidth="1px"
+      rounded="l2"
+      shadow="sm"
+      // ボタンを押したときに、シートの範囲選択などが始まらないようにする
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      <ToolButton icon={minusIcon} label="縮小" onClick={onZoomOut} iconOnly />
+      <Tooltip content="等倍に戻す">
+        <Button
+          variant="ghost"
+          size="sm"
+          colorPalette="gray"
+          // 桁数が変わってもボタンの幅が揺れないようにする
+          minW="12"
+          px="1"
+          textStyle="xs"
+          fontVariantNumeric="tabular-nums"
+          onClick={onReset}
+        >
+          {Math.round(scale * 100)}%
+        </Button>
+      </Tooltip>
+      <ToolButton icon={plusIcon} label="拡大" onClick={onZoomIn} iconOnly />
+      <ToolButton
+        icon={fitIcon}
+        label="回路全体を表示"
         onClick={onFit}
-        title="回路全体を表示"
-        aria-label="回路全体を表示"
-      >
-        <ToolIcon src={fitIcon} />
-      </button>
-    </div>
+        iconOnly
+      />
+    </HStack>
   );
 }

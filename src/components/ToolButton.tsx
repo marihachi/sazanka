@@ -1,5 +1,6 @@
 import { Box, Button, IconButton, Separator } from '@chakra-ui/react';
 import { ToolIcon } from './Icons';
+import { Tooltip } from './Tooltip';
 
 interface ToolButtonProps {
   icon: string;
@@ -34,23 +35,31 @@ export function ToolButton({
     colorPalette: danger ? 'red' : 'gray',
     onClick,
     disabled,
-    title: title ?? label,
     'aria-label': label,
   } as const;
-  if (iconOnly) {
-    return (
-      <IconButton {...common}>
-        <ToolIcon src={icon} />
-      </IconButton>
-    );
-  }
-  return (
+  const button = iconOnly ? (
+    <IconButton {...common}>
+      <ToolIcon src={icon} />
+    </IconButton>
+  ) : (
     <Button {...common} flexShrink={0} px={{ base: '2', md: '2.5' }}>
       <ToolIcon src={icon} />
       <Box as="span" display={{ base: 'none', md: 'inline' }}>
         {label}
       </Box>
     </Button>
+  );
+  return (
+    <Tooltip content={title ?? label}>
+      {/* 押せないボタンはポインターのイベントを出さないので、包んだ span でツールチップを出す */}
+      {disabled ? (
+        <Box as="span" display="inline-flex" flexShrink={0}>
+          {button}
+        </Box>
+      ) : (
+        button
+      )}
+    </Tooltip>
   );
 }
 
