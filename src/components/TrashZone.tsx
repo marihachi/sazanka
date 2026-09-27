@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import trashIcon from '../assets/icons/trash.svg';
 import { MaskIcon } from './Icons';
@@ -14,7 +15,10 @@ interface TrashZoneProps {
  * ふだんは丸いごみ箱のアイコンだけ。部品をドラッグし始めると、丸の下 (外) に「削除」と出す。上に載せると丸を赤くする。
  * 丸の位置と大きさは、ドラッグの前後で変えない (開発者の方針)
  */
-export function TrashZone({ dragMode, ref }: TrashZoneProps) {
+export const TrashZone = memo(function TrashZone({
+  dragMode,
+  ref,
+}: TrashZoneProps) {
   const dragging = dragMode !== 'none';
   const over = dragMode === 'trash';
   return (
@@ -55,4 +59,4 @@ export function TrashZone({ dragMode, ref }: TrashZoneProps) {
       </Box>
     </Flex>
   );
-}
+});

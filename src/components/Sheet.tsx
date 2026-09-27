@@ -1,5 +1,11 @@
 import { Stack } from '@chakra-ui/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   clampMove,
   componentsInRect,
@@ -86,10 +92,17 @@ const DRAG_THRESHOLD = 4;
 /** 拡大・縮小ボタン1回で変える倍率 */
 const ZOOM_STEP = 1.25;
 
+/** 値を読み、変わったら知らせてもらえる、シミュレーションの結果の入れ物 (作るのは app/useSimulation.ts) */
+export interface SimStore {
+  get: () => SimResult;
+  subscribe: (listener: () => void) => () => void;
+}
+
 interface SheetProps {
   project: Project;
   circuit: CircuitDef;
-  sim: SimResult;
+  /** シミュレーションの結果。tick ごとに変わるので、props ではなく購読して受け取る (App を描き直さないため) */
+  simStore: SimStore;
   selection: Selection;
   onSelect: (selection: Selection) => void;
   /** 配線の途中で、接続元の出力ピン */
@@ -131,7 +144,7 @@ interface SheetProps {
 export function Sheet({
   project,
   circuit,
-  sim,
+  simStore,
   selection,
   onSelect,
   pending,
@@ -155,6 +168,7 @@ export function Sheet({
   placing,
   onPlace,
 }: SheetProps) {
+  const sim = useSyncExternalStore(simStore.subscribe, simStore.get);
   /** 部品を落とすと削除するエリア。落としたかは、画面上の位置で判定する */
   const trashRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -251,6 +265,23 @@ export function Sheet({
     const rect = sheetSvg().getBoundingClientRect();
     onViewChange(overview(circuit, project, rect.width, rect.height));
   }
+
+  // ズームのボタンに渡す関数。ZoomControls は React.memo なので、部品のドラッグで描き直さないよう同じ関数を渡し続け、
+  // 中身は最新の描画の表示を見る
+  const zoomLatest = useRef({ view, center, fit, onViewChange });
+  zoomLatest.current = { view, center, fit, onViewChange };
+  const zoom = useMemo(() => {
+    const zoomTo = (scale: (s: number) => number) => {
+      const { view: v, center: c, onViewChange: change } = zoomLatest.current;
+      change(zoomAt(v, c(), scale(v.scale)));
+    };
+    return {
+      in: () => zoomTo((s) => s * ZOOM_STEP),
+      out: () => zoomTo((s) => s / ZOOM_STEP),
+      reset: () => zoomTo(() => 1),
+      fit: () => zoomLatest.current.fit(),
+    };
+  }, []);
 
   /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
   function cancelGesture() {
@@ -766,14 +797,10 @@ export function Sheet({
         <TrashZone dragMode={dragMode} ref={trashRef} />
         <ZoomControls
           scale={view.scale}
-          onZoomIn={() =>
-            onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))
-          }
-          onZoomOut={() =>
-            onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))
-          }
-          onReset={() => onViewChange(zoomAt(view, center(), 1))}
-          onFit={fit}
+          onZoomIn={zoom.in}
+          onZoomOut={zoom.out}
+          onReset={zoom.reset}
+          onFit={zoom.fit}
         />
       </Stack>
     </div>

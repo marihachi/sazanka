@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
@@ -69,7 +70,7 @@ interface PaletteProps {
 }
 
 /** 左側のパネル。置ける部品の一覧 (削除エリアはシートの右下、TrashZone.tsx) */
-export function Palette({
+export const Palette = memo(function Palette({
   modules,
   collapsed,
   onCollapsedChange,
@@ -144,7 +145,7 @@ export function Palette({
       </Box>
     </Flex>
   );
-}
+});
 
 interface PaletteGroupProps {
   id: string;

@@ -1,5 +1,5 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Sheet,
   type SheetSize,
@@ -54,6 +54,28 @@ import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
 
+/**
+ * 渡した関数を、描き直しても同じ関数 (呼ぶと最新の描画の中身を実行する) にして返す。
+ * 子の部品は React.memo で、props が変わらなければ描き直さないので、関数を渡すたびに作り直すと効かなくなる。
+ * useCallback と違い、関数が使う状態を依存に並べなくてよく、古い値を見てしまうこともない
+ */
+function useStableCallbacks<
+  T extends Record<string, (...args: never[]) => unknown>,
+>(fns: T): T {
+  const latest = useRef(fns);
+  latest.current = fns;
+  const stable = useRef<T | null>(null);
+  if (!stable.current) {
+    stable.current = Object.fromEntries(
+      Object.keys(fns).map((key) => [
+        key,
+        (...args: never[]) => latest.current[key](...args),
+      ]),
+    ) as T;
+  }
+  return stable.current;
+}
+
 /** その場で編集中の名前 (タブのモジュール名) */
 type Editing = { type: 'tab'; id: string } | null;
 
@@ -105,14 +127,15 @@ export function App() {
   }
 
   const {
-    sim,
+    simStore,
+    unstable,
     running,
     toggleRunning,
     stepOnce,
     stepBack,
     canStepBack,
     forget,
-  } = useSimulation(project, circuit.id, history.replace, preferences.tickMs);
+  } = useSimulation(project, circuit.id, preferences.tickMs);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
@@ -136,18 +159,37 @@ export function App() {
     }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
-  /** パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き */
-  const paletteModules: PaletteModule[] = project.circuits
-    .filter((d) => d.id !== MAIN_ID)
-    .map((d) => ({
-      def: d,
-      blocked:
-        d.id === circuit.id
-          ? 'モジュールの中に自分自身は置けません'
-          : dependsOn(project, d.id, circuit.id)
-            ? `「${d.name}」はこの回路を含んでいるため置けません`
-            : undefined,
-    }));
+  /**
+   * パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き。
+   * 部品を動かしただけでは変わらないので、回路の名前と、どの回路にどのモジュールを置いているかが変わったときだけ作り直す
+   * (作り直すとパレットが描き直され、ドラッグが重くなるため)
+   */
+  const modulesKey = [
+    circuit.id,
+    ...project.circuits.map(
+      (d) =>
+        `${d.id}:${d.name}:${d.components
+          .filter((c) => c.kind === 'CUSTOM')
+          .map((c) => c.custom)
+          .join(',')}`,
+    ),
+  ].join('|');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 上の理由で、modulesKey が変わったときだけ作り直す
+  const paletteModules: PaletteModule[] = useMemo(
+    () =>
+      project.circuits
+        .filter((d) => d.id !== MAIN_ID)
+        .map((d) => ({
+          def: d,
+          blocked:
+            d.id === circuit.id
+              ? 'モジュールの中に自分自身は置けません'
+              : dependsOn(project, d.id, circuit.id)
+                ? `「${d.name}」はこの回路を含んでいるため置けません`
+                : undefined,
+        })),
+    [modulesKey],
+  );
 
   function openCircuit(id: string) {
     setPlacing(null);
@@ -476,55 +518,85 @@ export function App() {
     wireSelected: selection?.type === 'wire',
     selectedComponent,
     multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
-    unstable: sim.unstable,
+    unstable,
     inModule: circuit.id !== MAIN_ID,
     tickMs: preferences.tickMs,
+  });
+
+  // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
+  // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
+  const on = useStableCallbacks({
+    newProject,
+    exportProject,
+    importProject,
+    undoEdit,
+    redoEdit,
+    openPreferences: () => setPreferencesOpen(true),
+    openAbout: () => setAboutOpen(true),
+    openCircuit,
+    startRename: (id: string) => setEditing({ type: 'tab', id }),
+    renameCircuit,
+    cancelRename: () => setEditing(null),
+    createModule,
+    // タブの並びは保存データの回路の順なので、元に戻す対象にする
+    reorder: (id: string, index: number) =>
+      setProject((p) => moveCircuit(p, id, index)),
+    toggleRunning,
+    stepOnce,
+    stepBack,
+    deleteCircuit,
+    addFromPalette: (kind: ComponentKind, custom?: string) =>
+      addComponent(kind, custom),
+    // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
+    setClockPeriod: (id: string, period: number) =>
+      setCircuit((cur) => edit.setClockPeriod(cur, id, period), false),
+    setLabel: (id: string, label: string) =>
+      setCircuit((cur) => edit.setLabel(cur, id, label), false),
   });
 
   return (
     <Flex direction="column" h="full">
       <Header
-        onNew={newProject}
-        onExport={exportProject}
-        onImport={importProject}
+        onNew={on.newProject}
+        onExport={on.exportProject}
+        onImport={on.importProject}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
-        onUndo={undoEdit}
-        onRedo={redoEdit}
-        onPreferences={() => setPreferencesOpen(true)}
-        onAbout={() => setAboutOpen(true)}
+        onUndo={on.undoEdit}
+        onRedo={on.redoEdit}
+        onPreferences={on.openPreferences}
+        onAbout={on.openAbout}
       />
       <TabBar
         circuits={project.circuits}
         currentId={circuit.id}
         renamingId={editing?.type === 'tab' ? editing.id : undefined}
-        onOpen={openCircuit}
-        onStartRename={(id) => setEditing({ type: 'tab', id })}
-        onRename={renameCircuit}
-        onCancelRename={() => setEditing(null)}
-        onAddModule={createModule}
-        // タブの並びは保存データの回路の順なので、元に戻す対象にする
-        onReorder={(id, index) => setProject((p) => moveCircuit(p, id, index))}
+        onOpen={on.openCircuit}
+        onStartRename={on.startRename}
+        onRename={on.renameCircuit}
+        onCancelRename={on.cancelRename}
+        onAddModule={on.createModule}
+        onReorder={on.reorder}
       />
       <SheetToolbar
         running={running}
-        onToggleRunning={toggleRunning}
-        onStep={stepOnce}
-        onStepBack={stepBack}
+        onToggleRunning={on.toggleRunning}
+        onStep={on.stepOnce}
+        onStepBack={on.stepBack}
         canStepBack={canStepBack}
-        onDeleteModule={circuit.id !== MAIN_ID ? deleteCircuit : undefined}
+        onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
       />
       <Flex flex="1" minH="0">
         <Palette
           modules={paletteModules}
           collapsed={collapsedGroups}
           onCollapsedChange={setCollapsedGroups}
-          onAdd={(kind, custom) => addComponent(kind, custom)}
+          onAdd={on.addFromPalette}
         />
         <Sheet
           project={project}
           circuit={circuit}
-          sim={sim}
+          simStore={simStore}
           selection={selection}
           onSelect={setSelection}
           pending={pending}
@@ -561,16 +633,11 @@ export function App() {
           }
           tickMs={preferences.tickMs}
           onEditStart={history.checkpoint}
-          // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
-          onClockPeriodChange={(id, period) =>
-            setCircuit((cur) => edit.setClockPeriod(cur, id, period), false)
-          }
-          onLabelChange={(id, label) =>
-            setCircuit((cur) => edit.setLabel(cur, id, label), false)
-          }
+          onClockPeriodChange={on.setClockPeriod}
+          onLabelChange={on.setLabel}
         />
       </Flex>
-      <StatusBar hints={hints} unstable={sim.unstable} />
+      <StatusBar hints={hints} unstable={unstable} />
       {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
           Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
       {dialog && !textDialog && !promptDialog && (

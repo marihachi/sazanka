@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
@@ -23,7 +24,7 @@ interface SheetToolbarProps {
  * タブの下のツールバー。開いている回路 (シート) に効く操作を置く。
  * プロジェクト全体に効く操作はヘッダーに置く
  */
-export function SheetToolbar({
+export const SheetToolbar = memo(function SheetToolbar({
   running,
   onToggleRunning,
   onStep,
@@ -75,4 +76,4 @@ export function SheetToolbar({
       )}
     </Flex>
   );
-}
+});

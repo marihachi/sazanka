@@ -1,5 +1,5 @@
 import { Badge, Box, Flex } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -15,7 +15,10 @@ interface StatusBarProps {
 }
 
 /** 画面下のステータスバー。使い方のヒントと、発振の警告を出す */
-export function StatusBar({ hints, unstable }: StatusBarProps) {
+export const StatusBar = memo(function StatusBar({
+  hints,
+  unstable,
+}: StatusBarProps) {
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
   /** マウスが載っている間は切り替えを止める */
@@ -67,5 +70,14 @@ export function StatusBar({ hints, unstable }: StatusBarProps) {
         </Badge>
       )}
     </Flex>
+  );
+}, sameStatus);
+
+/** 描き直すかの判定。ヒントは描き直しのたびに新しい配列で届くので、中身の文で比べる */
+function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
+  return (
+    a.unstable === b.unstable &&
+    a.hints.length === b.hints.length &&
+    a.hints.every((h, i) => h === b.hints[i])
   );
 }

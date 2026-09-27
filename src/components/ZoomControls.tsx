@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import fitIcon from '../assets/icons/fit.svg';
 import minusIcon from '../assets/icons/minus.svg';
 import plusIcon from '../assets/icons/plus.svg';
@@ -16,7 +17,7 @@ interface ZoomControlsProps {
 }
 
 /** シートの右下に重ねて置く、拡大縮小のボタン (置き場所は Sheet.tsx が決める) */
-export function ZoomControls({
+export const ZoomControls = memo(function ZoomControls({
   scale,
   onZoomIn,
   onZoomOut,
@@ -61,4 +62,4 @@ export function ZoomControls({
       />
     </HStack>
   );
-}
+});

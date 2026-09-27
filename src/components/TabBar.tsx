@@ -1,6 +1,7 @@
 import { Box, Flex, Tabs } from '@chakra-ui/react';
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
+import { shallowEqual } from '../engine/util';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './InlineInput';
 import { ToolButton } from './ToolButton';
@@ -34,7 +35,7 @@ interface TabDrag {
 const DRAG_THRESHOLD = 4;
 
 /** 回路を切り替えるタブ。モジュールのタブはダブルクリックで名前を変更でき、ドラッグで並べ替えられる */
-export function TabBar({
+export const TabBar = memo(function TabBar({
   circuits,
   currentId,
   renamingId,
@@ -172,7 +173,7 @@ export function TabBar({
       </Box>
     </Flex>
   );
-}
+}, sameTabs);
 
 /** モジュールのタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
 function TabTooltip({
@@ -189,5 +190,19 @@ function TabTooltip({
     <HintTooltip content="ダブルクリックで名前を変更、ドラッグで並べ替えできます。">
       {children}
     </HintTooltip>
+  );
+}
+
+/**
+ * 描き直すかの判定。タブに出すのは回路の ID と名前だけなので、部品を動かしただけ (回路の中身が変わっただけ) では描き直さない。
+ * そのほかの props は、そのまま比べる (App は同じ関数を渡し続ける)
+ */
+function sameTabs(a: TabBarProps, b: TabBarProps): boolean {
+  const { circuits: ca, ...ra } = a;
+  const { circuits: cb, ...rb } = b;
+  return (
+    ca.length === cb.length &&
+    ca.every((d, i) => d.id === cb[i].id && d.name === cb[i].name) &&
+    shallowEqual(ra, rb)
   );
 }
