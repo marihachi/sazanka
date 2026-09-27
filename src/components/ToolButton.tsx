@@ -1,6 +1,5 @@
-import { classNames } from './classNames';
+import { Box, Button, IconButton, Separator } from '@chakra-ui/react';
 import { ToolIcon } from './Icons';
-import styles from './ToolButton.module.css';
 
 interface ToolButtonProps {
   icon: string;
@@ -17,7 +16,7 @@ interface ToolButtonProps {
 
 /**
  * アイコン付きのボタン (ヘッダー、シートのツールバー、タブの「+」で共有)。
- * 狭い画面では文字を隠してアイコンだけにする。文字は aria-label とツールチップに残す
+ * 狭い画面 (Chakra の md 未満) では文字を隠してアイコンだけにする。文字は aria-label とツールチップに残す
  */
 export function ToolButton({
   icon,
@@ -28,26 +27,34 @@ export function ToolButton({
   iconOnly,
   danger,
 }: ToolButtonProps) {
+  const common = {
+    variant: 'ghost',
+    size: 'sm',
+    // ボタンの文字はアクセントカラーにせず、灰色で出す
+    colorPalette: danger ? 'red' : 'gray',
+    onClick,
+    disabled,
+    title: title ?? label,
+    'aria-label': label,
+  } as const;
+  if (iconOnly) {
+    return (
+      <IconButton {...common}>
+        <ToolIcon src={icon} />
+      </IconButton>
+    );
+  }
   return (
-    <button
-      type="button"
-      className={classNames(
-        styles.tool,
-        iconOnly && styles.iconOnly,
-        danger && styles.danger,
-      )}
-      onClick={onClick}
-      disabled={disabled}
-      title={title ?? label}
-      aria-label={label}
-    >
+    <Button {...common} flexShrink={0} px={{ base: '2', md: '2.5' }}>
       <ToolIcon src={icon} />
-      {!iconOnly && <span className={styles.label}>{label}</span>}
-    </button>
+      <Box as="span" display={{ base: 'none', md: 'inline' }}>
+        {label}
+      </Box>
+    </Button>
   );
 }
 
 /** ボタンの区切りの縦線 */
 export function ToolDivider() {
-  return <span className={styles.divider} />;
+  return <Separator orientation="vertical" h="5" mx="1" />;
 }

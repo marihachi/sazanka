@@ -1,9 +1,8 @@
+import { Box, Flex, Tabs } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
-import { classNames } from './classNames';
-import styles from './TabBar.module.css';
 import { ToolButton } from './ToolButton';
 
 interface TabBarProps {
@@ -101,63 +100,79 @@ export function TabBar({
   }
 
   return (
-    <div className={styles.tabbar}>
-      <div
-        className={styles.tabs}
-        role="tablist"
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={() => setDrag(null)}
+    <Flex align="flex-end" gap="2" px="2" pt="1.5">
+      {/* 選択中のタブは、下のシートのツールバーと同じ色にしてつながって見せる (SheetToolbar.tsx) */}
+      <Tabs.Root
+        value={currentId}
+        onValueChange={(e) => onOpen(e.value)}
+        variant="outline"
+        size="sm"
+        minW="0"
       >
-        {shown.map((d) =>
-          renamingId === d.id ? (
-            <InlineInput
-              key={d.id}
-              className={styles.tabInput}
-              initial={d.name}
-              onCommit={(v) => onRename(d.id, v)}
-              onCancel={onCancelRename}
-            />
-          ) : (
-            <button
-              type="button"
-              key={d.id}
-              ref={(el) => {
-                if (el) {
-                  tabRefs.current.set(d.id, el);
-                } else {
-                  tabRefs.current.delete(d.id);
+        <Tabs.List
+          // タブが増えたら横にスクロールする。縦は出さない
+          overflowX="auto"
+          overflowY="hidden"
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={() => setDrag(null)}
+        >
+          {shown.map((d) =>
+            renamingId === d.id ? (
+              <Box key={d.id} w="140px" mb="1">
+                <InlineInput
+                  initial={d.name}
+                  onCommit={(v) => onRename(d.id, v)}
+                  onCancel={onCancelRename}
+                />
+              </Box>
+            ) : (
+              <Tabs.Trigger
+                key={d.id}
+                value={d.id}
+                ref={(el) => {
+                  if (el) {
+                    tabRefs.current.set(d.id, el);
+                  } else {
+                    tabRefs.current.delete(d.id);
+                  }
+                }}
+                flexShrink={0}
+                maxW="200px"
+                _selected={{ bg: 'bg.panel' }}
+                // ドラッグして並べ替えている最中のタブ
+                {...(drag?.started &&
+                  drag.id === d.id && {
+                    outline: '1px dashed',
+                    outlineColor: 'accent.solid',
+                    outlineOffset: '-2px',
+                    cursor: 'grabbing',
+                  })}
+                onPointerDown={(e) => onPointerDown(e, d.id)}
+                onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
+                title={
+                  d.id !== MAIN_ID
+                    ? 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。'
+                    : undefined
                 }
-              }}
-              role="tab"
-              aria-selected={d.id === currentId}
-              className={classNames(
-                styles.tab,
-                d.id === currentId && styles.active,
-                drag?.started && drag.id === d.id && styles.dragging,
-              )}
-              onPointerDown={(e) => onPointerDown(e, d.id)}
-              onClick={() => onOpen(d.id)}
-              onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
-              title={
-                d.id !== MAIN_ID
-                  ? 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。'
-                  : undefined
-              }
-            >
-              {d.name}
-            </button>
-          ),
-        )}
-      </div>
-      <div className={styles.add}>
+              >
+                <Box as="span" truncate>
+                  {d.name}
+                </Box>
+              </Tabs.Trigger>
+            ),
+          )}
+        </Tabs.List>
+      </Tabs.Root>
+      {/* タブの末尾の「+」。タブの文字とそろう高さに置く */}
+      <Box flexShrink={0} pb="1">
         <ToolButton
           icon={plusIcon}
           label="モジュールを追加"
           onClick={onAddModule}
           iconOnly
         />
-      </div>
-    </div>
+      </Box>
+    </Flex>
   );
 }

@@ -26,14 +26,17 @@
 
 見た目は Chakra UI を主にし、Chakra の既定の見た目をもとに、テーマ（`components/theme.ts`）で直す（開発者の方針）。今は CSS Modules から段階的に置き換えている途中。
 
+- 置き換えるときは、それまでの見た目に合わせなくてよい。Chakra らしさ（Chakra の部品、レシピのバリアント、トークン、ブレークポイント）を優先する（開発者の方針）。
+- 画面の幅での出し分けは、Chakra のブレークポイント（`md` = 768px など）を使う。置き換え前の CSS Modules には 720px の指定が残っている。
+
 - 色はテーマのトークンで決める。画面はダーク固定（`index.html` の `<html class="dark">`）なので、Chakra のダークの色が使われる。
 - シートの SVG（`Sheet.tsx`、`ComponentView.tsx`）は、Chakra に置き換えず CSS Modules のままにする（開発者の方針）。ドラッグ中に何十回も描き直すので、実行時にスタイルを作る Chakra の書き方では重くなるため。色はテーマのトークンが出す CSS の変数（`var(--chakra-colors-sheet-on)` など）で参照する。
 - Chakra のスタイルは CSS の `@layer` の中に入るので、層に入っていない CSS Modules の方が優先される。置き換えの途中で、古い CSS Modules が Chakra の指定を打ち消すことがあるので、置き換えたらそのクラスは消す。
 
-CSS Modules で書くもの（シートと、置き換え前のもの）は、コンポーネント固有のものならコンポーネントごとに CSS Modules で分けて `components/` に置き（例: `TabBar.tsx` と `TabBar.module.css`）、そのコンポーネントから `styles` として import する（プロジェクトの方針）。共通の `style.css` は `main.tsx` で各コンポーネントより先に読み込む。
+CSS Modules で書くもの（シートと、置き換え前のもの）は、コンポーネント固有のものならコンポーネントごとに CSS Modules で分けて `components/` に置き（例: `Palette.tsx` と `Palette.module.css`）、そのコンポーネントから `styles` として import する（プロジェクトの方針）。共通の `style.css` は `main.tsx` で各コンポーネントより先に読み込む。
 
 - CSS のクラス名はケバブケース、TS からの参照はキャメルケース（`vite.config.ts` の `localsConvention`）。存在しないクラス名を参照しても型エラーにならず `undefined` になるだけなので、追加・改名のときは両方を見比べること。
-- ほかのコンポーネントのクラスは直接使わない。見た目を共有したいときは、コンポーネントとして切り出す（例: ヘッダーやツールバーのボタンは `ToolButton.tsx`）。
+- ほかのコンポーネントのクラスは直接使わない。見た目を共有したいときは、コンポーネントとして切り出す（例: ヘッダーやツールバーのボタンは `ToolButton.tsx`）。Chakra で書くものも同じ。
 
 フォルダ同士の依存の向きは `app` → `components` → `engine` の一方向に保つ。フォルダの中のファイル同士も同じ考え方で一方向にする（[依存が一方向になるように分ける](code-placement.md#依存が一方向になるように分ける)）。
 

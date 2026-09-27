@@ -1,3 +1,4 @@
+import { Box, type BoxProps } from '@chakra-ui/react';
 import type { ComponentKind } from '../engine/component';
 import andIcon from '../assets/icons/and.svg';
 import clockIcon from '../assets/icons/clock.svg';
@@ -16,7 +17,6 @@ import outputIcon from '../assets/icons/output.svg';
 import rsIcon from '../assets/icons/rs.svg';
 import tffIcon from '../assets/icons/tff.svg';
 import xorIcon from '../assets/icons/xor.svg';
-import styles from './Icons.module.css';
 
 const ICONS: Partial<Record<ComponentKind, string>> = {
   INPUT: inputIcon,
@@ -38,32 +38,31 @@ const ICONS: Partial<Record<ComponentKind, string>> = {
   CUSTOM: moduleIcon,
 };
 
-/** SVG をマスクとして使い、文字色 (currentColor) で塗るアイコン。大きさは className で指定する */
-export function MaskIcon({
-  src,
-  className,
-}: {
-  src: string;
-  className: string;
-}) {
+/**
+ * SVG をマスクとして使い、文字色 (currentColor) で塗るアイコン。
+ * 大きさは Chakra の props (boxSize など) か className で指定する
+ */
+export function MaskIcon({ src, ...props }: { src: string } & BoxProps) {
   const mask = `url("${src}") center / contain no-repeat`;
   return (
-    <span
-      className={className}
+    <Box
+      as="span"
+      display="inline-block"
+      flexShrink={0}
+      bg="currentColor"
       aria-hidden="true"
       style={{ mask, WebkitMask: mask }}
+      {...props}
     />
   );
 }
 
-/** ツールバーなどのボタンに付けるアイコン (16×16) */
+/** ボタンに付けるアイコン (16×16) */
 export function ToolIcon({ src }: { src: string }) {
-  return <MaskIcon src={src} className={styles.toolIcon} />;
+  return <MaskIcon src={src} boxSize="4" />;
 }
 
 /** 部品の種類ごとのアイコン (32×24) */
 export function PartIcon({ kind }: { kind: ComponentKind }) {
-  return (
-    <MaskIcon src={ICONS[kind] ?? moduleIcon} className={styles.partIcon} />
-  );
+  return <MaskIcon src={ICONS[kind] ?? moduleIcon} w="8" h="6" />;
 }

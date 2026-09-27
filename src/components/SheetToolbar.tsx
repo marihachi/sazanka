@@ -1,9 +1,9 @@
+import { Box, Flex } from '@chakra-ui/react';
 import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
-import styles from './SheetToolbar.module.css';
 import { ToolButton } from './ToolButton';
 
 interface SheetToolbarProps {
@@ -32,7 +32,15 @@ export function SheetToolbar({
   onDeleteModule,
 }: SheetToolbarProps) {
   return (
-    <div className={styles.toolbar}>
+    // 選択中のタブと同じ色にして、タブの中の操作だと見せる (TabBar.tsx)
+    <Flex
+      align="center"
+      gap="0.5"
+      px="2"
+      py="1"
+      bg="bg.panel"
+      borderBottomWidth="1px"
+    >
       <ToolButton
         icon={running ? pauseIcon : playIcon}
         label={running ? '一時停止' : '再開'}
@@ -56,15 +64,15 @@ export function SheetToolbar({
         disabled={running}
       />
       {onDeleteModule && (
-        <div className={styles.end}>
+        <Box ms="auto">
           <ToolButton
             icon={trashIcon}
             label="モジュールを削除"
             onClick={onDeleteModule}
             danger
           />
-        </div>
+        </Box>
       )}
-    </div>
+    </Flex>
   );
 }
