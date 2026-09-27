@@ -266,6 +266,23 @@ export function Sheet({
     onViewChange(overview(circuit, project, rect.width, rect.height));
   }
 
+  // ズームのボタンに渡す関数。ZoomControls は React.memo なので、部品のドラッグで描き直さないよう同じ関数を渡し続け、
+  // 中身は最新の描画の表示を見る
+  const zoomLatest = useRef({ view, center, fit, onViewChange });
+  zoomLatest.current = { view, center, fit, onViewChange };
+  const zoom = useMemo(() => {
+    const zoomTo = (scale: (s: number) => number) => {
+      const { view: v, center: c, onViewChange: change } = zoomLatest.current;
+      change(zoomAt(v, c(), scale(v.scale)));
+    };
+    return {
+      in: () => zoomTo((s) => s * ZOOM_STEP),
+      out: () => zoomTo((s) => s / ZOOM_STEP),
+      reset: () => zoomTo(() => 1),
+      fit: () => zoomLatest.current.fit(),
+    };
+  }, []);
+
   /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
   function cancelGesture() {
     dragRef.current = null;
@@ -780,14 +797,10 @@ export function Sheet({
         <TrashZone dragMode={dragMode} ref={trashRef} />
         <ZoomControls
           scale={view.scale}
-          onZoomIn={() =>
-            onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))
-          }
-          onZoomOut={() =>
-            onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))
-          }
-          onReset={() => onViewChange(zoomAt(view, center(), 1))}
-          onFit={fit}
+          onZoomIn={zoom.in}
+          onZoomOut={zoom.out}
+          onReset={zoom.reset}
+          onFit={zoom.fit}
         />
       </Stack>
     </div>

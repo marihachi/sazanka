@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Flex, Heading, VisuallyHidden } from '@chakra-ui/react';
 import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
@@ -26,7 +27,7 @@ interface HeaderProps {
  * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、書き出し、読み込み、元に戻す、やり直し)。
  * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーにある
  */
-export function Header({
+export const Header = memo(function Header({
   onNew,
   onExport,
   onImport,
@@ -110,4 +111,4 @@ export function Header({
       </Flex>
     </Flex>
   );
-}
+});

@@ -20,3 +20,21 @@ export function mustGet<K, V>(map: Map<K, V>, key: K): V {
  * `Set<T>`の要素の型Tを取り出す
  */
 export type SetElement<T> = T extends Set<infer U> ? U : never;
+
+/**
+ * 2 つのオブジェクトの中身を 1 段だけ比べる (値は === で比べる)。どちらも undefined なら同じとみなす
+ */
+export function shallowEqual(
+  a: object | undefined,
+  b: object | undefined,
+): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (!a || !b) {
+    return false;
+  }
+  const ka = Object.keys(a) as (keyof typeof a)[];
+  const kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => a[k] === b[k]);
+}

@@ -1,5 +1,5 @@
 import { Field, Input, Stack, Text } from '@chakra-ui/react';
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import {
   clockPeriodOf,
   isClockPeriod,
@@ -7,6 +7,7 @@ import {
   MIN_CLOCK_PERIOD,
   type Component,
 } from '../engine/component';
+import { shallowEqual } from '../engine/util';
 import { LABELS } from './parts';
 
 interface PropertyPanelProps {
@@ -27,7 +28,7 @@ interface PropertyPanelProps {
  * シートの右側の、選んだ部品の項目を編集する欄。
  * 狭い画面では、部品を選んでいる間だけ出す (シートを狭くしすぎないため)
  */
-export function PropertyPanel({
+export const PropertyPanel = memo(function PropertyPanel({
   component,
   moduleName,
   tickMs,
@@ -87,7 +88,7 @@ export function PropertyPanel({
       )}
     </Stack>
   );
-}
+}, samePanel);
 
 /**
  * 入力欄を触っている間の変更を、1回の操作として元に戻せるようにする。
@@ -221,5 +222,19 @@ function ClockPeriodField({
         </Field.ErrorText>
       )}
     </Field.Root>
+  );
+}
+
+/**
+ * 描き直すかの判定。プロパティ欄は部品の位置を出さないので、選んだ部品を動かしただけでは描き直さない。
+ * そのほかの props は、そのまま比べる (App は同じ関数を渡し続ける)
+ */
+function samePanel(a: PropertyPanelProps, b: PropertyPanelProps): boolean {
+  const { component: pa, ...ra } = a;
+  const { component: pb, ...rb } = b;
+  const withoutPosition = (c?: Component) => c && { ...c, x: 0, y: 0 };
+  return (
+    shallowEqual(withoutPosition(pa), withoutPosition(pb)) &&
+    shallowEqual(ra, rb)
   );
 }
