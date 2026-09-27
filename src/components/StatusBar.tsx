@@ -15,10 +15,7 @@ interface StatusBarProps {
 }
 
 /** 画面下のステータスバー。使い方のヒントと、発振の警告を出す */
-export const StatusBar = memo(function StatusBar({
-  hints,
-  unstable,
-}: StatusBarProps) {
+export const StatusBar = memo(function StatusBar({ hints, unstable }: StatusBarProps) {
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
   /** マウスが載っている間は切り替えを止める */
@@ -54,14 +51,7 @@ export const StatusBar = memo(function StatusBar({
       onPointerLeave={() => setPaused(false)}
     >
       {/* 切り替わるたびに (key が変わるので) ふわっと表示する */}
-      <Box
-        key={hint}
-        flex="1"
-        minW="0"
-        truncate
-        color="fg.muted"
-        animation="fade-in 0.4s ease-out"
-      >
+      <Box key={hint} flex="1" minW="0" truncate color="fg.muted" animation="fade-in 0.4s ease-out">
         {hint}
       </Box>
       {unstable && (

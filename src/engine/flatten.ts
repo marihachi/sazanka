@@ -43,18 +43,14 @@ function flattenInto(
         outputs: outputs.map((k) => childPrefix + k.id),
       });
     } else {
-      const kind =
-        inner && (c.kind === 'INPUT' || c.kind === 'OUTPUT') ? 'BUF' : c.kind;
+      const kind = inner && (c.kind === 'INPUT' || c.kind === 'OUTPUT') ? 'BUF' : c.kind;
       out.components.push({ ...c, id: prefix + c.id, kind });
     }
   }
 
   // 配線の端がモジュールのピンなら、展開後の BUF につなぎ替える。
   // モジュールのピンが減って存在しなくなっていたら undefined (その配線は計算に使わない)
-  const resolve = (
-    ref: PinRef,
-    side: 'inputs' | 'outputs',
-  ): PinRef | undefined => {
+  const resolve = (ref: PinRef, side: 'inputs' | 'outputs'): PinRef | undefined => {
     const mod = modules.get(ref.comp);
     if (!mod) {
       return { comp: prefix + ref.comp, pin: ref.pin };

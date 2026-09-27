@@ -1,12 +1,7 @@
 // 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
 
 import type { PinRef } from './circuit';
-import {
-  type CircuitDef,
-  type Project,
-  checkProject,
-  withoutSwitchStates,
-} from './project';
+import { type CircuitDef, type Project, checkProject, withoutSwitchStates } from './project';
 import { isObject, mustGet } from '../util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
@@ -69,9 +64,7 @@ export function serializeProject(project: Project): string {
   return JSON.stringify(data);
 }
 
-export type ParseResult =
-  | { ok: true; project: Project }
-  | { ok: false; error: string };
+export type ParseResult = { ok: true; project: Project } | { ok: false; error: string };
 
 /**
  * 共有用の JSON を読み込む。部品と配線の ID は newId で付け直す。

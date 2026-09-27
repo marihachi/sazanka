@@ -11,12 +11,7 @@ interface InlineInputProps {
 }
 
 /** その場で文字を編集する入力欄。表示と同時にフォーカスし、全選択する */
-export function InlineInput({
-  initial,
-  placeholder,
-  onCommit,
-  onCancel,
-}: InlineInputProps) {
+export function InlineInput({ initial, placeholder, onCommit, onCancel }: InlineInputProps) {
   const ref = useRef<HTMLInputElement>(null);
   // Enter で確定した直後の blur で二重に確定しないようにする
   const done = useRef(false);

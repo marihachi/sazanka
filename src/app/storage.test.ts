@@ -26,9 +26,7 @@ describe('readStored', () => {
         },
       ],
     };
-    const result = readStored(
-      JSON.stringify({ version: 1, project: withSwitch }),
-    );
+    const result = readStored(JSON.stringify({ version: 1, project: withSwitch }));
     expect(result.error).toBeUndefined();
     expect(result.project.circuits[0].components[0].on).toBeUndefined();
   });

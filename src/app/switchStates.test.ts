@@ -20,6 +20,7 @@ describe('keepSwitchStates', () => {
   it('INPUT / CLOCK の ON/OFF だけ今の値を引き継ぎ、ほかは戻した状態のまま', () => {
     const restored: Project = {
       circuits: [
+        // biome-ignore format: 表形式を維持するため
         main([
           comp('i', 'INPUT', 0, { on: false }),
           comp('k', 'CLOCK', 0, { on: false }),
@@ -29,6 +30,7 @@ describe('keepSwitchStates', () => {
     };
     const current: Project = {
       circuits: [
+        // biome-ignore format: 表形式を維持するため
         main([
           comp('i', 'INPUT', 40, { on: true }),
           comp('k', 'CLOCK', 0, { on: true }),

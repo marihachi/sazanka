@@ -77,10 +77,7 @@ export async function drag(from, to) {
   await page.mouse.move(from.x, from.y, { steps: 8 });
   await page.mouse.down();
   await wait(100);
-  const steps = Math.max(
-    10,
-    Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 8),
-  );
+  const steps = Math.max(10, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 8));
   for (let i = 1; i <= steps; i++) {
     await page.mouse.move(
       from.x + ((to.x - from.x) * i) / steps,

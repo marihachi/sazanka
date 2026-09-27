@@ -32,19 +32,11 @@ export interface TextRequest {
 }
 
 /** 複数行の文字列を見せる・入力してもらう画面内のダイアログ */
-export function TextDialog({
-  request,
-  onClose,
-}: {
-  request: TextRequest;
-  onClose: () => void;
-}) {
+export function TextDialog({ request, onClose }: { request: TextRequest; onClose: () => void }) {
   const { field } = request;
   const [value, setValue] = useState(request.initial);
   const [fieldValue, setFieldValue] = useState(field?.initial ?? '');
-  const [status, setStatus] = useState<{ error: boolean; text: string } | null>(
-    null,
-  );
+  const [status, setStatus] = useState<{ error: boolean; text: string } | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -65,12 +57,7 @@ export function TextDialog({
 
   return (
     // 複数行の文字列を読みやすくするため、少し広くする
-    <DialogFrame
-      onClose={onClose}
-      initialFocus={textRef}
-      size="md"
-      onSubmit={submit}
-    >
+    <DialogFrame onClose={onClose} initialFocus={textRef} size="md" onSubmit={submit}>
       <ChakraDialog.Header>
         <ChakraDialog.Title>{request.title}</ChakraDialog.Title>
       </ChakraDialog.Header>

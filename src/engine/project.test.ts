@@ -1,19 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Component } from './component';
-import {
-  checkProject,
-  emptyProject,
-  findDef,
-  MAIN_ID,
-  moveCircuit,
-  type Project,
-} from './project';
+import { checkProject, emptyProject, findDef, MAIN_ID, moveCircuit, type Project } from './project';
 
-function comp(
-  id: string,
-  kind: Component['kind'],
-  extra: Partial<Component> = {},
-): Component {
+function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -40,31 +29,17 @@ describe('checkProject', () => {
 
   it('正しいプロジェクトは undefined', () => {
     expect(checkProject(emptyProject())).toBeUndefined();
-    expect(
-      checkProject({ ...emptyProject(), author: 'さざんか' }),
-    ).toBeUndefined();
+    expect(checkProject({ ...emptyProject(), author: 'さざんか' })).toBeUndefined();
   });
 
   const 壊れたもの: [string, unknown][] = [
     ['オブジェクトでない', [1, 2]],
     ['回路の一覧がない', {}],
-    [
-      'メイン回路がない',
-      { circuits: [{ id: 'x', name: 'x', components: [], wires: [] }] },
-    ],
-    [
-      '回路に名前がない',
-      { circuits: [{ id: MAIN_ID, components: [], wires: [] }] },
-    ],
-    [
-      '部品の種類が不正',
-      main([{ id: 'a', kind: 'FOO', x: 0, y: 0 } as unknown as Component]),
-    ],
+    ['メイン回路がない', { circuits: [{ id: 'x', name: 'x', components: [], wires: [] }] }],
+    ['回路に名前がない', { circuits: [{ id: MAIN_ID, components: [], wires: [] }] }],
+    ['部品の種類が不正', main([{ id: 'a', kind: 'FOO', x: 0, y: 0 } as unknown as Component])],
     ['内部用の BUF が入っている', main([comp('a', 'BUF')])],
-    [
-      '座標が数値でない',
-      main([{ id: 'a', kind: 'AND', x: '0', y: 0 } as unknown as Component]),
-    ],
+    ['座標が数値でない', main([{ id: 'a', kind: 'AND', x: '0', y: 0 } as unknown as Component])],
     ['部品の ID が重複', main([comp('a', 'AND'), comp('a', 'OR')])],
     [
       '配線の接続先がない',
@@ -81,10 +56,7 @@ describe('checkProject', () => {
       ),
     ],
     ['作者名が文字列でない', { ...emptyProject(), author: 1 }],
-    [
-      '存在しないモジュールを参照',
-      main([comp('u', 'CUSTOM', { custom: 'ない' })]),
-    ],
+    ['存在しないモジュールを参照', main([comp('u', 'CUSTOM', { custom: 'ない' })])],
   ];
   for (const [name, value] of 壊れたもの) {
     it(`壊れたデータを弾く: ${name}`, () => {
@@ -110,12 +82,7 @@ describe('moveCircuit', () => {
   });
 
   it('メイン回路は先頭に固定。動かさず、その前にも置かない', () => {
-    expect(ids(moveCircuit(project, MAIN_ID, 2))).toEqual([
-      'main',
-      'a',
-      'b',
-      'c',
-    ]);
+    expect(ids(moveCircuit(project, MAIN_ID, 2))).toEqual(['main', 'a', 'b', 'c']);
     expect(ids(moveCircuit(project, 'b', 0))).toEqual(['main', 'b', 'a', 'c']);
   });
 });

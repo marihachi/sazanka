@@ -39,15 +39,7 @@ export const Header = memo(function Header({
   onAbout,
 }: HeaderProps) {
   return (
-    <Flex
-      as="header"
-      align="center"
-      gap="1.5"
-      h="12"
-      px="3"
-      flexShrink={0}
-      borderBottomWidth="1px"
-    >
+    <Flex as="header" align="center" gap="1.5" h="12" px="3" flexShrink={0} borderBottomWidth="1px">
       <Heading as="h1" display="flex" flexShrink={0}>
         <MaskIcon src={logoMark} boxSize="7" bg="brand" />
         <VisuallyHidden>sazanka</VisuallyHidden>
@@ -96,18 +88,8 @@ export const Header = memo(function Header({
         />
       </Flex>
       <Flex gap="1" ms="auto" flexShrink={0}>
-        <ToolButton
-          icon={preferencesIcon}
-          label="環境設定"
-          onClick={onPreferences}
-          iconOnly
-        />
-        <ToolButton
-          icon={infoIcon}
-          label="このアプリについて"
-          onClick={onAbout}
-          iconOnly
-        />
+        <ToolButton icon={preferencesIcon} label="環境設定" onClick={onPreferences} iconOnly />
+        <ToolButton icon={infoIcon} label="このアプリについて" onClick={onAbout} iconOnly />
       </Flex>
     </Flex>
   );

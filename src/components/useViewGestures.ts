@@ -17,10 +17,7 @@ interface Pinch {
 }
 
 /** ポインターの位置を、シートの左上からの画面の座標にする */
-export function toScreenLocal(
-  svg: SVGSVGElement,
-  e: { clientX: number; clientY: number },
-): Point {
+export function toScreenLocal(svg: SVGSVGElement, e: { clientX: number; clientY: number }): Point {
   const rect = svg.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
@@ -83,14 +80,11 @@ export function useViewGestures({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       // 行単位で届く環境 (Firefox など) では、おおよそのピクセル数に直す
-      const delta =
-        e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
+      const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
       // ピンチは1回の量が小さいので、強めに効かせる
       const factor = Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015));
       const v = viewRef.current;
-      onViewChangeRef.current(
-        zoomAt(v, toScreenLocal(svg, e), v.scale * factor),
-      );
+      onViewChangeRef.current(zoomAt(v, toScreenLocal(svg, e), v.scale * factor));
     };
     svg.addEventListener('wheel', onWheel, { passive: false });
     return () => svg.removeEventListener('wheel', onWheel);
@@ -103,8 +97,7 @@ export function useViewGestures({
         return;
       }
       const typing =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
       if (typing) {
         return;
       }
@@ -178,8 +171,7 @@ export function useViewGestures({
       }
       const [a, b] = [...touches.values()];
       const mid = midpoint(a, b);
-      const scale =
-        (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
+      const scale = (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
       // 押した時点で指の間にあった回路の点を、今の指の間に持ってくる
       const zoomed = zoomAt(pinch.view, pinch.mid, scale);
       onViewChange({

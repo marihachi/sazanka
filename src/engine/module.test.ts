@@ -3,11 +3,7 @@ import type { Component } from './component';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import { circuitsUsing, dependsOn, portComponents, portsOf } from './module';
 
-function comp(
-  id: string,
-  kind: Component['kind'],
-  extra: Partial<Component> = {},
-): Component {
+function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -39,6 +35,7 @@ describe('circuitsUsing', () => {
 describe('モジュールのピン', () => {
   it('ピンになるのは INPUT / OUTPUT で、上から順、同じ高さなら左から', () => {
     const def = {
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 'b', kind: 'INPUT' as const, x: 100, y: 40 },
         { id: 'a', kind: 'INPUT' as const, x: 0, y: 40 },
@@ -60,6 +57,7 @@ describe('モジュールのピン', () => {
         {
           id: 'm',
           name: 'M',
+          // biome-ignore format: 表形式を維持するため
           components: [
             comp('i', 'INPUT', { label: 'A' }),
             { ...comp('j', 'INPUT'), y: 40 },

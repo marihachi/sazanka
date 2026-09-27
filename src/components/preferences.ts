@@ -43,9 +43,5 @@ export const MAX_TICK_MS = 1000;
 
 /** 間隔として使える値か (範囲内の整数) */
 export function isTickMs(v: unknown): v is number {
-  return (
-    Number.isInteger(v) &&
-    (v as number) >= MIN_TICK_MS &&
-    (v as number) <= MAX_TICK_MS
-  );
+  return Number.isInteger(v) && (v as number) >= MIN_TICK_MS && (v as number) <= MAX_TICK_MS;
 }

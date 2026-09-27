@@ -24,10 +24,7 @@ export type SetElement<T> = T extends Set<infer U> ? U : never;
 /**
  * 2 つのオブジェクトの中身を 1 段だけ比べる (値は === で比べる)。どちらも undefined なら同じとみなす
  */
-export function shallowEqual(
-  a: object | undefined,
-  b: object | undefined,
-): boolean {
+export function shallowEqual(a: object | undefined, b: object | undefined): boolean {
   if (a === b) {
     return true;
   }

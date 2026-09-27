@@ -22,12 +22,7 @@ function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
 }
 
 /** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
-function settleProject(
-  project: Project,
-  id: string,
-  prev?: SimResult,
-  ticks = 30,
-): SimResult {
+function settleProject(project: Project, id: string, prev?: SimResult, ticks = 30): SimResult {
   let r = step(project, id, prev);
   for (let i = 1; i < ticks; i++) {
     if (r.stableTicks > 3) {
@@ -38,11 +33,7 @@ function settleProject(
   return r;
 }
 
-function comp(
-  id: string,
-  kind: ComponentKind,
-  extra: Partial<Component> = {},
-): Component {
+function comp(id: string, kind: ComponentKind, extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -57,6 +48,7 @@ function wire(from: string, fromPin: number, to: string, toPin: number): Wire {
 describe('値の伝わり方', () => {
   /** in → NOT → NOT → NOT → out の直列 */
   function chain(reversed: boolean): Circuit {
+    // biome-ignore format: 表形式を維持するため
     const components = [
       comp('in', 'INPUT', { on: true }),
       comp('n1', 'NOT'),
@@ -66,6 +58,7 @@ describe('値の伝わり方', () => {
     ];
     return {
       components: reversed ? [...components].reverse() : components,
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('in', 0, 'n1', 0),
         wire('n1', 0, 'n2', 0),
@@ -90,28 +83,31 @@ describe('値の伝わり方', () => {
 
   it('1つの出力を複数の入力につなげる', () => {
     const r = settle({
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('in', 'INPUT', { on: true }),
         comp('a', 'NOT'),
         comp('b', 'BUF'),
         comp('o', 'OUTPUT'),
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('in', 0, 'a', 0),
         wire('in', 0, 'b', 0),
         wire('in', 0, 'o', 0),
       ],
     });
-    expect([
-      r.values.get('a:0'),
-      r.values.get('b:0'),
-      r.values.get('o:0'),
-    ]).toEqual([false, true, true]);
+    expect([r.values.get('a:0'), r.values.get('b:0'), r.values.get('o:0')]).toEqual([
+      false,
+      true,
+      true,
+    ]);
   });
 
   it('入力ピンにつなげる配線が2本あっても、破綻せずに計算する', () => {
     // 保存データを手で書き換えた場合など。後から来た配線が使われる
     const r = settle({
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('a', 'INPUT', { on: true }),
         comp('b', 'INPUT', { on: false }),
@@ -126,6 +122,7 @@ describe('値の伝わり方', () => {
   it('存在しない部品やピンを指す配線は無視する', () => {
     const r = settle({
       components: [comp('a', 'INPUT', { on: true }), comp('o', 'OUTPUT')],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('ない', 0, 'o', 0),
         wire('a', 0, 'ない', 0),
@@ -139,6 +136,7 @@ describe('値の伝わり方', () => {
 
   it('落ち着いた回路は発振とみなさない', () => {
     const circuit = {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('in', 'INPUT', { on: true }),
         comp('n1', 'NOT'),
@@ -155,6 +153,7 @@ describe('前回の結果の引き継ぎ', () => {
   /** D-FF 1つ。D と CLK は INPUT */
   function dff(d: boolean, clk: boolean, ffId = 'f'): Circuit {
     return {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('d', 'INPUT', { on: d }),
         comp('c', 'INPUT', { on: clk }),
@@ -194,6 +193,7 @@ describe('前回の結果の引き継ぎ', () => {
 
   it('Q と Q̄ は常に逆', () => {
     let r: SimResult | undefined;
+    // biome-ignore format: 表形式を維持するため
     for (const [d, clk] of [
       [false, false],
       [true, true],
@@ -211,12 +211,14 @@ describe('モジュール', () => {
   const reg: CircuitDef = {
     id: 'reg',
     name: 'Reg',
+    // biome-ignore format: 表形式を維持するため
     components: [
       { ...comp('d', 'INPUT'), y: 0 },
       { ...comp('clk', 'INPUT'), y: 40 },
       comp('ff', 'DFF'),
       comp('q', 'OUTPUT'),
     ],
+    // biome-ignore format: 表形式を維持するため
     wires: [
       wire('d', 0, 'ff', 0),
       wire('clk', 0, 'ff', 1),
@@ -225,15 +227,11 @@ describe('モジュール', () => {
   };
 
   /** 同じモジュールを2つ置いたメイン回路 */
-  function main(
-    d1: boolean,
-    clk1: boolean,
-    d2: boolean,
-    clk2: boolean,
-  ): CircuitDef {
+  function main(d1: boolean, clk1: boolean, d2: boolean, clk2: boolean): CircuitDef {
     return {
       id: MAIN_ID,
       name: 'メイン',
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('d1', 'INPUT', { on: d1 }),
         comp('c1', 'INPUT', { on: clk1 }),
@@ -242,6 +240,7 @@ describe('モジュール', () => {
         comp('u1', 'CUSTOM', { custom: 'reg' }),
         comp('u2', 'CUSTOM', { custom: 'reg' }),
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('d1', 0, 'u1', 0),
         wire('c1', 0, 'u1', 1),
@@ -287,6 +286,7 @@ describe('モジュール', () => {
     const self: CircuitDef = {
       id: 'self',
       name: '自分',
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('u', 'CUSTOM', { custom: 'self' }),
         comp('o', 'OUTPUT'),
@@ -309,10 +309,7 @@ describe('モジュール', () => {
   });
 
   it('ない回路を指定すると、空の結果を返す', () => {
-    const r = settleProject(
-      { circuits: [main(true, true, false, false), reg] },
-      'ない',
-    );
+    const r = settleProject({ circuits: [main(true, true, false, false), reg] }, 'ない');
     expect(r.values.size).toBe(0);
     expect(r.unstable).toBe(false);
   });
@@ -321,6 +318,7 @@ describe('モジュール', () => {
 describe('保持と、段をつないだときの動き', () => {
   function latch(set: boolean, reset: boolean): Circuit {
     return {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('s', 'INPUT', { on: set }),
         comp('r', 'INPUT', { on: reset }),
@@ -341,6 +339,7 @@ describe('保持と、段をつないだときの動き', () => {
 
   function rsen(set: boolean, en: boolean, reset: boolean): Circuit {
     return {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('s', 'INPUT', { on: set }),
         comp('e', 'INPUT', { on: en }),
@@ -364,6 +363,7 @@ describe('保持と、段をつないだときの動き', () => {
 
   function dLatch(d: boolean, en: boolean): Circuit {
     return {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('d', 'INPUT', { on: d }),
         comp('e', 'INPUT', { on: en }),
@@ -387,6 +387,7 @@ describe('保持と、段をつないだときの動き', () => {
 
   function tff(t: boolean, clk: boolean): Circuit {
     return {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('t', 'INPUT', { on: t }),
         comp('c', 'INPUT', { on: clk }),
@@ -409,12 +410,14 @@ describe('保持と、段をつないだときの動き', () => {
     // 2段目の CLK に1段目の Q をつなぐ。1段目の Q は遅れて出るので、2段目はその次の tick で動く
     function counter(clk: boolean): Circuit {
       return {
+        // biome-ignore format: 表形式を維持するため
         components: [
           comp('c', 'INPUT', { on: clk }),
           comp('h', 'HIGH'),
           comp('f1', 'TFF'),
           comp('f2', 'TFF'),
         ],
+        // biome-ignore format: 表形式を維持するため
         wires: [
           wire('h', 0, 'f1', 0),
           wire('c', 0, 'f1', 1),
@@ -424,10 +427,7 @@ describe('保持と、段をつないだときの動き', () => {
       };
     }
     let r = settle(counter(false));
-    expect([r.values.get('f1:0'), r.values.get('f2:0')]).toEqual([
-      false,
-      false,
-    ]);
+    expect([r.values.get('f1:0'), r.values.get('f2:0')]).toEqual([false, false]);
     // CLK の立ち上がりで1段目が反転し、その Q の立ち上がりで2段目が反転する (2進カウンタ)
     r = settle(counter(true), r);
     expect([r.values.get('f1:0'), r.values.get('f2:0')]).toEqual([true, true]);
@@ -462,9 +462,7 @@ describe('ゲート遅延', () => {
     const before = r.values.get('out:0');
     const on: Circuit = {
       ...circuit,
-      components: circuit.components.map((c) =>
-        c.id === 'in' ? { ...c, on: true } : c,
-      ),
+      components: circuit.components.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
     };
     for (let t = 0; t <= 10; t++) {
       r = stepCircuit(on, r);
@@ -491,12 +489,14 @@ describe('ゲート遅延', () => {
 
   it('直列につなぐと、段数のぶんだけ遅れる', () => {
     const chain: Circuit = {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('in', 'INPUT', { on: false }),
         comp('n1', 'NOT'),
         comp('n2', 'NOT'),
         comp('n3', 'NOT'),
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('in', 0, 'n1', 0),
         wire('n1', 0, 'n2', 0),
@@ -506,9 +506,7 @@ describe('ゲート遅延', () => {
     let r = settle(chain);
     const on: Circuit = {
       ...chain,
-      components: chain.components.map((c) =>
-        c.id === 'in' ? { ...c, on: true } : c,
-      ),
+      components: chain.components.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
     };
     const seen: string[] = [];
     for (let t = 0; t < 4; t++) {
@@ -534,6 +532,7 @@ describe('ゲート遅延', () => {
       return {
         id: MAIN_ID,
         name: 'メイン',
+        // biome-ignore format: 表形式を維持するため
         components: [
           comp('in', 'INPUT', { on }),
           comp('u', 'CUSTOM', { custom: 'inv' }),
@@ -557,12 +556,14 @@ describe('遅延より短い入力の変化', () => {
   /** in → AND (遅延 2、もう一方は ON) → out。in を ticks の間だけ ON にする */
   function pulse(ticks: number): boolean {
     const circuit: Circuit = {
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('in', 'INPUT'),
         comp('hi', 'HIGH'),
         comp('g', 'AND'),
         comp('out', 'OUTPUT'),
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('in', 0, 'g', 0),
         wire('hi', 0, 'g', 1),
@@ -571,9 +572,7 @@ describe('遅延より短い入力の変化', () => {
     };
     const withInput = (on: boolean): Circuit => ({
       ...circuit,
-      components: circuit.components.map((c) =>
-        c.id === 'in' ? { ...c, on } : c,
-      ),
+      components: circuit.components.map((c) => (c.id === 'in' ? { ...c, on } : c)),
     });
     let r = settle(withInput(false));
     let arrived = false;

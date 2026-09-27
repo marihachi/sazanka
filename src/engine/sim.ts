@@ -83,11 +83,7 @@ function evalGate(c: Component, ins: boolean[]): boolean {
 }
 
 /** フリップフロップの次の状態。ins は入力ピンの値 (ピン番号の順) */
-function nextState(
-  kind: FlipFlopKind,
-  ins: boolean[],
-  s: FlipFlopState,
-): FlipFlopState {
+function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFlopState {
   if (kind === 'RS') {
     // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先
     const [set, reset] = ins;
@@ -237,8 +233,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   // 振動しているときは値が変わる tick と変わらない tick が交互に来ることもあるので、
   // 「変わり続けた回数」ではなく「落ち着いていない間の長さ」で見る
   const stableTicks = changed ? 0 : (prev?.stableTicks ?? 0) + 1;
-  const activeTicks =
-    stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
+  const activeTicks = stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
   return {
     values,
     flipFlops,
@@ -253,19 +248,12 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
  * プロジェクトの時間を 1 tick 進める (モジュールを展開してから評価する入口)。
  * 最上位に置かれたモジュールの出力ピンの値も values に含める。
  */
-export function step(
-  project: Project,
-  id: string,
-  prev?: SimResult,
-): SimResult {
+export function step(project: Project, id: string, prev?: SimResult): SimResult {
   const { circuit, modules } = flattenProject(project, id);
   const result = stepCircuit(circuit, prev);
   for (const [compId, mod] of modules) {
     mod.outputs.forEach((id, pin) => {
-      result.values.set(
-        pinKey(compId, pin),
-        result.values.get(pinKey(id, 0)) ?? false,
-      );
+      result.values.set(pinKey(compId, pin), result.values.get(pinKey(id, 0)) ?? false);
     });
   }
   return result;

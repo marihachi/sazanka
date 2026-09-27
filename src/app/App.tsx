@@ -1,11 +1,6 @@
 import { Flex } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import {
-  Sheet,
-  type SheetSize,
-  type DragMode,
-  type Selection,
-} from '../components/Sheet';
+import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
 import { Header } from '../components/Header';
 import { Palette } from '../components/Palette';
 import { PropertyPanel } from '../components/PropertyPanel';
@@ -17,15 +12,8 @@ import * as edit from '../engine/edit';
 import { clampPosition, GRID, type Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import { newId, type PinRef } from '../engine/circuit';
-import {
-  findDef,
-  MAIN_ID,
-  moveCircuit,
-  type CircuitDef,
-  type Project,
-} from '../engine/project';
+import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../engine/project';
 import { portsOf } from '../engine/module';
-
 import { statusHints } from './hints';
 import {
   loadCollapsedGroups,
@@ -76,14 +64,10 @@ export function App() {
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
-  const view =
-    views[circuit.id] ??
-    overview(circuit, project, sheetSize.width, sheetSize.height);
+  const view = views[circuit.id] ?? overview(circuit, project, sheetSize.width, sheetSize.height);
 
   const dialogs = useDialogs({
-    initialMessage: loaded.error
-      ? `${loaded.error}空のプロジェクトで開きます。`
-      : undefined,
+    initialMessage: loaded.error ? `${loaded.error}空のプロジェクトで開きます。` : undefined,
     preferences,
     onPreferencesChange: setPreferences,
   });
@@ -96,27 +80,15 @@ export function App() {
     }));
   }
 
-  const {
-    simStore,
-    unstable,
-    running,
-    toggleRunning,
-    stepOnce,
-    stepBack,
-    canStepBack,
-    forget,
-  } = useSimulation(project, circuit.id, preferences.tickMs);
+  const { simStore, unstable, running, toggleRunning, stepOnce, stepBack, canStepBack, forget } =
+    useSimulation(project, circuit.id, preferences.tickMs);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
   useEffect(() => savePreferences(preferences), [preferences]);
   // アクセントカラーは、ページ全体の色の変数を差し替えて反映する
   useEffect(
-    () =>
-      document.documentElement.style.setProperty(
-        '--accent',
-        preferences.accent,
-      ),
+    () => document.documentElement.style.setProperty('--accent', preferences.accent),
     [preferences.accent],
   );
   // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
@@ -329,14 +301,12 @@ export function App() {
     cancelRename: () => setEditing(null),
     createModule: modules.createModule,
     // タブの並びは保存データの回路の順なので、元に戻す対象にする
-    reorder: (id: string, index: number) =>
-      setProject((p) => moveCircuit(p, id, index)),
+    reorder: (id: string, index: number) => setProject((p) => moveCircuit(p, id, index)),
     toggleRunning,
     stepOnce,
     stepBack,
     deleteCircuit: modules.deleteCircuit,
-    addFromPalette: (kind: ComponentKind, custom?: string) =>
-      addComponent(kind, custom),
+    addFromPalette: (kind: ComponentKind, custom?: string) => addComponent(kind, custom),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
     setClockPeriod: (id: string, period: number) =>
       setCircuit((cur) => edit.setClockPeriod(cur, id, period), false),

@@ -146,9 +146,7 @@ function LabelField({
           }
         }}
       />
-      <Field.HelperText>
-        モジュールの中では、ピンの名前になります
-      </Field.HelperText>
+      <Field.HelperText>モジュールの中では、ピンの名前になります</Field.HelperText>
     </Field.Root>
   );
 }
@@ -233,8 +231,5 @@ function samePanel(a: PropertyPanelProps, b: PropertyPanelProps): boolean {
   const { component: pa, ...ra } = a;
   const { component: pb, ...rb } = b;
   const withoutPosition = (c?: Component) => c && { ...c, x: 0, y: 0 };
-  return (
-    shallowEqual(withoutPosition(pa), withoutPosition(pb)) &&
-    shallowEqual(ra, rb)
-  );
+  return shallowEqual(withoutPosition(pa), withoutPosition(pb)) && shallowEqual(ra, rb);
 }

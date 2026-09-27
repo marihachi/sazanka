@@ -15,10 +15,7 @@ interface TrashZoneProps {
  * ふだんは丸いごみ箱のアイコンだけ。部品をドラッグし始めると、丸の下 (外) に「削除」と出す。上に載せると丸を赤くする。
  * 丸の位置と大きさは、ドラッグの前後で変えない (開発者の方針)
  */
-export const TrashZone = memo(function TrashZone({
-  dragMode,
-  ref,
-}: TrashZoneProps) {
+export const TrashZone = memo(function TrashZone({ dragMode, ref }: TrashZoneProps) {
   const dragging = dragMode !== 'none';
   const over = dragMode === 'trash';
   return (
@@ -34,9 +31,7 @@ export const TrashZone = memo(function TrashZone({
         shadow="sm"
         bg={over ? 'red.solid' : 'bg.panel'}
         color={over ? 'red.contrast' : dragging ? 'fg' : 'fg.muted'}
-        borderColor={
-          over ? 'red.solid' : dragging ? 'border.emphasized' : 'border'
-        }
+        borderColor={over ? 'red.solid' : dragging ? 'border.emphasized' : 'border'}
         transition="all 0.15s ease-out"
         // 入れ物 (Sheet.tsx) と文字の場所は素通しなので、丸だけ受ける
         pointerEvents="auto"

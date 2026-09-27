@@ -7,13 +7,12 @@ const project: Project = {
     {
       id: MAIN_ID,
       name: 'メイン',
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: true },
         { id: 'm', kind: 'CUSTOM', x: 100, y: 0, custom: 'mod' },
       ],
-      wires: [
-        { id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } },
-      ],
+      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } }],
     },
     {
       id: 'mod',
@@ -70,6 +69,7 @@ describe('share', () => {
         circuits: [
           {
             ...main,
+            // biome-ignore format: 表形式を維持するため
             components: [
               { id: 'id1', kind: 'INPUT', x: 0, y: 0 },
               { ...main.components[1], id: 'id2' },
@@ -99,9 +99,9 @@ describe('share', () => {
       ok: true,
       project: { author: 'さざんか' },
     });
-    expect(
-      JSON.parse(serializeProject({ ...project, author: '  ' })).project,
-    ).not.toHaveProperty('author');
+    expect(JSON.parse(serializeProject({ ...project, author: '  ' })).project).not.toHaveProperty(
+      'author',
+    );
     expect(parse(withProject({ ...project, author: 1 })).ok).toBe(false);
   });
 
@@ -111,9 +111,7 @@ describe('share', () => {
   });
 
   it('新しい版のデータは読み込まない', () => {
-    expect(
-      parse(JSON.stringify({ app: 'sazanka', version: 99, project })).ok,
-    ).toBe(false);
+    expect(parse(JSON.stringify({ app: 'sazanka', version: 99, project })).ok).toBe(false);
   });
 
   it('壊れた回路データは読み込まない', () => {
@@ -178,9 +176,7 @@ describe('share', () => {
     // ON/OFF を含む古いデータを読み込んでも、OFF から始まる
     const old = JSON.stringify({ app: 'sazanka', version: 1, project });
     const result = parse(old);
-    expect(
-      result.ok && result.project.circuits[0].components[0].on,
-    ).toBeUndefined();
+    expect(result.ok && result.project.circuits[0].components[0].on).toBeUndefined();
   });
 
   it('ラベルやモジュールの参照は保ったまま往復する', () => {
@@ -202,9 +198,7 @@ describe('配線の折れる点', () => {
     circuits: [
       {
         ...project.circuits[0],
-        wires: [
-          { ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] },
-        ],
+        wires: [{ ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] }],
       },
       project.circuits[1],
     ],
@@ -212,9 +206,7 @@ describe('配線の折れる点', () => {
 
   it('書き出して読み込んでも、折れる点を保つ', () => {
     const result = parse(serializeProject(withPoints));
-    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([
-      { x: 60, y: 100 },
-    ]);
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([{ x: 60, y: 100 }]);
   });
 
   it('折れる点の形が正しくなければ読み込まない', () => {
@@ -223,10 +215,7 @@ describe('配線の折れる点', () => {
       points: [{ x: '1', y: 0 }],
     };
     const broken = {
-      circuits: [
-        { ...withPoints.circuits[0], wires: [wire] },
-        project.circuits[1],
-      ],
+      circuits: [{ ...withPoints.circuits[0], wires: [wire] }, project.circuits[1]],
     };
     expect(parse(withProject(broken)).ok).toBe(false);
   });

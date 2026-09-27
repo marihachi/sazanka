@@ -34,20 +34,11 @@ export const SheetToolbar = memo(function SheetToolbar({
 }: SheetToolbarProps) {
   return (
     // 選択中のタブと同じ色にして、タブの中の操作だと見せる (TabBar.tsx)
-    <Flex
-      align="center"
-      gap="0.5"
-      px="2"
-      py="1"
-      bg="bg.panel"
-      borderBottomWidth="1px"
-    >
+    <Flex align="center" gap="0.5" px="2" py="1" bg="bg.panel" borderBottomWidth="1px">
       <ToolButton
         icon={running ? pauseIcon : playIcon}
         label={running ? '一時停止' : '再開'}
-        title={
-          running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'
-        }
+        title={running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'}
         onClick={onToggleRunning}
       />
       <ToolButton
@@ -66,12 +57,7 @@ export const SheetToolbar = memo(function SheetToolbar({
       />
       {onDeleteModule && (
         <Box ms="auto">
-          <ToolButton
-            icon={trashIcon}
-            label="モジュールを削除"
-            onClick={onDeleteModule}
-            danger
-          />
+          <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
         </Box>
       )}
     </Flex>

@@ -55,14 +55,7 @@ export function ComponentView({
   if (c.kind === 'INPUT') {
     body = (
       <>
-        <rect
-          className={styles.body}
-          x={c.x}
-          y={c.y}
-          width={w}
-          height={h}
-          rx={4}
-        />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
         <rect
           x={c.x + 8}
           y={c.y + 8}
@@ -73,11 +66,7 @@ export function ComponentView({
           pointerEvents="none"
         />
         {c.label && (
-          <text
-            className={classNames(styles.pinLabel, styles.end)}
-            x={c.x - 6}
-            y={c.y + h / 2 + 4}
-          >
+          <text className={classNames(styles.pinLabel, styles.end)} x={c.x - 6} y={c.y + h / 2 + 4}>
             {c.label}
           </text>
         )}
@@ -88,22 +77,11 @@ export function ComponentView({
     const y0 = c.y + h / 2;
     body = (
       <>
-        <rect
-          className={styles.body}
-          x={c.x}
-          y={c.y}
-          width={w}
-          height={h}
-          rx={4}
-        />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
         <path
           d={`M${c.x + 6},${y0 + 7} h7 v-14 h7 v14 h7 v-14 h7`}
           fill="none"
-          stroke={
-            value
-              ? 'var(--chakra-colors-sheet-on)'
-              : 'var(--chakra-colors-sheet-line)'
-          }
+          stroke={value ? 'var(--chakra-colors-sheet-on)' : 'var(--chakra-colors-sheet-line)'}
           strokeWidth={2}
           pointerEvents="none"
         />
@@ -112,14 +90,7 @@ export function ComponentView({
   } else if (c.kind === 'HIGH') {
     body = (
       <>
-        <rect
-          className={styles.body}
-          x={c.x}
-          y={c.y}
-          width={w}
-          height={h}
-          rx={4}
-        />
+        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
         <text className={styles.high} x={c.x + w / 2} y={c.y + h / 2 + 6}>
           1
         </text>
@@ -128,19 +99,8 @@ export function ComponentView({
   } else if (c.kind === 'OUTPUT') {
     body = (
       <>
-        <circle
-          className={styles.body}
-          cx={c.x + w / 2}
-          cy={c.y + h / 2}
-          r={w / 2}
-        />
-        <circle
-          cx={c.x + w / 2}
-          cy={c.y + h / 2}
-          r={w / 2 - 6}
-          fill={lamp}
-          pointerEvents="none"
-        />
+        <circle className={styles.body} cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2} />
+        <circle cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2 - 6} fill={lamp} pointerEvents="none" />
         {c.label && (
           <text className={styles.pinLabel} x={c.x + w + 6} y={c.y + h / 2 + 4}>
             {c.label}
@@ -154,14 +114,8 @@ export function ComponentView({
     body = (
       <>
         <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} />
-        <text
-          className={styles.label}
-          x={c.x + w / 2}
-          y={isCustom ? c.y - 6 : c.y + h / 2 + 4}
-        >
-          {isCustom
-            ? (name ?? '(不明)')
-            : (BODY_LABELS[c.kind] ?? LABELS[c.kind] ?? c.kind)}
+        <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
+          {isCustom ? (name ?? '(不明)') : (BODY_LABELS[c.kind] ?? LABELS[c.kind] ?? c.kind)}
         </text>
         {ports.inputs.map((label, i) =>
           label ? (

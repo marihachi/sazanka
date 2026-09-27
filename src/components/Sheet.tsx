@@ -1,11 +1,5 @@
 import { Stack } from '@chakra-ui/react';
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clampMove,
   componentsInRect,
@@ -21,12 +15,7 @@ import {
 } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
 import type { Circuit, PinRef } from '../engine/circuit';
-import {
-  findDef,
-  MAIN_ID,
-  type CircuitDef,
-  type Project,
-} from '../engine/project';
+import { findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
 import { portComponents, portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
 import { mustGet } from '../util';
@@ -41,10 +30,7 @@ import { TrashZone } from './TrashZone';
 import { ZoomControls } from './ZoomControls';
 
 /** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
-export type Selection =
-  | { type: 'comp'; ids: string[] }
-  | { type: 'wire'; id: string }
-  | null;
+export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
 export type DragMode = 'none' | 'moving' | 'trash';
 
@@ -193,10 +179,7 @@ export function Sheet({
   const [pendingPoints, setPendingPoints] = useState<Point[]>([]);
   /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
   const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
-  const compMap = useMemo(
-    () => new Map(circuit.components.map((c) => [c.id, c])),
-    [circuit],
-  );
+  const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
   /** 入力ピン (pinKey) → つながっている配線 */
   const wireTo = useMemo(
     () => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])),
@@ -363,10 +346,7 @@ export function Sheet({
     if (wireDrag && wireDrag.pointerId === e.pointerId) {
       if (!wireDrag.started) {
         if (
-          Math.hypot(
-            e.clientX - wireDrag.start.x,
-            e.clientY - wireDrag.start.y,
-          ) < DRAG_THRESHOLD
+          Math.hypot(e.clientX - wireDrag.start.x, e.clientY - wireDrag.start.y) < DRAG_THRESHOLD
         ) {
           return;
         }
@@ -396,10 +376,7 @@ export function Sheet({
     const svg = sheetSvg();
     if (!svg.hasPointerCapture(drag.pointerId)) {
       // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
-      if (
-        Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) <
-        DRAG_THRESHOLD
-      ) {
+      if (Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) < DRAG_THRESHOLD) {
         return;
       }
       // シートの外 (削除エリアの上など) に出ても移動イベントを受け取り続ける。
@@ -432,9 +409,7 @@ export function Sheet({
       x: snap(p.x - drag.offset.x) - anchor.x,
       y: snap(p.y - drag.offset.y) - anchor.y,
     });
-    const positions = new Map(
-      items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]),
-    );
+    const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
     const unchanged = [...positions].every(([id, pos]) => {
       const c = mustGet(compMap, id);
       return c.x === pos.x && c.y === pos.y;
@@ -464,10 +439,7 @@ export function Sheet({
       placeDownRef.current = null;
       // 押したまま大きく動かしたら、貼り付けない (指で画面をなぞっただけのときなど)
       const moved =
-        Math.hypot(
-          e.clientX - placeDown.start.x,
-          e.clientY - placeDown.start.y,
-        ) >=
+        Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
         DRAG_THRESHOLD * 2;
       if (placing && !moved) {
         onPlace(placeOffset(withPorts(placing.components), toLocal(e)));
@@ -552,10 +524,7 @@ export function Sheet({
       {/* biome-ignore lint/a11y/noSvgWithoutTitle: 描画面なので題は付けない (title を付けるとシート全体にツールチップが出る) */}
       <svg
         ref={svgRef}
-        className={classNames(
-          styles.sheet,
-          (spaceHeld || panning) && styles.panning,
-        )}
+        className={classNames(styles.sheet, (spaceHeld || panning) && styles.panning)}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -616,10 +585,7 @@ export function Sheet({
             const fromPorts = portsOf(from, project);
             const toPorts = portsOf(to, project);
             // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
-            if (
-              w.from.pin >= fromPorts.outputs.length ||
-              w.to.pin >= toPorts.inputs.length
-            ) {
+            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) {
               return null;
             }
             const a = outputPinPos(from, fromPorts, w.from.pin);
@@ -627,16 +593,11 @@ export function Sheet({
             const d = wirePath(a, w.points ?? [], b, roundWires);
             const midX = wireMiddleX(a, w.points ?? [], b);
             const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-            const selected =
-              selection?.type === 'wire' && selection.id === w.id;
+            const selected = selection?.type === 'wire' && selection.id === w.id;
             return (
               <g key={w.id}>
                 <path
-                  className={classNames(
-                    styles.wire,
-                    on && styles.on,
-                    selected && styles.selected,
-                  )}
+                  className={classNames(styles.wire, on && styles.on, selected && styles.selected)}
                   d={d}
                 />
                 <path
@@ -676,20 +637,14 @@ export function Sheet({
                 key={c.id}
                 comp={c}
                 ports={ports}
-                name={
-                  c.kind === 'CUSTOM'
-                    ? findDef(project, c.custom)?.name
-                    : undefined
-                }
+                name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
                 outputValues={Array.from(
                   { length: Math.max(ports.outputs.length, 1) },
                   (_, i) => !!sim.values.get(pinKey(c.id, i)),
                 )}
                 inputValues={ports.inputs.map((_, i) => {
                   const w = wireTo.get(pinKey(c.id, i));
-                  return w
-                    ? !!sim.values.get(pinKey(w.from.comp, w.from.pin))
-                    : false;
+                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
                 })}
                 selected={selectedIds.has(c.id)}
                 pinNumber={pinNumbers.get(c.id)}
@@ -725,10 +680,7 @@ export function Sheet({
               );
               const parts = new Map(placing.components.map((c) => [c.id, c]));
               return (
-                <g
-                  className={styles.ghost}
-                  transform={`translate(${d.x} ${d.y})`}
-                >
+                <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>
                   {placing.wires.map((w) => {
                     const from = mustGet(parts, w.from.comp);
                     const to = mustGet(parts, w.to.comp);
@@ -747,11 +699,7 @@ export function Sheet({
                         key={c.id}
                         comp={c}
                         ports={ports}
-                        name={
-                          c.kind === 'CUSTOM'
-                            ? findDef(project, c.custom)?.name
-                            : undefined
-                        }
+                        name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
                         outputValues={Array.from(
                           { length: Math.max(ports.outputs.length, 1) },
                           () => false,
@@ -773,11 +721,7 @@ export function Sheet({
             <path
               className={styles.pending}
               d={pendingPath(
-                outputPinPos(
-                  pendingFrom,
-                  portsOf(pendingFrom, project),
-                  pending.pin,
-                ),
+                outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin),
                 mouse,
               )}
             />

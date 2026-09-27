@@ -17,12 +17,7 @@ export function snap(v: number): number {
 
 /** 入出力の部品 (INPUT、CLOCK、HIGH、OUTPUT)。どれも小さな正方形で、ピンは中央に1本 */
 function isTerminal(c: Component): boolean {
-  return (
-    c.kind === 'INPUT' ||
-    c.kind === 'CLOCK' ||
-    c.kind === 'HIGH' ||
-    c.kind === 'OUTPUT'
-  );
+  return c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'HIGH' || c.kind === 'OUTPUT';
 }
 
 /**
@@ -95,10 +90,7 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
   // 左右はピンの先端まで、上はモジュール名 (本体の上に描く) の分も含める
   const minX = GRID;
   const minY = c.kind === 'CUSTOM' ? GRID : 0;
-  const maxX = Math.max(
-    minX,
-    Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID,
-  );
+  const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID);
   const maxY = Math.max(minY, Math.floor((SHEET_HEIGHT - h) / GRID) * GRID);
   return {
     x: Math.min(Math.max(p.x, minX), maxX),
@@ -111,10 +103,7 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
  * 部品の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
  * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
  */
-export function clampMove(
-  items: { c: Component; ports: Ports }[],
-  delta: Point,
-): Point {
+export function clampMove(items: { c: Component; ports: Ports }[], delta: Point): Point {
   let d = delta;
   for (const { c, ports } of items) {
     const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
@@ -163,19 +152,10 @@ export function componentsInRect(
  * 部品をまとめて、全体の中心が点 at に来るように動かすときの移動量。
  * グリッドに合わせ、シートからはみ出さないように縮める (貼り付ける位置に使う)
  */
-export function placeOffset(
-  items: { c: Component; ports: Ports }[],
-  at: Point,
-): Point {
+export function placeOffset(items: { c: Component; ports: Ports }[], at: Point): Point {
   const rects = items.map(({ c, ports }) => componentBounds(c, ports));
-  const cx =
-    (Math.min(...rects.map((r) => r.left)) +
-      Math.max(...rects.map((r) => r.right))) /
-    2;
-  const cy =
-    (Math.min(...rects.map((r) => r.top)) +
-      Math.max(...rects.map((r) => r.bottom))) /
-    2;
+  const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
+  const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
   return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) });
 }
 
@@ -184,11 +164,7 @@ export function placeOffset(
  * 点と点の間は縦横の線でつなぐ。出力ピンからは横に出て、入力ピンへは横から入るよう、
  * 最後の区間だけ縦→横、ほかは横→縦の順に曲がる。折れる点がなければ、中間で1回折れる形にする
  */
-export function wireRoute(
-  from: Point,
-  points: readonly Point[],
-  to: Point,
-): Point[] {
+export function wireRoute(from: Point, points: readonly Point[], to: Point): Point[] {
   const route: Point[] = [from];
   if (points.length === 0) {
     const mid = snap((from.x + to.x) / 2);
@@ -226,11 +202,7 @@ function simplify(route: Point[]): Point[] {
  * 中間で1回折れる形の配線なら、その縦線の x 座標。
  * 折れる点がないか、出力ピンと同じ高さに1つだけある (縦線を動かした) 形が対象。縦線がない (両端が同じ高さ) ときは undefined
  */
-export function wireMiddleX(
-  from: Point,
-  points: readonly Point[],
-  to: Point,
-): number | undefined {
+export function wireMiddleX(from: Point, points: readonly Point[], to: Point): number | undefined {
   if (from.y === to.y) {
     return undefined;
   }

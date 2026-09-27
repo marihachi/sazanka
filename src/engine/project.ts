@@ -25,10 +25,7 @@ export function emptyProject(): Project {
   };
 }
 
-export function findDef(
-  project: Project,
-  id: string | undefined,
-): CircuitDef | undefined {
+export function findDef(project: Project, id: string | undefined): CircuitDef | undefined {
   return project.circuits.find((d) => d.id === id);
 }
 
@@ -36,11 +33,7 @@ export function findDef(
  * モジュールの回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
  * メイン回路は先頭に固定なので、メイン回路は動かさず、メイン回路より前にも置かない
  */
-export function moveCircuit(
-  project: Project,
-  id: string,
-  index: number,
-): Project {
+export function moveCircuit(project: Project, id: string, index: number): Project {
   const moving = project.circuits.find((d) => d.id === id);
   if (!moving || id === MAIN_ID) {
     return project;
@@ -68,11 +61,7 @@ export function withoutSwitchStates(project: Project): Project {
 }
 
 function checkCircuit(def: unknown): string | undefined {
-  if (
-    !isObject(def) ||
-    typeof def.id !== 'string' ||
-    typeof def.name !== 'string'
-  ) {
+  if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string') {
     return '回路の ID か名前がありません';
   }
   if (!Array.isArray(def.components) || !Array.isArray(def.wires)) {

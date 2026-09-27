@@ -42,9 +42,7 @@ export type ComponentKind = PlaceableComponentKind | 'BUF';
  */
 type PlaceableComponentKind = GateKind | FlipFlopKind | OtherComponentKind;
 
-function isPlaceableComponentKind(
-  kind: string,
-): kind is PlaceableComponentKind {
+function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind {
   if (isGateKind(kind)) {
     return true;
   }
@@ -70,14 +68,7 @@ export function isGateKind(kind: string): kind is GateKind {
  * RS、RSEN、DLATCH はCLKのないラッチ (入力の ON/OFF の状態で動く)、
  * ほかはCLKの立ち上がりの瞬間だけ動くフリップフロップ
  */
-const FLIP_FLOP_KINDS = new Set([
-  'RS',
-  'RSEN',
-  'DLATCH',
-  'DFF',
-  'TFF',
-  'JKFF',
-] as const);
+const FLIP_FLOP_KINDS = new Set(['RS', 'RSEN', 'DLATCH', 'DFF', 'TFF', 'JKFF'] as const);
 
 export type FlipFlopKind = SetElement<typeof FLIP_FLOP_KINDS>;
 
@@ -210,9 +201,7 @@ export const MAX_CLOCK_PERIOD = 10000;
 /** CLOCK の周期として有効な値か */
 export function isClockPeriod(v: unknown): v is number {
   return (
-    Number.isInteger(v) &&
-    (v as number) >= MIN_CLOCK_PERIOD &&
-    (v as number) <= MAX_CLOCK_PERIOD
+    Number.isInteger(v) && (v as number) >= MIN_CLOCK_PERIOD && (v as number) <= MAX_CLOCK_PERIOD
   );
 }
 
@@ -227,7 +216,5 @@ export function clockPeriodOf(c: Component): number {
  */
 export function clockFlipsAt(c: Component, tick: number): boolean {
   const period = clockPeriodOf(c);
-  return (
-    Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period)
-  );
+  return Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period);
 }

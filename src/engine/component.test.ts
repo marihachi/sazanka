@@ -17,9 +17,7 @@ const clock = (period?: number): Component => ({
 
 /** 1 tick 目から ticks tick 目までに切り替わる時刻 */
 function flips(c: Component, ticks: number): number[] {
-  return Array.from({ length: ticks }, (_, i) => i + 1).filter((t) =>
-    clockFlipsAt(c, t),
-  );
+  return Array.from({ length: ticks }, (_, i) => i + 1).filter((t) => clockFlipsAt(c, t));
 }
 
 describe('CLOCK の周期', () => {

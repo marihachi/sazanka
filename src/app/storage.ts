@@ -1,9 +1,4 @@
-import {
-  checkProject,
-  emptyProject,
-  withoutSwitchStates,
-  type Project,
-} from '../engine/project';
+import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
 import {
   DEFAULT_PREFERENCES,
   isAccent,
@@ -66,8 +61,7 @@ export function readStored(raw: string | null): LoadResult {
   if (data.version > STORAGE_VERSION) {
     return {
       project: emptyProject(),
-      error:
-        '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
+      error: '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
     };
   }
   const { project } = data as unknown as StoredData;
@@ -98,12 +92,8 @@ const COLLAPSED_KEY = 'sazanka.paletteCollapsed';
 /** パレットで折り畳んでいるグループの ID (Palette.tsx の GROUPS)。知らない ID は無視される */
 export function loadCollapsedGroups(): string[] {
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(COLLAPSED_KEY) ?? '[]',
-    );
-    return Array.isArray(value)
-      ? value.filter((v) => typeof v === 'string')
-      : [];
+    const value: unknown = JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
   } catch {
     return [];
   }
@@ -127,9 +117,7 @@ export function loadViews(): Record<string, View> {
       return {};
     }
     return Object.fromEntries(
-      Object.entries(value).filter((entry): entry is [string, View] =>
-        isView(entry[1]),
-      ),
+      Object.entries(value).filter((entry): entry is [string, View] => isView(entry[1])),
     );
   } catch {
     return {};
@@ -149,27 +137,16 @@ const PREFERENCES_KEY = 'sazanka.preferences';
 /** 利用者ごとの環境設定。読めない項目は既定値にする */
 export function loadPreferences(): Preferences {
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(PREFERENCES_KEY) ?? '{}',
-    );
+    const value: unknown = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}');
     if (!isObject(value)) {
       return DEFAULT_PREFERENCES;
     }
     return {
-      tickMs: isTickMs(value.tickMs)
-        ? value.tickMs
-        : DEFAULT_PREFERENCES.tickMs,
-      showGrid:
-        typeof value.showGrid === 'boolean'
-          ? value.showGrid
-          : DEFAULT_PREFERENCES.showGrid,
+      tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
+      showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
       roundWires:
-        typeof value.roundWires === 'boolean'
-          ? value.roundWires
-          : DEFAULT_PREFERENCES.roundWires,
-      accent: isAccent(value.accent)
-        ? value.accent
-        : DEFAULT_PREFERENCES.accent,
+        typeof value.roundWires === 'boolean' ? value.roundWires : DEFAULT_PREFERENCES.roundWires,
+      accent: isAccent(value.accent) ? value.accent : DEFAULT_PREFERENCES.accent,
     };
   } catch {
     return DEFAULT_PREFERENCES;

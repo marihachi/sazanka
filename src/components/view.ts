@@ -76,9 +76,7 @@ export function fitView(bounds: Rect, width: number, height: number): View {
   const margin = GRID * 2;
   const w = bounds.right - bounds.left;
   const h = bounds.bottom - bounds.top;
-  const scale = clampScale(
-    Math.min(1, (width - margin * 2) / w, (height - margin * 2) / h),
-  );
+  const scale = clampScale(Math.min(1, (width - margin * 2) / w, (height - margin * 2) / h));
   const centered = {
     x: width / 2 - ((bounds.left + bounds.right) / 2) * scale,
     y: height / 2 - ((bounds.top + bounds.bottom) / 2) * scale,
@@ -88,13 +86,8 @@ export function fitView(bounds: Rect, width: number, height: number): View {
 }
 
 /** 回路全体が占める範囲。部品がなければ undefined */
-export function circuitBounds(
-  circuit: CircuitDef,
-  project: Project,
-): Rect | undefined {
-  const rects = circuit.components.map((c) =>
-    componentBounds(c, portsOf(c, project)),
-  );
+export function circuitBounds(circuit: CircuitDef, project: Project): Rect | undefined {
+  const rects = circuit.components.map((c) => componentBounds(c, portsOf(c, project)));
   if (rects.length === 0) {
     return undefined;
   }

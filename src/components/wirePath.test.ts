@@ -10,9 +10,7 @@ describe('wirePath', () => {
   });
 
   it('角を丸めるなら、角の手前から曲線でつなぐ', () => {
-    expect(wirePath(from, [], to, true)).toBe(
-      'M0,0 L54,0 Q60,0 60,6 L60,54 Q60,60 66,60 L100,60',
-    );
+    expect(wirePath(from, [], to, true)).toBe('M0,0 L54,0 Q60,0 60,6 L60,54 Q60,60 66,60 L100,60');
   });
 
   it('短い区間では、半径を区間の長さの半分までに抑える', () => {

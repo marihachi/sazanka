@@ -11,9 +11,7 @@ function licensesText(dependencies: Dependency[]): string {
   return dependencies
     .filter((dep) => {
       if (!dep.license) {
-        console.warn(
-          `[licenses] ${dep.name}: ライセンスの種類が分からないため、一覧に載せません`,
-        );
+        console.warn(`[licenses] ${dep.name}: ライセンスの種類が分からないため、一覧に載せません`);
         return false;
       }
       if (!dep.licenseText) {

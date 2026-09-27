@@ -24,12 +24,14 @@ function wire(id: string, from: string, to: string, toPin = 0): Wire {
 }
 
 const base: Circuit = {
+  // biome-ignore format: 表形式を維持するため
   components: [
     { id: 'a', kind: 'INPUT', x: 0, y: 0, on: false },
     { id: 'b', kind: 'INPUT', x: 0, y: 40, on: false },
     { id: 'g', kind: 'AND', x: 80, y: 0 },
     { id: 'o', kind: 'OUTPUT', x: 160, y: 0 },
   ],
+  // biome-ignore format: 表形式を維持するため
   wires: [
     wire('w1', 'a', 'g', 0),
     wire('w2', 'b', 'g', 1),
@@ -68,13 +70,7 @@ describe('edit', () => {
 
   it('部品の追加と移動', () => {
     const added = addComponent(base, { id: 'n', kind: 'NOT', x: 0, y: 80 });
-    expect(added.components.map((k) => k.id)).toEqual([
-      'a',
-      'b',
-      'g',
-      'o',
-      'n',
-    ]);
+    expect(added.components.map((k) => k.id)).toEqual(['a', 'b', 'g', 'o', 'n']);
     const moved = moveComponent(added, 'n', { x: 40, y: 120 });
     expect(moved.components[4]).toMatchObject({ x: 40, y: 120 });
     expect(moved.components[0]).toBe(added.components[0]);
@@ -104,9 +100,7 @@ describe('edit', () => {
 
   it('ない部品を指しても、何も変わらない', () => {
     expect(removeComponent(base, 'ない').components).toEqual(base.components);
-    expect(moveComponent(base, 'ない', { x: 9, y: 9 }).components).toEqual(
-      base.components,
-    );
+    expect(moveComponent(base, 'ない', { x: 9, y: 9 }).components).toEqual(base.components);
     expect(toggleSwitch(base, 'ない').components).toEqual(base.components);
   });
 });
@@ -121,6 +115,7 @@ describe('複数の部品の編集', () => {
   it('まとめて動かす。指定しない部品はそのまま', () => {
     const c = moveComponents(
       base,
+      // biome-ignore format: 表形式を維持するため
       new Map([
         ['a', { x: 20, y: 20 }],
         ['o', { x: 200, y: 40 }],
@@ -145,11 +140,10 @@ describe('コピーと貼り付け', () => {
 
   it('複製すると新しい ID が付き、配線のつなぎ先も新しい ID になる', () => {
     let n = 0;
-    const clone = cloneComponents(
-      extractComponents(base, ['a', 'g']),
-      () => `n${++n}`,
-      { x: 40, y: 40 },
-    );
+    const clone = cloneComponents(extractComponents(base, ['a', 'g']), () => `n${++n}`, {
+      x: 40,
+      y: 40,
+    });
     const [a, g] = clone.components;
     expect([a.id, g.id]).toEqual(['n1', 'n2']);
     expect([a.x, a.y, g.x, g.y]).toEqual([40, 40, 120, 40]);
@@ -160,17 +154,14 @@ describe('コピーと貼り付け', () => {
 
   it('貼り付けると、元の部品と配線はそのまま残る', () => {
     let n = 0;
-    const clone = cloneComponents(
-      extractComponents(base, ['a', 'g']),
-      () => `n${++n}`,
-      { x: 40, y: 40 },
-    );
+    const clone = cloneComponents(extractComponents(base, ['a', 'g']), () => `n${++n}`, {
+      x: 40,
+      y: 40,
+    });
     const c = addParts(base, clone);
     expect(c.components).toHaveLength(base.components.length + 2);
     expect(c.wires).toHaveLength(base.wires.length + 1);
-    expect(c.components.slice(0, base.components.length)).toEqual(
-      base.components,
-    );
+    expect(c.components.slice(0, base.components.length)).toEqual(base.components);
   });
 });
 
@@ -178,59 +169,34 @@ describe('配線の折れる点', () => {
   const points = [{ x: 40, y: 200 }];
 
   it('配線するときに置いた折れる点を持つ。なければ項目ごと省く', () => {
-    const c = connect(
-      base,
-      'w9',
-      { comp: 'a', pin: 0 },
-      { comp: 'o', pin: 0 },
-      points,
-    );
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
     expect(c.wires.find((w) => w.id === 'w9')?.points).toEqual(points);
-    const plain = connect(
-      base,
-      'w9',
-      { comp: 'a', pin: 0 },
-      { comp: 'o', pin: 0 },
-    );
+    const plain = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 });
     expect(plain.wires.find((w) => w.id === 'w9')).not.toHaveProperty('points');
   });
 
   it('両端の部品を一緒に動かすと折れる点も動き、片方だけなら折れる点を消す', () => {
-    const c = connect(
-      base,
-      'w9',
-      { comp: 'a', pin: 0 },
-      { comp: 'o', pin: 0 },
-      points,
-    );
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
     const both = moveComponents(
       c,
+      // biome-ignore format: 表形式を維持するため
       new Map([
         ['a', { x: 20, y: 20 }],
         ['o', { x: 180, y: 20 }],
       ]),
     );
-    expect(both.wires.find((w) => w.id === 'w9')?.points).toEqual([
-      { x: 60, y: 220 },
-    ]);
+    expect(both.wires.find((w) => w.id === 'w9')?.points).toEqual([{ x: 60, y: 220 }]);
     const one = moveComponents(c, new Map([['a', { x: 20, y: 20 }]]));
     expect(one.wires.find((w) => w.id === 'w9')).not.toHaveProperty('points');
   });
 
   it('複製すると、折れる点も部品と同じだけずれる', () => {
-    const c = connect(
-      base,
-      'w9',
-      { comp: 'a', pin: 0 },
-      { comp: 'o', pin: 0 },
-      points,
-    );
+    const c = connect(base, 'w9', { comp: 'a', pin: 0 }, { comp: 'o', pin: 0 }, points);
     let n = 0;
-    const clone = cloneComponents(
-      extractComponents(c, ['a', 'o']),
-      () => `n${++n}`,
-      { x: 100, y: 0 },
-    );
+    const clone = cloneComponents(extractComponents(c, ['a', 'o']), () => `n${++n}`, {
+      x: 100,
+      y: 0,
+    });
     expect(clone.wires[0].points).toEqual([{ x: 140, y: 200 }]);
   });
 });
@@ -238,9 +204,7 @@ describe('配線の折れる点', () => {
 describe('setWirePoints', () => {
   it('配線の折れる点を置き換え、空なら項目ごと省く', () => {
     const moved = setWirePoints(base, 'w3', [{ x: 140, y: 40 }]);
-    expect(moved.wires.find((w) => w.id === 'w3')?.points).toEqual([
-      { x: 140, y: 40 },
-    ]);
+    expect(moved.wires.find((w) => w.id === 'w3')?.points).toEqual([{ x: 140, y: 40 }]);
     const reset = setWirePoints(moved, 'w3', []);
     expect(reset.wires.find((w) => w.id === 'w3')).not.toHaveProperty('points');
     // ほかの配線はそのまま

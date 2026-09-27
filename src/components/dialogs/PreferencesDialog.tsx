@@ -44,9 +44,7 @@ export function PreferencesDialog({
       <ChakraDialog.Body>
         <Stack gap="5">
           <Field.Root invalid={!tickValid}>
-            <Field.Label>
-              シミュレーションで 1 tick を進める間隔 (ms)
-            </Field.Label>
+            <Field.Label>シミュレーションで 1 tick を進める間隔 (ms)</Field.Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -77,9 +75,7 @@ export function PreferencesDialog({
           <Stack gap="3">
             <Checkbox.Root
               checked={preferences.showGrid}
-              onCheckedChange={(e) =>
-                onChange({ ...preferences, showGrid: e.checked === true })
-              }
+              onCheckedChange={(e) => onChange({ ...preferences, showGrid: e.checked === true })}
             >
               <Checkbox.HiddenInput />
               <Checkbox.Control />
@@ -87,9 +83,7 @@ export function PreferencesDialog({
             </Checkbox.Root>
             <Checkbox.Root
               checked={preferences.roundWires}
-              onCheckedChange={(e) =>
-                onChange({ ...preferences, roundWires: e.checked === true })
-              }
+              onCheckedChange={(e) => onChange({ ...preferences, roundWires: e.checked === true })}
             >
               <Checkbox.HiddenInput />
               <Checkbox.Control />
@@ -110,17 +104,13 @@ export function PreferencesDialog({
                     cursor="pointer"
                     style={{ background: p.value }}
                     // 今の色は、文字色の輪で囲む
-                    outline={
-                      preferences.accent === p.value ? '2px solid' : 'none'
-                    }
+                    outline={preferences.accent === p.value ? '2px solid' : 'none'}
                     outlineColor="fg"
                     outlineOffset="2px"
                     _focusVisible={{ outline: '2px solid', outlineColor: 'fg' }}
                     aria-label={p.label}
                     aria-pressed={preferences.accent === p.value}
-                    onClick={() =>
-                      onChange({ ...preferences, accent: p.value })
-                    }
+                    onClick={() => onChange({ ...preferences, accent: p.value })}
                   />
                 </HintTooltip>
               ))}
@@ -137,9 +127,7 @@ export function PreferencesDialog({
                   cursor="pointer"
                   value={preferences.accent}
                   aria-label="ほかの色を選ぶ"
-                  onChange={(e) =>
-                    onChange({ ...preferences, accent: e.target.value })
-                  }
+                  onChange={(e) => onChange({ ...preferences, accent: e.target.value })}
                 />
               </HintTooltip>
             </HStack>

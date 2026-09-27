@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import { AboutDialog } from '../components/dialogs/AboutDialog';
-import {
-  ConfirmDialog,
-  type ConfirmRequest,
-} from '../components/dialogs/ConfirmDialog';
+import { ConfirmDialog, type ConfirmRequest } from '../components/dialogs/ConfirmDialog';
 import { PreferencesDialog } from '../components/dialogs/PreferencesDialog';
-import {
-  PromptDialog,
-  type PromptRequest,
-} from '../components/dialogs/PromptDialog';
+import { PromptDialog, type PromptRequest } from '../components/dialogs/PromptDialog';
 import { TextDialog, type TextRequest } from '../components/dialogs/TextDialog';
 import type { Preferences } from '../components/preferences';
 
@@ -41,9 +35,7 @@ export function useDialogs({
       {confirm && !text && !prompt && (
         <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
       )}
-      {prompt && (
-        <PromptDialog request={prompt} onClose={() => setPrompt(null)} />
-      )}
+      {prompt && <PromptDialog request={prompt} onClose={() => setPrompt(null)} />}
       {text && <TextDialog request={text} onClose={() => setText(null)} />}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {preferencesOpen && (

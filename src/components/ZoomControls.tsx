@@ -54,12 +54,7 @@ export const ZoomControls = memo(function ZoomControls({
         </Button>
       </HintTooltip>
       <ToolButton icon={plusIcon} label="拡大" onClick={onZoomIn} iconOnly />
-      <ToolButton
-        icon={fitIcon}
-        label="回路全体を表示"
-        onClick={onFit}
-        iconOnly
-      />
+      <ToolButton icon={fitIcon} label="回路全体を表示" onClick={onFit} iconOnly />
     </HStack>
   );
 });

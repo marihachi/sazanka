@@ -7,12 +7,7 @@ const WIRE_CORNER_RADIUS = 6;
  * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (layout.ts の wireRoute)。
  * round なら、曲がり角を丸める (環境設定)
  */
-export function wirePath(
-  from: Point,
-  points: readonly Point[],
-  to: Point,
-  round: boolean,
-): string {
+export function wirePath(from: Point, points: readonly Point[], to: Point, round: boolean): string {
   const route = wireRoute(from, points, to);
   if (!round) {
     return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;

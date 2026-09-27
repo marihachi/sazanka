@@ -24,6 +24,7 @@ function comp(kind: Component['kind']): Component {
 
 describe('statusHints', () => {
   it('操作の途中は、そのとき必要な1文だけを出す', () => {
+    // biome-ignore format: 表形式を維持するため
     for (const ctx of [
       { dragMode: 'trash' as const },
       { dragMode: 'moving' as const },

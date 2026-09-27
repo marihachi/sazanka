@@ -86,10 +86,7 @@ export function statusHints(ctx: HintContext): string[] {
   }
   const c = ctx.selectedComponent;
   if (c) {
-    const move = [
-      'ドラッグで移動',
-      'Delete か、右下の削除エリアへドラッグで削除',
-    ];
+    const move = ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除'];
     switch (c.kind) {
       case 'INPUT':
         return [
@@ -135,23 +132,15 @@ export function statusHints(ctx: HintContext): string[] {
       case 'DFF':
         return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
       case 'TFF':
-        return [
-          'CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する',
-          ...move,
-        ];
+        return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
       case 'JKFF':
-        return [
-          'CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する',
-          ...move,
-        ];
+        return ['CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する', ...move];
       default:
         return move;
     }
   }
   if (ctx.unstable) {
-    return [
-      '発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている',
-    ];
+    return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];
   }
   return ctx.inModule ? [...MODULE_HINTS, ...IDLE_HINTS] : IDLE_HINTS;
 }

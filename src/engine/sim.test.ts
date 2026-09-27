@@ -22,12 +22,7 @@ function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
 }
 
 /** プロジェクトを、値が落ち着くまで (または最大 ticks まで) 進める */
-function settleProject(
-  project: Project,
-  id: string,
-  prev?: SimResult,
-  ticks = 30,
-): SimResult {
+function settleProject(project: Project, id: string, prev?: SimResult, ticks = 30): SimResult {
   let r = step(project, id, prev);
   for (let i = 1; i < ticks; i++) {
     if (r.stableTicks > 3) {
@@ -39,6 +34,7 @@ function settleProject(
 }
 
 function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
+  // biome-ignore format: 表形式を維持するため
   const comps: Component[] = [
     { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
     { id: 'b', kind: 'INPUT', x: 0, y: 0, on: b },
@@ -47,6 +43,7 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
   ];
   const circuit: Circuit = {
     components: comps,
+    // biome-ignore format: 表形式を維持するため
     wires: [
       { id: 'w1', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
       { id: 'w2', from: { comp: 'b', pin: 0 }, to: { comp: 'g', pin: 1 } },
@@ -57,6 +54,7 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
 }
 
 describe('simulate', () => {
+  // biome-ignore format: 表形式を維持するため
   const table: [GateKind, boolean[]][] = [
     ['AND', [false, false, false, true]],
     ['OR', [false, true, true, true]],
@@ -79,30 +77,24 @@ describe('simulate', () => {
   /** 入力スイッチ a の値を部品 g の pin 0 に入れたときの g の出力 */
   function oneInput(kind: 'NOT' | 'BUF', a: boolean): boolean {
     const r = settle({
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
         { id: 'g', kind, x: 0, y: 0 },
       ],
-      wires: [
-        { id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
-      ],
+      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
     });
     return mustGet(r.values, 'g:0');
   }
 
   it('NOT は反転し、BUF はそのまま出す', () => {
-    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([
-      true,
-      false,
-    ]);
-    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([
-      false,
-      true,
-    ]);
+    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([true, false]);
+    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([false, true]);
   });
 
   it('何もつながっていない入力ピンは OFF として扱う', () => {
     const r = settle({
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
         { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
@@ -116,13 +108,12 @@ describe('simulate', () => {
 
   it('HIGH は何もつながなくても常に ON を出す', () => {
     const r = settle({
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 'h', kind: 'HIGH', x: 0, y: 0 },
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
       ],
-      wires: [
-        { id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } },
-      ],
+      wires: [{ id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
     });
     expect(r.values.get('h:0')).toBe(true);
     expect(r.values.get('n:0')).toBe(false);
@@ -141,9 +132,7 @@ describe('simulate', () => {
     const r = settle(
       {
         components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
-        wires: [
-          { id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } },
-        ],
+        wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
       },
       undefined,
       80,
@@ -155,12 +144,14 @@ describe('simulate', () => {
 
   it('NOR で組んだ RS ラッチが状態を保持する', () => {
     const build = (s: boolean, r: boolean): Circuit => ({
+      // biome-ignore format: 表形式を維持するため
       components: [
         { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
         { id: 'r', kind: 'INPUT', x: 0, y: 0, on: r },
         { id: 'q', kind: 'NOR', x: 0, y: 0 },
         { id: 'qn', kind: 'NOR', x: 0, y: 0 },
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         { id: '1', from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
         { id: '2', from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
@@ -218,6 +209,7 @@ describe('simulate', () => {
     it('D-FF は立ち上がりエッジで D を取り込む', () => {
       // [D, CLK]
       expect(
+        // biome-ignore format: 表形式を維持するため
         run('DFF', [
           [H, L],
           [H, H],
@@ -231,6 +223,7 @@ describe('simulate', () => {
     it('T-FF は T=1 のとき立ち上がりエッジで反転する', () => {
       // [T, CLK]
       expect(
+        // biome-ignore format: 表形式を維持するため
         run('TFF', [
           [H, H],
           [H, L],
@@ -266,6 +259,7 @@ describe('simulate', () => {
     it('RS ラッチはクロックなしで、S / R の変化だけで動く', () => {
       // [S, R]
       expect(
+        // biome-ignore format: 表形式を維持するため
         run('RS', [
           [H, L],
           [L, L],
@@ -299,6 +293,7 @@ function wire(from: string, fromPin: number, to: string, toPin: number): Wire {
 const halfAdder: CircuitDef = {
   id: 'ha',
   name: 'HalfAdder',
+  // biome-ignore format: 表形式を維持するため
   components: [
     comp('a', 'INPUT', 0, { label: 'A' }),
     comp('b', 'INPUT', 40, { label: 'B' }),
@@ -307,6 +302,7 @@ const halfAdder: CircuitDef = {
     comp('s', 'OUTPUT', 0, { label: 'S' }),
     comp('c', 'OUTPUT', 40, { label: 'C' }),
   ],
+  // biome-ignore format: 表形式を維持するため
   wires: [
     wire('a', 0, 'x', 0),
     wire('b', 0, 'x', 1),
@@ -321,6 +317,7 @@ const halfAdder: CircuitDef = {
 const fullAdder: CircuitDef = {
   id: 'fa',
   name: 'FullAdder',
+  // biome-ignore format: 表形式を維持するため
   components: [
     comp('a', 'INPUT', 0),
     comp('b', 'INPUT', 20),
@@ -331,6 +328,7 @@ const fullAdder: CircuitDef = {
     comp('s', 'OUTPUT', 0),
     comp('co', 'OUTPUT', 20),
   ],
+  // biome-ignore format: 表形式を維持するため
   wires: [
     wire('a', 0, 'h1', 0),
     wire('b', 0, 'h1', 1),
@@ -343,21 +341,14 @@ const fullAdder: CircuitDef = {
   ],
 };
 
-function mainWith(
-  custom: string,
-  nIn: number,
-  nOut: number,
-  ins: boolean[],
-): CircuitDef {
+function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): CircuitDef {
   return {
     id: MAIN_ID,
     name: 'メイン',
     components: [
       ...ins.map((on, i) => comp(`i${i}`, 'INPUT', i * 20, { on })),
       comp('u', 'CUSTOM', 0, { custom }),
-      ...Array.from({ length: nOut }, (_, j) =>
-        comp(`o${j}`, 'OUTPUT', j * 20),
-      ),
+      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT', j * 20)),
     ],
     wires: [
       ...Array.from({ length: nIn }, (_, i) => wire(`i${i}`, 0, 'u', i)),
@@ -378,6 +369,7 @@ describe('モジュール', () => {
   });
 
   it('半加算器', () => {
+    // biome-ignore format: 表形式を維持するため
     for (const [a, b] of [
       [false, false],
       [false, true],
@@ -405,10 +397,7 @@ describe('モジュール', () => {
       };
       const r = settleProject(project, MAIN_ID);
       const sum = ins.filter(Boolean).length;
-      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([
-        sum % 2 === 1,
-        sum >= 2,
-      ]);
+      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([sum % 2 === 1, sum >= 2]);
     }
   });
 
@@ -416,12 +405,14 @@ describe('モジュール', () => {
     const reg: CircuitDef = {
       id: 'reg',
       name: 'Reg',
+      // biome-ignore format: 表形式を維持するため
       components: [
         comp('d', 'INPUT', 0),
         comp('clk', 'INPUT', 20),
         comp('ff', 'DFF'),
         comp('q', 'OUTPUT'),
       ],
+      // biome-ignore format: 表形式を維持するため
       wires: [
         wire('d', 0, 'ff', 0),
         wire('clk', 0, 'ff', 1),
@@ -430,11 +421,7 @@ describe('モジュール', () => {
     };
     let r: SimResult | undefined;
     const step = (d: boolean, clk: boolean) => {
-      r = settleProject(
-        { circuits: [mainWith('reg', 2, 1, [d, clk]), reg] },
-        MAIN_ID,
-        r,
-      );
+      r = settleProject({ circuits: [mainWith('reg', 2, 1, [d, clk]), reg] }, MAIN_ID, r);
       return r.values.get('o0:0');
     };
     expect(step(true, false)).toBe(false);

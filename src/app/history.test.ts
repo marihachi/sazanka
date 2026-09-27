@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  checkpoint,
-  commit,
-  initHistory,
-  redo,
-  replace,
-  undo,
-} from './history';
+import { checkpoint, commit, initHistory, redo, replace, undo } from './history';
 
 describe('history', () => {
   it('commit した状態を undo / redo で行き来できる', () => {

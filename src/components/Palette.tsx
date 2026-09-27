@@ -37,8 +37,7 @@ const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
     '入力スイッチ。クリックで ON/OFF を切り替える。モジュールの中に置くと、そのモジュールの入力ピンになる',
   CLOCK: '一定の周期で ON/OFF を繰り返す',
   HIGH: '常に ON を出力する',
-  OUTPUT:
-    '入力が ON のとき点灯するランプ。モジュールの中に置くと、そのモジュールの出力ピンになる',
+  OUTPUT: '入力が ON のとき点灯するランプ。モジュールの中に置くと、そのモジュールの出力ピンになる',
   AND: 'すべての入力が ON のとき ON',
   OR: 'どれかの入力が ON のとき ON',
   NOT: '入力を反転する',
@@ -47,8 +46,7 @@ const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
   XOR: '2つの入力が異なるとき ON',
   RS: 'S で ON、R で OFF にして値を保持する。クロックはなく、入力にすぐ反応する',
   RSEN: 'EN が ON の間だけ、S で ON、R で OFF にする。EN が OFF の間は値を保持する',
-  DLATCH:
-    'EN が ON の間は D の値をそのまま出し、OFF になると直前の値を保持する',
+  DLATCH: 'EN が ON の間は D の値をそのまま出し、OFF になると直前の値を保持する',
   DFF: 'CLK が OFF から ON になった瞬間に D の値を取り込み、保持する',
   TFF: 'CLK が OFF から ON になった瞬間に、T が ON なら出力を反転する',
   JKFF: 'CLK が OFF から ON になった瞬間に、J で ON、K で OFF、両方 ON なら反転する',
@@ -80,19 +78,11 @@ export const Palette = memo(function Palette({
   const toggleLabel = allCollapsed ? 'すべて展開' : 'すべて折りたたむ';
   const onToggleGroup = (id: string) =>
     onCollapsedChange(
-      collapsed.includes(id)
-        ? collapsed.filter((c) => c !== id)
-        : [...collapsed, id],
+      collapsed.includes(id) ? collapsed.filter((c) => c !== id) : [...collapsed, id],
     );
 
   return (
-    <Flex
-      direction="column"
-      w="176px"
-      flexShrink={0}
-      bg="bg.panel"
-      borderRightWidth="1px"
-    >
+    <Flex direction="column" w="176px" flexShrink={0} bg="bg.panel" borderRightWidth="1px">
       <Flex p="1" borderBottomWidth="1px">
         <ToolButton
           icon={allCollapsed ? expandAllIcon : collapseAllIcon}
@@ -111,12 +101,7 @@ export const Palette = memo(function Palette({
             onToggle={onToggleGroup}
           >
             {group.kinds.map((k) => (
-              <PaletteItem
-                key={k}
-                label={LABELS[k] ?? k}
-                kind={k}
-                onAdd={() => onAdd(k)}
-              />
+              <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => onAdd(k)} />
             ))}
           </PaletteGroup>
         ))}
@@ -156,13 +141,7 @@ interface PaletteGroupProps {
 }
 
 /** 見出しをクリックすると折り畳めるグループ */
-function PaletteGroup({
-  id,
-  title,
-  collapsed,
-  onToggle,
-  children,
-}: PaletteGroupProps) {
+function PaletteGroup({ id, title, collapsed, onToggle, children }: PaletteGroupProps) {
   const open = !collapsed.includes(id);
   return (
     <Box as="section" mb="2">
@@ -212,13 +191,7 @@ interface PaletteItemProps {
 }
 
 /** クリックで追加、シートへドラッグで好きな位置に追加 */
-function PaletteItem({
-  label,
-  kind,
-  custom,
-  disabledReason,
-  onAdd,
-}: PaletteItemProps) {
+function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItemProps) {
   const disabled = !!disabledReason;
   const button = (
     <Button

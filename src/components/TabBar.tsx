@@ -50,9 +50,7 @@ export const TabBar = memo(function TabBar({
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
 
   /** ドラッグ中は、落とす位置に並べ替えて見せる */
-  const shown = drag?.started
-    ? moveCircuit({ circuits }, drag.id, drag.index).circuits
-    : circuits;
+  const shown = drag?.started ? moveCircuit({ circuits }, drag.id, drag.index).circuits : circuits;
 
   function onPointerDown(e: React.PointerEvent, id: string) {
     // メイン回路は先頭に固定なので動かさない
@@ -93,10 +91,7 @@ export const TabBar = memo(function TabBar({
       return;
     }
     setDrag(null);
-    if (
-      drag.started &&
-      circuits.findIndex((d) => d.id === drag.id) !== drag.index
-    ) {
+    if (drag.started && circuits.findIndex((d) => d.id === drag.id) !== drag.index) {
       onReorder(drag.id, drag.index);
     }
   }
@@ -164,25 +159,14 @@ export const TabBar = memo(function TabBar({
       </Tabs.Root>
       {/* タブの末尾の「+」。タブの文字とそろう高さに置く */}
       <Box flexShrink={0} pb="1">
-        <ToolButton
-          icon={plusIcon}
-          label="モジュールを追加"
-          onClick={onAddModule}
-          iconOnly
-        />
+        <ToolButton icon={plusIcon} label="モジュールを追加" onClick={onAddModule} iconOnly />
       </Box>
     </Flex>
   );
 }, sameTabs);
 
 /** モジュールのタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
-function TabTooltip({
-  show,
-  children,
-}: {
-  show: boolean;
-  children: React.ReactElement;
-}) {
+function TabTooltip({ show, children }: { show: boolean; children: React.ReactElement }) {
   if (!show) {
     return children;
   }

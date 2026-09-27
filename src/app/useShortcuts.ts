@@ -26,8 +26,7 @@ export function useShortcuts(shortcuts: Shortcuts) {
       const s = ref.current;
       // 文字入力中も、キーを編集操作として扱わない
       const typing =
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement;
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
       if (!s.enabled || typing) {
         return;
       }

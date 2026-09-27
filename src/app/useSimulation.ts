@@ -2,12 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { SimStore } from '../components/Sheet';
 import { clockFlipsAt, clockPeriodOf } from '../engine/component';
 import type { Project } from '../engine/project';
-import {
-  OSCILLATION_TICKS,
-  SETTLED_TICKS,
-  step,
-  type SimResult,
-} from '../engine/sim';
+import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from '../engine/sim';
 
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
@@ -23,14 +18,9 @@ function clockKey(circuitId: string, compId: string): string {
  * 時刻 tick の時点で ON/OFF を切り替える CLOCK (プロジェクト全体)。
  * short は、その中に半周期が発振の判定 (OSCILLATION_TICKS) より短い CLOCK があるか
  */
-function clocksFlippingAt(
-  project: Project,
-  tick: number,
-): { keys: string[]; short: boolean } {
+function clocksFlippingAt(project: Project, tick: number): { keys: string[]; short: boolean } {
   const clocks = project.circuits.flatMap((d) =>
-    d.components
-      .filter((c) => c.kind === 'CLOCK' && clockFlipsAt(c, tick))
-      .map((c) => ({ d, c })),
+    d.components.filter((c) => c.kind === 'CLOCK' && clockFlipsAt(c, tick)).map((c) => ({ d, c })),
   );
   return {
     keys: clocks.map(({ d, c }) => clockKey(d.id, c.id)),
@@ -43,18 +33,13 @@ function clocksFlippingAt(
  * CLOCK の ON/OFF はプロジェクト (画面の状態) には書かず、シミュレーションの中で持つ。
  * 書くと CLOCK が反転するたびにプロジェクトが変わり、画面全体の描き直しと保存が起きて重くなるため
  */
-function withClockStates(
-  project: Project,
-  clockOn: ReadonlyMap<string, boolean>,
-): Project {
+function withClockStates(project: Project, clockOn: ReadonlyMap<string, boolean>): Project {
   return {
     ...project,
     circuits: project.circuits.map((d) => ({
       ...d,
       components: d.components.map((c) =>
-        c.kind === 'CLOCK'
-          ? { ...c, on: !!clockOn.get(clockKey(d.id, c.id)) }
-          : c,
+        c.kind === 'CLOCK' ? { ...c, on: !!clockOn.get(clockKey(d.id, c.id)) } : c,
       ),
     })),
   };
@@ -193,9 +178,7 @@ export function useSimulation(
     past.current = [];
   }
 
-  const hasClock = project.circuits.some((d) =>
-    d.components.some((c) => c.kind === 'CLOCK'),
-  );
+  const hasClock = project.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
 
   // advance は ref 越しに最新の状態を見るので、貼り直さなくてよい。
   // project と circuitId は中では使わないが、回路を触ったら止まったループを動かし直すために並べている
@@ -238,8 +221,7 @@ export function useSimulation(
   // タブを切り替えたら、その回路の前回の結果から続ける
   // biome-ignore lint/correctness/useExhaustiveDependencies: 開いている回路が変わったときだけ入れ替える (project の変更では入れ替えない)
   useEffect(() => {
-    current.current =
-      results.current.get(circuitId) ?? step(projectForSim(project), circuitId);
+    current.current = results.current.get(circuitId) ?? step(projectForSim(project), circuitId);
     publish(current.current);
   }, [circuitId]);
 
