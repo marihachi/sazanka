@@ -1,3 +1,4 @@
+import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
@@ -5,9 +6,8 @@ import trashIcon from '../assets/icons/trash.svg';
 import type { ComponentKind } from '../engine/component';
 import type { CircuitDef } from '../engine/project';
 import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
-import { classNames } from './classNames';
 import { MaskIcon, PartIcon } from './Icons';
-import styles from './Palette.module.css';
+import { ToolButton } from './ToolButton';
 
 /**
  * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
@@ -90,22 +90,22 @@ export function Palette({
     );
 
   return (
-    <div className={styles.sidebar}>
-      <div className={styles.toolbar}>
-        <button
-          type="button"
-          className={styles.tool}
-          title={toggleLabel}
-          aria-label={toggleLabel}
+    <Flex
+      direction="column"
+      w="176px"
+      flexShrink={0}
+      bg="bg.panel"
+      borderRightWidth="1px"
+    >
+      <Flex p="1" borderBottomWidth="1px">
+        <ToolButton
+          icon={allCollapsed ? expandAllIcon : collapseAllIcon}
+          label={toggleLabel}
           onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_IDS)}
-        >
-          <MaskIcon
-            src={allCollapsed ? expandAllIcon : collapseAllIcon}
-            className={styles.toolIcon}
-          />
-        </button>
-      </div>
-      <aside className={styles.palette}>
+          iconOnly
+        />
+      </Flex>
+      <Box as="aside" flex="1" minH="0" overflowY="auto" p="2">
         {GROUPS.map((group) => (
           <PaletteGroup
             key={group.id}
@@ -141,22 +141,36 @@ export function Palette({
             />
           ))}
           {modules.length === 0 && (
-            <p className={styles.empty}>モジュールはまだありません</p>
+            <Text textStyle="xs" color="fg.subtle">
+              モジュールはまだありません
+            </Text>
           )}
         </PaletteGroup>
-      </aside>
-      <div
+      </Box>
+      {/* 部品のドラッグ先にすると削除するエリア。ドラッグ中は濃く、上に載せると赤くする */}
+      <Flex
         ref={trashRef}
-        className={classNames(
-          styles.trash,
-          dragMode !== 'none' && styles.dragging,
-          dragMode === 'trash' && styles.active,
-        )}
+        direction="column"
+        align="center"
+        gap="1"
+        m="2"
+        px="2"
+        py="3"
+        textStyle="xs"
+        textAlign="center"
+        borderWidth="2px"
+        borderStyle="dashed"
+        rounded="l3"
+        transition="all 0.15s"
+        color={dragMode === 'trash' ? 'fg.error' : 'fg.muted'}
+        borderColor={dragMode === 'trash' ? 'border.error' : 'border'}
+        bg={dragMode === 'trash' ? 'bg.error' : 'transparent'}
+        opacity={dragMode === 'none' ? 0.6 : 1}
       >
-        <MaskIcon src={trashIcon} className={styles.trashIcon} />
+        <MaskIcon src={trashIcon} boxSize="6" />
         ここへドラッグで削除
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -178,20 +192,40 @@ function PaletteGroup({
 }: PaletteGroupProps) {
   const open = !collapsed.includes(id);
   return (
-    <section className={open ? undefined : styles.collapsed}>
+    <Box as="section" mb="2">
       <h3>
-        <button
-          type="button"
-          className={styles.groupToggle}
+        <Button
+          variant="ghost"
+          size="xs"
+          // ボタンの文字はアクセントカラーにせず、灰色で出す (ToolButton と同じ)
+          colorPalette="gray"
+          // 開いているグループの見出しにも、背景は付けない
+          _expanded={{ bg: 'transparent' }}
+          _hover={{ bg: 'colorPalette.subtle' }}
+          w="full"
+          justifyContent="flex-start"
+          gap="1"
+          px="1"
+          color="fg.muted"
           aria-expanded={open}
           onClick={() => onToggle(id)}
         >
-          <MaskIcon src={chevronIcon} className={styles.chevron} />
+          {/* 折り畳んだグループは、矢印を右向きにする */}
+          <MaskIcon
+            src={chevronIcon}
+            boxSize="3"
+            transition="transform 0.15s"
+            transform={open ? undefined : 'rotate(-90deg)'}
+          />
           {title}
-        </button>
+        </Button>
       </h3>
-      {open && children}
-    </section>
+      {open && (
+        <Flex direction="column" gap="1" mt="1">
+          {children}
+        </Flex>
+      )}
+    </Box>
   );
 }
 
@@ -214,9 +248,18 @@ function PaletteItem({
 }: PaletteItemProps) {
   const disabled = !!disabledReason;
   return (
-    <button
-      type="button"
-      className={classNames(styles.item, kind === 'CUSTOM' && styles.custom)}
+    <Button
+      variant="outline"
+      size="sm"
+      colorPalette="gray"
+      w="full"
+      justifyContent="flex-start"
+      gap="2"
+      px="2"
+      cursor={disabled ? 'not-allowed' : 'grab'}
+      // モジュールは、枠を点線にして組み込みの部品と見分ける
+      borderStyle={kind === 'CUSTOM' ? 'dashed' : 'solid'}
+      _hover={{ borderColor: 'accent.solid' }}
       disabled={disabled}
       // 置けないモジュールは、説明よりも置けない理由を見せる
       title={disabledReason ?? DESCRIPTIONS[kind]}
@@ -229,7 +272,9 @@ function PaletteItem({
       }}
     >
       <PartIcon kind={kind} />
-      <span>{label}</span>
-    </button>
+      <Box as="span" truncate>
+        {label}
+      </Box>
+    </Button>
   );
 }

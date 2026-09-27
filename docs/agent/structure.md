@@ -27,7 +27,7 @@
 見た目は Chakra UI を主にし、Chakra の既定の見た目をもとに、テーマ（`components/theme.ts`）で直す（開発者の方針）。今は CSS Modules から段階的に置き換えている途中。
 
 - 置き換えるときは、それまでの見た目に合わせなくてよい。Chakra らしさ（Chakra の部品、レシピのバリアント、トークン、ブレークポイント）を優先する（開発者の方針）。
-- 画面の幅での出し分けは、Chakra のブレークポイント（`md` = 768px など）を使う。置き換え前の CSS Modules には 720px の指定が残っている。
+- 画面の幅での出し分けは、Chakra のブレークポイント（`md` = 768px など）を使う。
 
 - 色はテーマのトークンで決める。画面はダーク固定（`index.html` の `<html class="dark">`）なので、Chakra のダークの色が使われる。
 - シートの SVG（`Sheet.tsx`、`ComponentView.tsx`）は、Chakra に置き換えず CSS Modules のままにする（開発者の方針）。ドラッグ中に何十回も描き直すので、実行時にスタイルを作る Chakra の書き方では重くなるため。色はテーマのトークンが出す CSS の変数（`var(--chakra-colors-sheet-on)` など）で参照する。
