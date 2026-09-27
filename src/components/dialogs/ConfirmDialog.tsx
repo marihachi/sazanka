@@ -2,7 +2,7 @@ import { Button, Dialog as ChakraDialog, Text } from '@chakra-ui/react';
 import { useRef } from 'react';
 import { DialogFrame } from './DialogFrame';
 
-export interface DialogRequest {
+export interface ConfirmRequest {
   message: string;
   /** 確定ボタンの文言。onConfirm がなければ「OK」だけのお知らせになる */
   confirmLabel?: string;
@@ -16,7 +16,7 @@ export function ConfirmDialog({
   request,
   onClose,
 }: {
-  request: DialogRequest;
+  request: ConfirmRequest;
   onClose: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);

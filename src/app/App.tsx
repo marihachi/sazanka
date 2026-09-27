@@ -9,7 +9,7 @@ import {
 import { AboutDialog } from '../components/dialogs/AboutDialog';
 import {
   ConfirmDialog,
-  type DialogRequest,
+  type ConfirmRequest,
 } from '../components/dialogs/ConfirmDialog';
 import { PreferencesDialog } from '../components/dialogs/PreferencesDialog';
 import {
@@ -80,7 +80,7 @@ export function App() {
   /** 貼り付ける位置を選んでいる部品と配線。クリックした位置で確定する */
   const [placing, setPlacing] = useState<Circuit | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
-  const [dialog, setDialog] = useState<DialogRequest | null>(() =>
+  const [dialog, setDialog] = useState<ConfirmRequest | null>(() =>
     loaded.error
       ? { message: `${loaded.error}空のプロジェクトで開きます。` }
       : null,
