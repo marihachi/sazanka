@@ -4,7 +4,7 @@ import plusIcon from '../assets/icons/plus.svg';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './Dialogs';
 import { ToolButton } from './ToolButton';
-import { Tooltip } from './Tooltip';
+import { HintTooltip } from './HintTooltip';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -186,8 +186,8 @@ function TabTooltip({
     return children;
   }
   return (
-    <Tooltip content="ダブルクリックで名前を変更、ドラッグで並べ替えできます。">
+    <HintTooltip content="ダブルクリックで名前を変更、ドラッグで並べ替えできます。">
       {children}
-    </Tooltip>
+    </HintTooltip>
   );
 }

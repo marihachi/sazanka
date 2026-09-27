@@ -8,7 +8,7 @@ import type { CircuitDef } from '../engine/project';
 import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
 import { MaskIcon, PartIcon } from './Icons';
 import { ToolButton } from './ToolButton';
-import { Tooltip } from './Tooltip';
+import { HintTooltip } from './HintTooltip';
 
 /**
  * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
@@ -278,9 +278,9 @@ function PaletteItem({
   );
   return (
     // 置けないモジュールは、説明よりも置けない理由を見せる
-    <Tooltip content={disabledReason ?? DESCRIPTIONS[kind]}>
+    <HintTooltip content={disabledReason ?? DESCRIPTIONS[kind]}>
       {/* 押せないボタンはポインターのイベントを出さないので、包んだ要素でツールチップを出す */}
       {disabled ? <Box w="full">{button}</Box> : button}
-    </Tooltip>
+    </HintTooltip>
   );
 }

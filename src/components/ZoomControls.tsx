@@ -3,7 +3,7 @@ import minusIcon from '../assets/icons/minus.svg';
 import plusIcon from '../assets/icons/plus.svg';
 import { Button, HStack } from '@chakra-ui/react';
 import { ToolButton } from './ToolButton';
-import { Tooltip } from './Tooltip';
+import { HintTooltip } from './HintTooltip';
 
 interface ZoomControlsProps {
   scale: number;
@@ -38,7 +38,7 @@ export function ZoomControls({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <ToolButton icon={minusIcon} label="縮小" onClick={onZoomOut} iconOnly />
-      <Tooltip content="等倍に戻す">
+      <HintTooltip content="等倍に戻す">
         <Button
           variant="ghost"
           size="sm"
@@ -52,7 +52,7 @@ export function ZoomControls({
         >
           {Math.round(scale * 100)}%
         </Button>
-      </Tooltip>
+      </HintTooltip>
       <ToolButton icon={plusIcon} label="拡大" onClick={onZoomIn} iconOnly />
       <ToolButton
         icon={fitIcon}

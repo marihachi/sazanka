@@ -4,7 +4,7 @@ import { Portal, Tooltip as ChakraTooltip } from '@chakra-ui/react';
  * ボタンなどに付けるツールチップ (Chakra の Tooltip)。子要素 1 つにかぶせる。
  * 押せないボタン (disabled) はポインターのイベントを出さないので、span で包んでから渡す
  */
-export function Tooltip({
+export function HintTooltip({
   content,
   children,
 }: {

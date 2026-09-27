@@ -1,6 +1,6 @@
 import { Box, Button, IconButton, Separator } from '@chakra-ui/react';
 import { ToolIcon } from './Icons';
-import { Tooltip } from './Tooltip';
+import { HintTooltip } from './HintTooltip';
 
 interface ToolButtonProps {
   icon: string;
@@ -50,7 +50,7 @@ export function ToolButton({
     </Button>
   );
   return (
-    <Tooltip content={title ?? label}>
+    <HintTooltip content={title ?? label}>
       {/* 押せないボタンはポインターのイベントを出さないので、包んだ span でツールチップを出す */}
       {disabled ? (
         <Box as="span" display="inline-flex" flexShrink={0}>
@@ -59,7 +59,7 @@ export function ToolButton({
       ) : (
         button
       )}
-    </Tooltip>
+    </HintTooltip>
   );
 }
 

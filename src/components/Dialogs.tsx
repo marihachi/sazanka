@@ -16,7 +16,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
-import { Tooltip } from './Tooltip';
+import { HintTooltip } from './HintTooltip';
 import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
@@ -508,7 +508,7 @@ export function PreferencesDialog({
             </Text>
             <HStack gap="2" role="group" aria-labelledby="accent-label">
               {ACCENT_PRESETS.map((p) => (
-                <Tooltip key={p.value} content={p.label}>
+                <HintTooltip key={p.value} content={p.label}>
                   <chakra.button
                     type="button"
                     boxSize="6"
@@ -528,10 +528,10 @@ export function PreferencesDialog({
                       onChange({ ...preferences, accent: p.value })
                     }
                   />
-                </Tooltip>
+                </HintTooltip>
               ))}
               {/* 用意した色以外も選べる */}
-              <Tooltip content="ほかの色を選ぶ">
+              <HintTooltip content="ほかの色を選ぶ">
                 <chakra.input
                   type="color"
                   w="8"
@@ -547,7 +547,7 @@ export function PreferencesDialog({
                     onChange({ ...preferences, accent: e.target.value })
                   }
                 />
-              </Tooltip>
+              </HintTooltip>
             </HStack>
           </Stack>
         </Stack>
