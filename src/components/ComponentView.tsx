@@ -49,7 +49,7 @@ export function ComponentView({
       #{pinNumber}
     </text>
   );
-  const lamp = value ? 'var(--on)' : '#333';
+  const lamp = value ? 'var(--chakra-colors-sheet-on)' : '#333';
 
   let body: React.ReactNode;
   if (c.kind === 'INPUT') {
@@ -99,7 +99,11 @@ export function ComponentView({
         <path
           d={`M${c.x + 6},${y0 + 7} h7 v-14 h7 v14 h7 v-14 h7`}
           fill="none"
-          stroke={value ? 'var(--on)' : 'var(--line)'}
+          stroke={
+            value
+              ? 'var(--chakra-colors-sheet-on)'
+              : 'var(--chakra-colors-sheet-line)'
+          }
           strokeWidth={2}
           pointerEvents="none"
         />

@@ -1,5 +1,5 @@
+import { Badge, Box, Flex } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import styles from './StatusBar.module.css';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -35,15 +35,37 @@ export function StatusBar({ hints, unstable }: StatusBarProps) {
   }, [hint, index, hints.length, paused]);
 
   return (
-    <footer
-      className={styles.statusbar}
+    <Flex
+      as="footer"
+      align="center"
+      gap="4"
+      minH="6"
+      px="2.5"
+      py="0.5"
+      textStyle="xs"
+      bg="bg.subtle"
+      borderTopWidth="1px"
+      // ヒントの切り替え効果で中身が動いてもはみ出さない
+      overflow="hidden"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
     >
-      <span key={hint} className={styles.statusHint}>
+      {/* 切り替わるたびに (key が変わるので) ふわっと表示する */}
+      <Box
+        key={hint}
+        flex="1"
+        minW="0"
+        truncate
+        color="fg.muted"
+        animation="fade-in 0.4s ease-out"
+      >
         {hint}
-      </span>
-      {unstable && <span className={styles.statusWarn}>発振しています</span>}
-    </footer>
+      </Box>
+      {unstable && (
+        <Badge colorPalette="red" variant="subtle" flexShrink={0}>
+          発振しています
+        </Badge>
+      )}
+    </Flex>
   );
 }

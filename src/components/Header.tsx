@@ -1,3 +1,4 @@
+import { Flex, Heading, VisuallyHidden } from '@chakra-ui/react';
 import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
 import infoIcon from '../assets/icons/info.svg';
@@ -7,7 +8,6 @@ import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
 import { MaskIcon } from './Icons';
-import styles from './Header.module.css';
 import { ToolButton, ToolDivider } from './ToolButton';
 
 interface HeaderProps {
@@ -38,12 +38,28 @@ export function Header({
   onAbout,
 }: HeaderProps) {
   return (
-    <header className={styles.header}>
-      <h1>
-        <MaskIcon src={logoMark} className={styles.logo} />
-        <span className="visually-hidden">sazanka</span>
-      </h1>
-      <nav className={styles.actions} aria-label="プロジェクトの操作">
+    <Flex
+      as="header"
+      align="center"
+      gap="1.5"
+      h="12"
+      px="3"
+      flexShrink={0}
+      borderBottomWidth="1px"
+    >
+      <Heading as="h1" display="flex" flexShrink={0}>
+        <MaskIcon src={logoMark} boxSize="7" bg="brand" />
+        <VisuallyHidden>sazanka</VisuallyHidden>
+      </Heading>
+      {/* 入りきらない幅では横にスクロールする */}
+      <Flex
+        as="nav"
+        align="center"
+        gap="0.5"
+        minW="0"
+        overflowX="auto"
+        aria-label="プロジェクトの操作"
+      >
         <ToolButton
           icon={newIcon}
           label="新規作成"
@@ -77,27 +93,21 @@ export function Header({
           onClick={onRedo}
           disabled={!canRedo}
         />
-      </nav>
-      <div className={styles.end}>
-        <button
-          type="button"
-          className={styles.about}
+      </Flex>
+      <Flex gap="1" ms="auto" flexShrink={0}>
+        <ToolButton
+          icon={preferencesIcon}
+          label="環境設定"
           onClick={onPreferences}
-          title="環境設定"
-          aria-label="環境設定"
-        >
-          <MaskIcon src={preferencesIcon} className={styles.aboutIcon} />
-        </button>
-        <button
-          type="button"
-          className={styles.about}
+          iconOnly
+        />
+        <ToolButton
+          icon={infoIcon}
+          label="このアプリについて"
           onClick={onAbout}
-          title="このアプリについて"
-          aria-label="このアプリについて"
-        >
-          <MaskIcon src={infoIcon} className={styles.aboutIcon} />
-        </button>
-      </div>
-    </header>
+          iconOnly
+        />
+      </Flex>
+    </Flex>
   );
 }

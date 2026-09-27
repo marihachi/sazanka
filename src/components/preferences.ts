@@ -10,7 +10,7 @@ export interface Preferences {
   showGrid: boolean;
   /** 配線の角を丸めるか */
   roundWires: boolean;
-  /** アクセントカラー (#rrggbb)。style.css の --accent を差し替える */
+  /** アクセントカラー (#rrggbb)。テーマ (theme.ts) の --accent を差し替える */
   accent: string;
 }
 
@@ -23,7 +23,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 /** すぐに選べるアクセントカラー。先頭が既定 */
 export const ACCENT_PRESETS: { value: string; label: string }[] = [
-  // ロゴの色 (style.css の --brand) と同じ
+  // ロゴの色 (テーマの brand) と同じ
   { value: '#20b2aa', label: '青緑' },
   { value: '#60a5fa', label: '青' },
   { value: '#a78bfa', label: '紫' },

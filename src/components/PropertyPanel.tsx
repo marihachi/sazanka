@@ -1,3 +1,4 @@
+import { Field, Input, Stack, Text } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 import {
   clockPeriodOf,
@@ -6,9 +7,7 @@ import {
   MIN_CLOCK_PERIOD,
   type Component,
 } from '../engine/component';
-import { classNames } from './classNames';
 import { LABELS } from './parts';
-import styles from './PropertyPanel.module.css';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
@@ -37,16 +36,28 @@ export function PropertyPanel({
   onLabelChange,
 }: PropertyPanelProps) {
   return (
-    <aside
-      className={classNames(styles.panel, !component && styles.idle)}
+    <Stack
+      as="aside"
       aria-label="部品のプロパティ"
+      // 狭い画面では、部品を選んでいない間は出さない
+      display={{ base: component ? 'flex' : 'none', md: 'flex' }}
+      w={{ base: '160px', md: '200px' }}
+      flexShrink={0}
+      gap="3"
+      px="3"
+      py="2.5"
+      bg="bg.panel"
+      borderLeftWidth="1px"
+      overflowY="auto"
     >
-      <h3 className={styles.title}>プロパティ</h3>
+      <Text as="h3" textStyle="xs" color="fg.muted">
+        プロパティ
+      </Text>
       {component ? (
         <>
-          <p className={styles.kind}>
+          <Text fontWeight="semibold">
             {moduleName ?? LABELS[component.kind] ?? component.kind}
-          </p>
+          </Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {component.kind === 'CLOCK' ? (
             <ClockPeriodField
@@ -64,15 +75,17 @@ export function PropertyPanel({
               onChange={onLabelChange}
             />
           ) : (
-            <p className={styles.empty}>この部品に設定できる項目はありません</p>
+            <Text textStyle="xs" color="fg.subtle">
+              この部品に設定できる項目はありません
+            </Text>
           )}
         </>
       ) : (
-        <p className={styles.empty}>
+        <Text textStyle="xs" color="fg.subtle">
           部品を1つ選ぶと、その部品の項目を編集できます
-        </p>
+        </Text>
       )}
-    </aside>
+    </Stack>
   );
 }
 
@@ -113,9 +126,10 @@ function LabelField({
   const session = useEditSession(onEditStart);
 
   return (
-    <label className={styles.field}>
-      <span>ラベル</span>
-      <input
+    <Field.Root>
+      <Field.Label>ラベル</Field.Label>
+      <Input
+        size="sm"
         value={text}
         placeholder="ラベルなし"
         onChange={(e) => {
@@ -131,10 +145,10 @@ function LabelField({
           }
         }}
       />
-      <span className={styles.help}>
+      <Field.HelperText>
         モジュールの中では、ピンの名前になります
-      </span>
-    </label>
+      </Field.HelperText>
+    </Field.Root>
   );
 }
 
@@ -178,16 +192,16 @@ function ClockPeriodField({
   }
 
   return (
-    <label className={styles.field}>
-      <span>周期 (tick)</span>
-      <input
+    <Field.Root invalid={!valid}>
+      <Field.Label>周期 (tick)</Field.Label>
+      <Input
+        size="sm"
         type="number"
         inputMode="numeric"
         min={MIN_CLOCK_PERIOD}
         max={MAX_CLOCK_PERIOD}
         step={1}
         value={text}
-        aria-invalid={!valid}
         onChange={(e) => change(e.target.value)}
         onBlur={finish}
         onKeyDown={(e) => {
@@ -197,11 +211,15 @@ function ClockPeriodField({
           }
         }}
       />
-      <span className={classNames(styles.help, !valid && styles.invalid)}>
-        {valid
-          ? `ON と OFF を一往復する tick 数。今の間隔 (${tickMs} ms) では ${(value * tickMs) / 1000} 秒`
-          : `${MIN_CLOCK_PERIOD}〜${MAX_CLOCK_PERIOD} の整数で入力してください`}
-      </span>
-    </label>
+      {valid ? (
+        <Field.HelperText>
+          {`ON と OFF を一往復する tick 数。今の間隔 (${tickMs} ms) では ${(value * tickMs) / 1000} 秒`}
+        </Field.HelperText>
+      ) : (
+        <Field.ErrorText>
+          {`${MIN_CLOCK_PERIOD}〜${MAX_CLOCK_PERIOD} の整数で入力してください`}
+        </Field.ErrorText>
+      )}
+    </Field.Root>
   );
 }

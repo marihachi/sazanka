@@ -553,7 +553,7 @@ export function Sheet({
             <path
               d={`M${GRID},0 V${GRID} H0`}
               fill="none"
-              stroke="var(--grid)"
+              stroke="var(--chakra-colors-sheet-grid)"
               strokeWidth={1 / view.scale}
             />
           </pattern>
