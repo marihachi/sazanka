@@ -2,7 +2,7 @@ import { Box, Flex, Tabs } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
-import { InlineInput } from './Dialogs';
+import { InlineInput } from './InlineInput';
 import { ToolButton } from './ToolButton';
 import { HintTooltip } from './HintTooltip';
 
