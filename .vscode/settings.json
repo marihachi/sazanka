@@ -1,0 +1,4 @@
+{
+    "git.autofetch": true,
+    "git.pruneOnFetch": true
+}
