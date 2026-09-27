@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import licenses from 'virtual:licenses';
 import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
 import { classNames } from './classNames';
@@ -374,23 +373,21 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
               GitHub リポジトリ
             </a>
           </li>
+          <li>
+            {/* 同梱しているライブラリのライセンス文。MIT などは配布物に含めることが条件なので、必ず置く (ビルドで書き出す) */}
+            <a
+              href={`${import.meta.env.BASE_URL}licenses.txt`}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              使用しているライブラリのライセンス
+            </a>
+          </li>
         </ul>
         <p className={styles.note}>
           MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL)
           というフォントを使っています。
         </p>
-        {/* 同梱しているライブラリのライセンス文。MIT などは配布物に含めることが条件なので、必ず表示する */}
-        <details className={styles.licenses}>
-          <summary>使用しているライブラリのライセンス</summary>
-          {licenses.map((l) => (
-            <details key={l.name} className={styles.license}>
-              <summary>
-                {l.name} {l.version} ({l.license})
-              </summary>
-              <pre>{l.text}</pre>
-            </details>
-          ))}
-        </details>
         <div className={styles.dialogButtons}>
           <button
             type="button"
