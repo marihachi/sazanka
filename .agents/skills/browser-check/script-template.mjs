@@ -2,7 +2,7 @@
 // 事前に作業用フォルダで `npm i puppeteer-core` し、その環境にあるブラウザの実行ファイルを指定する。
 import puppeteer from 'puppeteer-core';
 
-const URL = 'http://localhost:5199/';
+const URL = 'http://localhost:5199/sazanka/';
 const EXECUTABLE_PATH = process.env.BROWSER_PATH; // 環境にあるブラウザのパス
 
 // 確認用の回路。座標はシートの表示範囲の真ん中あたりに置く。
@@ -58,6 +58,75 @@ page.on('response', (r) => {
   }
 });
 
+// 人の操作をまねる関数。値の決め方は SKILL.md の「人の操作をまねる」。
+// 確認によって使わないものもあるので、export して未使用の指摘を避けている。
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 要素の真ん中の座標 */
+async function centerOf(el) {
+  const box = await el.boundingBox();
+  if (!box) {
+    throw new Error('要素が見えていません (画面の外か、表示されていない)');
+  }
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** ポインターを載せる。ツールチップを見るときは、そのあと 700ms ほど待つ */
+export async function hover(el) {
+  const { x, y } = await centerOf(el);
+  await page.mouse.move(x, y, { steps: 8 });
+  await wait(100);
+}
+
+/** クリックして、次の操作まで間をあける */
+export async function click(el) {
+  await hover(el);
+  await page.mouse.down();
+  await wait(60);
+  await page.mouse.up();
+  await wait(250);
+}
+
+/** ダブルクリック。1 回目と 2 回目の間を 100ms あける */
+export async function doubleClick(el) {
+  await hover(el);
+  await page.mouse.down();
+  await wait(60);
+  await page.mouse.up();
+  await wait(100);
+  await page.mouse.down({ clickCount: 2 });
+  await wait(60);
+  await page.mouse.up({ clickCount: 2 });
+  await wait(250);
+}
+
+/** from から to の座標へドラッグする。1 歩 8px ほどを、1 フレームずつ待ちながら動かす */
+export async function drag(from, to) {
+  await page.mouse.move(from.x, from.y, { steps: 8 });
+  await page.mouse.down();
+  await wait(100);
+  const steps = Math.max(
+    10,
+    Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 8),
+  );
+  for (let i = 1; i <= steps; i++) {
+    await page.mouse.move(
+      from.x + ((to.x - from.x) * i) / steps,
+      from.y + ((to.y - from.y) * i) / steps,
+    );
+    await wait(16);
+  }
+  await wait(100);
+  await page.mouse.up();
+  await wait(250);
+}
+
+/** 文字を 1 文字ずつ入力する */
+export async function type(text) {
+  await page.keyboard.type(text, { delay: 50 });
+  await wait(250);
+}
+
 // 1回目の読み込みが終わるのを待ってから localStorage に書く（待たないと自動保存に上書きされる）。
 await page.goto(URL, { waitUntil: 'networkidle0' });
 await new Promise((r) => setTimeout(r, 500));
@@ -67,7 +136,8 @@ await page.evaluate((data) => {
 await page.reload({ waitUntil: 'networkidle0' });
 await new Promise((r) => setTimeout(r, 500));
 
-// ここに確かめたい操作と読み取りを書く。
+// ここに確かめたい操作と読み取りを書く。操作は上の click / doubleClick / drag / type / hover で行う。
+// 例: await click(await page.$('button[aria-label="新規作成"]'));
 // クラス名はハッシュが付くので部分一致で探す。
 const wireCount = await page.evaluate(
   () =>
