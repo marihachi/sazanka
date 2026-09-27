@@ -1,3 +1,4 @@
+import { Stack } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   clampMove,
@@ -30,6 +31,7 @@ import styles from './Sheet.module.css';
 import { toScreenLocal, useViewGestures } from './useViewGestures';
 import { overview, toScreen, toWorld, zoomAt, type View } from './view';
 import { wirePath } from './wirePath';
+import { TrashZone } from './TrashZone';
 import { ZoomControls } from './ZoomControls';
 
 /** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
@@ -95,8 +97,6 @@ interface SheetProps {
   onPendingChange: (pending: PinRef | null) => void;
   dragMode: DragMode;
   onDragModeChange: (mode: DragMode) => void;
-  /** 部品をここにドロップすると削除する要素 */
-  trashRef: React.RefObject<HTMLElement | null>;
   onResize: (size: SheetSize) => void;
   /** 表示位置と倍率 (スクロールと拡大縮小) */
   view: View;
@@ -138,7 +138,6 @@ export function Sheet({
   onPendingChange,
   dragMode,
   onDragModeChange,
-  trashRef,
   onResize,
   view,
   onViewChange,
@@ -156,6 +155,8 @@ export function Sheet({
   placing,
   onPlace,
 }: SheetProps) {
+  /** 部品を落とすと削除するエリア。落としたかは、画面上の位置で判定する */
+  const trashRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   /** シートの svg。イベントはシートが表示されてからしか起きないので、ハンドラーの中では必ずある */
   function sheetSvg(): SVGSVGElement {
@@ -752,17 +753,29 @@ export function Sheet({
           )}
         </g>
       </svg>
-      <ZoomControls
-        scale={view.scale}
-        onZoomIn={() =>
-          onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))
-        }
-        onZoomOut={() =>
-          onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))
-        }
-        onReset={() => onViewChange(zoomAt(view, center(), 1))}
-        onFit={fit}
-      />
+      {/* 右下に重ねる。削除エリアはズームのパネルの上 */}
+      <Stack
+        position="absolute"
+        right="3"
+        bottom="3"
+        align="flex-end"
+        gap="3"
+        // 入れ物の空いている所は、シートの操作を素通しにする (丸とズームのパネルだけが受ける)
+        pointerEvents="none"
+      >
+        <TrashZone dragMode={dragMode} ref={trashRef} />
+        <ZoomControls
+          scale={view.scale}
+          onZoomIn={() =>
+            onViewChange(zoomAt(view, center(), view.scale * ZOOM_STEP))
+          }
+          onZoomOut={() =>
+            onViewChange(zoomAt(view, center(), view.scale / ZOOM_STEP))
+          }
+          onReset={() => onViewChange(zoomAt(view, center(), 1))}
+          onFit={fit}
+        />
+      </Stack>
     </div>
   );
 }
