@@ -1,5 +1,11 @@
 import { Stack } from '@chakra-ui/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   clampMove,
   componentsInRect,
@@ -86,10 +92,17 @@ const DRAG_THRESHOLD = 4;
 /** 拡大・縮小ボタン1回で変える倍率 */
 const ZOOM_STEP = 1.25;
 
+/** 値を読み、変わったら知らせてもらえる、シミュレーションの結果の入れ物 (作るのは app/useSimulation.ts) */
+export interface SimStore {
+  get: () => SimResult;
+  subscribe: (listener: () => void) => () => void;
+}
+
 interface SheetProps {
   project: Project;
   circuit: CircuitDef;
-  sim: SimResult;
+  /** シミュレーションの結果。tick ごとに変わるので、props ではなく購読して受け取る (App を描き直さないため) */
+  simStore: SimStore;
   selection: Selection;
   onSelect: (selection: Selection) => void;
   /** 配線の途中で、接続元の出力ピン */
@@ -131,7 +144,7 @@ interface SheetProps {
 export function Sheet({
   project,
   circuit,
-  sim,
+  simStore,
   selection,
   onSelect,
   pending,
@@ -155,6 +168,7 @@ export function Sheet({
   placing,
   onPlace,
 }: SheetProps) {
+  const sim = useSyncExternalStore(simStore.subscribe, simStore.get);
   /** 部品を落とすと削除するエリア。落としたかは、画面上の位置で判定する */
   const trashRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);

@@ -105,14 +105,15 @@ export function App() {
   }
 
   const {
-    sim,
+    simStore,
+    unstable,
     running,
     toggleRunning,
     stepOnce,
     stepBack,
     canStepBack,
     forget,
-  } = useSimulation(project, circuit.id, history.replace, preferences.tickMs);
+  } = useSimulation(project, circuit.id, preferences.tickMs);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
@@ -476,7 +477,7 @@ export function App() {
     wireSelected: selection?.type === 'wire',
     selectedComponent,
     multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
-    unstable: sim.unstable,
+    unstable,
     inModule: circuit.id !== MAIN_ID,
     tickMs: preferences.tickMs,
   });
@@ -524,7 +525,7 @@ export function App() {
         <Sheet
           project={project}
           circuit={circuit}
-          sim={sim}
+          simStore={simStore}
           selection={selection}
           onSelect={setSelection}
           pending={pending}
@@ -570,7 +571,7 @@ export function App() {
           }
         />
       </Flex>
-      <StatusBar hints={hints} unstable={sim.unstable} />
+      <StatusBar hints={hints} unstable={unstable} />
       {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
           Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
       {dialog && !textDialog && !promptDialog && (

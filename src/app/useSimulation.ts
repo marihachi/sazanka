@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { SimStore } from '../components/Sheet';
 import { clockFlipsAt, clockPeriodOf } from '../engine/component';
 import type { Project } from '../engine/project';
 import {
@@ -37,18 +38,55 @@ function clocksFlippingAt(
   };
 }
 
-/** 指定した CLOCK を反転させる */
-function toggleClocks(keys: readonly string[]) {
-  const set = new Set(keys);
-  return (project: Project): Project => ({
+/**
+ * CLOCK の ON/OFF を、プロジェクトに当てたもの (計算にだけ使う)。
+ * CLOCK の ON/OFF はプロジェクト (画面の状態) には書かず、シミュレーションの中で持つ。
+ * 書くと CLOCK が反転するたびにプロジェクトが変わり、画面全体の描き直しと保存が起きて重くなるため
+ */
+function withClockStates(
+  project: Project,
+  clockOn: ReadonlyMap<string, boolean>,
+): Project {
+  return {
     ...project,
     circuits: project.circuits.map((d) => ({
       ...d,
       components: d.components.map((c) =>
-        set.has(clockKey(d.id, c.id)) ? { ...c, on: !c.on } : c,
+        c.kind === 'CLOCK'
+          ? { ...c, on: !!clockOn.get(clockKey(d.id, c.id)) }
+          : c,
       ),
     })),
-  });
+  };
+}
+
+/** 指定した CLOCK を反転させる */
+function toggleClocks(clockOn: Map<string, boolean>, keys: readonly string[]) {
+  for (const k of keys) {
+    clockOn.set(k, !clockOn.get(k));
+  }
+}
+
+/** 値を入れておき、変わったら購読している側に知らせる入れ物 */
+function createSimStore(initial: SimResult) {
+  let value = initial;
+  const listeners = new Set<() => void>();
+  const store: SimStore = {
+    get: () => value,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+  return {
+    store,
+    set(next: SimResult) {
+      value = next;
+      for (const listener of listeners) {
+        listener();
+      }
+    },
+  };
 }
 
 /**
@@ -57,25 +95,64 @@ function toggleClocks(keys: readonly string[]) {
  *
  * 計算は ref の中で進め、画面へはフレームごとにそのときの値を渡す。
  * tick を短くしても画面の更新回数は増えないので、信号の伝わり方を細かくしつつ描画は軽いままにできる。
- * 値が変わらないフレームでは描き直さず、CLOCK がなく落ち着いたらループ自体を止める
+ * 値が変わらないフレームでは描き直さず、CLOCK がなく落ち着いたらループ自体を止める。
+ *
+ * 結果は React の状態にせず、store (購読できる入れ物) で渡す。値を使うシートだけが描き直され、
+ * 画面全体 (App) は tick のたびには描き直さない。App が描き直すのは、発振しているかが変わったときだけ
  */
 export function useSimulation(
   project: Project,
   circuitId: string,
-  setProject: React.Dispatch<React.SetStateAction<Project>>,
   /** 時間を 1 tick 進める間隔 (ms、環境設定)。画面の更新間隔とは別で、それより短くてよい */
   tickMs: number,
 ) {
-  const current = useRef<SimResult>(step(project, circuitId));
-  const [sim, setSim] = useState<SimResult>(current.current);
+  /** CLOCK の ON/OFF (回路 ID と部品 ID → ON か)。保存データに残っていた値から始める */
+  const clockOn = useRef<Map<string, boolean> | null>(null);
+  if (!clockOn.current) {
+    clockOn.current = new Map(
+      project.circuits.flatMap((d) =>
+        d.components
+          .filter((c) => c.kind === 'CLOCK')
+          .map((c) => [clockKey(d.id, c.id), !!c.on] as const),
+      ),
+    );
+  }
+  /** CLOCK の状態を当てたプロジェクト。プロジェクトが変わるか CLOCK が反転したら作り直す */
+  const simProject = useRef<{ base: Project; value: Project } | null>(null);
+  function projectForSim(p: Project): Project {
+    if (!simProject.current || simProject.current.base !== p) {
+      simProject.current = {
+        base: p,
+        value: withClockStates(p, clockOn.current ?? new Map()),
+      };
+    }
+    return simProject.current.value;
+  }
+  function flipClocks(keys: readonly string[]) {
+    toggleClocks(clockOn.current ?? new Map(), keys);
+    simProject.current = null;
+  }
+
+  const current = useRef<SimResult>(step(projectForSim(project), circuitId));
+  /** シートなどが購読する入れ物 (このフックの間ずっと同じもの) */
+  const store = useRef<ReturnType<typeof createSimStore> | null>(null);
+  if (!store.current) {
+    store.current = createSimStore(current.current);
+  }
+  const [unstable, setUnstable] = useState(current.current.unstable);
+  /** 一時停止中の 1 tick 送り・戻しのあとに、ボタンの押せる / 押せないを描き直すため */
+  const [, setStepVersion] = useState(0);
+  /** 結果を画面へ渡す。App へは、発振しているかが変わったときだけ知らせる */
+  function publish(result: SimResult) {
+    store.current?.set(result);
+    setUnstable(result.unstable);
+  }
   const [running, setRunning] = useState(true);
   /** 回路ごとの結果。タブを切り替えても、その回路の状態を保つ */
   const results = useRef(new Map<string, SimResult>());
   const ticks = useRef(0);
   /** 戻すために覚えておく、少し前までの結果。toggled はその tick で反転した CLOCK */
   const past = useRef<{ sim: SimResult; toggled: string[] }[]>([]);
-  /** 直前のプロジェクトの変化が、自分で反転した CLOCK によるものか */
-  const clockChange = useRef(false);
   /** 前回の描画で見たプロジェクト。変わっていれば回路が編集された */
   const lastProject = useRef(project);
   // タイマーからは、常に最新のプロジェクトと開いている回路を見る
@@ -90,14 +167,13 @@ export function useSimulation(
     ticks.current += 1;
     const { keys: toggled, short } = clocksFlippingAt(p, ticks.current);
     if (toggled.length > 0) {
-      clockChange.current = true;
-      setProject(toggleClocks(toggled));
+      flipClocks(toggled);
     }
     past.current.push({ sim: current.current, toggled });
     if (past.current.length > HISTORY_TICKS) {
       past.current.shift();
     }
-    current.current = step(p, id, current.current);
+    current.current = step(projectForSim(p), id, current.current);
     // 周期の短い CLOCK では、遅延のある回路は落ち着く前に次の反転が来る。
     // そのままでは「落ち着かないまま続いている」と数えられて発振と誤って判定されるので、反転するたびに数え直す。
     // その代わり、周期の短い CLOCK を置いた回路では、本当の発振も検出できない。
@@ -111,15 +187,10 @@ export function useSimulation(
   }
 
   // 回路を編集したら、戻せる状態は捨てる。編集前の値に戻しても、今の回路とは噛み合わないため。
-  // CLOCK の反転は自分で起こした変化なので、そのままにする。
   // ボタンの押せる / 押せないをこの描画に間に合わせるため、効果ではなく描画中に見る
   if (lastProject.current !== project) {
     lastProject.current = project;
-    if (clockChange.current) {
-      clockChange.current = false;
-    } else {
-      past.current = [];
-    }
+    past.current = [];
   }
 
   const hasClock = project.circuits.some((d) =>
@@ -152,7 +223,7 @@ export function useSimulation(
       stepped ||= count > 0;
       // 画面へ渡すのはフレームに1回だけ。値が変わっていなければ描き直さない
       if (changed) {
-        setSim(current.current);
+        publish(current.current);
       }
       // CLOCK がなく、値も落ち着いたら止める。回路を触れば (project が変わるので) また動き出す
       if (stepped && !hasClock && current.current.stableTicks > SETTLED_TICKS) {
@@ -168,18 +239,22 @@ export function useSimulation(
   // biome-ignore lint/correctness/useExhaustiveDependencies: 開いている回路が変わったときだけ入れ替える (project の変更では入れ替えない)
   useEffect(() => {
     current.current =
-      results.current.get(circuitId) ?? step(project, circuitId);
-    setSim(current.current);
+      results.current.get(circuitId) ?? step(projectForSim(project), circuitId);
+    publish(current.current);
   }, [circuitId]);
 
   return {
-    sim,
+    /** シートが購読する、シミュレーションの結果 */
+    simStore: store.current.store,
+    /** 発振しているか (ステータスバーとヒント用) */
+    unstable,
     running,
     toggleRunning: () => setRunning((r) => !r),
     /** 一時停止中に 1 tick だけ進める */
     stepOnce: () => {
       advance();
-      setSim(current.current);
+      publish(current.current);
+      setStepVersion((v) => v + 1);
     },
     /** 戻せる状態が残っているか */
     canStepBack: past.current.length > 0,
@@ -192,12 +267,12 @@ export function useSimulation(
       ticks.current -= 1;
       // CLOCK を反転した tick を戻すので、もう一度反転して元に戻す
       if (last.toggled.length > 0) {
-        clockChange.current = true;
-        setProject(toggleClocks(last.toggled));
+        flipClocks(last.toggled);
       }
       current.current = last.sim;
       results.current.set(latest.current.circuitId, last.sim);
-      setSim(last.sim);
+      publish(last.sim);
+      setStepVersion((v) => v + 1);
     },
     /** 回路を削除したときなど、覚えている結果を捨てる */
     forget: (id?: string) => {

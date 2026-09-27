@@ -3,7 +3,7 @@
 - 元に戻す仕組みは、プロジェクト全体の状態をそのまま履歴に積む方式（`src/app/history.ts`）。差分は持たない。
 - 新しい編集操作を足すときは、元に戻す対象かどうかを決めて使い分ける。
   - 回路の編集（部品・配線・ラベル・モジュールの追加や変更や削除）は `history.commit`（App の `setCircuit` / `setProject` の既定）。
-  - 回路の編集ではない変更（INPUT の ON/OFF、CLOCK の切り替わり）は `history.replace`（`setCircuit(..., false)`）。元に戻しても、INPUT / CLOCK の ON/OFF は今の値を引き継ぐ（`keepSwitchStates`）。
+  - 回路の編集ではない変更（INPUT の ON/OFF）は `history.replace`（`setCircuit(..., false)`）。元に戻しても、INPUT の ON/OFF は今の値を引き継ぐ（`keepSwitchStates`）。CLOCK の切り替わりはプロジェクトに書かないので、履歴とは関わらない（[シミュレーション](simulation.md)）。
   - ドラッグのように連続する変更は、動き始めに `history.checkpoint()` を1回呼び、以降は `replace` で更新して、1回の操作として戻せるようにする。移動してから削除エリアで削除した場合も、移動と削除で1回。
 - モジュールのタブの並べ替えも `commit`（元に戻せる）。タブの並びは保存データの回路の順そのもので、パレットのモジュールの並びも変わるため。メイン回路は先頭に固定（データの決まり）なので、動かさず、その前にも置かない（`project.ts` の `moveCircuit`）。
 - 配線の折れる点（`Wire` の `points`）は、配線中に何もないところをクリックして置く（開発者の方針）。自動で経路を探す方式は、配線が多いと計算が重く、経路が勝手に変わるので採らなかった。
