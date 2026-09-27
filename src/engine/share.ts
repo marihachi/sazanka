@@ -7,7 +7,7 @@ import {
   checkProject,
   withoutSwitchStates,
 } from './project';
-import { isObject, mustGet } from './util';
+import { isObject, mustGet } from '../util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
 const SHARE_VERSION = 1;

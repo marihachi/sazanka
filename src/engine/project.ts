@@ -3,7 +3,7 @@
 
 import { isComponent } from './component';
 import { isWire, type Circuit } from './circuit';
-import { isObject } from './util';
+import { isObject } from '../util';
 
 export const MAIN_ID = 'main';
 

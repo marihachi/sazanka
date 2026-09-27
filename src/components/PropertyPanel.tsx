@@ -7,7 +7,7 @@ import {
   MIN_CLOCK_PERIOD,
   type Component,
 } from '../engine/component';
-import { shallowEqual } from '../engine/util';
+import { shallowEqual } from '../util';
 import { LABELS } from './parts';
 
 interface PropertyPanelProps {

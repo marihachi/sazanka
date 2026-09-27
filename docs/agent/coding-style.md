@@ -34,7 +34,7 @@
 ## 必ずあるはずの値
 
 - 非 null アサーション（`!`）は使わない（Biome の `noNonNullAssertion`）。「ここでは必ずある」値は、なければ何が壊れたかを書いた例外にして取り出す。後で分かりにくいエラーになる前に、その場で止めるため。
-  - `Map` から、あるはずのキーの値を取り出すときは `engine/util.ts` の `mustGet` を使う。
+  - `Map` から、あるはずのキーの値を取り出すときは `src/util.ts` の `mustGet` を使う。
   - それ以外（要素の ref など）は、その場で `if (!x) { throw new Error(...) }` と書くか、同じ取り出しが何度も出てくるなら小さな関数にまとめる（例: `Sheet.tsx` の `sheetSvg`）。
   - React の効果の中の ref は、例外にせず `if (!svg) { return; }` で何もしない。
 

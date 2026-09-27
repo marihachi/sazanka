@@ -11,7 +11,7 @@ import {
   type Preferences,
 } from '../components/preferences';
 import { isView, type View } from '../components/view';
-import { isObject } from '../engine/util';
+import { isObject } from '../util';
 
 const STORAGE_KEY = 'sazanka.project';
 

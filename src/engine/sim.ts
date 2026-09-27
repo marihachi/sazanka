@@ -13,7 +13,7 @@ import {
 } from './component';
 import type { Circuit, PinRef } from './circuit';
 import type { Project } from './project';
-import { mustGet } from './util';
+import { mustGet } from '../util';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;

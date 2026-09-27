@@ -1,7 +1,7 @@
 // 部品のデータと、部品の種類ごとの仕様 (ピン、遅延)。
 // 部品を並べた回路は circuit.ts、モジュールのピンは module.ts にある
 
-import { isObject, type SetElement } from './util';
+import { isObject, type SetElement } from '../util';
 
 /** 部品 */
 export interface Component {

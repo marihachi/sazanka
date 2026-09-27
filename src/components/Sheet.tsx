@@ -29,7 +29,7 @@ import {
 } from '../engine/project';
 import { portComponents, portsOf } from '../engine/module';
 import { pinKey, type SimResult } from '../engine/sim';
-import { mustGet } from '../engine/util';
+import { mustGet } from '../util';
 import { ComponentView } from './ComponentView';
 import { classNames } from './classNames';
 import { DRAG_MIME, type PaletteDrag } from './parts';

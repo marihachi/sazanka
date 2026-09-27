@@ -4,7 +4,7 @@ import type { Circuit, Wire } from './circuit';
 import { MAIN_ID, type CircuitDef, type Project } from './project';
 import { dependsOn, portsOf } from './module';
 import { stepCircuit, step, type SimResult } from './sim';
-import { mustGet } from './util';
+import { mustGet } from '../util';
 
 /**
  * 値が落ち着くまで (または最大 ticks まで) 時間を進める。

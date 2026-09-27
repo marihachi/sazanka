@@ -1,7 +1,7 @@
 import { Box, Flex, Tabs } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
-import { shallowEqual } from '../engine/util';
+import { shallowEqual } from '../util';
 import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
 import { InlineInput } from './InlineInput';
 import { ToolButton } from './ToolButton';

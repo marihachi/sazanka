@@ -13,7 +13,6 @@
   - `edit.ts` … 回路の編集
   - `layout.ts` … 部品の大きさとピンの座標
   - `share.ts` … 共有用 JSON
-  - `util.ts` … 型を問わない小さな判定
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。回路を直接書き換えず、「移動した」「接続した」などの出来事をコールバックで知らせる。元に戻す対象にするかどうかは `app/` 側で決める（[編集と元に戻す](editing.md)）。
   - `dialogs/` … 画面内のダイアログ。1 つずつ別のファイルで、共通の外枠は `DialogFrame.tsx`。
   - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`parts.ts` … 部品の表示名とドラッグの受け渡し。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。`theme.ts` … Chakra UI のテーマ（色のトークン、アクセントカラーのパレット）。`HintTooltip.tsx` … ツールチップ。`TrashZone.tsx` … 部品を消す削除エリア
@@ -22,6 +21,7 @@
   - `storage.ts` … localStorage への保存
   - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
   - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
+- `util.ts` … このアプリのどの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない土台で、`app`・`components`・`engine` のどこから使ってもよい。
 - `assets/` … SVG。
 
 見た目は Chakra UI を主にし、Chakra の既定の見た目をもとに、テーマ（`components/theme.ts`）で直す（開発者の方針）。スタイルは Chakra の style props とレシピで書く。
@@ -51,6 +51,6 @@ Chakra UI の部品は描き直すたびにスタイルを作り直すので、�
 - パレットのモジュールの一覧は、回路の名前と、どの回路にどのモジュールを置いているかが変わったときだけ作り直す（`App.tsx` の `modulesKey`）。パレットに出す情報を足したら、`modulesKey` にも足す。
 - シミュレーションの結果は App を通さずシートに渡している（[シミュレーション](simulation.md)）。
 
-フォルダ同士の依存の向きは `app` → `components` → `engine` の一方向に保つ。フォルダの中のファイル同士も同じ考え方で一方向にする（[依存が一方向になるように分ける](code-placement.md#依存が一方向になるように分ける)）。
+フォルダ同士の依存の向きは `app` → `components` → `engine` の一方向に保つ。`util.ts` はその下の土台で、どこからも使ってよいが、`util.ts` からは何も import しない。フォルダの中のファイル同士も同じ考え方で一方向にする（[依存が一方向になるように分ける](code-placement.md#依存が一方向になるように分ける)）。
 
 テストは、React に依存しない処理について、対象のファイルと同じフォルダに、同じ名前で置く（`sim.ts` なら `sim.test.ts`）。対象のファイルを分けたり名前を変えたりしたら、テストも合わせる。

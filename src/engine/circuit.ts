@@ -2,7 +2,7 @@
 // 部品の種類の仕様は component.ts、複数の回路をまとめたプロジェクトは project.ts にある
 
 import type { Component } from './component';
-import { isObject } from './util';
+import { isObject } from '../util';
 
 /** 回路 */
 export interface Circuit {
