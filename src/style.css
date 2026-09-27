@@ -1,39 +1,31 @@
 :root {
-  --bg: #1c1c1c;
-  --grid: #2a2a2a;
-  /* シートで部品を置けない範囲 */
-  --outside: #121212;
-  --panel: #252525;
-  --header: #0e0e0e;
-  --statusbar: #161616;
-  --tabbar: #1a1a1a;
-  --border: #444;
-  --text: #ccc;
-  --line: #888;
-  --on: #4fc3f7;
+  /*
+   * 色は Chakra UI のテーマ (components/theme.ts) で決める。
+   * ここの変数は、Chakra にまだ置き換えていない CSS Modules から参照するためのもの
+   */
+  --bg: var(--chakra-colors-sheet-bg);
+  --panel: var(--chakra-colors-bg-panel);
+  --header: var(--chakra-colors-bg);
+  --statusbar: var(--chakra-colors-bg-subtle);
+  --tabbar: var(--chakra-colors-bg-subtle);
+  --border: var(--chakra-colors-border);
+  --text: var(--chakra-colors-fg);
   /* ロゴの色。アクセントカラーと違い、環境設定では変わらない (ブラウザのタブのアイコンも同じ色) */
   --brand: lightseagreen;
   /* 既定のアクセントカラー。環境設定で変えると、App.tsx が差し替える (preferences.ts の既定値と合わせる) */
   --accent: #20b2aa;
-  /* アクセントカラーを暗くした色 (主ボタンの背景など)。アクセントカラーを変えると一緒に変わる */
-  --accent-dim: color-mix(in srgb, var(--accent) 35%, #111);
+  --accent-dim: var(--chakra-colors-accent-muted);
   /* 危険な操作 (モジュールの削除など) の文字の色 */
-  --danger: #ef5350;
-  color-scheme: dark;
-}
-
-* {
-  box-sizing: border-box;
+  --danger: var(--chakra-colors-fg-error);
 }
 
 html,
 body,
 #root {
-  margin: 0;
+  /* 余白、box-sizing、文字の色と書体は、Chakra UI の既定のスタイルに任せる */
   height: 100%;
+  /* シートの背景の色 (シートの SVG は背景を塗らない) */
   background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, sans-serif;
   /* アプリは画面全体に収める。一時的なはみ出しでページのスクロールバーを出さない */
   overflow: hidden;
 }

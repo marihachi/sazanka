@@ -15,7 +15,7 @@
 }
 
 .lead {
-  stroke: var(--line);
+  stroke: var(--chakra-colors-sheet-line);
   stroke-width: 2;
 }
 
@@ -48,12 +48,12 @@
 }
 
 .lead.on {
-  stroke: var(--on);
+  stroke: var(--chakra-colors-sheet-on);
 }
 
 /* HIGH の「1」。常に ON なので ON の色で描く */
 .high {
-  fill: var(--on);
+  fill: var(--chakra-colors-sheet-on);
   font-size: 18px;
   font-weight: 600;
   text-anchor: middle;

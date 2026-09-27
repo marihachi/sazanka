@@ -22,13 +22,13 @@
 }
 
 .wire {
-  stroke: var(--line);
+  stroke: var(--chakra-colors-sheet-line);
   stroke-width: 2;
   fill: none;
 }
 
 .wire.on {
-  stroke: var(--on);
+  stroke: var(--chakra-colors-sheet-on);
 }
 
 .wire.selected {
@@ -67,7 +67,7 @@
 
 /* 部品を置けない範囲 (シートの外)。方眼の上に重ねて隠す */
 .outside {
-  fill: var(--outside);
+  fill: var(--chakra-colors-sheet-outside);
 }
 
 .edge {
