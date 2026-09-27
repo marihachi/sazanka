@@ -30,6 +30,7 @@
 | ファイルの分け方、構成の変更           | [コードの置き場所の決め方](docs/agent/code-placement.md) |
 | Skill の追加・編集                     | [Skill の追加・編集](docs/agent/skills.md)               |
 | ブラウザでの動作確認                   | [ブラウザでの動作確認](docs/agent/browser-check.md)      |
+| README のスクリーンショットの撮り直し   | [README のスクリーンショット](docs/agent/screenshot.md)  |
 
 ### 指示と食い違ったら
 
