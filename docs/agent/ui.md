@@ -11,7 +11,7 @@
   - 開いている回路に効く操作（シミュレーションの一時停止・1 tick 送り、モジュールの削除）は、タブの下のシートのツールバー（`SheetToolbar.tsx`）。選択中のタブと同じ色（`bg.panel`）にして、そのタブの中の操作だと見せている。タブは Chakra の `Tabs`（`outline`）で、ドラッグでの並べ替えと名前の変更は `TabBar.tsx` が自前で足している。
   - シートの表示の拡大縮小は、シートの右下に重ねる（`ZoomControls.tsx`）。
   - 選んだ部品の項目（CLOCK の周期、INPUT / OUTPUT のラベルなど、部品ごとのプロパティ）は、シートの右側のプロパティ欄（`PropertyPanel.tsx`）で編集する（開発者の方針）。狭い画面（Chakra の `md` 未満）では、部品を選んでいる間だけ出す。部品に項目を足すときは、ここに入力欄を足す。
-  - 環境設定のウィンドウ（`Dialogs.tsx` の `PreferencesDialog`）を開くボタンは、ヘッダーの右端（このアプリについての隣）。環境設定は利用者ごとの値で、プロジェクトには含めない（型と選択肢は `components/preferences.ts`）。
+  - 環境設定のウィンドウ（`dialogs/PreferencesDialog.tsx`）を開くボタンは、ヘッダーの右端（このアプリについての隣）。環境設定は利用者ごとの値で、プロジェクトには含めない（型と選択肢は `components/preferences.ts`）。
 - 取り消しにくい危険な操作のボタン（モジュールの削除など）は、`ToolButton` の `danger` で赤（Chakra の `colorPalette="red"`）にする。
 - ボタンは `ToolButton.tsx`（Chakra の `Button` / `IconButton` の `ghost`）を使う。文字はアクセントカラーにせず灰色（`colorPalette="gray"`）で出す。パレットの部品と見出しのボタンも同じ。ページ全体の既定のパレットはアクセントカラーなので、指定しないと Chakra のボタンは青緑になる。狭い画面（Chakra の `md` 未満）では文字を隠してアイコンだけにし、文字はツールチップと読み上げ用のラベルに残す。
 - ボタンなどの説明は、`title` ではなく `HintTooltip.tsx`（Chakra の `Tooltip`）で出す。見た目を Chakra にそろえるため。
@@ -24,8 +24,8 @@
 ## ダイアログ
 
 - ブラウザの `prompt` / `confirm` / `alert` は使わない。VS Code 内のブラウザなど、これらが何もせずに終わる環境がある（`prompt` は null、`confirm` は false を返す）。どの環境で開かれても動くようにするため。
-  - 代わりに `src/components/Dialogs.tsx` の画面内のダイアログを使う。
-- ダイアログは Chakra の `Dialog` で、外枠は `DialogFrame` にまとめている。Esc・外側のクリックで閉じること、フォーカスを中に閉じ込めることは Chakra に任せる。開いたときにフォーカスする要素は、各ダイアログが `initialFocus` で渡す（確認なら確定ボタン、入力なら入力欄）。
+  - 代わりに `src/components/dialogs/` の画面内のダイアログを使う。ダイアログは 1 つずつ別のファイルにする（開発者の方針）。確認とお知らせは `ConfirmDialog`、名前の入力は `PromptDialog`、書き出し・読み込みは `TextDialog`、このアプリについては `AboutDialog`、環境設定は `PreferencesDialog`。
+- ダイアログは Chakra の `Dialog` で、外枠は `dialogs/DialogFrame.tsx` にまとめ、各ダイアログから使う。Esc・外側のクリックで閉じること、フォーカスを中に閉じ込めることは Chakra に任せる。開いたときにフォーカスする要素は、各ダイアログが `initialFocus` で渡す（確認なら確定ボタン、入力なら入力欄）。
 - 開くかどうかは、`App.tsx` がダイアログのコンポーネントを置くかどうかで決める（Chakra の `open` は常に true）。
 - 取り返しのつかない操作の確認は `role="alertdialog"` にし、確定ボタンを赤（`colorPalette="red"`）にする。
 - ダイアログは同時に 1 つだけ出す。閉じるダイアログと入れ替わりに別のダイアログを開くと、Chakra（中の zag）は後から開いた方を入れ子とみなし、前のものを外したときに一緒に閉じてしまう。そのため、お知らせ（`Dialog`）は、入力のダイアログ（`PromptDialog`・`TextDialog`）が閉じてから出している（`App.tsx`）。ダイアログから続けて別のダイアログを出す流れを足すときは、同じようにする。
@@ -45,7 +45,7 @@
 - 元に戻す・やり直しなど、押せないときのボタンが薄く出る。
 - モジュールを開いているとき、「モジュールを削除」が赤で出る。
 
-ダイアログ（`Dialogs.tsx`）を触ったら、次を確かめる。
+ダイアログ（`dialogs/`）を触ったら、次を確かめる。
 
 - 開いたときのフォーカス: モジュールの追加では名前が全選択、確認では確定ボタン、環境設定とこのアプリについてでは「閉じる」。
 - Esc と外側のクリックで閉じる。開いている間は Ctrl+Z などのショートカットが効かない。

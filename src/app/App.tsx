@@ -6,16 +6,17 @@ import {
   type DragMode,
   type Selection,
 } from '../components/Sheet';
+import { AboutDialog } from '../components/dialogs/AboutDialog';
 import {
-  AboutDialog,
-  Dialog,
-  PromptDialog,
-  PreferencesDialog,
-  TextDialog,
+  ConfirmDialog,
   type DialogRequest,
+} from '../components/dialogs/ConfirmDialog';
+import { PreferencesDialog } from '../components/dialogs/PreferencesDialog';
+import {
+  PromptDialog,
   type PromptRequest,
-  type TextRequest,
-} from '../components/Dialogs';
+} from '../components/dialogs/PromptDialog';
+import { TextDialog, type TextRequest } from '../components/dialogs/TextDialog';
 import { Header } from '../components/Header';
 import { Palette, type PaletteModule } from '../components/Palette';
 import { PropertyPanel } from '../components/PropertyPanel';
@@ -577,7 +578,7 @@ export function App() {
       {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
           Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
       {dialog && !textDialog && !promptDialog && (
-        <Dialog request={dialog} onClose={() => setDialog(null)} />
+        <ConfirmDialog request={dialog} onClose={() => setDialog(null)} />
       )}
       {promptDialog && (
         <PromptDialog
