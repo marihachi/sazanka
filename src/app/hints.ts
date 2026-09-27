@@ -8,7 +8,7 @@ const IDLE_HINTS = [
   '配線がつながった入力ピンをクリックすると配線を外す',
   'INPUT はクリックで ON/OFF を切り替え',
   '入力ピンにつなげる配線は1本だけ。別の配線をつなぐと置き換わる',
-  '部品を左下の削除エリアへドラッグすると削除',
+  '部品を右下の削除エリアへドラッグすると削除',
   '何もないところからドラッグすると範囲選択。選んだ部品はまとめて動かしたり削除したりできる',
   'Shift+クリックで部品を選択に追加・解除、Ctrl+A ですべて選択',
   'Ctrl+C でコピー、Ctrl+X で切り取り。Ctrl+V の後、クリックした位置に貼り付け',
@@ -60,7 +60,7 @@ export function statusHints(ctx: HintContext): string[] {
     return ['離すと削除します'];
   }
   if (ctx.dragMode === 'moving') {
-    return ['左下の削除エリアで離すと削除します'];
+    return ['右下の削除エリアで離すと削除します'];
   }
   if (ctx.placing) {
     return ['クリックした位置に貼り付け ・ Esc で取り消し'];
@@ -79,7 +79,7 @@ export function statusHints(ctx: HintContext): string[] {
   if (ctx.multipleSelected) {
     return [
       'ドラッグでまとめて移動',
-      'Delete か、左下の削除エリアへドラッグでまとめて削除',
+      'Delete か、右下の削除エリアへドラッグでまとめて削除',
       'Shift+クリックで選択に追加・解除',
       'Ctrl+C でコピー、Ctrl+X で切り取り',
     ];
@@ -88,7 +88,7 @@ export function statusHints(ctx: HintContext): string[] {
   if (c) {
     const move = [
       'ドラッグで移動',
-      'Delete か、左下の削除エリアへドラッグで削除',
+      'Delete か、右下の削除エリアへドラッグで削除',
     ];
     switch (c.kind) {
       case 'INPUT':

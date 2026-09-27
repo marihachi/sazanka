@@ -1,5 +1,5 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Sheet,
   type SheetSize,
@@ -66,7 +66,6 @@ export function App() {
   const [currentId, setCurrentId] = useState(MAIN_ID);
   const [selection, setSelection] = useState<Selection>(null);
   const [pending, setPending] = useState<PinRef | null>(null);
-  const trashRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>('none');
   /** クリックで部品を追加するとき、表示している範囲の真ん中に置くために使う */
   const [sheetSize, setSheetSize] = useState<SheetSize>({
@@ -518,8 +517,6 @@ export function App() {
       <Flex flex="1" minH="0">
         <Palette
           modules={paletteModules}
-          dragMode={dragMode}
-          trashRef={trashRef}
           collapsed={collapsedGroups}
           onCollapsedChange={setCollapsedGroups}
           onAdd={(kind, custom) => addComponent(kind, custom)}
@@ -534,7 +531,6 @@ export function App() {
           onPendingChange={setPending}
           dragMode={dragMode}
           onDragModeChange={setDragMode}
-          trashRef={trashRef}
           onResize={setSheetSize}
           view={view}
           showGrid={preferences.showGrid}

@@ -15,7 +15,7 @@ interface ZoomControlsProps {
   onFit: () => void;
 }
 
-/** シートの右下に重ねて置く、拡大縮小のボタン */
+/** シートの右下に重ねて置く、拡大縮小のボタン (置き場所は Sheet.tsx が決める) */
 export function ZoomControls({
   scale,
   onZoomIn,
@@ -25,15 +25,14 @@ export function ZoomControls({
 }: ZoomControlsProps) {
   return (
     <HStack
-      position="absolute"
-      right="3"
-      bottom="3"
       gap="0.5"
       p="0.5"
       bg="bg.panel"
       borderWidth="1px"
       rounded="l2"
       shadow="sm"
+      // 入れ物 (Sheet.tsx) は素通しなので、パネルだけ受ける
+      pointerEvents="auto"
       // ボタンを押したときに、シートの範囲選択などが始まらないようにする
       onPointerDown={(e) => e.stopPropagation()}
     >

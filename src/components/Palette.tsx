@@ -2,7 +2,6 @@ import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
-import trashIcon from '../assets/icons/trash.svg';
 import type { ComponentKind } from '../engine/component';
 import type { CircuitDef } from '../engine/project';
 import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
@@ -63,20 +62,15 @@ export interface PaletteModule {
 
 interface PaletteProps {
   modules: PaletteModule[];
-  /** 部品をドラッグ中か。'trash' は削除エリアの上 */
-  dragMode: 'none' | 'moving' | 'trash';
-  trashRef: React.Ref<HTMLDivElement>;
   /** 折り畳んでいるグループの ID */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
   onAdd: (kind: ComponentKind, custom?: string) => void;
 }
 
-/** 左側のパネル。部品の一覧と、下端の削除エリア */
+/** 左側のパネル。置ける部品の一覧 (削除エリアはシートの右下、TrashZone.tsx) */
 export function Palette({
   modules,
-  dragMode,
-  trashRef,
   collapsed,
   onCollapsedChange,
   onAdd,
@@ -148,29 +142,6 @@ export function Palette({
           )}
         </PaletteGroup>
       </Box>
-      {/* 部品のドラッグ先にすると削除するエリア。ドラッグ中は濃く、上に載せると赤くする */}
-      <Flex
-        ref={trashRef}
-        direction="column"
-        align="center"
-        gap="1"
-        m="2"
-        px="2"
-        py="3"
-        textStyle="xs"
-        textAlign="center"
-        borderWidth="2px"
-        borderStyle="dashed"
-        rounded="l3"
-        transition="all 0.15s"
-        color={dragMode === 'trash' ? 'fg.error' : 'fg.muted'}
-        borderColor={dragMode === 'trash' ? 'border.error' : 'border'}
-        bg={dragMode === 'trash' ? 'bg.error' : 'transparent'}
-        opacity={dragMode === 'none' ? 0.6 : 1}
-      >
-        <MaskIcon src={trashIcon} boxSize="6" />
-        ここへドラッグで削除
-      </Flex>
     </Flex>
   );
 }
