@@ -1,24 +1,13 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Sheet,
   type SheetSize,
   type DragMode,
   type Selection,
 } from '../components/Sheet';
-import { AboutDialog } from '../components/dialogs/AboutDialog';
-import {
-  ConfirmDialog,
-  type ConfirmRequest,
-} from '../components/dialogs/ConfirmDialog';
-import { PreferencesDialog } from '../components/dialogs/PreferencesDialog';
-import {
-  PromptDialog,
-  type PromptRequest,
-} from '../components/dialogs/PromptDialog';
-import { TextDialog, type TextRequest } from '../components/dialogs/TextDialog';
 import { Header } from '../components/Header';
-import { Palette, type PaletteModule } from '../components/Palette';
+import { Palette } from '../components/Palette';
 import { PropertyPanel } from '../components/PropertyPanel';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
@@ -27,17 +16,15 @@ import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, type Point, snap } from '../engine/layout';
 import type { Component, ComponentKind } from '../engine/component';
-import { newId, type Circuit, type PinRef } from '../engine/circuit';
+import { newId, type PinRef } from '../engine/circuit';
 import {
-  emptyProject,
   findDef,
   MAIN_ID,
   moveCircuit,
   type CircuitDef,
   type Project,
 } from '../engine/project';
-import { circuitsUsing, dependsOn, portsOf } from '../engine/module';
-import { parseProject, serializeProject } from '../engine/share';
+import { portsOf } from '../engine/module';
 
 import { statusHints } from './hints';
 import {
@@ -50,35 +37,23 @@ import {
   savePreferences,
   saveViews,
 } from './storage';
+import { useClipboard } from './useClipboard';
+import { useDialogs } from './useDialogs';
+import { useModules } from './useModules';
+import { useProjectFile } from './useProjectFile';
 import { useSimulation } from './useSimulation';
 import { useProjectHistory } from './useProjectHistory';
 import { useShortcuts } from './useShortcuts';
-
-/**
- * 渡した関数を、描き直しても同じ関数 (呼ぶと最新の描画の中身を実行する) にして返す。
- * 子の部品は React.memo で、props が変わらなければ描き直さないので、関数を渡すたびに作り直すと効かなくなる。
- * useCallback と違い、関数が使う状態を依存に並べなくてよく、古い値を見てしまうこともない
- */
-function useStableCallbacks<
-  T extends Record<string, (...args: never[]) => unknown>,
->(fns: T): T {
-  const latest = useRef(fns);
-  latest.current = fns;
-  const stable = useRef<T | null>(null);
-  if (!stable.current) {
-    stable.current = Object.fromEntries(
-      Object.keys(fns).map((key) => [
-        key,
-        (...args: never[]) => latest.current[key](...args),
-      ]),
-    ) as T;
-  }
-  return stable.current;
-}
+import { useStableCallbacks } from './useStableCallbacks';
 
 /** その場で編集中の名前 (タブのモジュール名) */
 type Editing = { type: 'tab'; id: string } | null;
 
+/**
+ * 画面全体の組み立てと、状態のつなぎ役。
+ * まとまった操作は別のフックにある (ダイアログ: useDialogs、コピー・貼り付け: useClipboard、
+ * 新規作成・書き出し・読み込み: useProjectFile、モジュールの管理: useModules)。ここには回路の編集と、画面の組み立てを置く
+ */
 export function App() {
   const [loaded] = useState(loadProject);
   const history = useProjectHistory(() => loaded.project);
@@ -96,20 +71,7 @@ export function App() {
   });
   /** 回路ごとの表示位置と倍率。元に戻す対象にはしない */
   const [views, setViews] = useState(loadViews);
-  /** コピーした部品と配線 */
-  const [clipboard, setClipboard] = useState<Circuit | null>(null);
-  /** 貼り付ける位置を選んでいる部品と配線。クリックした位置で確定する */
-  const [placing, setPlacing] = useState<Circuit | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
-  const [dialog, setDialog] = useState<ConfirmRequest | null>(() =>
-    loaded.error
-      ? { message: `${loaded.error}空のプロジェクトで開きます。` }
-      : null,
-  );
-  const [promptDialog, setPromptDialog] = useState<PromptRequest | null>(null);
-  const [textDialog, setTextDialog] = useState<TextRequest | null>(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [preferences, setPreferences] = useState(loadPreferences);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
@@ -117,6 +79,14 @@ export function App() {
   const view =
     views[circuit.id] ??
     overview(circuit, project, sheetSize.width, sheetSize.height);
+
+  const dialogs = useDialogs({
+    initialMessage: loaded.error
+      ? `${loaded.error}空のプロジェクトで開きます。`
+      : undefined,
+    preferences,
+    onPreferencesChange: setPreferences,
+  });
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
   function setCircuit(update: (c: CircuitDef) => CircuitDef, record = true) {
@@ -159,44 +129,57 @@ export function App() {
     }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
-  /**
-   * パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き。
-   * 部品を動かしただけでは変わらないので、回路の名前と、どの回路にどのモジュールを置いているかが変わったときだけ作り直す
-   * (作り直すとパレットが描き直され、ドラッグが重くなるため)
-   */
-  const modulesKey = [
-    circuit.id,
-    ...project.circuits.map(
-      (d) =>
-        `${d.id}:${d.name}:${d.components
-          .filter((c) => c.kind === 'CUSTOM')
-          .map((c) => c.custom)
-          .join(',')}`,
-    ),
-  ].join('|');
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 上の理由で、modulesKey が変わったときだけ作り直す
-  const paletteModules: PaletteModule[] = useMemo(
-    () =>
-      project.circuits
-        .filter((d) => d.id !== MAIN_ID)
-        .map((d) => ({
-          def: d,
-          blocked:
-            d.id === circuit.id
-              ? 'モジュールの中に自分自身は置けません'
-              : dependsOn(project, d.id, circuit.id)
-                ? `「${d.name}」はこの回路を含んでいるため置けません`
-                : undefined,
-        })),
-    [modulesKey],
-  );
+  /** 部品と、それらにつながる配線を削除する */
+  function deleteComponents(ids: string[], record = true) {
+    setCircuit((cur) => edit.removeComponents(cur, ids), record);
+    setSelection(null);
+  }
+
+  const clipboard = useClipboard({
+    project,
+    circuit,
+    selection,
+    onSelect: setSelection,
+    onPendingChange: setPending,
+    setCircuit,
+    deleteComponents,
+    showConfirm: dialogs.showConfirm,
+  });
 
   function openCircuit(id: string) {
-    setPlacing(null);
+    clipboard.cancelPaste();
     setCurrentId(id);
     setSelection(null);
     setPending(null);
   }
+
+  const modules = useModules({
+    project,
+    circuit,
+    setProject,
+    openCircuit,
+    onDeleted: (id) => {
+      forget(id);
+      setViews(({ [id]: _, ...rest }) => rest);
+    },
+    showConfirm: dialogs.showConfirm,
+    showPrompt: dialogs.showPrompt,
+  });
+
+  const file = useProjectFile({
+    project,
+    replaceProject: (next: Project) => {
+      setProject(() => next);
+      forget();
+      // 回路の ID が同じでも中身は別物なので、表示は初めから
+      setViews({});
+      openCircuit(MAIN_ID);
+      setEditing(null);
+    },
+    setProjectWithoutHistory: history.replace,
+    showConfirm: dialogs.showConfirm,
+    showText: dialogs.showText,
+  });
 
   /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */
   function addComponent(kind: ComponentKind, custom?: string, at?: Point) {
@@ -226,61 +209,6 @@ export function App() {
     setSelection({ type: 'comp', ids: [c.id] });
   }
 
-  /** 部品と、それらにつながる配線を削除する */
-  function deleteComponents(ids: string[], record = true) {
-    setCircuit((cur) => edit.removeComponents(cur, ids), record);
-    setSelection(null);
-  }
-
-  function copySelection() {
-    if (selection?.type !== 'comp') {
-      return;
-    }
-    setClipboard(edit.extractComponents(circuit, selection.ids));
-  }
-
-  function cutSelection() {
-    if (selection?.type !== 'comp') {
-      return;
-    }
-    copySelection();
-    deleteComponents(selection.ids);
-  }
-
-  /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
-  function startPaste() {
-    if (!clipboard || clipboard.components.length === 0) {
-      return;
-    }
-    // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
-    const blocked = clipboard.components.find(
-      (c) =>
-        c.kind === 'CUSTOM' &&
-        c.custom &&
-        (c.custom === circuit.id || dependsOn(project, c.custom, circuit.id)),
-    );
-    if (blocked) {
-      const name = findDef(project, blocked.custom)?.name ?? '';
-      setDialog({
-        message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
-      });
-      return;
-    }
-    setPending(null);
-    setPlacing(clipboard);
-  }
-
-  /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
-  function paste(delta: Point) {
-    if (!placing) {
-      return;
-    }
-    const clone = edit.cloneComponents(placing, newId, delta);
-    setCircuit((cur) => edit.addParts(cur, clone));
-    setSelection({ type: 'comp', ids: clone.components.map((c) => c.id) });
-    setPlacing(null);
-  }
-
   function deleteSelection() {
     if (!selection) {
       return;
@@ -294,88 +222,21 @@ export function App() {
     setSelection(null);
   }
 
-  /** 名前を入力するウィンドウを開き、確定したらモジュールを作成して開く */
-  function createModule() {
-    const names = new Set(project.circuits.map((d) => d.name));
-    let n = project.circuits.length;
-    while (names.has(`モジュール${n}`)) {
-      n++;
-    }
-    setPromptDialog({
-      title: 'モジュールを追加',
-      label: '名前',
-      initial: `モジュール${n}`,
-      confirmLabel: '追加',
-      validate: (name) =>
-        !name
-          ? '名前を入力してください'
-          : names.has(name)
-            ? '同じ名前の回路がすでにあります'
-            : undefined,
-      onSubmit: (name) => {
-        const def: CircuitDef = {
-          id: newId(),
-          name,
-          components: [],
-          wires: [],
-        };
-        setProject((p) => ({ circuits: [...p.circuits, def] }));
-        openCircuit(def.id);
-      },
-    });
-  }
-
-  function renameCircuit(id: string, value: string) {
-    const name = value.trim();
-    setEditing(null);
-    if (!name) {
-      return;
-    }
-    setProject((p) => ({
-      circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)),
-    }));
-  }
-
-  function deleteCircuit() {
-    const users = circuitsUsing(project, circuit.id);
-    if (users.length > 0) {
-      setDialog({
-        message: `「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`,
-      });
-      return;
-    }
-    const id = circuit.id;
-    setDialog({
-      message: `モジュール「${circuit.name}」を削除しますか？`,
-      confirmLabel: '削除',
-      danger: true,
-      onConfirm: () => {
-        setProject((p) => ({
-          circuits: p.circuits.filter((d) => d.id !== id),
-        }));
-        forget(id);
-        setViews(({ [id]: _, ...rest }) => rest);
-        openCircuit(MAIN_ID);
-      },
-    });
-  }
-
   useShortcuts({
-    enabled:
-      !dialog && !promptDialog && !textDialog && !aboutOpen && !preferencesOpen,
+    enabled: !dialogs.anyOpen,
     onUndo: undoEdit,
     onRedo: redoEdit,
     onDelete: deleteSelection,
-    onCopy: copySelection,
-    onCut: cutSelection,
-    onPaste: startPaste,
+    onCopy: clipboard.copy,
+    onCut: clipboard.cut,
+    onPaste: clipboard.startPaste,
     onSelectAll: () => {
       setPending(null);
       const ids = circuit.components.map((c) => c.id);
       setSelection(ids.length > 0 ? { type: 'comp', ids } : null);
     },
     onEscape: () => {
-      setPlacing(null);
+      clipboard.cancelPaste();
       setPending(null);
       setSelection(null);
     },
@@ -430,80 +291,6 @@ export function App() {
     setCircuit((cur) => edit.disconnect(cur, to));
   }
 
-  /** プロジェクト全体を置き換える (新規作成、読み込み)。元に戻すで戻せる */
-  function replaceProject(next: Project) {
-    setProject(() => next);
-    forget();
-    // 回路の ID が同じでも中身は別物なので、表示は初めから
-    setViews({});
-    openCircuit(MAIN_ID);
-    setEditing(null);
-  }
-
-  function newProject() {
-    setDialog({
-      message:
-        '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
-      confirmLabel: '新規作成',
-      danger: true,
-      onConfirm: () => replaceProject(emptyProject()),
-    });
-  }
-
-  function exportProject() {
-    setTextDialog({
-      title: '書き出し',
-      message:
-        'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
-      initial: serializeProject(project),
-      readOnly: true,
-      field: {
-        label: '作者名 (省略可)',
-        initial: project.author ?? '',
-        onChange: (value) => {
-          // 作者名は回路の編集ではないので、元に戻す対象にしない
-          const next: Project = { ...project, author: value };
-          history.replace(next);
-          return serializeProject(next);
-        },
-      },
-      confirmLabel: 'コピー',
-      doneMessage: 'コピーしました',
-      onSubmit: async (text) => {
-        try {
-          await navigator.clipboard.writeText(text);
-          return undefined;
-        } catch {
-          // 安全でない接続 (http) などでは、クリップボードに書き込めない
-          return 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください';
-        }
-      },
-    });
-  }
-
-  function importProject() {
-    setTextDialog({
-      title: '読み込み',
-      message:
-        '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
-      initial: '',
-      confirmLabel: '読み込む',
-      onSubmit: (text) => {
-        const result = parseProject(text.trim(), newId);
-        if (!result.ok) {
-          return result.error;
-        }
-        replaceProject(result.project);
-        if (result.project.author) {
-          setDialog({
-            message: `「${result.project.author}」さんの回路を読み込みました。`,
-          });
-        }
-        return undefined;
-      },
-    });
-  }
-
   /** 1つだけ選んでいる部品。プロパティ欄とヒントに使う */
   const selectedComponent =
     selection?.type === 'comp' && selection.ids.length === 1
@@ -513,7 +300,7 @@ export function App() {
   const hints = statusHints({
     dragMode,
     wiring: !!pending,
-    placing: !!placing,
+    placing: !!clipboard.placing,
     editing: !!editing,
     wireSelected: selection?.type === 'wire',
     selectedComponent,
@@ -526,25 +313,28 @@ export function App() {
   // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
   const on = useStableCallbacks({
-    newProject,
-    exportProject,
-    importProject,
+    newProject: file.newProject,
+    exportProject: file.exportProject,
+    importProject: file.importProject,
     undoEdit,
     redoEdit,
-    openPreferences: () => setPreferencesOpen(true),
-    openAbout: () => setAboutOpen(true),
+    openPreferences: dialogs.openPreferences,
+    openAbout: dialogs.openAbout,
     openCircuit,
     startRename: (id: string) => setEditing({ type: 'tab', id }),
-    renameCircuit,
+    renameCircuit: (id: string, value: string) => {
+      setEditing(null);
+      modules.renameCircuit(id, value);
+    },
     cancelRename: () => setEditing(null),
-    createModule,
+    createModule: modules.createModule,
     // タブの並びは保存データの回路の順なので、元に戻す対象にする
     reorder: (id: string, index: number) =>
       setProject((p) => moveCircuit(p, id, index)),
     toggleRunning,
     stepOnce,
     stepBack,
-    deleteCircuit,
+    deleteCircuit: modules.deleteCircuit,
     addFromPalette: (kind: ComponentKind, custom?: string) =>
       addComponent(kind, custom),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
@@ -588,7 +378,7 @@ export function App() {
       />
       <Flex flex="1" minH="0">
         <Palette
-          modules={paletteModules}
+          modules={modules.paletteModules}
           collapsed={collapsedGroups}
           onCollapsedChange={setCollapsedGroups}
           onAdd={on.addFromPalette}
@@ -621,8 +411,8 @@ export function App() {
           onConnect={connect}
           onDisconnect={disconnect}
           onComponentDoubleClick={onCompDoubleClick}
-          placing={placing}
-          onPlace={paste}
+          placing={clipboard.placing}
+          onPlace={clipboard.paste}
         />
         <PropertyPanel
           component={selectedComponent}
@@ -638,28 +428,7 @@ export function App() {
         />
       </Flex>
       <StatusBar hints={hints} unstable={unstable} />
-      {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
-          Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
-      {dialog && !textDialog && !promptDialog && (
-        <ConfirmDialog request={dialog} onClose={() => setDialog(null)} />
-      )}
-      {promptDialog && (
-        <PromptDialog
-          request={promptDialog}
-          onClose={() => setPromptDialog(null)}
-        />
-      )}
-      {textDialog && (
-        <TextDialog request={textDialog} onClose={() => setTextDialog(null)} />
-      )}
-      {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
-      {preferencesOpen && (
-        <PreferencesDialog
-          preferences={preferences}
-          onChange={setPreferences}
-          onClose={() => setPreferencesOpen(false)}
-        />
-      )}
+      {dialogs.element}
     </Flex>
   );
 }
