@@ -1,8 +1,21 @@
+import {
+  Button,
+  Checkbox,
+  chakra,
+  Dialog as ChakraDialog,
+  Field,
+  HStack,
+  Input,
+  Link,
+  Portal,
+  Stack,
+  Text,
+  Textarea,
+  VisuallyHidden,
+} from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
 import logo from '../assets/logo.svg';
 import { MaskIcon } from './Icons';
-import { classNames } from './classNames';
-import styles from './Dialogs.module.css';
 import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
@@ -16,8 +29,6 @@ import {
 
 interface InlineInputProps {
   initial: string;
-  className?: string;
-  style?: React.CSSProperties;
   placeholder?: string;
   /** Enter またはフォーカスが外れたときに呼ばれる */
   onCommit: (value: string) => void;
@@ -28,8 +39,6 @@ interface InlineInputProps {
 /** その場で文字を編集する入力欄。表示と同時にフォーカスし、全選択する */
 export function InlineInput({
   initial,
-  className,
-  style,
   placeholder,
   onCommit,
   onCancel,
@@ -57,10 +66,9 @@ export function InlineInput({
   }
 
   return (
-    <input
+    <Input
       ref={ref}
-      className={classNames(styles.inlineInput, className)}
-      style={style}
+      size="xs"
       defaultValue={initial}
       placeholder={placeholder}
       onKeyDown={(e) => {
@@ -77,6 +85,56 @@ export function InlineInput({
   );
 }
 
+/**
+ * ダイアログの外枠 (Chakra の Dialog)。Esc と外側のクリックで閉じ、開いている間はフォーカスを中に閉じ込める。
+ * 開くかどうかは呼び出し側が、このコンポーネントを置くかどうかで決める
+ */
+function DialogFrame({
+  onClose,
+  initialFocus,
+  role = 'dialog',
+  size = 'sm',
+  onSubmit,
+  children,
+}: {
+  onClose: () => void;
+  /** 開いたときにフォーカスする要素 */
+  initialFocus: React.RefObject<HTMLElement | null>;
+  role?: 'dialog' | 'alertdialog';
+  size?: 'sm' | 'md';
+  /** 渡すと中身を form にして、Enter で送信できるようにする */
+  onSubmit?: (e: React.FormEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <ChakraDialog.Root
+      open
+      onOpenChange={(e) => {
+        if (!e.open) {
+          onClose();
+        }
+      }}
+      role={role}
+      size={size}
+      placement="center"
+      initialFocusEl={() => initialFocus.current}
+    >
+      <Portal>
+        <ChakraDialog.Backdrop />
+        <ChakraDialog.Positioner>
+          {onSubmit ? (
+            <ChakraDialog.Content asChild>
+              <form onSubmit={onSubmit}>{children}</form>
+            </ChakraDialog.Content>
+          ) : (
+            <ChakraDialog.Content>{children}</ChakraDialog.Content>
+          )}
+        </ChakraDialog.Positioner>
+      </Portal>
+    </ChakraDialog.Root>
+  );
+}
+
 export interface DialogRequest {
   message: string;
   /** 確定ボタンの文言。onConfirm がなければ「OK」だけのお知らせになる */
@@ -86,7 +144,7 @@ export interface DialogRequest {
   onConfirm?: () => void;
 }
 
-/** 画面内のモーダルダイアログ */
+/** 画面内のモーダルダイアログ (確認とお知らせ) */
 export function Dialog({
   request,
   onClose,
@@ -95,42 +153,34 @@ export function Dialog({
   onClose: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => confirmRef.current?.focus(), []);
 
   return (
-    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
-      <div
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
+    <DialogFrame
+      onClose={onClose}
+      initialFocus={confirmRef}
+      role={request.onConfirm ? 'alertdialog' : 'dialog'}
+    >
+      <ChakraDialog.Body pt="6">
+        <Text>{request.message}</Text>
+      </ChakraDialog.Body>
+      <ChakraDialog.Footer>
+        {request.onConfirm && (
+          <Button variant="outline" onClick={onClose}>
+            キャンセル
+          </Button>
+        )}
+        <Button
+          ref={confirmRef}
+          colorPalette={request.danger ? 'red' : undefined}
+          onClick={() => {
             onClose();
-          }
-        }}
-      >
-        <p>{request.message}</p>
-        <div className={styles.dialogButtons}>
-          {request.onConfirm && (
-            <button type="button" onClick={onClose}>
-              キャンセル
-            </button>
-          )}
-          <button
-            type="button"
-            ref={confirmRef}
-            className={request.danger ? styles.danger : undefined}
-            onClick={() => {
-              onClose();
-              request.onConfirm?.();
-            }}
-          >
-            {request.onConfirm ? (request.confirmLabel ?? 'OK') : 'OK'}
-          </button>
-        </div>
-      </div>
-    </div>
+            request.onConfirm?.();
+          }}
+        >
+          {request.onConfirm ? (request.confirmLabel ?? 'OK') : 'OK'}
+        </Button>
+      </ChakraDialog.Footer>
+    </DialogFrame>
   );
 }
 
@@ -158,7 +208,6 @@ export function PromptDialog({
   const error = request.validate?.(value.trim());
 
   useEffect(() => {
-    inputRef.current?.focus();
     inputRef.current?.select();
   }, []);
 
@@ -173,24 +222,14 @@ export function PromptDialog({
   }
 
   return (
-    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
-      <form
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="prompt-title"
-        onSubmit={submit}
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            onClose();
-          }
-        }}
-      >
-        <h2 id="prompt-title">{request.title}</h2>
-        <label className={styles.field}>
-          <span>{request.label}</span>
-          <input
+    <DialogFrame onClose={onClose} initialFocus={inputRef} onSubmit={submit}>
+      <ChakraDialog.Header>
+        <ChakraDialog.Title>{request.title}</ChakraDialog.Title>
+      </ChakraDialog.Header>
+      <ChakraDialog.Body>
+        <Field.Root invalid={touched && !!error}>
+          <Field.Label>{request.label}</Field.Label>
+          <Input
             ref={inputRef}
             value={value}
             onChange={(e) => {
@@ -198,22 +237,18 @@ export function PromptDialog({
               setTouched(true);
             }}
           />
-        </label>
-        <p className={styles.fieldError}>{touched && error ? error : ' '}</p>
-        <div className={styles.dialogButtons}>
-          <button type="button" onClick={onClose}>
-            キャンセル
-          </button>
-          <button
-            type="submit"
-            className={styles.primary}
-            disabled={touched && !!error}
-          >
-            {request.confirmLabel}
-          </button>
-        </div>
-      </form>
-    </div>
+          <Field.ErrorText>{error}</Field.ErrorText>
+        </Field.Root>
+      </ChakraDialog.Body>
+      <ChakraDialog.Footer>
+        <Button variant="outline" onClick={onClose}>
+          キャンセル
+        </Button>
+        <Button type="submit" disabled={touched && !!error}>
+          {request.confirmLabel}
+        </Button>
+      </ChakraDialog.Footer>
+    </DialogFrame>
   );
 }
 
@@ -255,7 +290,6 @@ export function TextDialog({
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    textRef.current?.focus();
     textRef.current?.select();
   }, []);
 
@@ -272,134 +306,123 @@ export function TextDialog({
   }
 
   return (
-    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
-      <form
-        className={classNames(styles.dialog, styles.wide)}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="text-title"
-        onSubmit={submit}
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            onClose();
-          }
-        }}
-      >
-        <h2 id="text-title">{request.title}</h2>
-        <p>{request.message}</p>
-        {field && (
-          <label className={classNames(styles.field, styles.inline)}>
-            <span>{field.label}</span>
-            <input
-              value={fieldValue}
-              placeholder={field.placeholder}
-              onChange={(e) => {
-                setFieldValue(e.target.value);
-                setStatus(null);
-                const text = field.onChange(e.target.value);
-                if (text !== undefined) {
-                  setValue(text);
-                }
-              }}
-            />
-          </label>
-        )}
-        <textarea
-          ref={textRef}
-          className={styles.text}
-          value={value}
-          readOnly={request.readOnly}
-          spellCheck={false}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setStatus(null);
-          }}
-        />
-        <p
-          className={classNames(
-            styles.fieldError,
-            status && !status.error && styles.done,
+    // 複数行の文字列を読みやすくするため、少し広くする
+    <DialogFrame
+      onClose={onClose}
+      initialFocus={textRef}
+      size="md"
+      onSubmit={submit}
+    >
+      <ChakraDialog.Header>
+        <ChakraDialog.Title>{request.title}</ChakraDialog.Title>
+      </ChakraDialog.Header>
+      <ChakraDialog.Body>
+        <Stack gap="4">
+          <Text>{request.message}</Text>
+          {field && (
+            <Field.Root>
+              <Field.Label>{field.label}</Field.Label>
+              <Input
+                value={fieldValue}
+                placeholder={field.placeholder}
+                onChange={(e) => {
+                  setFieldValue(e.target.value);
+                  setStatus(null);
+                  const text = field.onChange(e.target.value);
+                  if (text !== undefined) {
+                    setValue(text);
+                  }
+                }}
+              />
+            </Field.Root>
           )}
-        >
-          {status?.text ?? ' '}
-        </p>
-        <div className={styles.dialogButtons}>
-          <button type="button" onClick={onClose}>
-            {request.readOnly ? '閉じる' : 'キャンセル'}
-          </button>
-          <button type="submit" className={styles.primary}>
-            {request.confirmLabel}
-          </button>
-        </div>
-      </form>
-    </div>
+          <Textarea
+            ref={textRef}
+            value={value}
+            readOnly={request.readOnly}
+            spellCheck={false}
+            h="40"
+            fontFamily="mono"
+            fontSize="xs"
+            resize="vertical"
+            onChange={(e) => {
+              setValue(e.target.value);
+              setStatus(null);
+            }}
+          />
+          {status && (
+            <Text
+              textStyle="sm"
+              color={status.error ? 'fg.error' : 'accent.fg'}
+              role={status.error ? 'alert' : 'status'}
+            >
+              {status.text}
+            </Text>
+          )}
+        </Stack>
+      </ChakraDialog.Body>
+      <ChakraDialog.Footer>
+        <Button variant="outline" onClick={onClose}>
+          {request.readOnly ? '閉じる' : 'キャンセル'}
+        </Button>
+        <Button type="submit">{request.confirmLabel}</Button>
+      </ChakraDialog.Footer>
+    </DialogFrame>
   );
 }
 
 /** このアプリについての画面内ダイアログ */
 export function AboutDialog({ onClose }: { onClose: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => closeRef.current?.focus(), []);
 
   return (
-    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
-      <div
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="about-title"
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            onClose();
-          }
-        }}
-      >
-        <h2 id="about-title" className={styles.aboutTitle}>
-          <MaskIcon src={logo} className={styles.aboutLogo} />
-          <span className="visually-hidden">sazanka について</span>
-        </h2>
-        <p className={styles.aboutText}>
-          ブラウザで動く論理回路シミュレータです。
-        </p>
-        <ul className={styles.links}>
-          <li>
-            <a
-              href="https://github.com/marihachi/sazanka"
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              GitHub リポジトリ
-            </a>
-          </li>
-          <li>
-            {/* 同梱しているライブラリのライセンス文。MIT などは配布物に含めることが条件なので、必ず置く (ビルドで書き出す) */}
-            <a
-              href={`${import.meta.env.BASE_URL}licenses.txt`}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              使用しているライブラリのライセンス
-            </a>
-          </li>
-        </ul>
-        <p className={styles.note}>
-          MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL)
-          というフォントを使っています。
-        </p>
-        <div className={styles.dialogButtons}>
-          <button
-            type="button"
-            ref={closeRef}
-            className={styles.primary}
-            onClick={onClose}
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
+    <DialogFrame onClose={onClose} initialFocus={closeRef}>
+      <ChakraDialog.Header justifyContent="center" pt="8">
+        <ChakraDialog.Title display="flex">
+          <MaskIcon src={logo} w="153px" h="42px" bg="var(--brand)" />
+          <VisuallyHidden>sazanka について</VisuallyHidden>
+        </ChakraDialog.Title>
+      </ChakraDialog.Header>
+      <ChakraDialog.Body>
+        <Stack gap="4" align="center" textAlign="center">
+          <Text>ブラウザで動く論理回路シミュレータです。</Text>
+          <Stack as="ul" gap="1" listStyleType="none">
+            <li>
+              <Link
+                href="https://github.com/marihachi/sazanka"
+                target="_blank"
+                rel="noreferrer noopener"
+                colorPalette="accent"
+                variant="underline"
+              >
+                GitHub リポジトリ
+              </Link>
+            </li>
+            <li>
+              {/* 同梱しているライブラリのライセンス文。MIT などは配布物に含めることが条件なので、必ず置く (ビルドで書き出す) */}
+              <Link
+                href={`${import.meta.env.BASE_URL}licenses.txt`}
+                target="_blank"
+                rel="noreferrer noopener"
+                colorPalette="accent"
+                variant="underline"
+              >
+                使用しているライブラリのライセンス
+              </Link>
+            </li>
+          </Stack>
+          <Text textStyle="xs" color="fg.muted">
+            MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL)
+            というフォントを使っています。
+          </Text>
+        </Stack>
+      </ChakraDialog.Body>
+      <ChakraDialog.Footer>
+        <Button ref={closeRef} onClick={onClose}>
+          閉じる
+        </Button>
+      </ChakraDialog.Footer>
+    </DialogFrame>
   );
 }
 
@@ -414,119 +437,122 @@ export function PreferencesDialog({
   onClose: () => void;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => closeRef.current?.focus(), []);
   // 入力の途中 (空欄や範囲外) は反映せず、使える値になったときだけ反映する
   const [tickText, setTickText] = useState(String(preferences.tickMs));
   const tickValid = isTickMs(Number(tickText)) && tickText.trim() !== '';
 
   return (
-    <div className={styles.dialogBackdrop} onPointerDown={onClose}>
-      <div
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="preferences-title"
-        onPointerDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            onClose();
-          }
-        }}
-      >
-        <h2 id="preferences-title">環境設定</h2>
-        <label className={styles.field}>
-          <span>シミュレーションで 1 tick を進める間隔 (ms)</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={MIN_TICK_MS}
-            max={MAX_TICK_MS}
-            step={1}
-            value={tickText}
-            aria-invalid={!tickValid}
-            onChange={(e) => {
-              setTickText(e.target.value);
-              const v = Number(e.target.value);
-              if (e.target.value.trim() !== '' && isTickMs(v)) {
-                onChange({ ...preferences, tickMs: v });
-              }
-            }}
-            // 使えない値のまま離れたら、今の値に戻す
-            onBlur={() => setTickText(String(preferences.tickMs))}
-          />
-        </label>
-        <p className={classNames(styles.help, !tickValid && styles.invalid)}>
-          {tickValid
-            ? `大きくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`
-            : `${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
-        </p>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={preferences.showGrid}
-            onChange={(e) =>
-              onChange({ ...preferences, showGrid: e.target.checked })
-            }
-          />
-          シートに方眼を表示する
-        </label>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={preferences.roundWires}
-            onChange={(e) =>
-              onChange({ ...preferences, roundWires: e.target.checked })
-            }
-          />
-          配線の角を丸める
-        </label>
-        <div className={styles.field}>
-          <span id="accent-label">アクセントカラー</span>
-          {/* biome-ignore lint/a11y/useSemanticElements: fieldset にすると既定の枠と余白が付くので、role=group で同じ意味を持たせている */}
-          <div
-            className={styles.swatches}
-            role="group"
-            aria-labelledby="accent-label"
-          >
-            {ACCENT_PRESETS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                className={classNames(
-                  styles.swatch,
-                  preferences.accent === p.value && styles.current,
-                )}
-                style={{ background: p.value }}
-                title={p.label}
-                aria-label={p.label}
-                aria-pressed={preferences.accent === p.value}
-                onClick={() => onChange({ ...preferences, accent: p.value })}
-              />
-            ))}
-            {/* 用意した色以外も選べる */}
-            <input
-              type="color"
-              className={styles.colorInput}
-              value={preferences.accent}
-              title="ほかの色を選ぶ"
-              aria-label="ほかの色を選ぶ"
-              onChange={(e) =>
-                onChange({ ...preferences, accent: e.target.value })
-              }
+    <DialogFrame onClose={onClose} initialFocus={closeRef}>
+      <ChakraDialog.Header>
+        <ChakraDialog.Title>環境設定</ChakraDialog.Title>
+      </ChakraDialog.Header>
+      <ChakraDialog.Body>
+        <Stack gap="5">
+          <Field.Root invalid={!tickValid}>
+            <Field.Label>
+              シミュレーションで 1 tick を進める間隔 (ms)
+            </Field.Label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={MIN_TICK_MS}
+              max={MAX_TICK_MS}
+              step={1}
+              value={tickText}
+              onChange={(e) => {
+                setTickText(e.target.value);
+                const v = Number(e.target.value);
+                if (e.target.value.trim() !== '' && isTickMs(v)) {
+                  onChange({ ...preferences, tickMs: v });
+                }
+              }}
+              // 使えない値のまま離れたら、今の値に戻す
+              onBlur={() => setTickText(String(preferences.tickMs))}
             />
-          </div>
-        </div>
-        <div className={styles.dialogButtons}>
-          <button
-            type="button"
-            ref={closeRef}
-            className={styles.primary}
-            onClick={onClose}
-          >
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
+            {tickValid ? (
+              <Field.HelperText>
+                {`大きくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`}
+              </Field.HelperText>
+            ) : (
+              <Field.ErrorText>
+                {`${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
+              </Field.ErrorText>
+            )}
+          </Field.Root>
+          <Stack gap="3">
+            <Checkbox.Root
+              checked={preferences.showGrid}
+              onCheckedChange={(e) =>
+                onChange({ ...preferences, showGrid: e.checked === true })
+              }
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control />
+              <Checkbox.Label>シートに方眼を表示する</Checkbox.Label>
+            </Checkbox.Root>
+            <Checkbox.Root
+              checked={preferences.roundWires}
+              onCheckedChange={(e) =>
+                onChange({ ...preferences, roundWires: e.checked === true })
+              }
+            >
+              <Checkbox.HiddenInput />
+              <Checkbox.Control />
+              <Checkbox.Label>配線の角を丸める</Checkbox.Label>
+            </Checkbox.Root>
+          </Stack>
+          <Stack gap="1.5">
+            <Text id="accent-label" textStyle="sm" fontWeight="medium">
+              アクセントカラー
+            </Text>
+            <HStack gap="2" role="group" aria-labelledby="accent-label">
+              {ACCENT_PRESETS.map((p) => (
+                <chakra.button
+                  key={p.value}
+                  type="button"
+                  boxSize="6"
+                  rounded="full"
+                  cursor="pointer"
+                  style={{ background: p.value }}
+                  // 今の色は、文字色の輪で囲む
+                  outline={
+                    preferences.accent === p.value ? '2px solid' : 'none'
+                  }
+                  outlineColor="fg"
+                  outlineOffset="2px"
+                  _focusVisible={{ outline: '2px solid', outlineColor: 'fg' }}
+                  title={p.label}
+                  aria-label={p.label}
+                  aria-pressed={preferences.accent === p.value}
+                  onClick={() => onChange({ ...preferences, accent: p.value })}
+                />
+              ))}
+              {/* 用意した色以外も選べる */}
+              <chakra.input
+                type="color"
+                w="8"
+                h="7"
+                p="0.5"
+                bg="transparent"
+                borderWidth="1px"
+                rounded="l2"
+                cursor="pointer"
+                value={preferences.accent}
+                title="ほかの色を選ぶ"
+                aria-label="ほかの色を選ぶ"
+                onChange={(e) =>
+                  onChange({ ...preferences, accent: e.target.value })
+                }
+              />
+            </HStack>
+          </Stack>
+        </Stack>
+      </ChakraDialog.Body>
+      <ChakraDialog.Footer>
+        <Button ref={closeRef} onClick={onClose}>
+          閉じる
+        </Button>
+      </ChakraDialog.Footer>
+    </DialogFrame>
   );
 }
