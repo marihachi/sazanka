@@ -38,13 +38,14 @@ describe('readStored', () => {
   });
 
   it('壊れたデータは読み込まず、理由を返す', () => {
-    // 版のない保存データ (以前の形式) も読み込まない
-    for (const raw of [
+    const source = [
       '{',
       JSON.stringify(project),
       '{"version":1}',
       JSON.stringify({ version: 1, project: { circuits: [] } }),
-    ]) {
+    ];
+    // 版のない保存データ (以前の形式) も読み込まない
+    for (const raw of source) {
       const result = readStored(raw);
       expect(result.project).toEqual(emptyProject());
       expect(result.error).toContain('壊れていた');

@@ -104,20 +104,11 @@ describe('モジュールのピン', () => {
 });
 
 describe('dependsOn', () => {
+  // biome-ignore format: 表形式を維持するため
   const project: Project = {
     circuits: [
-      {
-        id: MAIN_ID,
-        name: 'メイン',
-        components: [comp('u', 'CUSTOM', { custom: 'a' })],
-        wires: [],
-      },
-      {
-        id: 'a',
-        name: 'A',
-        components: [comp('u', 'CUSTOM', { custom: 'b' })],
-        wires: [],
-      },
+      { id: MAIN_ID, name: 'メイン', components: [comp('u', 'CUSTOM', { custom: 'a' })], wires: [] },
+      { id: 'a', name: 'A', components: [comp('u', 'CUSTOM', { custom: 'b' })], wires: [] },
       { id: 'b', name: 'B', components: [], wires: [] },
     ],
   };
