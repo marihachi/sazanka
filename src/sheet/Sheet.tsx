@@ -1,0 +1,746 @@
+import { Stack } from '@chakra-ui/react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  clampMove,
+  componentsInRect,
+  GRID,
+  inputPinPos,
+  outputPinPos,
+  placeOffset,
+  type Point,
+  SHEET_HEIGHT,
+  SHEET_WIDTH,
+  snap,
+  wireMiddleX,
+} from '../geometry/layout';
+import type { Component, ComponentKind } from '../circuit/component';
+import type { Circuit, PinRef } from '../circuit/circuit';
+import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
+import { portComponents, portsOf } from '../circuit/module';
+import { pinKey } from '../simulation/sim';
+import type { SimStore } from '../simulation/useSimulation';
+import { mustGet } from '../util';
+import { ComponentView } from './ComponentView';
+import { classNames } from '../ui/classNames';
+import type { Selection } from '../editing/edit';
+import { DRAG_MIME, type PaletteDrag } from '../palette/drag';
+import styles from './Sheet.module.css';
+import { toScreenLocal, useViewGestures } from './useViewGestures';
+import { overview, toScreen, toWorld, zoomAt, type View } from '../geometry/view';
+import { wirePath } from './wirePath';
+import { TrashZone } from './TrashZone';
+import { ZoomControls } from './ZoomControls';
+
+/** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
+export type DragMode = 'none' | 'moving' | 'trash';
+
+export interface SheetSize {
+  width: number;
+  height: number;
+}
+
+interface Drag {
+  /** 押した部品 */
+  id: string;
+  /** 押した位置と、押した部品の位置の差 */
+  offset: Point;
+  /** 一緒に動かす部品 (押した部品を含む) と、ドラッグ開始時の位置 */
+  origins: Map<string, Point>;
+  moved: boolean;
+  /** このドラッグで onMoveStart を呼んだか */
+  started: boolean;
+  pointerId: number;
+  /** 押した位置 (クライアント座標) */
+  start: Point;
+}
+
+/** 範囲選択 */
+interface Band {
+  start: Point;
+  end: Point;
+  /** Shift を押して始めたときの、元の選択 (範囲内の部品を追加する) */
+  base: string[];
+}
+
+/** 配線の中央の縦線のドラッグ。start は押した位置 (クライアント座標) */
+interface WireDrag {
+  id: string;
+  pointerId: number;
+  start: Point;
+  /** 出力ピンの先。縦線の位置は、この高さに置いた折れる点で表す */
+  from: Point;
+  started: boolean;
+}
+
+/** 押した位置からこれ以上動いたらドラッグとみなす (px) */
+const DRAG_THRESHOLD = 4;
+
+/** 拡大・縮小ボタン1回で変える倍率 */
+const ZOOM_STEP = 1.25;
+
+interface SheetProps {
+  project: Project;
+  circuit: CircuitDef;
+  /** シミュレーションの結果。tick ごとに変わるので、props ではなく購読して受け取る (App を描き直さないため) */
+  simStore: SimStore;
+  selection: Selection;
+  onSelect: (selection: Selection) => void;
+  /** 配線の途中で、接続元の出力ピン */
+  pending: PinRef | null;
+  onPendingChange: (pending: PinRef | null) => void;
+  dragMode: DragMode;
+  onDragModeChange: (mode: DragMode) => void;
+  onResize: (size: SheetSize) => void;
+  /** 表示位置と倍率 (スクロールと拡大縮小) */
+  view: View;
+  onViewChange: (view: View) => void;
+  /** 方眼を表示するか (環境設定) */
+  showGrid: boolean;
+  /** 配線の角を丸めるか (環境設定) */
+  roundWires: boolean;
+  /** パレットから部品がドロップされた */
+  onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
+  /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
+  onMoveStart: () => void;
+  onMove: (positions: Map<string, Point>) => void;
+  /** 配線の中央の縦線を左右に動かした。points は、その位置を表す折れる点 */
+  onWirePointsChange: (id: string, points: Point[]) => void;
+  /** 削除エリアで離された。moved はそれまでに位置を動かしたか */
+  onDropOnTrash: (ids: string[], moved: boolean) => void;
+  /** INPUT が (ドラッグせずに) クリックされた */
+  onToggle: (id: string) => void;
+  /** 配線した。points は途中で置いた折れる点 */
+  onConnect: (from: PinRef, to: PinRef, points: Point[]) => void;
+  /** 入力ピンにつながった配線を外す */
+  onDisconnect: (to: PinRef) => void;
+  onComponentDoubleClick: (c: Component) => void;
+  /** 貼り付ける位置を選んでいる部品と配線 (コピー元の位置のまま)。ポインターについて動き、クリックで確定する */
+  placing: Circuit | null;
+  /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
+  onPlace: (delta: Point) => void;
+}
+
+/** 回路を描き、部品のドラッグ・配線・パレットからのドロップを受け付けるシート */
+export function Sheet({
+  project,
+  circuit,
+  simStore,
+  selection,
+  onSelect,
+  pending,
+  onPendingChange,
+  dragMode,
+  onDragModeChange,
+  onResize,
+  view,
+  onViewChange,
+  showGrid,
+  roundWires,
+  onAdd,
+  onMoveStart,
+  onMove,
+  onWirePointsChange,
+  onDropOnTrash,
+  onToggle,
+  onConnect,
+  onDisconnect,
+  onComponentDoubleClick,
+  placing,
+  onPlace,
+}: SheetProps) {
+  const sim = useSyncExternalStore(simStore.subscribe, simStore.get);
+  /** 部品を落とすと削除するエリア。落としたかは、画面上の位置で判定する */
+  const trashRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  /** シートの svg。イベントはシートが表示されてからしか起きないので、ハンドラーの中では必ずある */
+  function sheetSvg(): SVGSVGElement {
+    const svg = svgRef.current;
+    if (!svg) {
+      throw new Error('シートの svg がまだありません');
+    }
+    return svg;
+  }
+  const dragRef = useRef<Drag | null>(null);
+  const wireDragRef = useRef<WireDrag | null>(null);
+  const [band, setBand] = useState<Band | null>(null);
+  const [{ width, height }, setSize] = useState<SheetSize>({
+    width: 0,
+    height: 0,
+  });
+  /** ポインターの位置 (回路の座標)。配線中の線の先と、貼り付ける部品の位置に使う。シートの上に来るまでは null */
+  const [mouse, setMouse] = useState<Point | null>(null);
+  /** 配線の途中で置いた折れる点 (回路の座標) */
+  const [pendingPoints, setPendingPoints] = useState<Point[]>([]);
+  /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
+  const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
+  const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
+  /** 入力ピン (pinKey) → つながっている配線 */
+  const wireTo = useMemo(
+    () => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])),
+    [circuit],
+  );
+  const selectedIds = useMemo(
+    () => new Set(selection?.type === 'comp' ? selection.ids : []),
+    [selection],
+  );
+  /**
+   * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。INPUT と OUTPUT で別々に数える。
+   * メイン回路はピンにならないので空
+   */
+  const pinNumbers = useMemo(() => {
+    if (circuit.id === MAIN_ID) {
+      return new Map<string, number>();
+    }
+    const { inputs, outputs } = portComponents(circuit);
+    return new Map(
+      [...inputs, ...outputs].map((c) => [
+        c.id,
+        (c.kind === 'INPUT' ? inputs : outputs).indexOf(c) + 1,
+      ]),
+    );
+  }, [circuit]);
+
+  // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      const rect = svg.getBoundingClientRect();
+      setSize({ width: rect.width, height: rect.height });
+      onResize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [onResize]);
+
+  const { spaceHeld, panning, startView, moveView, endView } = useViewGestures({
+    svgRef,
+    view,
+    onViewChange,
+    onCancelGesture: cancelGesture,
+  });
+
+  /** 部品と、そのピンの並び (geometry/layout.ts の計算に渡す形) */
+  function withPorts(components: Component[]) {
+    return components.map((c) => ({ c, ports: portsOf(c, project) }));
+  }
+
+  /** ポインターの位置を、回路の座標にする */
+  function toLocal(e: { clientX: number; clientY: number }): Point {
+    return toWorld(view, toScreenLocal(sheetSvg(), e));
+  }
+
+  /** 表示している範囲の真ん中 (画面の座標) */
+  function center(): Point {
+    const rect = sheetSvg().getBoundingClientRect();
+    return { x: rect.width / 2, y: rect.height / 2 };
+  }
+
+  function fit() {
+    const rect = sheetSvg().getBoundingClientRect();
+    onViewChange(overview(circuit, project, rect.width, rect.height));
+  }
+
+  // ズームのボタンに渡す関数。ZoomControls は React.memo なので、部品のドラッグで描き直さないよう同じ関数を渡し続け、
+  // 中身は最新の描画の表示を見る
+  const zoomLatest = useRef({ view, center, fit, onViewChange });
+  zoomLatest.current = { view, center, fit, onViewChange };
+  const zoom = useMemo(() => {
+    const zoomTo = (scale: (s: number) => number) => {
+      const { view: v, center: c, onViewChange: change } = zoomLatest.current;
+      change(zoomAt(v, c(), scale(v.scale)));
+    };
+    return {
+      in: () => zoomTo((s) => s * ZOOM_STEP),
+      out: () => zoomTo((s) => s / ZOOM_STEP),
+      reset: () => zoomTo(() => 1),
+      fit: () => zoomLatest.current.fit(),
+    };
+  }, []);
+
+  /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
+  function cancelGesture() {
+    dragRef.current = null;
+    wireDragRef.current = null;
+    placeDownRef.current = null;
+    setBand(null);
+    onDragModeChange('none');
+  }
+
+  function onPointerDownCapture(e: React.PointerEvent) {
+    if (startView(e)) {
+      return;
+    }
+    if (placing && e.button === 0) {
+      // 貼り付けの位置を選んでいる間は、部品の選択やドラッグを始めない
+      e.stopPropagation();
+      placeDownRef.current = {
+        pointerId: e.pointerId,
+        start: { x: e.clientX, y: e.clientY },
+      };
+    }
+  }
+
+  function onCompPointerDown(e: React.PointerEvent, c: Component) {
+    e.stopPropagation();
+    if (e.shiftKey) {
+      // Shift+クリックは選択に追加・解除するだけで、ドラッグは始めない
+      const ids = selectedIds.has(c.id)
+        ? [...selectedIds].filter((id) => id !== c.id)
+        : [...selectedIds, c.id];
+      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+      return;
+    }
+    // 選択中の部品を押したら、選択中の部品をまとめて動かす
+    const ids = selectedIds.has(c.id) ? [...selectedIds] : [c.id];
+    const p = toLocal(e);
+    dragRef.current = {
+      id: c.id,
+      offset: { x: p.x - c.x, y: p.y - c.y },
+      origins: new Map(
+        ids.flatMap((id) => {
+          const o = compMap.get(id);
+          return o ? [[id, { x: o.x, y: o.y }] as const] : [];
+        }),
+      ),
+      moved: false,
+      started: false,
+      pointerId: e.pointerId,
+      start: { x: e.clientX, y: e.clientY },
+    };
+    if (!selectedIds.has(c.id)) {
+      onSelect({ type: 'comp', ids });
+    }
+  }
+
+  /** 何もないところを押したら、範囲選択を始める */
+  function onBackgroundPointerDown(e: React.PointerEvent) {
+    if (pending) {
+      // 配線の途中なら、何もないところのクリックで折れる点を置く
+      const p = toLocal(e);
+      setPendingPoints([...pendingPoints, { x: snap(p.x), y: snap(p.y) }]);
+      return;
+    }
+    const base = e.shiftKey && selection?.type === 'comp' ? selection.ids : [];
+    onSelect(base.length > 0 ? { type: 'comp', ids: base } : null);
+    const p = toLocal(e);
+    sheetSvg().setPointerCapture(e.pointerId);
+    setBand({ start: p, end: p, base });
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (moveView(e)) {
+      return;
+    }
+    const p = toLocal(e);
+    setMouse(p);
+    const wireDrag = wireDragRef.current;
+    if (wireDrag && wireDrag.pointerId === e.pointerId) {
+      if (!wireDrag.started) {
+        if (
+          Math.hypot(e.clientX - wireDrag.start.x, e.clientY - wireDrag.start.y) < DRAG_THRESHOLD
+        ) {
+          return;
+        }
+        sheetSvg().setPointerCapture(e.pointerId);
+        // ドラッグ全体を1回の操作として元に戻せるようにする
+        onMoveStart();
+        wireDrag.started = true;
+      }
+      onWirePointsChange(wireDrag.id, [{ x: snap(p.x), y: wireDrag.from.y }]);
+      return;
+    }
+    if (band) {
+      setBand({ ...band, end: p });
+      const ids = [
+        ...new Set([
+          ...band.base,
+          ...componentsInRect(withPorts(circuit.components), band.start, p),
+        ]),
+      ];
+      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+      return;
+    }
+    const drag = dragRef.current;
+    if (!drag) {
+      return;
+    }
+    const svg = sheetSvg();
+    if (!svg.hasPointerCapture(drag.pointerId)) {
+      // 押しただけ・わずかに動いただけならクリック (ダブルクリック) として扱う
+      if (Math.hypot(e.clientX - drag.start.x, e.clientY - drag.start.y) < DRAG_THRESHOLD) {
+        return;
+      }
+      // シートの外 (削除エリアの上など) に出ても移動イベントを受け取り続ける。
+      // 押した時点でキャプチャすると、クリックやダブルクリックが部品に届かなくなるため、ドラッグが始まってから行う
+      svg.setPointerCapture(drag.pointerId);
+    }
+    const rect = trashRef.current?.getBoundingClientRect();
+    const overTrash =
+      !!rect &&
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom;
+    if (overTrash) {
+      // 削除エリアの上では部品は動かさない
+      drag.moved = true;
+      onDragModeChange('trash');
+      return;
+    }
+    if (drag.moved) {
+      onDragModeChange('moving');
+    }
+    const anchor = mustGet(drag.origins, drag.id);
+    // ドラッグ開始時の位置からの移動量を、どの部品もはみ出さないように縮める
+    const items = [...drag.origins].flatMap(([id, o]) => {
+      const c = compMap.get(id);
+      return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
+    });
+    const d = clampMove(items, {
+      x: snap(p.x - drag.offset.x) - anchor.x,
+      y: snap(p.y - drag.offset.y) - anchor.y,
+    });
+    const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
+    const unchanged = [...positions].every(([id, pos]) => {
+      const c = mustGet(compMap, id);
+      return c.x === pos.x && c.y === pos.y;
+    });
+    if (unchanged) {
+      return;
+    }
+    drag.moved = true;
+    onDragModeChange('moving');
+    if (!drag.started) {
+      onMoveStart();
+      drag.started = true;
+    }
+    onMove(positions);
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    if (endView(e)) {
+      return;
+    }
+    if (wireDragRef.current?.pointerId === e.pointerId) {
+      wireDragRef.current = null;
+      return;
+    }
+    const placeDown = placeDownRef.current;
+    if (placeDown && placeDown.pointerId === e.pointerId) {
+      placeDownRef.current = null;
+      // 押したまま大きく動かしたら、貼り付けない (指で画面をなぞっただけのときなど)
+      const moved =
+        Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
+        DRAG_THRESHOLD * 2;
+      if (placing && !moved) {
+        onPlace(placeOffset(withPorts(placing.components), toLocal(e)));
+      }
+      return;
+    }
+    setBand(null);
+    const drag = dragRef.current;
+    dragRef.current = null;
+    onDragModeChange('none');
+    if (!drag) {
+      return;
+    }
+    if (dragMode === 'trash') {
+      onDropOnTrash([...drag.origins.keys()], drag.started);
+      return;
+    }
+    if (drag.moved) {
+      return;
+    }
+    // 動かさずに離したら、押した部品だけを選ぶ。スイッチはトグル
+    onSelect({ type: 'comp', ids: [drag.id] });
+    if (compMap.get(drag.id)?.kind === 'INPUT') {
+      onToggle(drag.id);
+    }
+  }
+
+  function onInputPinDown(e: React.PointerEvent, c: Component, pin: number) {
+    e.stopPropagation();
+    const to = { comp: c.id, pin };
+    if (pending) {
+      onConnect(pending, to, pendingPoints);
+      onPendingChange(null);
+    } else {
+      // 入力ピンから始めた場合は既存の配線を外す
+      onDisconnect(to);
+    }
+  }
+
+  function onDrop(e: React.DragEvent) {
+    const data = e.dataTransfer.getData(DRAG_MIME);
+    if (!data) {
+      return;
+    }
+    e.preventDefault();
+    const { kind, custom } = JSON.parse(data) as PaletteDrag;
+    const p = toLocal(e);
+    // カーソルが部品の左上付近に来るよう少しずらす
+    onAdd(kind, custom, { x: p.x - GRID, y: p.y - GRID });
+  }
+
+  /**
+   * 配線中の仮の線。クリックで確定したときと同じ形に描く。
+   * 入力ピンの上にマウスがあれば、そのピンへ入る最後の区間の形 (縦→横)。
+   * 何もないところなら、そこに折れる点を置いたときの区間の形 (横→縦)
+   */
+  function pendingPath(from: Point, at: Point): string {
+    for (const c of circuit.components) {
+      const ports = portsOf(c, project);
+      for (let i = 0; i < ports.inputs.length; i++) {
+        const tip = inputPinPos(c, ports, i);
+        // ピンの丸 (半径 6) の上にあるとき
+        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) {
+          return wirePath(from, pendingPoints, tip, roundWires);
+        }
+      }
+    }
+    // 折れる点はグリッドに合わせて置くので、仮の線もグリッドに合わせた位置へ引く
+    const p = { x: snap(at.x), y: snap(at.y) };
+    return wirePath(from, [...pendingPoints, p], p, roundWires);
+  }
+
+  const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
+  /** シートの画面上の範囲。この外には部品を置けない */
+  const sheetStart = toScreen(view, { x: 0, y: 0 });
+  const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
+
+  const pendingFrom = pending && compMap.get(pending.comp);
+
+  return (
+    <div className={styles.sheetWrap}>
+      {/* biome-ignore lint/a11y/noSvgWithoutTitle: 描画面なので題は付けない (title を付けるとシート全体にツールチップが出る) */}
+      <svg
+        ref={svgRef}
+        className={classNames(styles.sheet, (spaceHeld || panning) && styles.panning)}
+        onPointerDownCapture={onPointerDownCapture}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={(e) => {
+          if (endView(e)) {
+            return;
+          }
+          cancelGesture();
+        }}
+        onPointerDown={onBackgroundPointerDown}
+        onDragOver={(e) => {
+          if (e.dataTransfer.types.includes(DRAG_MIME)) {
+            e.preventDefault();
+          }
+        }}
+        onDrop={onDrop}
+      >
+        <defs>
+          {/* 方眼は表示と一緒に動かす。線の太さは倍率によらず 1px のままにする */}
+          <pattern
+            id="grid"
+            width={GRID}
+            height={GRID}
+            patternUnits="userSpaceOnUse"
+            patternTransform={transform}
+          >
+            <path
+              d={`M${GRID},0 V${GRID} H0`}
+              fill="none"
+              stroke="var(--chakra-colors-sheet-grid)"
+              strokeWidth={1 / view.scale}
+            />
+          </pattern>
+        </defs>
+        {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
+        {/* シートの外 (部品を置けない範囲)。画面全体から、シートの範囲をくり抜いて塗る */}
+        <path
+          className={styles.outside}
+          fillRule="evenodd"
+          d={`M0,0 H${width} V${height} H0 Z M${sheetStart.x},${sheetStart.y} V${sheetEnd.y} H${sheetEnd.x} V${sheetStart.y} Z`}
+        />
+        <rect
+          className={styles.edge}
+          x={sheetStart.x}
+          y={sheetStart.y}
+          width={sheetEnd.x - sheetStart.x}
+          height={sheetEnd.y - sheetStart.y}
+        />
+
+        {/* ここから下は回路の座標で描く */}
+        <g transform={transform}>
+          {circuit.wires.map((w) => {
+            const from = compMap.get(w.from.comp);
+            const to = compMap.get(w.to.comp);
+            if (!from || !to) {
+              return null;
+            }
+            const fromPorts = portsOf(from, project);
+            const toPorts = portsOf(to, project);
+            // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
+            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) {
+              return null;
+            }
+            const a = outputPinPos(from, fromPorts, w.from.pin);
+            const b = inputPinPos(to, toPorts, w.to.pin);
+            const d = wirePath(a, w.points ?? [], b, roundWires);
+            const midX = wireMiddleX(a, w.points ?? [], b);
+            const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
+            const selected = selection?.type === 'wire' && selection.id === w.id;
+            return (
+              <g key={w.id}>
+                <path
+                  className={classNames(styles.wire, on && styles.on, selected && styles.selected)}
+                  d={d}
+                />
+                <path
+                  className={styles.wireHit}
+                  d={d}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    onSelect({ type: 'wire', id: w.id });
+                  }}
+                />
+                {/* 中央の縦線は、左右にドラッグして動かせる */}
+                {midX !== undefined && (
+                  <path
+                    className={styles.wireMiddle}
+                    d={`M${midX},${a.y} V${b.y}`}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      onSelect({ type: 'wire', id: w.id });
+                      wireDragRef.current = {
+                        id: w.id,
+                        pointerId: e.pointerId,
+                        start: { x: e.clientX, y: e.clientY },
+                        from: a,
+                        started: false,
+                      };
+                    }}
+                  />
+                )}
+              </g>
+            );
+          })}
+
+          {circuit.components.map((c) => {
+            const ports = portsOf(c, project);
+            return (
+              <ComponentView
+                key={c.id}
+                comp={c}
+                ports={ports}
+                name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                outputValues={Array.from(
+                  { length: Math.max(ports.outputs.length, 1) },
+                  (_, i) => !!sim.values.get(pinKey(c.id, i)),
+                )}
+                inputValues={ports.inputs.map((_, i) => {
+                  const w = wireTo.get(pinKey(c.id, i));
+                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                })}
+                selected={selectedIds.has(c.id)}
+                pinNumber={pinNumbers.get(c.id)}
+                onBodyDown={(e) => onCompPointerDown(e, c)}
+                onBodyDoubleClick={() => onComponentDoubleClick(c)}
+                onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
+                onOutputPinDown={(e, pin) => {
+                  e.stopPropagation();
+                  onPendingChange({ comp: c.id, pin });
+                  setPendingPoints([]);
+                }}
+              />
+            );
+          })}
+
+          {band && (
+            <rect
+              className={styles.band}
+              vectorEffect="non-scaling-stroke"
+              x={Math.min(band.start.x, band.end.x)}
+              y={Math.min(band.start.y, band.end.y)}
+              width={Math.abs(band.end.x - band.start.x)}
+              height={Math.abs(band.end.y - band.start.y)}
+            />
+          )}
+
+          {placing &&
+            (() => {
+              // まだポインターがシートに来ていなければ (スマホなど)、表示している範囲の真ん中に置く
+              const d = placeOffset(
+                withPorts(placing.components),
+                mouse ?? toWorld(view, center()),
+              );
+              const parts = new Map(placing.components.map((c) => [c.id, c]));
+              return (
+                <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>
+                  {placing.wires.map((w) => {
+                    const from = mustGet(parts, w.from.comp);
+                    const to = mustGet(parts, w.to.comp);
+                    const d = wirePath(
+                      outputPinPos(from, portsOf(from, project), w.from.pin),
+                      w.points ?? [],
+                      inputPinPos(to, portsOf(to, project), w.to.pin),
+                      roundWires,
+                    );
+                    return <path key={w.id} className={styles.wire} d={d} />;
+                  })}
+                  {placing.components.map((c) => {
+                    const ports = portsOf(c, project);
+                    return (
+                      <ComponentView
+                        key={c.id}
+                        comp={c}
+                        ports={ports}
+                        name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                        outputValues={Array.from(
+                          { length: Math.max(ports.outputs.length, 1) },
+                          () => false,
+                        )}
+                        inputValues={ports.inputs.map(() => false)}
+                        selected
+                        onBodyDown={() => {}}
+                        onBodyDoubleClick={() => {}}
+                        onInputPinDown={() => {}}
+                        onOutputPinDown={() => {}}
+                      />
+                    );
+                  })}
+                </g>
+              );
+            })()}
+
+          {pending && pendingFrom && mouse && (
+            <path
+              className={styles.pending}
+              d={pendingPath(
+                outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin),
+                mouse,
+              )}
+            />
+          )}
+        </g>
+      </svg>
+      {/* 右下に重ねる。削除エリアはズームのパネルの上 */}
+      <Stack
+        position="absolute"
+        right="3"
+        bottom="3"
+        align="flex-end"
+        gap="3"
+        // 入れ物の空いている所は、シートの操作を素通しにする (丸とズームのパネルだけが受ける)
+        pointerEvents="none"
+      >
+        <TrashZone dragMode={dragMode} ref={trashRef} />
+        <ZoomControls
+          scale={view.scale}
+          onZoomIn={zoom.in}
+          onZoomOut={zoom.out}
+          onReset={zoom.reset}
+          onFit={zoom.fit}
+        />
+      </Stack>
+    </div>
+  );
+}

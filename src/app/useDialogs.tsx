@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { AboutDialog } from '../components/dialogs/AboutDialog';
-import { ConfirmDialog, type ConfirmRequest } from '../components/dialogs/ConfirmDialog';
-import { PreferencesDialog } from '../components/dialogs/PreferencesDialog';
-import { PromptDialog, type PromptRequest } from '../components/dialogs/PromptDialog';
-import { TextDialog, type TextRequest } from '../components/dialogs/TextDialog';
-import type { Preferences } from '../components/preferences';
+import { AboutDialog } from './AboutDialog';
+import { ConfirmDialog, type ConfirmRequest } from '../ui/ConfirmDialog';
+import { PreferencesDialog } from '../preferences/PreferencesDialog';
+import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
+import { TextDialog, type TextRequest } from '../ui/TextDialog';
+import type { Preferences } from '../preferences/preferences';
 
 /**
  * 画面内のダイアログの開閉と、描く部分。
