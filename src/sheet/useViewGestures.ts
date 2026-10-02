@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Point } from './layout';
-import { type View, zoomAt } from './view';
+import type { Point } from '../geometry/layout';
+import { type View, zoomAt } from '../geometry/view';
 
 /** 表示の移動 (中ボタンか Space を押しながらのドラッグ)。start は押した位置 (画面の座標) */
 interface Pan {

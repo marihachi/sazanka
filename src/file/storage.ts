@@ -5,7 +5,7 @@ import {
   isTickMs,
   type Preferences,
 } from '../preferences/preferences';
-import { isView, type View } from '../sheet/view';
+import { isView, type View } from '../geometry/view';
 import { isObject } from '../util';
 
 const STORAGE_KEY = 'sazanka.project';

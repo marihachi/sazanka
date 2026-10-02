@@ -3,7 +3,7 @@ import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { Selection } from '../sheet/Sheet';
 import { newId, type Circuit, type PinRef } from '../circuit/circuit';
 import * as edit from './edit';
-import type { Point } from '../sheet/layout';
+import type { Point } from '../geometry/layout';
 import { dependsOn } from '../circuit/module';
 import { type CircuitDef, findDef, type Project } from '../circuit/project';
 

@@ -12,7 +12,7 @@ import {
   SHEET_WIDTH,
   snap,
   wireMiddleX,
-} from './layout';
+} from '../geometry/layout';
 import type { Component, ComponentKind } from '../circuit/component';
 import type { Circuit, PinRef } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
@@ -25,7 +25,7 @@ import { classNames } from '../ui/classNames';
 import { DRAG_MIME, type PaletteDrag } from './drag';
 import styles from './Sheet.module.css';
 import { toScreenLocal, useViewGestures } from './useViewGestures';
-import { overview, toScreen, toWorld, zoomAt, type View } from './view';
+import { overview, toScreen, toWorld, zoomAt, type View } from '../geometry/view';
 import { wirePath } from './wirePath';
 import { TrashZone } from './TrashZone';
 import { ZoomControls } from './ZoomControls';
@@ -223,7 +223,7 @@ export function Sheet({
     onCancelGesture: cancelGesture,
   });
 
-  /** 部品と、そのピンの並び (layout.ts の計算に渡す形) */
+  /** 部品と、そのピンの並び (geometry/layout.ts の計算に渡す形) */
   function withPorts(components: Component[]) {
     return components.map((c) => ({ c, ports: portsOf(c, project) }));
   }

@@ -1,10 +1,10 @@
-import { type Point, wireRoute } from './layout';
+import { type Point, wireRoute } from '../geometry/layout';
 
 /** 配線の角を丸めるときの半径 (px)。短い区間では、隣の角と重ならないよう区間の長さの半分までに抑える */
 const WIRE_CORNER_RADIUS = 6;
 
 /**
- * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (layout.ts の wireRoute)。
+ * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (geometry/layout.ts の wireRoute)。
  * round なら、曲がり角を丸める (環境設定)
  */
 export function wirePath(from: Point, points: readonly Point[], to: Point, round: boolean): string {
