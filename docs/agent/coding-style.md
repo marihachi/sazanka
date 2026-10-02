@@ -14,6 +14,7 @@
   - ピンの番号を `key` にしているもの（ピンは番号そのものが識別子）
   - シートを描画面として扱っているもの（マウスとタッチで操作し、キーボードでの操作は用意していない）
 - SVG のアセット（`src/assets/`、`public/`）は Lint の対象から外している。アイコンは CSS の `mask` で切り抜きに使う素材で、画像として読み上げられることがないため（[アイコンとロゴ](icons.md)）。
+- React を使うファイルを `.tsx` と `use*.ts` に限るため、それ以外の `.ts` では `react`・`react-dom`・Chakra UI・Emotion の import を `noRestrictedImports` で禁じている（開発者の方針、[ソースの構成](structure.md)の「画面と計算の分け方」）。`ui/theme.ts` だけは外している。Chakra のテーマの設定で、JSX も状態も持たない画面の側のファイルのため。
 - import の並べ替え（`organizeImports`）は使っていない。
 
 ## 制御構文

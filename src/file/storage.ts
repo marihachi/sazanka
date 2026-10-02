@@ -4,7 +4,7 @@ import {
   isAccent,
   isTickMs,
   type Preferences,
-} from '../components/preferences';
+} from '../preferences/preferences';
 import { isView, type View } from '../sheet/view';
 import { isObject } from '../util';
 

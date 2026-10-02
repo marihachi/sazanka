@@ -1,11 +1,11 @@
 import { Flex } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode, type Selection } from '../sheet/Sheet';
-import { Header } from '../components/Header';
-import { Palette } from '../components/Palette';
-import { PropertyPanel } from '../components/PropertyPanel';
-import { StatusBar } from '../components/StatusBar';
-import { TabBar } from '../components/TabBar';
+import { Header } from './Header';
+import { Palette } from '../palette/Palette';
+import { PropertyPanel } from './PropertyPanel';
+import { StatusBar } from '../hints/StatusBar';
+import { TabBar } from '../modules/TabBar';
 import { SheetToolbar } from '../simulation/SheetToolbar';
 import { overview, toWorld } from '../sheet/view';
 import * as edit from '../editing/edit';
@@ -14,7 +14,7 @@ import type { Component, ComponentKind } from '../circuit/component';
 import { newId, type PinRef } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
 import { portsOf } from '../circuit/module';
-import { statusHints } from './hints';
+import { statusHints } from '../hints/hints';
 import {
   loadCollapsedGroups,
   loadProject,
@@ -24,11 +24,11 @@ import {
   saveProject,
   savePreferences,
   saveViews,
-} from './storage';
+} from '../file/storage';
 import { useClipboard } from '../editing/useClipboard';
 import { useDialogs } from './useDialogs';
-import { useModules } from './useModules';
-import { useProjectFile } from './useProjectFile';
+import { useModules } from '../modules/useModules';
+import { useProjectFile } from '../file/useProjectFile';
 import { useSimulation } from '../simulation/useSimulation';
 import { useProjectHistory } from '../editing/useProjectHistory';
 import { useShortcuts } from '../editing/useShortcuts';

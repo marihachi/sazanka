@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { PromptRequest } from '../ui/PromptDialog';
-import type { PaletteModule } from '../components/Palette';
+import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';

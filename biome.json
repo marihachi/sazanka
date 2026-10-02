@@ -39,5 +39,32 @@
         "organizeImports": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/**/*.ts", "!src/**/use*.ts", "!src/ui/theme.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": "React を使うのは .tsx と use*.ts だけ。計算処理とデータは画面に依存させない (docs/agent/structure.md)",
+                  "react-dom": "React を使うのは .tsx と use*.ts だけ。計算処理とデータは画面に依存させない (docs/agent/structure.md)",
+                  "@chakra-ui/react": "React を使うのは .tsx と use*.ts だけ。計算処理とデータは画面に依存させない (docs/agent/structure.md)"
+                },
+                "patterns": [
+                  {
+                    "group": ["@emotion/*"],
+                    "message": "React を使うのは .tsx と use*.ts だけ。計算処理とデータは画面に依存させない (docs/agent/structure.md)"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

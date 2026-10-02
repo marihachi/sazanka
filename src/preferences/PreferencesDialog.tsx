@@ -10,7 +10,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
-import { HintTooltip } from '../../ui/HintTooltip';
+import { HintTooltip } from '../ui/HintTooltip';
 import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
@@ -18,8 +18,8 @@ import {
   MAX_TICK_MS,
   MIN_TICK_MS,
   type Preferences,
-} from '../preferences';
-import { DialogFrame } from '../../ui/DialogFrame';
+} from './preferences';
+import { DialogFrame } from '../ui/DialogFrame';
 
 /** 環境設定のウィンドウ。利用者ごとの設定で、プロジェクトには含めない。変えた値はすぐに反映する (保存は呼び出し側) */
 export function PreferencesDialog({
