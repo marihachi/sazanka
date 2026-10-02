@@ -15,9 +15,9 @@ import {
   wireMiddleX,
   wireRoute,
 } from './layout';
-import type { Component, ComponentKind } from './component';
-import type { Project } from './project';
-import { portsOf } from './module';
+import type { Component, ComponentKind } from '../circuit/component';
+import type { Project } from '../circuit/project';
+import { portsOf } from '../circuit/module';
 
 describe('clampPosition', () => {
   const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };

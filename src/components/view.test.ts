@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../engine/component';
+import type { Component } from '../circuit/component';
 import { SHEET_HEIGHT, SHEET_WIDTH } from '../engine/layout';
-import { MAIN_ID, type Project } from '../engine/project';
+import { MAIN_ID, type Project } from '../circuit/project';
 import {
   centerView,
   fitView,

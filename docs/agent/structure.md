@@ -2,31 +2,36 @@
 
 `src/` の今の構成（プロジェクトの方針）。構成を変えるときの決め方は[コードの置き場所の決め方](code-placement.md)にある。
 
-- `engine/` … 回路のデータと計算処理。React や DOM に依存させない。
-  - `parts/` … 部品の種類ごとの仕様（ピン、遅延、評価、形）。1 種類 1 ファイルで、`index.ts` の `PARTS` に並べる。書き方の型と共通の処理は `spec.ts`。`component.ts` より下の層で、engine のほかのファイルを import しない
-  - `component.ts` … 部品のデータと、置ける種類の一覧（`parts/` の種類と、特別な部品）と、種類ごとのピン・遅延を引く入口。`parts/` に書けない特別な部品（INPUT、OUTPUT、CLOCK、モジュール、BUF）の仕様もここ
+- `ui/` … 回路を知らない、共通の画面部品。`ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。`Icons.tsx` … 文字色で塗るアイコン。`classNames.ts` … クラス名の連結。`theme.ts` … Chakra UI のテーマ（色のトークン、アクセントカラーのパレット）。`DialogFrame.tsx` … ダイアログの共通の外枠。`ConfirmDialog.tsx`、`PromptDialog.tsx`、`TextDialog.tsx` … 確認とお知らせ、名前の入力、書き出し・読み込みのダイアログ
+- `parts/` … 部品の種類（[部品の種類](parts.md)）。React に依存させない（`PartIcon.tsx` を除く）。
+  - `<種類>/` … 1 種類 1 フォルダ。`spec.ts` … 仕様（ピン、遅延、評価、形）。`view.ts` … 見せ方（表示名、アイコン、パレットのグループ、説明、ヒント）。`icon.svg` … アイコン。特別な部品（INPUT、OUTPUT、CLOCK、モジュール）は `spec.ts` を持たない。
+  - `spec.ts` / `view.ts` … 仕様と見せ方の書き方の型と、共通の処理。
+  - `specs.ts` … 仕様の一覧（`PARTS`）と、特別な部品の種類の名前（`SPECIAL_KINDS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`PartIcon.tsx` … 部品の種類のアイコン。
+- `circuit/` … 回路のデータ。React や DOM に依存させない。
+  - `component.ts` … 部品のデータと、置ける種類と、種類ごとのピン・遅延を引く入口。特別な部品（INPUT、OUTPUT、CLOCK、モジュール、BUF）のピンと遅延もここ
   - `circuit.ts` … 回路1つ分のデータ（部品と配線）
   - `project.ts` … プロジェクト（メイン回路と複数のモジュール）の構造と、データの検証
   - `module.ts` … モジュールのピンの決め方と、回路同士の依存
-  - この4つ（と、その下の `parts/`）は、後に挙げたものが前に挙げたものだけを使う（`parts` ← `component` ← `circuit` ← `project` ← `module`）。
+  - 後に挙げたものが前に挙げたものだけを使う（`parts` ← `component` ← `circuit` ← `project` ← `module`）。
+- `engine/` … 回路の計算処理。React や DOM に依存させない。
   - `sim.ts` … 回路の評価（1 tick ずつ進める）
   - `flatten.ts` … モジュールの展開
   - `edit.ts` … 回路の編集
   - `layout.ts` … 部品の大きさとピンの座標
   - `share.ts` … 共有用 JSON
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。回路を直接書き換えず、「移動した」「接続した」などの出来事をコールバックで知らせる。元に戻す対象にするかどうかは `app/` 側で決める（[編集と元に戻す](editing.md)）。
-  - `dialogs/` … 画面内のダイアログ。1 つずつ別のファイルで、共通の外枠は `DialogFrame.tsx`。
-  - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`parts/` … 部品の種類ごとの見せ方（表示名、アイコン、パレットのグループ、説明、ヒント）。`engine/parts/` と同じ名前のファイルで置き、`index.ts` の `PART_VIEWS` に並べる。`index.ts` にはドラッグの受け渡しの型もある。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。`theme.ts` … Chakra UI のテーマ（色のトークン、アクセントカラーのパレット）。`HintTooltip.tsx` … ツールチップ。`TrashZone.tsx` … 部品を消す削除エリア
+  - `dialogs/` … 特定の機能のダイアログ（`AboutDialog`、`PreferencesDialog`）。
+  - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`drag.ts` … パレットからシートへのドラッグの受け渡し。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`TrashZone.tsx` … 部品を消す削除エリア
 - `app/` … 画面全体の組み立てと状態。
   - `App.tsx` … 画面の組み立てと、状態のつなぎ役、回路の編集操作
   - `useDialogs.tsx` … ダイアログの開閉と描く部分。`useClipboard.ts` … コピー・切り取り・貼り付け。`useProjectFile.ts` … プロジェクトの新規作成・書き出し・読み込み。`useModules.ts` … モジュールの追加・改名・削除と、パレットのモジュールの一覧。`useStableCallbacks.ts` … 子に渡す関数の固定
   - `storage.ts` … localStorage への保存
   - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
   - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。`useShortcuts.ts` … キーボード操作。`hints.ts` … ヒントの文言
-- `util.ts` … このアプリのどの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない土台で、`app`・`components`・`engine` のどこから使ってもよい。
+- `util.ts` … このアプリのどの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない土台で、どのフォルダから使ってもよい。
 - `assets/` … SVG。
 
-見た目は Chakra UI を主にし、Chakra の既定の見た目をもとに、テーマ（`components/theme.ts`）で直す（開発者の方針）。スタイルは Chakra の style props とレシピで書く。
+見た目は Chakra UI を主にし、Chakra の既定の見た目をもとに、テーマ（`ui/theme.ts`）で直す（開発者の方針）。スタイルは Chakra の style props とレシピで書く。
 
 - 見た目は、Chakra らしさ（Chakra の部品、レシピのバリアント、トークン、ブレークポイント）を優先する（開発者の方針）。
 - 画面の幅での出し分けは、Chakra のブレークポイント（`md` = 768px など）を使う。
@@ -53,6 +58,6 @@ Chakra UI の部品は描き直すたびにスタイルを作り直すので、�
 - パレットのモジュールの一覧は、回路の名前と、どの回路にどのモジュールを置いているかが変わったときだけ作り直す（`useModules.ts` の `modulesKey`）。パレットに出す情報を足したら、`modulesKey` にも足す。
 - シミュレーションの結果は App を通さずシートに渡している（[シミュレーション](simulation.md)）。
 
-フォルダ同士の依存の向きは `app` → `components` → `engine` の一方向に保つ。`util.ts` はその下の土台で、どこからも使ってよいが、`util.ts` からは何も import しない。フォルダの中のファイル同士も同じ考え方で一方向にする（[依存が一方向になるように分ける](code-placement.md#依存が一方向になるように分ける)）。
+フォルダ同士の依存の向きは `app` → `components` → `engine` → `circuit` → `parts` → `ui` の一方向に保つ。`util.ts` はその下の土台で、どこからも使ってよいが、`util.ts` からは何も import しない。フォルダの中のファイル同士も同じ考え方で一方向にする（[依存が一方向になるように分ける](code-placement.md#依存が一方向になるように分ける)）。
 
 テストは、React に依存しない処理について、対象のファイルと同じフォルダに、同じ名前で置く（`sim.ts` なら `sim.test.ts`）。対象のファイルを分けたり名前を変えたりしたら、テストも合わせる。

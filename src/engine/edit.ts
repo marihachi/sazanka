@@ -2,8 +2,8 @@
 // 元に戻す対象にするかどうかは app/ 側で決める
 
 import type { Point } from './layout';
-import type { Component } from './component';
-import type { Circuit, PinRef, Wire } from './circuit';
+import type { Component } from '../circuit/component';
+import type { Circuit, PinRef, Wire } from '../circuit/circuit';
 import { mustGet } from '../util';
 
 function updateComponent<T extends Circuit>(

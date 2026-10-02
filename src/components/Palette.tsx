@@ -3,63 +3,39 @@ import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
-import { type ComponentKind, isSpecialKind, type SpecialKind } from '../engine/component';
-import type { PartKind } from '../engine/parts';
-import type { CircuitDef } from '../engine/project';
-import {
-  DRAG_MIME,
-  labelOf,
-  PART_VIEWS,
-  type PaletteDrag,
-  type PaletteGroupId,
-  partViewOf,
-} from './parts';
-import { MaskIcon, PartIcon } from './Icons';
-import { ToolButton } from './ToolButton';
-import { HintTooltip } from './HintTooltip';
+import type { ComponentKind } from '../circuit/component';
+import type { CircuitDef } from '../circuit/project';
+import { PartIcon } from '../parts/PartIcon';
+import { labelOf, PART_VIEWS, type PaletteGroupId, partViewOf } from '../parts/views';
+import { MaskIcon } from '../ui/Icons';
+import { ToolButton } from '../ui/ToolButton';
+import { HintTooltip } from '../ui/HintTooltip';
+import { DRAG_MIME, type PaletteDrag } from './drag';
 
 /**
- * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
+ * 部品のグループの、並びと見出し。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
  * 変えると、利用者が折り畳んでいた状態が失われる (見出しの title は変えてよい)。
- * グループには、specials に挙げた特別な部品の後ろに、parts/ の見せ方でそのグループを選んだ種類が並ぶ
+ * グループには、parts/ の見せ方でそのグループを選んだ種類が、PART_VIEWS の順に並ぶ
  */
-const GROUPS: { id: PaletteGroupId; title: string; specials: SpecialKind[] }[] = [
+const GROUPS: { id: PaletteGroupId; title: string }[] = [
   // INPUT / OUTPUT はモジュールのピンにもなる。自分で信号を出す CLOCK / HIGH は「信号源」に分ける
-  { id: 'io', title: '入出力', specials: ['INPUT', 'OUTPUT'] },
-  { id: 'source', title: '信号源', specials: ['CLOCK'] },
-  { id: 'gate', title: '論理ゲート', specials: [] },
-  { id: 'latch', title: 'ラッチ', specials: [] },
-  { id: 'flipflop', title: 'フリップフロップ', specials: [] },
+  { id: 'io', title: '入出力' },
+  { id: 'source', title: '信号源' },
+  { id: 'gate', title: '論理ゲート' },
+  { id: 'latch', title: 'ラッチ' },
+  { id: 'flipflop', title: 'フリップフロップ' },
 ];
 
 /** グループに並べる部品の種類 */
 function kindsOf(group: (typeof GROUPS)[number]): ComponentKind[] {
-  const parts = (Object.keys(PART_VIEWS) as PartKind[]).filter(
+  return (Object.keys(PART_VIEWS) as (keyof typeof PART_VIEWS)[]).filter(
     (k) => PART_VIEWS[k].group === group.id,
   );
-  return [...group.specials, ...parts];
 }
 
 /** モジュールのグループ。部品のグループと同じく、id は変えない */
 const MODULE_GROUP = { id: 'module', title: 'モジュール' };
 const GROUP_IDS = [...GROUPS.map((g) => g.id), MODULE_GROUP.id];
-
-/** 特別な部品の、パレットのツールチップ。ほかの種類の説明は parts/ の見せ方にある */
-const SPECIAL_DESCRIPTIONS: Record<SpecialKind, string> = {
-  INPUT:
-    '入力スイッチ。クリックで ON/OFF を切り替える。モジュールの中に置くと、そのモジュールの入力ピンになる',
-  CLOCK: '一定の周期で ON/OFF を繰り返す',
-  OUTPUT: '入力が ON のとき点灯するランプ。モジュールの中に置くと、そのモジュールの出力ピンになる',
-  CUSTOM: '回路をまとめた部品。シート上でダブルクリックすると中身を開く',
-};
-
-/** パレットの部品のツールチップ */
-function descriptionOf(kind: ComponentKind): string | undefined {
-  if (isSpecialKind(kind)) {
-    return SPECIAL_DESCRIPTIONS[kind];
-  }
-  return partViewOf(kind)?.description;
-}
 
 export interface PaletteModule {
   def: CircuitDef;
@@ -231,7 +207,7 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
   );
   return (
     // 置けないモジュールは、説明よりも置けない理由を見せる
-    <HintTooltip content={disabledReason ?? descriptionOf(kind)}>
+    <HintTooltip content={disabledReason ?? partViewOf(kind)?.description}>
       {/* 押せないボタンはポインターのイベントを出さないので、包んだ要素でツールチップを出す */}
       {disabled ? <Box w="full">{button}</Box> : button}
     </HintTooltip>

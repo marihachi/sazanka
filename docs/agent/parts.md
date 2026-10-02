@@ -2,17 +2,18 @@
 
 部品の種類を足す・直すときの置き場所と決まり。シミュレーションの考え方は[シミュレーション](simulation.md)、保存データの形は[保存データ](persistence.md)にある。
 
-## 1 種類 = 2 つのファイル
+## 1 種類 = 1 フォルダ
 
-部品の種類は、仕様と見せ方を別々のファイルに書き、同じ名前（`xnor.ts` など）で並べる（開発者と決めた形）。
+部品の種類は、`src/parts/<名前>/` に 1 種類ずつまとめる（開発者と決めた形）。
 
-- `src/engine/parts/<名前>.ts` … 仕様。種類の名前、入力ピン、遅延、評価（`output` か `next`）、形（`shape`）。書き方は同じフォルダの `spec.ts`。
-- `src/components/parts/<名前>.ts` … 見せ方。表示名、本体の中に書く名前、アイコン、パレットのグループ、説明、ヒント。書き方は同じフォルダの `spec.ts`。
-- それぞれ、そのフォルダの `index.ts` の一覧（`PARTS` と `PART_VIEWS`）に1行足す。アイコンの SVG は `src/assets/icons/` に置く（[アイコンとロゴ](icons.md)）。
+- `spec.ts` … 仕様。種類の名前、入力ピン、遅延、評価（`output` か `next`）、形（`shape`）。書き方は `parts/spec.ts`。
+- `view.ts` … 見せ方。表示名、本体の中に書く名前、アイコン、パレットのグループ、説明、ヒント。書き方は `parts/view.ts`。
+- `icon.svg` … アイコン（描き方は[アイコンとロゴ](icons.md)）。
+- 一覧の `parts/specs.ts` の `PARTS` と、`parts/views.ts` の `PART_VIEWS` に1行ずつ足す。
 
-1 つのファイルにまとめないのは、`engine/` を画面に依存させない決まり（[ソースの構成](structure.md)）を守るため。
+仕様と見せ方を別のファイルにするのは、回路のデータと計算（`circuit/`、`engine/`）を画面に依存させない決まり（[ソースの構成](structure.md)）を守るため。計算の側は `spec.ts` と `specs.ts` だけを import する。`view.ts` を import すると、アイコンなどの画面の素材まで計算の側に入ってくる。
 
-- 種類の型（`ComponentKind`）は `PARTS` から導いている。`PART_VIEWS` は `Record<PartKind, …>` なので、見せ方を書き忘れると型エラーになる。
+- 種類の型（`ComponentKind`）は `PARTS` から導いている。`PART_VIEWS` は置ける種類すべてをキーに持つ型なので、見せ方を書き忘れると型エラーになる。
 - 置ける種類の検証（保存データと共有用 JSON の読み込み）、パレット、シートの描画、ヒントは、一覧を見て動く。ほかのファイルは直さなくてよい。
 - 足したら、形式の仕様の「version 1 の中で変えたもの」と部品の表に書き足す（[保存データ](persistence.md)）。種類を足すだけなら版は上げない。
 
@@ -23,7 +24,8 @@
   - `gate` … 入力は 1 本か 2 本、出力は 1 本。3 本以上の入力には layout の対応が要る。
   - `flipflop` … 入力は 3 本まで、出力は Q, Q̄ の 2 本。
   - `terminal` … 小さな正方形で、入力ピンはなし、出力は 1 本。本体には見せ方の `bodyLabel` を大きく書き、色は ON の色で固定している（今の HIGH が常に ON のため）。OFF を出すもの（LOW など）を足すなら、色の付け方を直す。
-- INPUT、OUTPUT、CLOCK、モジュール（`CUSTOM`）、BUF は「特別な部品」で、`parts/` には書かない。モジュールのピン、時間での切り替え、展開など、ほかの処理が種類の名前で扱っているため。仕様は `engine/component.ts`（`SPECIAL_KINDS`）に、見せ方は使う側（`Icons.tsx`、`Palette.tsx`、`app/hints.ts` など）に、それぞれ個別に書いている。
+- INPUT、OUTPUT、CLOCK、モジュール（`CUSTOM`、フォルダは `module/`）、BUF は「特別な部品」で、`spec.ts` を持たない。モジュールのピン、時間での切り替え、展開など、ほかの処理が種類の名前で扱っているため。種類の名前は `parts/specs.ts` の `SPECIAL_KINDS`、ピンと遅延は `circuit/component.ts` に書いている。見せ方（`view.ts` と `icon.svg`）は、ほかの種類と同じく種類のフォルダに置く。内部用の BUF は見せ方も持たない。
+- CLOCK のヒントのように、部品の設定で文が変わるものは、`hints` を関数にして書く（受け取るものは `parts/view.ts` の `HintContext`）。
 
 ## 触ると壊れるもの
 

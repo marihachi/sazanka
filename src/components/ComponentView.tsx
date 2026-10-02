@@ -1,10 +1,10 @@
-import type { Component, ComponentKind } from '../engine/component';
+import type { Component, ComponentKind } from '../circuit/component';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
-import type { Ports } from '../engine/module';
-import { partSpecOf } from '../engine/parts';
-import { classNames } from './classNames';
+import type { Ports } from '../circuit/module';
+import { partSpecOf } from '../parts/specs';
+import { classNames } from '../ui/classNames';
 import styles from './ComponentView.module.css';
-import { labelOf, partViewOf } from './parts';
+import { labelOf, partViewOf } from '../parts/views';
 
 /** シート上の部品の中に書く名前 */
 function bodyLabelOf(kind: ComponentKind): string {

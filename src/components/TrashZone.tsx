@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import trashIcon from '../assets/icons/trash.svg';
-import { MaskIcon } from './Icons';
+import { MaskIcon } from '../ui/Icons';
 
 interface TrashZoneProps {
   /** 部品をドラッグ中か。'trash' は削除エリアの上 */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyProject } from '../engine/project';
+import { emptyProject } from '../circuit/project';
 import { readStored } from './storage';
 
 const project = emptyProject();

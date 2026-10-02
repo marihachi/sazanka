@@ -8,8 +8,8 @@ import {
 } from '@chakra-ui/react';
 import { useRef } from 'react';
 import logo from '../../assets/logo.svg';
-import { MaskIcon } from '../Icons';
-import { DialogFrame } from './DialogFrame';
+import { MaskIcon } from '../../ui/Icons';
+import { DialogFrame } from '../../ui/DialogFrame';
 
 /** このアプリについての画面内ダイアログ */
 export function AboutDialog({ onClose }: { onClose: () => void }) {

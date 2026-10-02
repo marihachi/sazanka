@@ -1,4 +1,4 @@
-import type { Project } from '../engine/project';
+import type { Project } from '../circuit/project';
 
 /**
  * restored の INPUT / CLOCK の ON/OFF を、current の同じ部品の値で置き換える。

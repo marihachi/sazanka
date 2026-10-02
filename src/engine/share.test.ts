@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyProject, MAIN_ID, type Project } from './project';
+import { emptyProject, MAIN_ID, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
 
 const project: Project = {

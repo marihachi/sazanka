@@ -8,8 +8,8 @@ import logoMark from '../assets/logo-mark.svg';
 import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
-import { MaskIcon } from './Icons';
-import { ToolButton, ToolDivider } from './ToolButton';
+import { MaskIcon } from '../ui/Icons';
+import { ToolButton, ToolDivider } from '../ui/ToolButton';
 
 interface HeaderProps {
   onNew: () => void;

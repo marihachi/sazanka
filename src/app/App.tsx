@@ -10,10 +10,10 @@ import { SheetToolbar } from '../components/SheetToolbar';
 import { overview, toWorld } from '../components/view';
 import * as edit from '../engine/edit';
 import { clampPosition, GRID, type Point, snap } from '../engine/layout';
-import type { Component, ComponentKind } from '../engine/component';
-import { newId, type PinRef } from '../engine/circuit';
-import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../engine/project';
-import { portsOf } from '../engine/module';
+import type { Component, ComponentKind } from '../circuit/component';
+import { newId, type PinRef } from '../circuit/circuit';
+import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
+import { portsOf } from '../circuit/module';
 import { statusHints } from './hints';
 import {
   loadCollapsedGroups,

@@ -2,10 +2,10 @@ import { Box, Flex, Tabs } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
 import { shallowEqual } from '../util';
-import { MAIN_ID, moveCircuit, type CircuitDef } from '../engine/project';
-import { InlineInput } from './InlineInput';
-import { ToolButton } from './ToolButton';
-import { HintTooltip } from './HintTooltip';
+import { MAIN_ID, moveCircuit, type CircuitDef } from '../circuit/project';
+import { InlineInput } from '../ui/InlineInput';
+import { ToolButton } from '../ui/ToolButton';
+import { HintTooltip } from '../ui/HintTooltip';
 
 interface TabBarProps {
   circuits: CircuitDef[];

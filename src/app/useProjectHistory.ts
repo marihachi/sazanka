@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { Project } from '../engine/project';
+import type { Project } from '../circuit/project';
 import { checkpoint, commit, initHistory, redo, replace, undo } from './history';
 import { keepSwitchStates } from './switchStates';
 

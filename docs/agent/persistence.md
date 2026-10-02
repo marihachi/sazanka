@@ -23,7 +23,7 @@
   - ピンが元に戻れば配線も復活する、という前提。勝手に削除する処理を入れないこと。
 - 共有用の JSON（ヘッダーの「書き出し」「読み込み」、`src/engine/share.ts`）も保存データと同じく、利用者の手元に残り、他人に渡るデータとして扱う。
   - 形式を変えるときは `SHARE_VERSION`（`engine/share.ts`）を上げ、`parseProject` に古い版を読み込む分岐を足す。新しい版のデータは読み込まずに断る。書き出した JSON は他人の手元にも残るので、保存データ以上に古い版が回ってくる。
-  - 他人から受け取る文字列なので、読み込むときは形を検証してから使う（`project.ts` の `checkProject`）。部品の種類や項目を足したら、検証も合わせて直す（置ける種類は `component.ts` の `isPlaceableComponentKind`。種類の一覧は `engine/parts/index.ts` の `PARTS` と、`component.ts` の `SPECIAL_KINDS`。`PARTS` に足した種類は、そのまま検証も通る）。
+  - 他人から受け取る文字列なので、読み込むときは形を検証してから使う（`project.ts` の `checkProject`）。部品の種類や項目を足したら、検証も合わせて直す（置ける種類は `component.ts` の `isPlaceableComponentKind`。種類の一覧は `parts/specs.ts` の `PARTS` と `SPECIAL_KINDS`。`PARTS` に足した種類は、そのまま検証も通る）。
 - 利用者ごとの表示の設定（パレットの折り畳み、シートの表示位置と倍率、環境設定のウィンドウの値など）は、回路とは別のキーに置く。読めなければ既定値で動かし、エラーにはしない。版は付けていない。
-  - パレットの折り畳みは、グループの ID（`components/parts/spec.ts` の `PaletteGroupId`）で保存している。見出しの文字（`Palette.tsx` の `GROUPS`）は変えてよいが、ID は変えない。変えると、利用者が折り畳んでいた状態が失われる。
+  - パレットの折り畳みは、グループの ID（`parts/view.ts` の `PaletteGroupId`）で保存している。見出しの文字（`Palette.tsx` の `GROUPS`）は変えてよいが、ID は変えない。変えると、利用者が折り畳んでいた状態が失われる。
   - シートの表示位置と倍率は、回路 ID ごとに保存している。モジュールを削除したら、その ID の分を消す。新規作成と読み込みでは、ID が同じでも中身は別の回路なので、すべて消す。

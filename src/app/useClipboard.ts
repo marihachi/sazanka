@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import type { ConfirmRequest } from '../components/dialogs/ConfirmDialog';
+import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { Selection } from '../components/Sheet';
-import { newId, type Circuit, type PinRef } from '../engine/circuit';
+import { newId, type Circuit, type PinRef } from '../circuit/circuit';
 import * as edit from '../engine/edit';
 import type { Point } from '../engine/layout';
-import { dependsOn } from '../engine/module';
-import { type CircuitDef, findDef, type Project } from '../engine/project';
+import { dependsOn } from '../circuit/module';
+import { type CircuitDef, findDef, type Project } from '../circuit/project';
 
 /** 部品のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
 export function useClipboard({

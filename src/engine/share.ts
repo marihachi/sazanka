@@ -1,7 +1,12 @@
 // 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
 
-import type { PinRef } from './circuit';
-import { type CircuitDef, type Project, checkProject, withoutSwitchStates } from './project';
+import type { PinRef } from '../circuit/circuit';
+import {
+  type CircuitDef,
+  type Project,
+  checkProject,
+  withoutSwitchStates,
+} from '../circuit/project';
 import { isObject, mustGet } from '../util';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */

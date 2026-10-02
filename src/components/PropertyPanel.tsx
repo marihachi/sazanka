@@ -6,9 +6,9 @@ import {
   MAX_CLOCK_PERIOD,
   MIN_CLOCK_PERIOD,
   type Component,
-} from '../engine/component';
+} from '../circuit/component';
 import { shallowEqual } from '../util';
-import { labelOf } from './parts';
+import { labelOf } from '../parts/views';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */

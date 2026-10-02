@@ -1,4 +1,4 @@
-import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../engine/project';
+import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../circuit/project';
 import {
   DEFAULT_PREFERENCES,
   isAccent,

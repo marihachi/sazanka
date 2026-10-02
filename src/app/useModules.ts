@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import type { ConfirmRequest } from '../components/dialogs/ConfirmDialog';
-import type { PromptRequest } from '../components/dialogs/PromptDialog';
+import type { ConfirmRequest } from '../ui/ConfirmDialog';
+import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../components/Palette';
-import { newId } from '../engine/circuit';
-import { circuitsUsing, dependsOn } from '../engine/module';
-import { type CircuitDef, MAIN_ID, type Project } from '../engine/project';
+import { newId } from '../circuit/circuit';
+import { circuitsUsing, dependsOn } from '../circuit/module';
+import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
 
 /** モジュールの追加・改名・削除と、パレットに並べるモジュールの一覧 */
 export function useModules({

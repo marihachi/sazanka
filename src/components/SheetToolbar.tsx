@@ -5,7 +5,7 @@ import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
-import { ToolButton } from './ToolButton';
+import { ToolButton } from '../ui/ToolButton';
 
 interface SheetToolbarProps {
   /** シミュレーションが動いているか */

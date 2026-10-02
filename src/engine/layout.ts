@@ -1,8 +1,8 @@
 // シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置、配線の通り道
 
-import { type Component, isFlipFlopKind } from './component';
-import type { Ports } from './module';
-import { partSpecOf } from './parts';
+import { type Component, isFlipFlopKind } from '../circuit/component';
+import type { Ports } from '../circuit/module';
+import { partSpecOf } from '../parts/specs';
 
 export const GRID = 20;
 

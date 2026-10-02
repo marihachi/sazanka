@@ -3,14 +3,20 @@
 // 部品の種類ごとの評価 (入力から出力、記憶素子の次の状態) は parts/ の仕様にある
 
 import { flattenProject } from './flatten';
-import { delayOf, type Component, inputCount, isFlipFlopKind, outputCount } from './component';
-import type { Circuit, PinRef } from './circuit';
-import { partSpecOf } from './parts';
-import type { FlipFlopState } from './parts/spec';
-import type { Project } from './project';
+import {
+  delayOf,
+  type Component,
+  inputCount,
+  isFlipFlopKind,
+  outputCount,
+} from '../circuit/component';
+import type { Circuit, PinRef } from '../circuit/circuit';
+import { partSpecOf } from '../parts/specs';
+import type { FlipFlopState } from '../parts/spec';
+import type { Project } from '../circuit/project';
 import { mustGet } from '../util';
 
-export type { FlipFlopState } from './parts/spec';
+export type { FlipFlopState } from '../parts/spec';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;

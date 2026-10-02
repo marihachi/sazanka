@@ -9,8 +9,8 @@ import {
   type Point,
   type Rect,
 } from '../engine/layout';
-import type { CircuitDef, Project } from '../engine/project';
-import { portsOf } from '../engine/module';
+import type { CircuitDef, Project } from '../circuit/project';
+import { portsOf } from '../circuit/module';
 
 /** シートの表示位置と倍率。画面の座標 = 回路の座標 × scale + (x, y) */
 export interface View {

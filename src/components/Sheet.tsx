@@ -13,15 +13,15 @@ import {
   snap,
   wireMiddleX,
 } from '../engine/layout';
-import type { Component, ComponentKind } from '../engine/component';
-import type { Circuit, PinRef } from '../engine/circuit';
-import { findDef, MAIN_ID, type CircuitDef, type Project } from '../engine/project';
-import { portComponents, portsOf } from '../engine/module';
+import type { Component, ComponentKind } from '../circuit/component';
+import type { Circuit, PinRef } from '../circuit/circuit';
+import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
+import { portComponents, portsOf } from '../circuit/module';
 import { pinKey, type SimResult } from '../engine/sim';
 import { mustGet } from '../util';
 import { ComponentView } from './ComponentView';
-import { classNames } from './classNames';
-import { DRAG_MIME, type PaletteDrag } from './parts';
+import { classNames } from '../ui/classNames';
+import { DRAG_MIME, type PaletteDrag } from './drag';
 import styles from './Sheet.module.css';
 import { toScreenLocal, useViewGestures } from './useViewGestures';
 import { overview, toScreen, toWorld, zoomAt, type View } from './view';

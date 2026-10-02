@@ -27,8 +27,8 @@
 ## ダイアログ
 
 - ブラウザの `prompt` / `confirm` / `alert` は使わない。VS Code 内のブラウザなど、これらが何もせずに終わる環境がある（`prompt` は null、`confirm` は false を返す）。どの環境で開かれても動くようにするため。
-  - 代わりに `src/components/dialogs/` の画面内のダイアログを使う。ダイアログは 1 つずつ別のファイルにする（開発者の方針）。確認とお知らせは `ConfirmDialog`、名前の入力は `PromptDialog`、書き出し・読み込みは `TextDialog`、このアプリについては `AboutDialog`、環境設定は `PreferencesDialog`。
-- ダイアログは Chakra の `Dialog` で、外枠は `dialogs/DialogFrame.tsx` にまとめ、各ダイアログから使う。Esc・外側のクリックで閉じること、フォーカスを中に閉じ込めることは Chakra に任せる。開いたときにフォーカスする要素は、各ダイアログが `initialFocus` で渡す（確認なら確定ボタン、入力なら入力欄）。
+  - 代わりに画面内のダイアログを使う（共通のものは `src/ui/`、特定の機能のものは `src/components/dialogs/`）。ダイアログは 1 つずつ別のファイルにする（開発者の方針）。確認とお知らせは `ConfirmDialog`、名前の入力は `PromptDialog`、書き出し・読み込みは `TextDialog`、このアプリについては `AboutDialog`、環境設定は `PreferencesDialog`。
+- ダイアログは Chakra の `Dialog` で、外枠は `ui/DialogFrame.tsx` にまとめ、各ダイアログから使う。Esc・外側のクリックで閉じること、フォーカスを中に閉じ込めることは Chakra に任せる。開いたときにフォーカスする要素は、各ダイアログが `initialFocus` で渡す（確認なら確定ボタン、入力なら入力欄）。
 - 開くかどうかは、`app/useDialogs.tsx` がダイアログのコンポーネントを置くかどうかで決める（Chakra の `open` は常に true）。
 - 取り返しのつかない操作の確認は `role="alertdialog"` にし、確定ボタンを赤（`colorPalette="red"`）にする。
 - ダイアログは同時に 1 つだけ出す。閉じるダイアログと入れ替わりに別のダイアログを開くと、Chakra（中の zag）は後から開いた方を入れ子とみなし、前のものを外したときに一緒に閉じてしまう。そのため、お知らせ（`Dialog`）は、入力のダイアログ（`PromptDialog`・`TextDialog`）が閉じてから出している（`useDialogs.tsx`）。ダイアログから続けて別のダイアログを出す流れを足すときは、同じようにする。
@@ -48,7 +48,7 @@
 - 元に戻す・やり直しなど、押せないときのボタンが薄く出る。
 - モジュールを開いているとき、「モジュールを削除」が赤で出る。
 
-ダイアログ（`dialogs/`）を触ったら、次を確かめる。
+ダイアログ（`ui/` の `*Dialog.tsx` と `components/dialogs/`）を触ったら、次を確かめる。
 
 - 開いたときのフォーカス: モジュールの追加では名前が全選択、確認では確定ボタン、環境設定とこのアプリについてでは「閉じる」。
 - Esc と外側のクリックで閉じる。開いている間は Ctrl+Z などのショートカットが効かない。

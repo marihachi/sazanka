@@ -1,9 +1,9 @@
 // シミュレーションの細かい動きと、壊してはいけない不変条件のテスト。
 // 基本の真理値表とフリップフロップの動きは sim.test.ts にある
 import { describe, expect, it } from 'vitest';
-import type { Component, ComponentKind } from './component';
-import type { Circuit, Wire } from './circuit';
-import { MAIN_ID, type CircuitDef, type Project } from './project';
+import type { Component, ComponentKind } from '../circuit/component';
+import type { Circuit, Wire } from '../circuit/circuit';
+import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { step, stepCircuit, type SimResult } from './sim';
 
 /**

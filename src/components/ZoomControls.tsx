@@ -3,8 +3,8 @@ import fitIcon from '../assets/icons/fit.svg';
 import minusIcon from '../assets/icons/minus.svg';
 import plusIcon from '../assets/icons/plus.svg';
 import { Button, HStack } from '@chakra-ui/react';
-import { ToolButton } from './ToolButton';
-import { HintTooltip } from './HintTooltip';
+import { ToolButton } from '../ui/ToolButton';
+import { HintTooltip } from '../ui/HintTooltip';
 
 interface ZoomControlsProps {
   scale: number;

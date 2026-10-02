@@ -1,6 +1,6 @@
-import type { Component } from '../engine/component';
-import { clockPeriodOf } from '../engine/component';
-import { partViewOf } from '../components/parts';
+import type { Component } from '../circuit/component';
+import { clockPeriodOf } from '../circuit/component';
+import { partViewOf } from '../parts/views';
 
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
@@ -88,32 +88,11 @@ export function statusHints(ctx: HintContext): string[] {
   const c = ctx.selectedComponent;
   if (c) {
     const move = ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除'];
-    switch (c.kind) {
-      case 'INPUT':
-        return [
-          'クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる',
-          ...move,
-        ];
-      case 'OUTPUT':
-        return [
-          '入力が ON のとき点灯する。モジュールの中に置くと、そのモジュールの出力ピンにもなる',
-          ...move,
-        ];
-      case 'CUSTOM':
-        return [
-          'ダブルクリックで中身を開く',
-          'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る',
-          ...move,
-        ];
-      case 'CLOCK':
-        return [
-          `${clockPeriodOf(c)} tick (${(clockPeriodOf(c) * ctx.tickMs) / 1000} 秒) 周期で ON/OFF を繰り返す。周期は右のプロパティ欄で変えられる`,
-          ...move,
-        ];
-      default:
-        // 特別な部品以外のヒントは、種類ごとの見せ方 (components/parts/) にある
-        return [...(partViewOf(c.kind)?.hints ?? []), ...move];
-    }
+    // ヒントの文は、種類ごとの見せ方 (parts/) にある
+    const own = partViewOf(c.kind)?.hints ?? [];
+    const lines =
+      typeof own === 'function' ? own({ period: clockPeriodOf(c), tickMs: ctx.tickMs }) : own;
+    return [...lines, ...move];
   }
   if (ctx.unstable) {
     return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];

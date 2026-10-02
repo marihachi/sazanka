@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../engine/component';
-import { MAIN_ID, type CircuitDef, type Project } from '../engine/project';
+import type { Component } from '../circuit/component';
+import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { keepSwitchStates } from './switchStates';
 
 function comp(

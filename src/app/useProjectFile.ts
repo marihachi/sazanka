@@ -1,7 +1,7 @@
-import type { ConfirmRequest } from '../components/dialogs/ConfirmDialog';
-import type { TextRequest } from '../components/dialogs/TextDialog';
-import { newId } from '../engine/circuit';
-import { emptyProject, type Project } from '../engine/project';
+import type { ConfirmRequest } from '../ui/ConfirmDialog';
+import type { TextRequest } from '../ui/TextDialog';
+import { newId } from '../circuit/circuit';
+import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from '../engine/share';
 
 /** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */

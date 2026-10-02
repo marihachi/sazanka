@@ -1,9 +1,9 @@
 // モジュールの展開: シミュレーションのために、モジュールを中身の部品に置き換えて1つの回路にする。
 // モジュールのピンの決め方は module.ts にある
 
-import type { Circuit, PinRef } from './circuit';
-import { findDef, type CircuitDef, type Project } from './project';
-import { portComponents } from './module';
+import type { Circuit, PinRef } from '../circuit/circuit';
+import { findDef, type CircuitDef, type Project } from '../circuit/project';
+import { portComponents } from '../circuit/module';
 
 /** 展開したモジュールのピンに対応する、展開後の部品 ID */
 export interface ModulePorts {

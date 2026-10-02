@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SimStore } from '../components/Sheet';
-import { clockFlipsAt, clockPeriodOf } from '../engine/component';
-import type { Project } from '../engine/project';
+import { clockFlipsAt, clockPeriodOf } from '../circuit/component';
+import type { Project } from '../circuit/project';
 import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from '../engine/sim';
 
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
