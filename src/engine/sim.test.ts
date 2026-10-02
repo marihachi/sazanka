@@ -61,6 +61,7 @@ describe('simulate', () => {
     ['NAND', [true, true, true, false]],
     ['NOR', [true, false, false, false]],
     ['XOR', [false, true, true, false]],
+    ['XNOR', [true, false, false, true]],
   ];
   for (const [kind, expected] of table) {
     it(`${kind} の真理値表`, () => {

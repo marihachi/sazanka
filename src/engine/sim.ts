@@ -1,32 +1,19 @@
 // 回路の評価: 時間を 1 tick ずつ進め、ピンの値とフリップフロップの状態を求める。
-// モジュールは flatten.ts で展開してから評価する
+// モジュールは flatten.ts で展開してから評価する。
+// 部品の種類ごとの評価 (入力から出力、記憶素子の次の状態) は parts/ の仕様にある
 
 import { flattenProject } from './flatten';
-import {
-  delayOf,
-  type Component,
-  inputCount,
-  isFlipFlopKind,
-  outputCount,
-  type FlipFlopKind,
-  CLK_PIN,
-} from './component';
+import { delayOf, type Component, inputCount, isFlipFlopKind, outputCount } from './component';
 import type { Circuit, PinRef } from './circuit';
+import { partSpecOf } from './parts';
+import type { FlipFlopState } from './parts/spec';
 import type { Project } from './project';
 import { mustGet } from '../util';
 
+export type { FlipFlopState } from './parts/spec';
+
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;
-}
-
-export interface FlipFlopState {
-  q: boolean;
-  /**
-   * 前回観測した CLK (立ち上がり検出用)。ラッチ (RS, RSEN, DLATCH) は使わない。
-   * 前回の結果がない (ページを開いた直後など) ときは OFF から始まるので、
-   * その時点で CLK が ON なら、立ち上がりとみなして1回動く
-   */
-  clk: boolean;
 }
 
 export interface SimResult {
@@ -53,70 +40,30 @@ export const SETTLED_TICKS = 4;
 /** 落ち着かないまま、これだけの tick が過ぎたら発振とみなす */
 export const OSCILLATION_TICKS = 50;
 
-/** フリップフロップ以外の部品の出力 (pin 0)。CUSTOM は展開済みの前提なので来ない */
+/** 記憶素子以外の部品の出力 (pin 0)。CUSTOM は展開済みの前提なので来ない */
 function evalGate(c: Component, ins: boolean[]): boolean {
-  const [a, b] = ins;
   switch (c.kind) {
     case 'INPUT':
     case 'CLOCK':
       return !!c.on;
-    case 'HIGH':
-      return true;
     case 'OUTPUT':
     case 'BUF':
-      return a;
-    case 'NOT':
-      return !a;
-    case 'AND':
-      return a && b;
-    case 'OR':
-      return a || b;
-    case 'NAND':
-      return !(a && b);
-    case 'NOR':
-      return !(a || b);
-    case 'XOR':
-      return a !== b;
-    default:
-      throw new Error(`not a gate: ${c.kind}`);
+      return ins[0];
   }
+  const spec = partSpecOf(c.kind);
+  if (spec?.shape !== 'gate' && spec?.shape !== 'terminal') {
+    throw new Error(`not a gate: ${c.kind}`);
+  }
+  return spec.output(ins);
 }
 
-/** フリップフロップの次の状態。ins は入力ピンの値 (ピン番号の順) */
-function nextState(kind: FlipFlopKind, ins: boolean[], s: FlipFlopState): FlipFlopState {
-  if (kind === 'RS') {
-    // RS ラッチ。クロックはなく入力にすぐ反応する。S=R=1 はリセット優先
-    const [set, reset] = ins;
-    return { q: reset ? false : set ? true : s.q, clk: false };
+/** 記憶素子の次の状態。ins は入力ピンの値 (ピン番号の順) */
+function nextState(c: Component, ins: boolean[], s: FlipFlopState): FlipFlopState {
+  const spec = partSpecOf(c.kind);
+  if (spec?.shape !== 'flipflop') {
+    throw new Error(`not a flip-flop: ${c.kind}`);
   }
-  if (kind === 'RSEN') {
-    // EN 付きの RS ラッチ。EN が ON の間だけ S / R が効く (RS と同じくリセット優先)。OFF の間は値を保つ
-    const [set, en, reset] = ins;
-    if (!en) {
-      return { q: s.q, clk: false };
-    }
-    return { q: reset ? false : set ? true : s.q, clk: false };
-  }
-  if (kind === 'DLATCH') {
-    // D ラッチ。EN が ON の間は Q が D に追従し、OFF の間は値を保つ
-    const [d, en] = ins;
-    return { q: en ? d : s.q, clk: false };
-  }
-  const clk = ins[CLK_PIN];
-  if (!clk || s.clk) {
-    return { q: s.q, clk };
-  }
-  // 立ち上がりエッジ
-  switch (kind) {
-    case 'DFF':
-      return { q: ins[0], clk };
-    case 'TFF':
-      return { q: ins[0] ? !s.q : s.q, clk };
-    case 'JKFF': {
-      const [j, , k] = ins;
-      return { q: j && k ? !s.q : j ? true : k ? false : s.q, clk };
-    }
-  }
+  return spec.next(ins, s);
 }
 
 /**
@@ -210,7 +157,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     let next: boolean[];
     if (isFlipFlopKind(c.kind)) {
       // 状態はこの tick で更新する。CLK の値も一緒に記録するので、同じ立ち上がりで2回動くことはない
-      const state = nextState(c.kind, ins, mustGet(flipFlops, c.id));
+      const state = nextState(c, ins, mustGet(flipFlops, c.id));
       flipFlops.set(c.id, state);
       next = [state.q, !state.q];
     } else {

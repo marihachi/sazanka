@@ -1,5 +1,5 @@
 // 回路 1 つ分のデータ構造。
-// 部品の種類の仕様は component.ts、複数の回路をまとめたプロジェクトは project.ts にある
+// 部品のデータは component.ts (種類ごとの仕様は parts/)、複数の回路をまとめたプロジェクトは project.ts にある
 
 import type { Component } from './component';
 import { isObject } from '../util';

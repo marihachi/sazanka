@@ -2,6 +2,7 @@
 
 import { type Component, isFlipFlopKind } from './component';
 import type { Ports } from './module';
+import { partSpecOf } from './parts';
 
 export const GRID = 20;
 
@@ -15,9 +16,17 @@ export function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
-/** 入出力の部品 (INPUT、CLOCK、HIGH、OUTPUT)。どれも小さな正方形で、ピンは中央に1本 */
+/**
+ * 入出力の部品 (INPUT、CLOCK、OUTPUT と、parts/ で形を端子にした HIGH など)。
+ * どれも小さな正方形で、ピンは中央に1本
+ */
 function isTerminal(c: Component): boolean {
-  return c.kind === 'INPUT' || c.kind === 'CLOCK' || c.kind === 'HIGH' || c.kind === 'OUTPUT';
+  return (
+    c.kind === 'INPUT' ||
+    c.kind === 'CLOCK' ||
+    c.kind === 'OUTPUT' ||
+    partSpecOf(c.kind)?.shape === 'terminal'
+  );
 }
 
 /**

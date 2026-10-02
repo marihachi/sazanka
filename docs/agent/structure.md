@@ -3,11 +3,12 @@
 `src/` の今の構成（プロジェクトの方針）。構成を変えるときの決め方は[コードの置き場所の決め方](code-placement.md)にある。
 
 - `engine/` … 回路のデータと計算処理。React や DOM に依存させない。
-  - `component.ts` … 部品のデータと、部品の種類ごとの仕様（置ける種類の一覧、ピン、遅延）
+  - `parts/` … 部品の種類ごとの仕様（ピン、遅延、評価、形）。1 種類 1 ファイルで、`index.ts` の `PARTS` に並べる。書き方の型と共通の処理は `spec.ts`。`component.ts` より下の層で、engine のほかのファイルを import しない
+  - `component.ts` … 部品のデータと、置ける種類の一覧（`parts/` の種類と、特別な部品）と、種類ごとのピン・遅延を引く入口。`parts/` に書けない特別な部品（INPUT、OUTPUT、CLOCK、モジュール、BUF）の仕様もここ
   - `circuit.ts` … 回路1つ分のデータ（部品と配線）
   - `project.ts` … プロジェクト（メイン回路と複数のモジュール）の構造と、データの検証
   - `module.ts` … モジュールのピンの決め方と、回路同士の依存
-  - この4つは、後に挙げたものが前に挙げたものだけを使う（`component` ← `circuit` ← `project` ← `module`）。
+  - この4つ（と、その下の `parts/`）は、後に挙げたものが前に挙げたものだけを使う（`parts` ← `component` ← `circuit` ← `project` ← `module`）。
   - `sim.ts` … 回路の評価（1 tick ずつ進める）
   - `flatten.ts` … モジュールの展開
   - `edit.ts` … 回路の編集

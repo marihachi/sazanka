@@ -1,7 +1,12 @@
-// 部品のデータと、部品の種類ごとの仕様 (ピン、遅延)。
+// 部品のデータと、部品の種類の一覧と、種類ごとのピンと遅延を引く入口。
+// ゲートや記憶素子などの種類ごとの仕様は parts/ に 1 種類 1 ファイルで置き、ここではそれを引くだけにする。
+// parts/ に書けない特別な部品 (INPUT、OUTPUT、CLOCK、モジュール、BUF) の仕様は、ここに書く。
 // 部品を並べた回路は circuit.ts、モジュールのピンは module.ts にある
 
 import { isObject, type SetElement } from '../util';
+import { type PartKind, partSpecOf } from './parts';
+
+export type { FlipFlopKind, GateKind } from './parts';
 
 /** 部品 */
 export interface Component {
@@ -40,109 +45,54 @@ export type ComponentKind = PlaceableComponentKind | 'BUF';
  * 利用者が回路に置ける部品の種類。
  * 保存データや共有データに現れるのはこれだけ。
  */
-type PlaceableComponentKind = GateKind | FlipFlopKind | OtherComponentKind;
+export type PlaceableComponentKind = PartKind | SpecialKind;
 
 function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind {
-  if (isGateKind(kind)) {
-    return true;
-  }
-  if (isFlipFlopKind(kind)) {
-    return true;
-  }
-  return isOtherComponentKind(kind);
+  return partSpecOf(kind) !== undefined || (SPECIAL_KINDS as Set<string>).has(kind);
 }
 
 /**
- * 論理ゲート
- */
-const GATE_KINDS = new Set(['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'] as const);
-
-export type GateKind = SetElement<typeof GATE_KINDS>;
-
-export function isGateKind(kind: string): kind is GateKind {
-  return (GATE_KINDS as Set<string>).has(kind);
-}
-
-/**
- * 記憶素子。
- * RS、RSEN、DLATCH はCLKのないラッチ (入力の ON/OFF の状態で動く)、
- * ほかはCLKの立ち上がりの瞬間だけ動くフリップフロップ
- */
-const FLIP_FLOP_KINDS = new Set(['RS', 'RSEN', 'DLATCH', 'DFF', 'TFF', 'JKFF'] as const);
-
-export type FlipFlopKind = SetElement<typeof FLIP_FLOP_KINDS>;
-
-export function isFlipFlopKind(kind: string): kind is FlipFlopKind {
-  return (FLIP_FLOP_KINDS as Set<string>).has(kind);
-}
-
-/**
- * 未分類の部品
+ * 特別な部品。モジュールのピン、時間での切り替え、展開など、ほかの処理が種類の名前で扱うので、
+ * parts/ の仕様の形では書けない
  *
- * HIGH: 常に ON を出力する
  * CUSTOM: モジュール。シミュレーション前に展開される
  */
-const OTHER_KINDS = new Set([
+const SPECIAL_KINDS = new Set([
   'INPUT',
   'OUTPUT',
   'CLOCK',
-  'HIGH',
   'CUSTOM',
   // NOTE: BUFは展開用の内部の部品なので含めない
 ] as const);
 
-type OtherComponentKind = SetElement<typeof OTHER_KINDS>;
+export type SpecialKind = SetElement<typeof SPECIAL_KINDS>;
 
-function isOtherComponentKind(kind: string): kind is OtherComponentKind {
-  return (OTHER_KINDS as Set<string>).has(kind);
+/** 記憶素子 (ラッチとフリップフロップ) か */
+export function isFlipFlopKind(kind: ComponentKind): boolean {
+  return partSpecOf(kind)?.shape === 'flipflop';
 }
 
 // 入力ピン
 
-/**
- * 入力ピンに名前がある種類と、その名前 (表示用)。ここにない種類のピンは名前なし (空文字)。
- * 並び順がそのままピン番号になる。配線と保存データはピン番号で入力ピンを指すので、
- * 順番を入れ替えると、保存済みの回路の配線が別のピンにつながってしまう
- */
-const INPUT_PINS: Partial<Record<ComponentKind, string[]>> = {
-  RS: ['S', 'R'],
-  RSEN: ['S', 'EN', 'R'],
-  DLATCH: ['D', 'EN'],
-  DFF: ['D', '>'],
-  TFF: ['T', '>'],
-  JKFF: ['J', '>', 'K'],
-};
-
-/** エッジトリガ型フリップフロップの CLK 入力のピン番号。JK も CLK を真ん中 (J, >, K) に置いてそろえている */
-export const CLK_PIN = 1;
-
+/** 入力ピンの名前 (表示用)。名前のないピンは空文字。並び順がピン番号 */
 export function inputPinNames(kind: ComponentKind): string[] {
-  const names = INPUT_PINS[kind];
-  if (names) {
-    return names;
+  const spec = partSpecOf(kind);
+  if (spec) {
+    return [...spec.inputs];
   }
-  return Array(inputCount(kind)).fill('');
+  switch (kind) {
+    case 'OUTPUT':
+    case 'BUF':
+      return [''];
+    // モジュールのピン数は中身の回路で決まる (module.ts の portsOf)。
+    // シミュレーションでは展開してから数えるので、ここでは 0 でよい
+    default:
+      return [];
+  }
 }
 
 export function inputCount(kind: ComponentKind): number {
-  if (INPUT_PINS[kind]) {
-    return INPUT_PINS[kind].length;
-  }
-  switch (kind) {
-    case 'INPUT':
-    case 'CLOCK':
-    case 'HIGH':
-    // モジュールのピン数は中身の回路で決まる (module.ts の portsOf)。
-    // シミュレーションでは展開してから数えるので、ここでは 0 でよい
-    case 'CUSTOM':
-      return 0;
-    case 'NOT':
-    case 'OUTPUT':
-    case 'BUF':
-      return 1;
-    default:
-      return 2;
-  }
+  return inputPinNames(kind).length;
 }
 
 // 出力ピン
@@ -164,31 +114,12 @@ export function outputCount(kind: ComponentKind): number {
 // 部品の遅延
 
 /**
- * 部品の遅延 (何 tick 後に出力へ現れるか)。ここに書かない種類は遅延なし (0)。
- * NAND / NOR を 1 段とし、AND / OR はそれを反転した 2 段、XOR は 3 段として実物に近づけている。
- * フリップフロップは、それらを組み合わせた構成の段数で数える。
- * 遅延なしなのは、部品ではなく端子である INPUT / CLOCK / HIGH / OUTPUT と、
+ * 部品の遅延 (何 tick 後に出力へ現れるか)。種類ごとの値は parts/ の仕様にある。
+ * 特別な部品は遅延なし (0)。部品ではなく端子である INPUT / CLOCK / OUTPUT と、
  * モジュールのピンを表す内部用の BUF (モジュールにしただけで遅れないようにするため)
  */
-const DELAYS: Partial<Record<ComponentKind, number>> = {
-  NOT: 1,
-  NAND: 1,
-  NOR: 1,
-  AND: 2,
-  OR: 2,
-  XOR: 3,
-  // RS ラッチは NOR をたすきに組んだ構成、エッジトリガ型はさらにゲートを重ねた構成なので、その段数に合わせる
-  RS: 2,
-  // EN 付きの RS ラッチと D ラッチは、EN で入力を通すゲートの後ろに RS ラッチを置いた構成
-  RSEN: 3,
-  DLATCH: 3,
-  DFF: 3,
-  TFF: 3,
-  JKFF: 3,
-};
-
 export function delayOf(kind: ComponentKind): number {
-  return DELAYS[kind] ?? 0;
+  return partSpecOf(kind)?.delay ?? 0;
 }
 
 // CLOCK
