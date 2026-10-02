@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Component } from './component';
-import { checkProject, emptyProject, findDef, MAIN_ID, moveCircuit, type Project } from './project';
+import {
+  checkProject,
+  emptyProject,
+  findDef,
+  MAIN_ID,
+  moveCircuit,
+  type Project,
+  withoutSwitchStates,
+} from './project';
 
 function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
   return { id, kind, x: 0, y: 0, ...extra };
@@ -84,5 +92,37 @@ describe('moveCircuit', () => {
   it('メイン回路は先頭に固定。動かさず、その前にも置かない', () => {
     expect(ids(moveCircuit(project, MAIN_ID, 2))).toEqual(['main', 'a', 'b', 'c']);
     expect(ids(moveCircuit(project, 'b', 0))).toEqual(['main', 'b', 'a', 'c']);
+  });
+});
+
+describe('withoutSwitchStates', () => {
+  const project: Project = {
+    circuits: [
+      {
+        id: MAIN_ID,
+        name: 'メイン',
+        components: [
+          comp('a', 'INPUT', { on: true, label: 'A' }),
+          comp('c', 'CLOCK', { on: true, period: 20 }),
+        ],
+        wires: [],
+      },
+      { id: 'm', name: 'モジュール', components: [comp('b', 'INPUT', { on: false })], wires: [] },
+    ],
+  };
+
+  it('すべての回路の INPUT / CLOCK から ON/OFF を外す', () => {
+    const result = withoutSwitchStates(project);
+    const comps = result.circuits.flatMap((d) => d.components);
+    expect(comps.every((c) => !('on' in c))).toBe(true);
+  });
+
+  it('ON/OFF 以外の項目は残し、元のプロジェクトは書き換えない', () => {
+    const result = withoutSwitchStates(project);
+    expect(result.circuits[0].components).toEqual([
+      comp('a', 'INPUT', { label: 'A' }),
+      comp('c', 'CLOCK', { period: 20 }),
+    ]);
+    expect(project.circuits[0].components[0].on).toBe(true);
   });
 });

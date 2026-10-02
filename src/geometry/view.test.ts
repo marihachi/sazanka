@@ -4,6 +4,8 @@ import { SHEET_HEIGHT, SHEET_WIDTH } from './layout';
 import { MAIN_ID, type Project } from '../circuit/project';
 import {
   centerView,
+  circuitBounds,
+  clampScale,
   fitView,
   isView,
   MAX_SCALE,
@@ -114,5 +116,38 @@ describe('overview', () => {
     expect(at.y).toBeGreaterThanOrEqual(0);
     expect(at.x).toBeLessThan(400);
     expect(at.y).toBeLessThan(300);
+  });
+});
+
+describe('clampScale', () => {
+  it('倍率を範囲内に収める', () => {
+    expect(clampScale(1)).toBe(1);
+    expect(clampScale(MIN_SCALE / 2)).toBe(MIN_SCALE);
+    expect(clampScale(MAX_SCALE * 2)).toBe(MAX_SCALE);
+  });
+});
+
+describe('circuitBounds', () => {
+  const project = (components: Component[]): Project => ({
+    circuits: [{ id: MAIN_ID, name: 'メイン', components, wires: [] }],
+  });
+
+  it('部品がなければ undefined', () => {
+    const p = project([]);
+    expect(circuitBounds(p.circuits[0], p)).toBeUndefined();
+  });
+
+  it('すべての部品の、ピンの先まで含めた範囲を合わせる', () => {
+    // INPUT は 40×40 で右にピン、AND は 60×80 で左右にピン。ピンは本体から 1 グリッド (20) 出る
+    const p = project([
+      { id: 'a', kind: 'INPUT', x: 100, y: 200 },
+      { id: 'b', kind: 'AND', x: 300, y: 100 },
+    ]);
+    expect(circuitBounds(p.circuits[0], p)).toEqual({
+      left: 80,
+      top: 100,
+      right: 380,
+      bottom: 240,
+    });
   });
 });
