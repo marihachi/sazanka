@@ -1,10 +1,14 @@
-// 回路の編集 (部品・配線・ラベルの追加や変更や削除、コピーと貼り付け)。どれも新しい回路を返し、元の回路は書き換えない。
+// 回路の編集 (部品・配線・ラベルの追加や変更や削除、コピーと貼り付け) と、編集の対象として選んでいるものの形。
+// どれも新しい回路を返し、元の回路は書き換えない。
 // 元に戻す対象にするかどうかは、使う側 (app/App.tsx) が useProjectHistory.ts で決める
 
 import type { Point } from '../geometry/layout';
 import type { Component } from '../circuit/component';
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
 import { mustGet } from '../util';
+
+/** 選んでいるもの。部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
+export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
 
 function updateComponent<T extends Circuit>(
   circuit: T,

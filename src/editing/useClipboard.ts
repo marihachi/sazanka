@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
-import type { Selection } from '../sheet/Sheet';
+import type { Selection } from './edit';
 import { newId, type Circuit, type PinRef } from '../circuit/circuit';
 import * as edit from './edit';
 import type { Point } from '../geometry/layout';

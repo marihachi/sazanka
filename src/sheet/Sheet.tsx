@@ -22,7 +22,8 @@ import type { SimStore } from '../simulation/useSimulation';
 import { mustGet } from '../util';
 import { ComponentView } from './ComponentView';
 import { classNames } from '../ui/classNames';
-import { DRAG_MIME, type PaletteDrag } from './drag';
+import type { Selection } from '../editing/edit';
+import { DRAG_MIME, type PaletteDrag } from '../palette/drag';
 import styles from './Sheet.module.css';
 import { toScreenLocal, useViewGestures } from './useViewGestures';
 import { overview, toScreen, toWorld, zoomAt, type View } from '../geometry/view';
@@ -30,8 +31,6 @@ import { wirePath } from './wirePath';
 import { TrashZone } from './TrashZone';
 import { ZoomControls } from './ZoomControls';
 
-/** 部品は複数を同時に選べる (ids は空にしない)。配線は1本だけ */
-export type Selection = { type: 'comp'; ids: string[] } | { type: 'wire'; id: string } | null;
 /** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
 export type DragMode = 'none' | 'moving' | 'trash';
 

@@ -10,7 +10,7 @@ import { labelOf, PART_VIEWS, type PaletteGroupId, partViewOf } from '../parts/v
 import { MaskIcon } from '../ui/Icons';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
-import { DRAG_MIME, type PaletteDrag } from '../sheet/drag';
+import { DRAG_MIME, type PaletteDrag } from './drag';
 
 /**
  * 部品のグループの、並びと見出し。id は折り畳みの状態の保存に使うので、一度決めたら変えない。

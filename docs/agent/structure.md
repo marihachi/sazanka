@@ -21,21 +21,21 @@
   - `App.tsx` … 画面の組み立てと、状態のつなぎ役、回路の編集操作。`useDialogs.tsx` … ダイアログの開閉と描く部分。`useStableCallbacks.ts` … 子に渡す関数の固定
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … このアプリについて
 - `modules/` … モジュールの追加・改名・削除と、回路の切り替え。`useModules.ts` … モジュールの操作と、パレットのモジュールの一覧。`TabBar.tsx` … タブバー
-- `palette/` … `Palette.tsx` … パレット
+- `sheet/` … シートの表示と操作（[シートの表示](view.md)、[画面操作](interaction.md)）。
+  - `Sheet.tsx` … シート。編集の型、シミュレーションの結果、座標の計算を組み合わせて描き、操作を受ける。`ComponentView.tsx` … シート上の部品。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`ZoomControls.tsx` … 拡大縮小のボタン。`TrashZone.tsx` … 部品を消す削除エリア。`wirePath.ts` … 配線の SVG のパス（角の丸め）
+- `palette/` … `Palette.tsx` … パレット。`drag.ts` … パレットからシートへ部品をドラッグするときの受け渡しの形
 - `file/` … 保存と共有（[保存データ](persistence.md)）。`storage.ts` … localStorage への保存。`share.ts` … 共有用 JSON。`useProjectFile.ts` … プロジェクトの新規作成・書き出し・読み込み
 - `preferences/` … 環境設定。`preferences.ts` … 型と選択肢。`PreferencesDialog.tsx` … 環境設定のウィンドウ
 - `hints/` … ヒント。`hints.ts` … ヒントの文言の選び方。`StatusBar.tsx` … ステータスバー
 - `editing/` … 回路の編集と元に戻す（[編集と元に戻す](editing.md)）。
-  - `edit.ts` … 回路の編集（新しい回路を返すだけで、元に戻す対象にするかは決めない）
+  - `edit.ts` … 回路の編集（新しい回路を返すだけで、元に戻す対象にするかは決めない）と、選んでいるものの形（`Selection`）
   - `history.ts`、`useProjectHistory.ts`、`switchStates.ts` … 元に戻す / やり直し
   - `useClipboard.ts` … コピー・切り取り・貼り付け。`useShortcuts.ts` … キーボード操作
-- `sheet/` … シートの表示と操作（[シートの表示](view.md)、[画面操作](interaction.md)）。
-  - `layout.ts` … 部品の大きさとピンの座標、シートの大きさ。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`wirePath.ts` … 配線の SVG のパス（角の丸め）
-  - `Sheet.tsx` … シート。`ComponentView.tsx` … シート上の部品。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`ZoomControls.tsx` … 拡大縮小のボタン。`TrashZone.tsx` … 部品を消す削除エリア。`drag.ts` … パレットからシートへのドラッグの受け渡し
 - `simulation/` … シミュレーション（[シミュレーション](simulation.md)）。
   - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開
   - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。シートに結果を渡す入れ物（`SimStore`）もここ
   - `SheetToolbar.tsx` … 一時停止・1 tick 送りのボタンを並べたツールバー
+- `geometry/` … 座標の計算。`layout.ts` … 部品の大きさとピンの座標、シートの大きさ、配線の通り道。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）
 - `circuit/` … 回路のデータ。
   - `component.ts` … 部品のデータと、置ける種類と、種類ごとのピン・遅延を引く入口。特別な部品（INPUT、OUTPUT、CLOCK、モジュール、BUF）のピンと遅延もここ
   - `circuit.ts` … 回路1つ分のデータ（部品と配線）
@@ -54,10 +54,10 @@
 
 今のフォルダ同士の依存は、おおむね次の向きになっている（左のフォルダが右のフォルダを使う）。
 
-`app` → `modules` → `palette` → `file` → `preferences` → `hints` → `editing` → `sheet` → `simulation` → `circuit` → `parts` → `ui` → `util`
+`app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `util`
 
 - 依存の向きが一方向であることは必須ではない（開発者の方針）。逆向きに使うほうが素直に書けるなら、使ってよい。並べ替えや型の移動で一方向に保つことを目的にしない。
-- 右ほど簡素な機能で、左がそれらを組み合わせてより複雑なことをする（目指す形は[コードの置き場所の決め方](code-placement.md)の「依存の向き」）。並びの理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`sheet`）。編集は部品の座標を使う（`editing` → `sheet`）。シートはシミュレーションの結果を表示する（`sheet` → `simulation`）。部品の種類の型から回路のデータを作る（`circuit` → `parts`）。部品のアイコンは共通のアイコンの部品で描く（`parts` → `ui`）。
+- 右ほど簡素な機能で、左がそれらを組み合わせてより複雑なことをする（目指す形は[コードの置き場所の決め方](code-placement.md)の「依存の向き」）。並びの理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、編集の型、シミュレーションの結果、座標の計算を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示位置も保存する（`file` → `preferences`、`geometry`）。編集は部品の座標を使う（`editing` → `geometry`）。座標の計算は部品の種類の形を見る（`geometry` → `circuit`、`parts`）。部品の種類の型から回路のデータを作る（`circuit` → `parts`）。部品のアイコンは共通のアイコンの部品で描く（`parts` → `ui`）。
 - 必須として残している決まりは、画面と計算の分け方（上の「画面と計算の分け方」）と、`util.ts` が何も import しないこと。
 - 互いに import し合う形（循環）にするときの落とし穴: 読み込みの途中では、相手のファイルの値がまだできていないことがある。ファイルを読み込んだときに相手の値を使う処理（例: `parts/specs.ts` が読み込み時に `PARTS` から一覧の `Map` を作る）が循環に入ると、`undefined` を読んで壊れる。関数の中から呼ぶだけ、型だけの import なら問題ない。
 

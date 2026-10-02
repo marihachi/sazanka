@@ -1,6 +1,7 @@
 import { Flex } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { Sheet, type SheetSize, type DragMode, type Selection } from '../sheet/Sheet';
+import { Sheet, type SheetSize, type DragMode } from '../sheet/Sheet';
+import type { Selection } from '../editing/edit';
 import { Header } from './Header';
 import { Palette } from '../palette/Palette';
 import { PropertyPanel } from './PropertyPanel';
