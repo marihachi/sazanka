@@ -1,40 +1,16 @@
 import { Box, type BoxProps } from '@chakra-ui/react';
-import type { ComponentKind } from '../engine/component';
-import andIcon from '../assets/icons/and.svg';
+import { type ComponentKind, isSpecialKind, type SpecialKind } from '../engine/component';
 import clockIcon from '../assets/icons/clock.svg';
-import rsenIcon from '../assets/icons/rsen.svg';
-import dlatchIcon from '../assets/icons/dlatch.svg';
-import dffIcon from '../assets/icons/dff.svg';
-import highIcon from '../assets/icons/high.svg';
 import inputIcon from '../assets/icons/input.svg';
-import jkffIcon from '../assets/icons/jkff.svg';
 import moduleIcon from '../assets/icons/module.svg';
-import nandIcon from '../assets/icons/nand.svg';
-import norIcon from '../assets/icons/nor.svg';
-import notIcon from '../assets/icons/not.svg';
-import orIcon from '../assets/icons/or.svg';
 import outputIcon from '../assets/icons/output.svg';
-import rsIcon from '../assets/icons/rs.svg';
-import tffIcon from '../assets/icons/tff.svg';
-import xorIcon from '../assets/icons/xor.svg';
+import { partViewOf } from './parts';
 
-const ICONS: Partial<Record<ComponentKind, string>> = {
+/** 特別な部品のアイコン。ほかの種類のアイコンは parts/ の見せ方にある */
+const SPECIAL_ICONS: Record<SpecialKind, string> = {
   INPUT: inputIcon,
   CLOCK: clockIcon,
-  HIGH: highIcon,
   OUTPUT: outputIcon,
-  AND: andIcon,
-  OR: orIcon,
-  NOT: notIcon,
-  NAND: nandIcon,
-  NOR: norIcon,
-  XOR: xorIcon,
-  RS: rsIcon,
-  RSEN: rsenIcon,
-  DLATCH: dlatchIcon,
-  DFF: dffIcon,
-  TFF: tffIcon,
-  JKFF: jkffIcon,
   CUSTOM: moduleIcon,
 };
 
@@ -64,5 +40,6 @@ export function ToolIcon({ src }: { src: string }) {
 
 /** 部品の種類ごとのアイコン (32×24) */
 export function PartIcon({ kind }: { kind: ComponentKind }) {
-  return <MaskIcon src={ICONS[kind] ?? moduleIcon} w="8" h="6" />;
+  const src = partViewOf(kind)?.icon ?? (isSpecialKind(kind) ? SPECIAL_ICONS[kind] : moduleIcon);
+  return <MaskIcon src={src} w="8" h="6" />;
 }

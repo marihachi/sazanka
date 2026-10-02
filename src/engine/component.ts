@@ -48,7 +48,7 @@ export type ComponentKind = PlaceableComponentKind | 'BUF';
 export type PlaceableComponentKind = PartKind | SpecialKind;
 
 function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind {
-  return partSpecOf(kind) !== undefined || (SPECIAL_KINDS as Set<string>).has(kind);
+  return partSpecOf(kind) !== undefined || isSpecialKind(kind);
 }
 
 /**
@@ -66,6 +66,10 @@ const SPECIAL_KINDS = new Set([
 ] as const);
 
 export type SpecialKind = SetElement<typeof SPECIAL_KINDS>;
+
+export function isSpecialKind(kind: string): kind is SpecialKind {
+  return (SPECIAL_KINDS as Set<string>).has(kind);
+}
 
 /** 記憶素子 (ラッチとフリップフロップ) か */
 export function isFlipFlopKind(kind: ComponentKind): boolean {

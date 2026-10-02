@@ -8,7 +8,7 @@ import {
   type Component,
 } from '../engine/component';
 import { shallowEqual } from '../util';
-import { LABELS } from './parts';
+import { labelOf } from './parts';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
@@ -56,9 +56,7 @@ export const PropertyPanel = memo(function PropertyPanel({
       </Text>
       {component ? (
         <>
-          <Text fontWeight="semibold">
-            {moduleName ?? LABELS[component.kind] ?? component.kind}
-          </Text>
+          <Text fontWeight="semibold">{moduleName ?? labelOf(component.kind)}</Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {component.kind === 'CLOCK' ? (
             <ClockPeriodField

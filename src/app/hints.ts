@@ -1,5 +1,6 @@
 import type { Component } from '../engine/component';
 import { clockPeriodOf } from '../engine/component';
+import { partViewOf } from '../components/parts';
 
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
@@ -104,39 +105,14 @@ export function statusHints(ctx: HintContext): string[] {
           'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る',
           ...move,
         ];
-      case 'HIGH':
-        return ['常に ON を出力する。入力を固定したいときに使う', ...move];
       case 'CLOCK':
         return [
           `${clockPeriodOf(c)} tick (${(clockPeriodOf(c) * ctx.tickMs) / 1000} 秒) 周期で ON/OFF を繰り返す。周期は右のプロパティ欄で変えられる`,
           ...move,
         ];
-      case 'RS':
-        return [
-          'S が ON で Q を ON、R が ON で Q を OFF にする (両方 ON なら OFF)',
-          'クロックはなく、S / R が変わるとすぐに Q が変わる',
-          ...move,
-        ];
-      case 'RSEN':
-        return [
-          'EN が ON の間だけ、S で Q を ON、R で Q を OFF にする (両方 ON なら OFF)',
-          'EN が OFF の間は、S / R を変えても Q は変わらない',
-          ...move,
-        ];
-      case 'DLATCH':
-        return [
-          'EN が ON の間は、Q が D に追従する',
-          'EN を OFF にすると、その直前の D を保持する。D-FF と違い、EN が ON の間ずっと D の変化が出力に出る',
-          ...move,
-        ];
-      case 'DFF':
-        return ['CLK (>) が OFF→ON になった瞬間の D を Q に取り込む', ...move];
-      case 'TFF':
-        return ['CLK (>) が OFF→ON になった瞬間、T が ON なら Q を反転する', ...move];
-      case 'JKFF':
-        return ['CLK (>) が OFF→ON になった瞬間に、J で ON、K で OFF、両方で反転する', ...move];
       default:
-        return move;
+        // 特別な部品以外のヒントは、種類ごとの見せ方 (components/parts/) にある
+        return [...(partViewOf(c.kind)?.hints ?? []), ...move];
     }
   }
   if (ctx.unstable) {

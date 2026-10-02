@@ -16,7 +16,7 @@
   - `share.ts` … 共有用 JSON
 - `components/` … 画面の部品。`app/` を import しない（表示に必要なものは props で受け取る）。回路を直接書き換えず、「移動した」「接続した」などの出来事をコールバックで知らせる。元に戻す対象にするかどうかは `app/` 側で決める（[編集と元に戻す](editing.md)）。
   - `dialogs/` … 画面内のダイアログ。1 つずつ別のファイルで、共通の外枠は `DialogFrame.tsx`。
-  - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`parts.ts` … 部品の表示名とドラッグの受け渡し。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。`theme.ts` … Chakra UI のテーマ（色のトークン、アクセントカラーのパレット）。`HintTooltip.tsx` … ツールチップ。`TrashZone.tsx` … 部品を消す削除エリア
+  - 各コンポーネントと、その CSS。`wirePath.ts` … 配線の SVG のパス（角の丸め）。`useViewGestures.ts` … シートの表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2本指）。`parts/` … 部品の種類ごとの見せ方（表示名、アイコン、パレットのグループ、説明、ヒント）。`engine/parts/` と同じ名前のファイルで置き、`index.ts` の `PART_VIEWS` に並べる。`index.ts` にはドラッグの受け渡しの型もある。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）。`preferences.ts` … 環境設定の型と選択肢。`classNames.ts` … クラス名の連結。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。`theme.ts` … Chakra UI のテーマ（色のトークン、アクセントカラーのパレット）。`HintTooltip.tsx` … ツールチップ。`TrashZone.tsx` … 部品を消す削除エリア
 - `app/` … 画面全体の組み立てと状態。
   - `App.tsx` … 画面の組み立てと、状態のつなぎ役、回路の編集操作
   - `useDialogs.tsx` … ダイアログの開閉と描く部分。`useClipboard.ts` … コピー・切り取り・貼り付け。`useProjectFile.ts` … プロジェクトの新規作成・書き出し・読み込み。`useModules.ts` … モジュールの追加・改名・削除と、パレットのモジュールの一覧。`useStableCallbacks.ts` … 子に渡す関数の固定

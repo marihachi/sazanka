@@ -1,16 +1,15 @@
 import type { Component, ComponentKind } from '../engine/component';
 import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
 import type { Ports } from '../engine/module';
+import { partSpecOf } from '../engine/parts';
 import { classNames } from './classNames';
 import styles from './ComponentView.module.css';
-import { LABELS } from './parts';
+import { labelOf, partViewOf } from './parts';
 
-/** シート上の部品の中に書く名前。本体の幅に収まらないものだけ短くする */
-const BODY_LABELS: Partial<Record<ComponentKind, string>> = {
-  RS: 'RS',
-  RSEN: 'RS',
-  DLATCH: 'DL',
-};
+/** シート上の部品の中に書く名前 */
+function bodyLabelOf(kind: ComponentKind): string {
+  return partViewOf(kind)?.bodyLabel ?? labelOf(kind);
+}
 
 interface ComponentViewProps {
   comp: Component;
@@ -87,12 +86,13 @@ export function ComponentView({
         />
       </>
     );
-  } else if (c.kind === 'HIGH') {
+  } else if (partSpecOf(c.kind)?.shape === 'terminal') {
+    // 形が端子の部品 (HIGH など)。本体の中に記号を大きく書く
     body = (
       <>
         <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
-        <text className={styles.high} x={c.x + w / 2} y={c.y + h / 2 + 6}>
-          1
+        <text className={styles.terminalMark} x={c.x + w / 2} y={c.y + h / 2 + 6}>
+          {bodyLabelOf(c.kind)}
         </text>
       </>
     );
@@ -115,7 +115,7 @@ export function ComponentView({
       <>
         <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} />
         <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
-          {isCustom ? (name ?? '(不明)') : (BODY_LABELS[c.kind] ?? LABELS[c.kind] ?? c.kind)}
+          {isCustom ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
         </text>
         {ports.inputs.map((label, i) =>
           label ? (

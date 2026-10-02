@@ -3,55 +3,63 @@ import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
-import type { ComponentKind } from '../engine/component';
+import { type ComponentKind, isSpecialKind, type SpecialKind } from '../engine/component';
+import type { PartKind } from '../engine/parts';
 import type { CircuitDef } from '../engine/project';
-import { DRAG_MIME, LABELS, type PaletteDrag } from './parts';
+import {
+  DRAG_MIME,
+  labelOf,
+  PART_VIEWS,
+  type PaletteDrag,
+  type PaletteGroupId,
+  partViewOf,
+} from './parts';
 import { MaskIcon, PartIcon } from './Icons';
 import { ToolButton } from './ToolButton';
 import { HintTooltip } from './HintTooltip';
 
 /**
  * 部品のグループ。id は折り畳みの状態の保存に使うので、一度決めたら変えない。
- * 変えると、利用者が折り畳んでいた状態が失われる (見出しの title は変えてよい)
+ * 変えると、利用者が折り畳んでいた状態が失われる (見出しの title は変えてよい)。
+ * グループには、specials に挙げた特別な部品の後ろに、parts/ の見せ方でそのグループを選んだ種類が並ぶ
  */
-const GROUPS: { id: string; title: string; kinds: ComponentKind[] }[] = [
+const GROUPS: { id: PaletteGroupId; title: string; specials: SpecialKind[] }[] = [
   // INPUT / OUTPUT はモジュールのピンにもなる。自分で信号を出す CLOCK / HIGH は「信号源」に分ける
-  { id: 'io', title: '入出力', kinds: ['INPUT', 'OUTPUT'] },
-  { id: 'source', title: '信号源', kinds: ['CLOCK', 'HIGH'] },
-  {
-    id: 'gate',
-    title: '論理ゲート',
-    kinds: ['AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR'],
-  },
-  { id: 'latch', title: 'ラッチ', kinds: ['RS', 'RSEN', 'DLATCH'] },
-  { id: 'flipflop', title: 'フリップフロップ', kinds: ['DFF', 'TFF', 'JKFF'] },
+  { id: 'io', title: '入出力', specials: ['INPUT', 'OUTPUT'] },
+  { id: 'source', title: '信号源', specials: ['CLOCK'] },
+  { id: 'gate', title: '論理ゲート', specials: [] },
+  { id: 'latch', title: 'ラッチ', specials: [] },
+  { id: 'flipflop', title: 'フリップフロップ', specials: [] },
 ];
+
+/** グループに並べる部品の種類 */
+function kindsOf(group: (typeof GROUPS)[number]): ComponentKind[] {
+  const parts = (Object.keys(PART_VIEWS) as PartKind[]).filter(
+    (k) => PART_VIEWS[k].group === group.id,
+  );
+  return [...group.specials, ...parts];
+}
 
 /** モジュールのグループ。部品のグループと同じく、id は変えない */
 const MODULE_GROUP = { id: 'module', title: 'モジュール' };
 const GROUP_IDS = [...GROUPS.map((g) => g.id), MODULE_GROUP.id];
 
-/** パレットの部品のツールチップ。部品の働きを1文で説明する */
-const DESCRIPTIONS: Partial<Record<ComponentKind, string>> = {
+/** 特別な部品の、パレットのツールチップ。ほかの種類の説明は parts/ の見せ方にある */
+const SPECIAL_DESCRIPTIONS: Record<SpecialKind, string> = {
   INPUT:
     '入力スイッチ。クリックで ON/OFF を切り替える。モジュールの中に置くと、そのモジュールの入力ピンになる',
   CLOCK: '一定の周期で ON/OFF を繰り返す',
-  HIGH: '常に ON を出力する',
   OUTPUT: '入力が ON のとき点灯するランプ。モジュールの中に置くと、そのモジュールの出力ピンになる',
-  AND: 'すべての入力が ON のとき ON',
-  OR: 'どれかの入力が ON のとき ON',
-  NOT: '入力を反転する',
-  NAND: 'AND の反転。すべての入力が ON のときだけ OFF',
-  NOR: 'OR の反転。すべての入力が OFF のときだけ ON',
-  XOR: '2つの入力が異なるとき ON',
-  RS: 'S で ON、R で OFF にして値を保持する。クロックはなく、入力にすぐ反応する',
-  RSEN: 'EN が ON の間だけ、S で ON、R で OFF にする。EN が OFF の間は値を保持する',
-  DLATCH: 'EN が ON の間は D の値をそのまま出し、OFF になると直前の値を保持する',
-  DFF: 'CLK が OFF から ON になった瞬間に D の値を取り込み、保持する',
-  TFF: 'CLK が OFF から ON になった瞬間に、T が ON なら出力を反転する',
-  JKFF: 'CLK が OFF から ON になった瞬間に、J で ON、K で OFF、両方 ON なら反転する',
   CUSTOM: '回路をまとめた部品。シート上でダブルクリックすると中身を開く',
 };
+
+/** パレットの部品のツールチップ */
+function descriptionOf(kind: ComponentKind): string | undefined {
+  if (isSpecialKind(kind)) {
+    return SPECIAL_DESCRIPTIONS[kind];
+  }
+  return partViewOf(kind)?.description;
+}
 
 export interface PaletteModule {
   def: CircuitDef;
@@ -100,8 +108,8 @@ export const Palette = memo(function Palette({
             collapsed={collapsed}
             onToggle={onToggleGroup}
           >
-            {group.kinds.map((k) => (
-              <PaletteItem key={k} label={LABELS[k] ?? k} kind={k} onAdd={() => onAdd(k)} />
+            {kindsOf(group).map((k) => (
+              <PaletteItem key={k} label={labelOf(k)} kind={k} onAdd={() => onAdd(k)} />
             ))}
           </PaletteGroup>
         ))}
@@ -223,7 +231,7 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
   );
   return (
     // 置けないモジュールは、説明よりも置けない理由を見せる
-    <HintTooltip content={disabledReason ?? DESCRIPTIONS[kind]}>
+    <HintTooltip content={disabledReason ?? descriptionOf(kind)}>
       {/* 押せないボタンはポインターのイベントを出さないので、包んだ要素でツールチップを出す */}
       {disabled ? <Box w="full">{button}</Box> : button}
     </HintTooltip>
