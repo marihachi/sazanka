@@ -1,5 +1,5 @@
 // モジュール: 回路を部品として使うときのピンの決め方と、回路同士の依存。
-// 展開 (シミュレーション用に1つの回路にする) は flatten.ts にある
+// 展開 (シミュレーション用に1つの回路にする) は simulation/flatten.ts にある
 
 import { inputPinNames, outputPinNames, type Component } from './component';
 import type { Circuit } from './circuit';

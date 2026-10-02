@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
-import type { Selection } from '../components/Sheet';
+import type { Selection } from '../sheet/Sheet';
 import { newId, type Circuit, type PinRef } from '../circuit/circuit';
-import * as edit from '../engine/edit';
-import type { Point } from '../engine/layout';
+import * as edit from './edit';
+import type { Point } from '../sheet/layout';
 import { dependsOn } from '../circuit/module';
 import { type CircuitDef, findDef, type Project } from '../circuit/project';
 

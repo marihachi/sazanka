@@ -1,14 +1,7 @@
 // シートの表示 (スクロールと拡大縮小): 回路の座標と画面の座標の変換。
-// 部品の大きさや配置は engine/layout.ts、表示の保存は app/storage.ts にある
+// 部品の大きさや配置は layout.ts、表示の保存は app/storage.ts にある
 
-import {
-  componentBounds,
-  GRID,
-  SHEET_HEIGHT,
-  SHEET_WIDTH,
-  type Point,
-  type Rect,
-} from '../engine/layout';
+import { componentBounds, GRID, SHEET_HEIGHT, SHEET_WIDTH, type Point, type Rect } from './layout';
 import type { CircuitDef, Project } from '../circuit/project';
 import { portsOf } from '../circuit/module';
 

@@ -1,4 +1,4 @@
-import { type Point, wireRoute } from '../engine/layout';
+import { type Point, wireRoute } from './layout';
 
 /** 配線の角を丸めるときの半径 (px)。短い区間では、隣の角と重ならないよう区間の長さの半分までに抑える */
 const WIRE_CORNER_RADIUS = 6;

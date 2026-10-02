@@ -1,15 +1,15 @@
 import { Flex } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
-import { Sheet, type SheetSize, type DragMode, type Selection } from '../components/Sheet';
+import { Sheet, type SheetSize, type DragMode, type Selection } from '../sheet/Sheet';
 import { Header } from '../components/Header';
 import { Palette } from '../components/Palette';
 import { PropertyPanel } from '../components/PropertyPanel';
 import { StatusBar } from '../components/StatusBar';
 import { TabBar } from '../components/TabBar';
-import { SheetToolbar } from '../components/SheetToolbar';
-import { overview, toWorld } from '../components/view';
-import * as edit from '../engine/edit';
-import { clampPosition, GRID, type Point, snap } from '../engine/layout';
+import { SheetToolbar } from '../simulation/SheetToolbar';
+import { overview, toWorld } from '../sheet/view';
+import * as edit from '../editing/edit';
+import { clampPosition, GRID, type Point, snap } from '../sheet/layout';
 import type { Component, ComponentKind } from '../circuit/component';
 import { newId, type PinRef } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
@@ -25,13 +25,13 @@ import {
   savePreferences,
   saveViews,
 } from './storage';
-import { useClipboard } from './useClipboard';
+import { useClipboard } from '../editing/useClipboard';
 import { useDialogs } from './useDialogs';
 import { useModules } from './useModules';
 import { useProjectFile } from './useProjectFile';
-import { useSimulation } from './useSimulation';
-import { useProjectHistory } from './useProjectHistory';
-import { useShortcuts } from './useShortcuts';
+import { useSimulation } from '../simulation/useSimulation';
+import { useProjectHistory } from '../editing/useProjectHistory';
+import { useShortcuts } from '../editing/useShortcuts';
 import { useStableCallbacks } from './useStableCallbacks';
 
 /** その場で編集中の名前 (タブのモジュール名) */

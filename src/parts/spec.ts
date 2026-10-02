@@ -23,14 +23,14 @@ interface PartSpecBase {
   inputs: readonly string[];
   /**
    * 遅延 (何 tick 後に出力へ現れるか)。NAND / NOR を 1 段として、実物の段数に近づける。
-   * いちばん長い遅延を変えたら、sim.ts の SETTLED_TICKS も合わせる
+   * いちばん長い遅延を変えたら、simulation/sim.ts の SETTLED_TICKS も合わせる
    */
   delay: number;
 }
 
 /**
  * 入力から出力 (1 本) を決める部品。
- * 形は、ゲート (入力は 1 本か 2 本) か、端子 (小さな正方形。入力ピンはなし) から選ぶ。大きさとピンの座標は layout.ts
+ * 形は、ゲート (入力は 1 本か 2 本) か、端子 (小さな正方形。入力ピンはなし) から選ぶ。大きさとピンの座標は sheet/layout.ts
  */
 export interface LogicPartSpec extends PartSpecBase {
   shape: 'gate' | 'terminal';

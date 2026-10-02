@@ -1,5 +1,5 @@
 import type { Component, ComponentKind } from '../circuit/component';
-import { bodySize, inputPinPos, outputPinPos } from '../engine/layout';
+import { bodySize, inputPinPos, outputPinPos } from './layout';
 import type { Ports } from '../circuit/module';
 import { partSpecOf } from '../parts/specs';
 import { classNames } from '../ui/classNames';

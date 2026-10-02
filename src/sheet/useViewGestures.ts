@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Point } from '../engine/layout';
+import type { Point } from './layout';
 import { type View, zoomAt } from './view';
 
 /** 表示の移動 (中ボタンか Space を押しながらのドラッグ)。start は押した位置 (画面の座標) */

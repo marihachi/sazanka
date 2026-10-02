@@ -12,12 +12,13 @@ import {
   SHEET_WIDTH,
   snap,
   wireMiddleX,
-} from '../engine/layout';
+} from './layout';
 import type { Component, ComponentKind } from '../circuit/component';
 import type { Circuit, PinRef } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { portComponents, portsOf } from '../circuit/module';
-import { pinKey, type SimResult } from '../engine/sim';
+import { pinKey } from '../simulation/sim';
+import type { SimStore } from '../simulation/useSimulation';
 import { mustGet } from '../util';
 import { ComponentView } from './ComponentView';
 import { classNames } from '../ui/classNames';
@@ -77,12 +78,6 @@ const DRAG_THRESHOLD = 4;
 
 /** 拡大・縮小ボタン1回で変える倍率 */
 const ZOOM_STEP = 1.25;
-
-/** 値を読み、変わったら知らせてもらえる、シミュレーションの結果の入れ物 (作るのは app/useSimulation.ts) */
-export interface SimStore {
-  get: () => SimResult;
-  subscribe: (listener: () => void) => () => void;
-}
 
 interface SheetProps {
   project: Project;

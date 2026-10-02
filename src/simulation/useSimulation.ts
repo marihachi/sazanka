@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { SimStore } from '../components/Sheet';
 import { clockFlipsAt, clockPeriodOf } from '../circuit/component';
 import type { Project } from '../circuit/project';
-import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from '../engine/sim';
+import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from './sim';
 
 /** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
 const MAX_TICKS_PER_FRAME = 20;
@@ -50,6 +49,12 @@ function toggleClocks(clockOn: Map<string, boolean>, keys: readonly string[]) {
   for (const k of keys) {
     clockOn.set(k, !clockOn.get(k));
   }
+}
+
+/** 値を読み、変わったら知らせてもらえる、シミュレーションの結果の入れ物。シートが購読する (sheet/Sheet.tsx) */
+export interface SimStore {
+  get: () => SimResult;
+  subscribe: (listener: () => void) => () => void;
 }
 
 /** 値を入れておき、変わったら購読している側に知らせる入れ物 */

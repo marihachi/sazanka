@@ -5,7 +5,7 @@ import {
   isTickMs,
   type Preferences,
 } from '../components/preferences';
-import { isView, type View } from '../components/view';
+import { isView, type View } from '../sheet/view';
 import { isObject } from '../util';
 
 const STORAGE_KEY = 'sazanka.project';
