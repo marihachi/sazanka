@@ -1,6 +1,6 @@
 # sazanka
 
-Webで動作する論理回路シミュレータ。
+ブラウザで動作する論理回路シミュレータです。
 
 ![image](screenshot.png)
 
