@@ -11,7 +11,7 @@
 - [ドキュメントの書き方](docs/agent/documentation.md) — 何をどこに書くか、いつ見直すか、Skill にするもの
 - [用語](docs/agent/glossary.md) — このアプリで使う言葉と、コードでの名前の対応
 - [作業の進め方](docs/agent/workflow.md) — 言語、合意の取り方、実装を始める合図、確認、コミット
-- [コードの書き方](docs/agent/coding-style.md) — Biome、Biome が判断しない書き方、テスト
+- [コードの書き方](docs/agent/coding-style.md) — Biome、Biome が判断しない書き方、コメント、テスト
 - [ソースの構成](docs/agent/structure.md) — `src/` のフォルダと各ファイルの責務、画面と計算の分け方
 
 ### 触るときに読むドキュメント
