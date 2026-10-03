@@ -5,7 +5,7 @@ export interface History<T> {
   future: T[];
 }
 
-/** 保持する履歴の上限 */
+/** 保持する履歴の上限。積むときに .slice(-LIMIT) で、古い方を捨てて新しい方から LIMIT 件だけ残す */
 const LIMIT = 100;
 
 export function initHistory<T>(present: T): History<T> {

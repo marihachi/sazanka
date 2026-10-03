@@ -45,6 +45,8 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // 確定したあとの動きは 3 通り。エラーなら開いたままエラーを出す。
+    // doneMessage があれば開いたまま結果を出す (書き出しの「コピー」)。どちらでもなければ閉じる
     const error = await request.onSubmit(value);
     if (error) {
       setStatus({ error: true, text: error });

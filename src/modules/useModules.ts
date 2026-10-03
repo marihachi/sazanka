@@ -62,6 +62,7 @@ export function useModules({
   /** 名前を入力するウィンドウを開き、確定したらモジュールを作成して開く */
   function createModule() {
     const names = new Set(project.circuits.map((d) => d.name));
+    // 既定の名前の番号は、モジュールの数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
     let n = project.circuits.length;
     while (names.has(`モジュール${n}`)) {
       n++;

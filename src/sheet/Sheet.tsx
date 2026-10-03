@@ -390,6 +390,7 @@ export function Sheet({
       onDragModeChange('trash');
       return;
     }
+    // 削除エリアから外れたら、ふつうのドラッグの表示に戻す
     if (drag.moved) {
       onDragModeChange('moving');
     }
@@ -399,6 +400,8 @@ export function Sheet({
       const c = compMap.get(id);
       return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
     });
+    // 押した部品の新しい位置 (ポインターの位置 - 押した位置のずれ、グリッドに合わせる) と、
+    // ドラッグ開始時の位置との差が、選んだ部品全体の移動量
     const d = clampMove(items, {
       x: snap(p.x - drag.offset.x) - anchor.x,
       y: snap(p.y - drag.offset.y) - anchor.y,
@@ -448,6 +451,7 @@ export function Sheet({
       return;
     }
     if (dragMode === 'trash') {
+      // 動かしていれば onMoveStart で履歴を積んであるので、削除はその 1 回の操作に含める (App.tsx)
       onDropOnTrash([...drag.origins.keys()], drag.started);
       return;
     }
@@ -537,7 +541,8 @@ export function Sheet({
         onDrop={onDrop}
       >
         <defs>
-          {/* 方眼は表示と一緒に動かす。線の太さは倍率によらず 1px のままにする */}
+          {/* 方眼は表示と一緒に動かす。線の太さは倍率によらず 1px のままにする (拡大されるので 1 / scale にする)。
+              1 マスごとに、右端の縦線と下端の横線だけを描く (M20,0 V20 H0)。隣のマスと並べると格子になる */}
           <pattern
             id="grid"
             width={GRID}
@@ -554,7 +559,8 @@ export function Sheet({
           </pattern>
         </defs>
         {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
-        {/* シートの外 (部品を置けない範囲)。画面全体から、シートの範囲をくり抜いて塗る */}
+        {/* シートの外 (部品を置けない範囲)。画面全体の長方形と、シートの範囲の長方形を 1 つのパスにし、
+            evenodd で 2 つの間だけを塗る (内側はくり抜かれる) */}
         <path
           className={styles.outside}
           fillRule="evenodd"

@@ -161,6 +161,7 @@ export function App() {
       x: sheetSize.width / 2,
       y: sheetSize.height / 2,
     });
+    // 置くたびに 1 マスずつ右下へずらす。10 個ごとに元の位置へ戻る
     const base = at ?? {
       x: center.x - GRID * 2 + (n % 10) * GRID,
       y: center.y - GRID * 2 + (n % 10) * GRID,
@@ -171,6 +172,7 @@ export function App() {
       x: snap(base.x),
       y: snap(base.y),
     };
+    // ON/OFF を持つ部品は OFF から始める。CLOCK の実際の ON/OFF はシミュレーションの中で持つ (useSimulation.ts)
     if (kind === 'INPUT' || kind === 'CLOCK') {
       c.on = false;
     }

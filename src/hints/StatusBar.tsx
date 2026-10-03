@@ -5,6 +5,7 @@ const HINT_MIN_DURATION = 6000;
 
 /** ヒントを表示し続ける時間 (ms)。長い文ほど長く、最短でも HINT_MIN_DURATION */
 function hintDuration(hint: string): number {
+  // 3 秒に、1 文字あたり 0.25 秒 (1 秒に 4 文字ほど読む前提) を足す
   return Math.max(HINT_MIN_DURATION, 3000 + hint.length * 250);
 }
 

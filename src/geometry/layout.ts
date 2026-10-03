@@ -39,6 +39,8 @@ export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
   } else if (isFlipFlopKind(c.kind)) {
     return { w: 60, h: 80 };
   } else if (c.kind === 'CUSTOM') {
+    // ピンは上から 1 マスおき (GRID * (pin + 1)) に並ぶので、多い方のピンの数 + 1 マスの高さにする。
+    // 例: ピンが 3 本なら、ピンは y + 20, 40, 60 で、高さは 80
     const n = Math.max(ports.inputs.length, ports.outputs.length, 1);
     return { w: 80, h: (n + 1) * GRID };
   } else {
@@ -56,6 +58,7 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
     // 入力ピンがあるのは OUTPUT だけ (1本)
     y = c.y + h / 2;
   } else if (isFlipFlopKind(c.kind)) {
+    // 記憶素子: 上から 1 マスおき (y + 20, 40, 60)。高さ 80 に 3 本まで並ぶ
     y = c.y + GRID * (pin + 1);
   } else if (c.kind === 'CUSTOM') {
     y = c.y + GRID * (pin + 1);
@@ -67,6 +70,7 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
       y = pin === 0 ? c.y + GRID : c.y + h - GRID;
     }
   }
+  // ピンの先は、本体の左端から 1 マス左
   return { x: c.x - GRID, y };
 }
 
@@ -78,7 +82,7 @@ export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
     // 出力ピンがあるのは OUTPUT 以外 (1本)
     y = c.y + h / 2;
   } else if (isFlipFlopKind(c.kind)) {
-    // Q と Q̄ は上下端から1グリッド内側
+    // Q と Q̄ は上下端から1グリッド内側 (高さ 80 なので y + 20 と y + 60)
     y = pin === 0 ? c.y + GRID : c.y + h - GRID;
   } else if (c.kind === 'CUSTOM') {
     y = c.y + GRID * (pin + 1);
@@ -86,6 +90,7 @@ export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
     // 論理ゲート (と BUF) は1出力
     y = c.y + h / 2;
   }
+  // ピンの先は、本体の右端から 1 マス右
   return { x: c.x + w + GRID, y };
 }
 
@@ -99,6 +104,8 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
   // 左右はピンの先端まで、上はモジュール名 (本体の上に描く) の分も含める
   const minX = GRID;
   const minY = c.kind === 'CUSTOM' ? GRID : 0;
+  // 右端は「本体の幅 + 右のピンの 1 マス」がシートに収まる位置。グリッドに乗るよう切り捨てる。
+  // Math.max は、シートより大きな部品でも minX / minY を下回らないようにするため
   const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID);
   const maxY = Math.max(minY, Math.floor((SHEET_HEIGHT - h) / GRID) * GRID);
   return {
@@ -113,6 +120,7 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
  * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
  */
 export function clampMove(items: { c: Component; ports: Ports }[], delta: Point): Point {
+  // 部品を 1 つずつ、移動先がはみ出すなら delta を縮める (はみ出す向きの成分だけが 0 に近づく)
   let d = delta;
   for (const { c, ports } of items) {
     const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
@@ -162,6 +170,7 @@ export function componentsInRect(
  * グリッドに合わせ、シートからはみ出さないように縮める (貼り付ける位置に使う)
  */
 export function placeOffset(items: { c: Component; ports: Ports }[], at: Point): Point {
+  // 全体の範囲 (各部品の範囲を囲む長方形) の中心 cx, cy を求め、それが at に来る移動量にする
   const rects = items.map(({ c, ports }) => componentBounds(c, ports));
   const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
   const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
@@ -174,8 +183,11 @@ export function placeOffset(items: { c: Component; ports: Ports }[], at: Point):
  * 最後の区間だけ縦→横、ほかは横→縦の順に曲がる。折れる点がなければ、中間で1回折れる形にする
  */
 export function wireRoute(from: Point, points: readonly Point[], to: Point): Point[] {
+  // 例: 折れる点が p 1 つなら from → (p.x, from.y) → p → (p.x, to.y) → to。
+  // 点と点の間は「横に進んでから縦」、最後の区間だけ「縦に進んでから横」になる
   const route: Point[] = [from];
   if (points.length === 0) {
+    // 両端の x の真ん中 (グリッドに合わせる) で縦に折れる
     const mid = snap((from.x + to.x) / 2);
     route.push({ x: mid, y: from.y }, { x: mid, y: to.y });
   } else {
@@ -195,6 +207,7 @@ export function wireRoute(from: Point, points: readonly Point[], to: Point): Poi
  * 両端が同じ高さのときなどに、長さ 0 の区間や、曲がらない「角」が残らないようにする
  */
 function simplify(route: Point[]): Point[] {
+  // 1 回目: 直前と同じ点を除く。2 回目: 前後と同じ縦線か横線の上にある点 (曲がらない点) を除く
   const distinct = route.filter(
     (p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y,
   );

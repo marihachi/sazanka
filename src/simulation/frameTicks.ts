@@ -11,6 +11,8 @@ export const MAX_TICKS_PER_FRAME = 20;
  */
 export function frameTicks(carry: number, interval: number): { count: number; carry: number } {
   const due = Math.floor(carry / interval);
+  // どちらの分岐でも、持ち越すのは 1 tick に満たない端数 (carry % interval と carry - due * interval は同じ値)。
+  // 上限で打ち切るときは、上限を超えた分の tick (due - MAX_TICKS_PER_FRAME) を持ち越さずに捨てる
   if (due > MAX_TICKS_PER_FRAME) {
     return { count: MAX_TICKS_PER_FRAME, carry: carry % interval };
   }

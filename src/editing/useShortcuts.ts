@@ -31,9 +31,11 @@ export function useShortcuts(shortcuts: Shortcuts) {
         return;
       }
       const mod = e.ctrlKey || e.metaKey;
+      // Shift を押していると e.key が大文字 ('Z') になるので、小文字にそろえて比べる
       const key = e.key.toLowerCase();
       if (mod && (key === 'z' || key === 'y')) {
         e.preventDefault();
+        // Ctrl+Y と Ctrl+Shift+Z はやり直し、Ctrl+Z は元に戻す
         if (key === 'y' || e.shiftKey) {
           s.onRedo();
         } else {

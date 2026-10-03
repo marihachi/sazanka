@@ -82,6 +82,8 @@ export function useViewGestures({
       // 行単位で届く環境 (Firefox など) では、おおよそのピクセル数に直す
       const delta = e.deltaMode === WheelEvent.DOM_DELTA_LINE ? e.deltaY * 16 : e.deltaY;
       // ピンチは1回の量が小さいので、強めに効かせる
+      // 倍率に掛ける係数。指数にすると、同じ量だけ回したときの拡大と縮小がちょうど打ち消し合う
+      // (上に回すと delta が負で 1 より大きく、下に回すと 1 より小さくなる)
       const factor = Math.exp(-delta * (e.ctrlKey ? 0.01 : 0.0015));
       const v = viewRef.current;
       onViewChangeRef.current(zoomAt(v, toScreenLocal(svg, e), v.scale * factor));
@@ -171,8 +173,10 @@ export function useViewGestures({
       }
       const [a, b] = [...touches.values()];
       const mid = midpoint(a, b);
+      // 指の間隔が始めの何倍になったかを、始めの倍率に掛ける
       const scale = (pinch.view.scale * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.distance;
-      // 押した時点で指の間にあった回路の点を、今の指の間に持ってくる
+      // 押した時点で指の間にあった回路の点を、今の指の間に持ってくる。
+      // 始めの中点を基準に拡大縮小してから、中点が動いた分だけずらす
       const zoomed = zoomAt(pinch.view, pinch.mid, scale);
       onViewChange({
         ...zoomed,

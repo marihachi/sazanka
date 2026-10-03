@@ -19,11 +19,12 @@ export function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
-/** 画面の座標 (シートの左上からの位置) を、回路の座標にする */
+/** 画面の座標 (シートの左上からの位置) を、回路の座標にする。toScreen の式を逆に解いたもの */
 export function toWorld(v: View, p: Point): Point {
   return { x: (p.x - v.x) / v.scale, y: (p.y - v.y) / v.scale };
 }
 
+/** 回路の座標を、画面の座標にする (回路の座標 × scale + (x, y)) */
 export function toScreen(v: View, p: Point): Point {
   return { x: p.x * v.scale + v.x, y: p.y * v.scale + v.y };
 }
@@ -31,12 +32,14 @@ export function toScreen(v: View, p: Point): Point {
 /** 倍率を変える。画面の at の位置にある回路の点は、変えた後も同じ位置に残す */
 export function zoomAt(v: View, at: Point, scale: number): View {
   const s = clampScale(scale);
+  // at の下にある回路の点 w が、新しい倍率 s でも at に来る位置を求める (at = w × s + 新しい x, y を解く)
   const w = toWorld(v, at);
   return { x: at.x - w.x * s, y: at.y - w.y * s, scale: s };
 }
 
 /** シートの中央を、幅 width・高さ height の画面の真ん中に置いた等倍の表示。部品のない回路はこの表示で開く (開発者の方針) */
 export function centerView(width: number, height: number): View {
+  // 等倍なので、シートの中央 (SHEET_WIDTH / 2) が画面の中央 (width / 2) に来るようにずらすだけ
   return {
     x: width / 2 - SHEET_WIDTH / 2,
     y: height / 2 - SHEET_HEIGHT / 2,
@@ -49,6 +52,8 @@ export function centerView(width: number, height: number): View {
  * シートが画面より小さい向き (縮小したとき) は、どうずらしても映るのでそのままにする
  */
 function hideOutside(v: View, width: number, height: number): View {
+  // シートの左端は画面の左端より右に来てはいけない (pos <= 0)。
+  // シートの右端 (pos + size) は画面の右端より左に来てはいけない (pos >= screen - size)
   const clamp = (pos: number, screen: number, sheet: number) => {
     const size = sheet * v.scale;
     return size >= screen ? Math.min(0, Math.max(screen - size, pos)) : pos;
@@ -69,7 +74,9 @@ export function fitView(bounds: Rect, width: number, height: number): View {
   const margin = GRID * 2;
   const w = bounds.right - bounds.left;
   const h = bounds.bottom - bounds.top;
+  // 余白を除いた画面に、縦横どちらも収まる倍率 (等倍が上限)
   const scale = clampScale(Math.min(1, (width - margin * 2) / w, (height - margin * 2) / h));
+  // bounds の中心が画面の中心に来る位置
   const centered = {
     x: width / 2 - ((bounds.left + bounds.right) / 2) * scale,
     y: height / 2 - ((bounds.top + bounds.bottom) / 2) * scale,

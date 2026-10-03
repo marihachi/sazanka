@@ -115,6 +115,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     return ins;
   }
 
+  // この tick で、出力ピンの値が 1 つでも変わったか。下の stableTicks を数えるのに使う
   let changed = false;
   const emit = (id: string, out: boolean[]) => {
     out.forEach((v, pin) => {
@@ -133,6 +134,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   //    出すのは、遅延の間ずっと同じ値だったときだけ。
   //    遅延より短い入力の変化は、実物のゲートと同じく出力に現れない
   for (const c of delayed) {
+    // 待ち行列の値 (遅延の tick 数だけある) がすべて先頭と同じなら、遅延の間ずっと同じ値だったので出す
     const queue = prev?.pending.get(c.id);
     if (queue?.every((out) => out.every((v, pin) => v === queue[0][pin]))) {
       emit(c.id, queue[0]);
@@ -140,8 +142,10 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   }
 
   // 2. 遅延のない部品は、この tick のうちに伝える。BUF がつながっていても遅れないようにするため、
-  //    値が変わらなくなるまで繰り返す (遅延のない部品だけの輪は作れないので、必ず止まる)
+  //    値が変わらなくなるまで繰り返す。遅延のない部品だけの輪 (INPUT を OUTPUT へ直接つないだモジュールの
+  //    出力を、自分の入力へつないだときの BUF の輪など) もありうるので、回数は部品の数 + 1 までにする
   for (let i = 0; i < immediate.length + 1; i++) {
+    // 1 周の間、どの部品も周の始めの値 (now) を見る。部品を並べた順番で結果が変わらないようにするため
     const now = new Map(values);
     let moved = false;
     for (const c of immediate) {
@@ -171,6 +175,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     }
     const queue = prev?.pending.get(c.id);
     if (queue) {
+      // 先頭 (この tick で出す番だった値) を捨て、新しい値を末尾に足す
       pending.set(c.id, [...queue.slice(1), next]);
     } else {
       // 前回の結果がないときは、待ち行列を今の値で埋めて落ち着いた状態から始める
@@ -185,6 +190,9 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   // 落ち着いた (何 tick か続けて値が変わらない) 状態から、どれだけ離れているかを数える。
   // 振動しているときは値が変わる tick と変わらない tick が交互に来ることもあるので、
   // 「変わり続けた回数」ではなく「落ち着いていない間の長さ」で見る
+  // stableTicks: 値が変わらずに続いた tick 数。この tick で値が変わったら 0 に戻る。
+  // activeTicks: 落ち着いていない tick 数。stableTicks が SETTLED_TICKS に届いたら (落ち着いたら) 0 に戻り、
+  // それまでは、途中で値が変わらない tick があっても増え続ける
   const stableTicks = changed ? 0 : (prev?.stableTicks ?? 0) + 1;
   const activeTicks = stableTicks >= SETTLED_TICKS ? 0 : (prev?.activeTicks ?? 0) + 1;
   return {

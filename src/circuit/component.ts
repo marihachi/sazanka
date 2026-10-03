@@ -131,5 +131,6 @@ export function clockPeriodOf(c: Component): number {
  */
 export function clockFlipsAt(c: Component, tick: number): boolean {
   const period = clockPeriodOf(c);
+  // floor(tick * 2 / period) は、時刻 tick が何番目の半周期か。番号が前の tick から変わったら反転する
   return Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period);
 }
