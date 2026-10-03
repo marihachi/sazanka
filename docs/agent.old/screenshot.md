@@ -1,13 +1,13 @@
 # README のスクリーンショット
 
-README の `screenshot.png` を撮り直すときの手順と、写す回路。画面の見た目を大きく変えたら撮り直す。ヘッドレスブラウザの動かし方は Skill の `browser-check` と[ブラウザでの動作確認](browser-check.md)にある。
+README の `screenshot.png` を撮り直すときの手順と、写す回路。画面の見た目を大きく変えたら撮り直す。撮り方の道具（ヘッドレスブラウザの動かし方）は Skill の `browser-check` と[ブラウザでの動作確認](browser-check.md)にある。
 
 ## 撮り方
 
 1. `npx vite build` のあと `npx vite preview --port 5199 --strictPort` で、ビルドしたものを開く（開発用のサーバーでは開発用の表示が混ざることがあるため）。
 2. 画面の大きさを 1242×1120 にする（今の画像と同じ。README での見え方が変わらないように）。
-3. 下の「写す回路」を保存データ（`sazanka.project`）に書き、`sazanka.views`（シートの表示）と `sazanka.paletteCollapsed`（パレットの折り畳み）を消して開き直す。表示を消したので、回路全体が見える表示（この回路では倍率 100%）で開く。
-4. 倍率が 100% でなければ、ズームの「回路全体を表示」を押す。
+3. 下の「写す回路」を保存データ（`sazanka.project`）に書き、`sazanka.views`（シートの表示）と `sazanka.paletteCollapsed`（パレットの折り畳み）を消して開き直す。
+4. ズームの「回路全体を表示」を押す（倍率は 100% になる）。
 5. INPUT の ON/OFF は保存データから読まないので、画面でクリックして切り替える。
    - 左上の INPUT（AND につながる上側）をクリックして ON にする。
    - 左下の INPUT（D-FF の D につながるもの）をクリックして ON にする。最後にクリックした部品が選ばれた状態になり、プロパティ欄に INPUT の項目が出る。
