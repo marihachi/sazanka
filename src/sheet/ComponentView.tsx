@@ -50,6 +50,7 @@ export function ComponentView({
   );
   const lamp = value ? 'var(--chakra-colors-sheet-on)' : '#333';
 
+  // 文字の y はベースライン (文字の下端) なので、縦の中央に見せたいときは、文字の高さの半分ほど (+4 など) 下げる
   let body: React.ReactNode;
   if (c.kind === 'INPUT') {
     body = (
@@ -77,6 +78,8 @@ export function ComponentView({
     body = (
       <>
         <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
+        {/* 矩形波の絵。本体の左から 6px、中央より 7px 下から始め、幅 7px・高さ 14px の段を描く
+            (h は横、v は縦への相対的な移動。v が負なら上へ) */}
         <path
           d={`M${c.x + 6},${y0 + 7} h7 v-14 h7 v14 h7 v-14 h7`}
           fill="none"
@@ -162,6 +165,7 @@ export function ComponentView({
             // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
             key={i}
           >
+            {/* ピンの丸から本体の左端までの線 */}
             <line
               className={classNames(styles.lead, v && styles.on)}
               x1={p.x}
@@ -186,6 +190,7 @@ export function ComponentView({
             // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
             key={i}
           >
+            {/* 本体の右端からピンの丸までの線 */}
             <line
               className={classNames(styles.lead, outputValues[i] && styles.on)}
               x1={c.x + w}

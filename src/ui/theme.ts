@@ -24,7 +24,10 @@ const config = defineConfig({
     semanticTokens: {
       colors: {
         // アクセントカラーのパレット。元の色は環境設定で変わるので、App.tsx が差し替える --accent から作る
-        // (Chakra の colorPalette が使う名前をそろえる)
+        // (Chakra の colorPalette が使う名前をそろえる)。
+        // 文字の色 (fg) は白に混ぜて明るくし、暗い背景の上で読めるようにする。
+        // 背景や枠に使う色 (muted、subtle、emphasized) は、暗い色 (#111) に混ぜて暗くする。
+        // アクセントカラーの割合が小さいほど背景に近い (subtle 20% < muted 35% < emphasized 50%)
         accent: {
           solid: { value: 'var(--accent)' },
           contrast: { value: '#fff' },
