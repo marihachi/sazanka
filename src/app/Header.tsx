@@ -24,7 +24,7 @@ interface HeaderProps {
 }
 
 /**
- * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、書き出し、読み込み、元に戻す、やり直し)。
+ * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、読み込み、書き出し、元に戻す、やり直し)。
  * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーにある
  */
 export const Header = memo(function Header({
@@ -60,16 +60,16 @@ export const Header = memo(function Header({
           onClick={onNew}
         />
         <ToolButton
-          icon={exportIcon}
-          label="書き出し"
-          title="プロジェクト全体を JSON にして共有する"
-          onClick={onExport}
-        />
-        <ToolButton
           icon={importIcon}
           label="読み込み"
           title="共有された JSON からプロジェクトを読み込む"
           onClick={onImport}
+        />
+        <ToolButton
+          icon={exportIcon}
+          label="書き出し"
+          title="プロジェクト全体を JSON にして共有する"
+          onClick={onExport}
         />
         <ToolDivider />
         <ToolButton
