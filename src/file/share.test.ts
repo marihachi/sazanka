@@ -12,7 +12,9 @@ const project: Project = {
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: true },
         { id: 'm', kind: 'CUSTOM', x: 100, y: 0, custom: 'mod' },
       ],
-      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } }],
+      // a の出力ピンの先 (60, 20) から、m の入力ピンの先 (80, 20) へ
+      // biome-ignore format: 表形式を維持するため
+      wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 80, y: 20 }] }],
     },
     {
       id: 'mod',
@@ -24,7 +26,7 @@ const project: Project = {
 };
 
 function withProject(p: unknown): string {
-  return JSON.stringify({ app: 'sazanka', version: 1, project: p });
+  return JSON.stringify({ app: 'sazanka', version: 2, project: p });
 }
 
 /** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
@@ -48,20 +50,14 @@ describe('share', () => {
             { id: 'part-1', kind: 'INPUT', x: 0, y: 0 }, // ON/OFF (on) は書き出さない
             { ...main.components[1], id: 'part-2' },
           ],
-          wires: [
-            {
-              id: 'wire-1',
-              from: { comp: 'part-1', pin: 0 },
-              to: { comp: 'part-2', pin: 0 },
-            },
-          ],
+          wires: [{ ...main.wires[0], id: 'wire-1' }],
         },
         { ...mod, components: [{ ...mod.components[0], id: 'part-1' }] },
       ],
     });
   });
 
-  it('読み込むと、部品と配線の ID を付け直し、配線の接続先も合わせる', () => {
+  it('読み込むと、部品と配線の ID を付け直す', () => {
     const [main, mod] = project.circuits;
     expect(parse(serializeProject(project))).toEqual({
       ok: true,
@@ -74,13 +70,7 @@ describe('share', () => {
               { id: 'id1', kind: 'INPUT', x: 0, y: 0 },
               { ...main.components[1], id: 'id2' },
             ],
-            wires: [
-              {
-                id: 'id3',
-                from: { comp: 'id1', pin: 0 },
-                to: { comp: 'id2', pin: 0 },
-              },
-            ],
+            wires: [{ ...main.wires[0], id: 'id3' }],
           },
           { ...mod, components: [{ ...mod.components[0], id: 'id4' }] },
         ],
@@ -141,13 +131,8 @@ describe('share', () => {
         circuits: [
           {
             ...main,
-            wires: [
-              {
-                id: 'w',
-                from: { comp: 'zz', pin: 0 },
-                to: { comp: 'm', pin: 0 },
-              },
-            ],
+            // 点が 1 つしかない配線
+            wires: [{ id: 'w', points: [{ x: 0, y: 0 }] }],
           },
         ],
       },
@@ -193,31 +178,43 @@ describe('share', () => {
   });
 });
 
-describe('配線の折れる点', () => {
+describe('配線の点', () => {
+  // biome-ignore format: 表形式を維持するため
+  const points = [{ x: 60, y: 20 }, { x: 60, y: 100 }, { x: 300, y: 100 }];
   const withPoints: Project = {
-    circuits: [
-      {
-        ...project.circuits[0],
-        wires: [{ ...project.circuits[0].wires[0], points: [{ x: 60, y: 100 }] }],
-      },
-      project.circuits[1],
-    ],
+    circuits: [{ ...project.circuits[0], wires: [{ id: 'w', points }] }, project.circuits[1]],
   };
 
-  it('書き出して読み込んでも、折れる点を保つ', () => {
+  it('書き出して読み込んでも、点の並びを保つ', () => {
     const result = parse(serializeProject(withPoints));
-    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual([{ x: 60, y: 100 }]);
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual(points);
   });
 
-  it('折れる点の形が正しくなければ読み込まない', () => {
-    const wire = {
-      ...withPoints.circuits[0].wires[0],
-      points: [{ x: '1', y: 0 }],
+  it('点の形が正しくないか、斜めの区間があれば読み込まない', () => {
+    // biome-ignore format: 表形式を維持するため
+    for (const bad of [
+      [{ x: '1', y: 0 }, { x: 0, y: 0 }],
+      [{ x: 0, y: 0 }, { x: 20, y: 20 }],
+    ]) {
+      const broken = {
+        circuits: [{ ...project.circuits[0], wires: [{ id: 'w', points: bad }] }, project.circuits[1]],
+      };
+      expect(parse(withProject(broken)).ok).toBe(false);
+    }
+  });
+});
+
+describe('version 1 のデータ', () => {
+  it('配線を、version 1 で描いていた形の点の並びに変えて読み込む', () => {
+    const [main, mod] = project.circuits;
+    const v1 = {
+      circuits: [
+        { ...main, wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } }] },
+        mod,
+      ],
     };
-    const broken = {
-      circuits: [{ ...withPoints.circuits[0], wires: [wire] }, project.circuits[1]],
-    };
-    expect(parse(withProject(broken)).ok).toBe(false);
+    const result = parse(JSON.stringify({ app: 'sazanka', version: 1, project: v1 }));
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual(main.wires[0].points);
   });
 });
 

@@ -1,16 +1,14 @@
-import { type Point, wireRoute } from '../geometry/layout';
+import type { Point } from '../geometry/layout';
 
 /** 配線の角を丸めるときの半径 (px)。短い区間では、隣の角と重ならないよう区間の長さの半分までに抑える */
 const WIRE_CORNER_RADIUS = 6;
 
 /**
- * 配線の SVG のパス。折れる点の間を縦横の線でつなぐ (geometry/layout.ts の wireRoute)。
+ * 配線の SVG のパス。route (始点・折れる点・終点の並び。どの区間も縦か横) を順に結ぶ。
  * round なら、曲がり角を丸める (環境設定)
  */
-export function wirePath(from: Point, points: readonly Point[], to: Point, round: boolean): string {
-  // route は、始点・曲がり角・終点を順に並べた点 (どの区間も縦か横)。
+export function wirePath(route: readonly Point[], round: boolean): string {
   // SVG のパスでは、M x,y が始点への移動、L x,y がそこまでの直線、Q cx,cy x,y が cx,cy を制御点にした曲線
-  const route = wireRoute(from, points, to);
   if (!round) {
     // 角を丸めないなら、点を直線でつなぐだけ (例: M0,0 L40,0 L40,60 L80,60)
     return `M${route.map((p) => `${p.x},${p.y}`).join(' L')}`;
@@ -22,7 +20,7 @@ export function wirePath(from: Point, points: readonly Point[], to: Point, round
     const inLen = Math.hypot(b.x - a.x, b.y - a.y);
     const outLen = Math.hypot(c.x - b.x, c.y - b.y);
     const r = Math.min(WIRE_CORNER_RADIUS, inLen / 2, outLen / 2);
-    // 長さ 0 の区間があると向きが決まらないので、丸めずに角のまま通る (wireRoute が省くので、通常は来ない)
+    // 長さ 0 の区間があると向きが決まらないので、丸めずに角のまま通る (同じ点が続くときなど)
     if (r === 0) {
       d += ` L${b.x},${b.y}`;
       continue;

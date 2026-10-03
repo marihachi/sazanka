@@ -13,6 +13,8 @@ interface ToolButtonProps {
   iconOnly?: boolean;
   /** 取り消しにくい危険な操作 (モジュールの削除など)。赤で表示する */
   danger?: boolean;
+  /** 切り替えのボタンで、今選ばれている (選択モード・配線モードなど)。地の色を付けて示す */
+  active?: boolean;
 }
 
 /**
@@ -27,15 +29,17 @@ export function ToolButton({
   disabled,
   iconOnly,
   danger,
+  active,
 }: ToolButtonProps) {
   const common = {
-    variant: 'ghost',
+    variant: active ? 'subtle' : 'ghost',
     size: 'sm',
     // ボタンの文字はアクセントカラーにせず、灰色で出す
     colorPalette: danger ? 'red' : 'gray',
     onClick,
     disabled,
     'aria-label': label,
+    'aria-pressed': active,
   } as const;
   const button = iconOnly ? (
     <IconButton {...common}>

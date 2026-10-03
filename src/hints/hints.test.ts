@@ -4,12 +4,14 @@ import { statusHints, type HintContext } from './hints';
 
 const base: HintContext = {
   dragMode: 'none',
+  wireTool: false,
   wiring: false,
   placing: false,
   editing: false,
   wireSelected: false,
   multipleSelected: false,
   unstable: false,
+  conflict: false,
   inModule: false,
   tickMs: 10,
 };
@@ -29,11 +31,21 @@ describe('statusHints', () => {
       { dragMode: 'trash' as const },
       { dragMode: 'moving' as const },
       { wiring: true },
+      { wireTool: true },
       { editing: true },
       { wireSelected: true },
     ]) {
       expect(hints(ctx)).toHaveLength(1);
     }
+  });
+
+  it('配線中は、配線モードの説明より配線中の説明を出す', () => {
+    expect(hints({ wireTool: true, wiring: true })).toEqual(hints({ wiring: true }));
+  });
+
+  it('出力ピンがぶつかっていて何も選んでいなければ、そのことを出す', () => {
+    expect(hints({ conflict: true })).toHaveLength(1);
+    expect(hints({ conflict: true })).not.toEqual(hints({}));
   });
 
   it('操作の途中は、部品を選んでいてもそちらを優先する', () => {

@@ -132,9 +132,27 @@ describe('circuitBounds', () => {
     circuits: [{ id: MAIN_ID, name: 'メイン', components, wires: [] }],
   });
 
-  it('部品がなければ undefined', () => {
+  it('部品も配線もなければ undefined', () => {
     const p = project([]);
     expect(circuitBounds(p.circuits[0], p)).toBeUndefined();
+  });
+
+  it('配線だけでも、その点の範囲になる', () => {
+    const p = project([]);
+    const def = {
+      ...p.circuits[0],
+      wires: [
+        {
+          id: 'w',
+          points: [
+            { x: 100, y: 200 },
+            { x: 100, y: 300 },
+            { x: 400, y: 300 },
+          ],
+        },
+      ],
+    };
+    expect(circuitBounds(def, p)).toEqual({ left: 100, top: 200, right: 400, bottom: 300 });
   });
 
   it('すべての部品の、ピンの先まで含めた範囲を合わせる', () => {

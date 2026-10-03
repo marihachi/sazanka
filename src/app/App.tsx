@@ -1,5 +1,5 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode } from '../sheet/Sheet';
 import type { Selection } from '../editing/edit';
 import { Header } from './Header';
@@ -7,15 +7,16 @@ import { Palette } from '../palette/Palette';
 import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
 import { TabBar } from '../modules/TabBar';
-import { SheetToolbar } from '../simulation/SheetToolbar';
+import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
 import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
 import type { Component, ComponentKind } from '../circuit/component';
-import { newId, type PinRef } from '../circuit/circuit';
+import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
 import { portsOf } from '../circuit/module';
 import { statusHints } from '../hints/hints';
+import { computeNets, isConflict } from '../geometry/net';
 import {
   loadCollapsedGroups,
   loadProject,
@@ -51,7 +52,9 @@ export function App() {
   const setProject = history.commit;
   const [currentId, setCurrentId] = useState(MAIN_ID);
   const [selection, setSelection] = useState<Selection>(null);
-  const [pending, setPending] = useState<PinRef | null>(null);
+  const [tool, setTool] = useState<Tool>('select');
+  /** 配線中に置いた点 (始点から順に)。配線中でなければ null */
+  const [pending, setPending] = useState<Point[] | null>(null);
   const [dragMode, setDragMode] = useState<DragMode>('none');
   /** クリックで部品を追加するとき、表示している範囲の真ん中に置くために使う */
   const [sheetSize, setSheetSize] = useState<SheetSize>({
@@ -102,9 +105,13 @@ export function App() {
     }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
-  /** 部品と、それらにつながる配線を削除する */
-  function deleteComponents(ids: string[], record = true) {
-    setCircuit((cur) => edit.removeComponents(cur, ids), record);
+  /** 選んでいる部品と配線を削除する */
+  function deleteSelection(record = true) {
+    if (!selection) {
+      return;
+    }
+    const { comps, wires } = selection;
+    setCircuit((cur) => edit.removeParts(cur, comps, wires), record);
     setSelection(null);
   }
 
@@ -115,7 +122,7 @@ export function App() {
     onSelect: setSelection,
     onPendingChange: setPending,
     setCircuit,
-    deleteComponents,
+    deleteSelection,
     showConfirm: dialogs.showConfirm,
   });
 
@@ -181,40 +188,41 @@ export function App() {
     }
     Object.assign(c, clampPosition(c, portsOf(c, project), c));
     setCircuit((cur) => edit.addComponent(cur, c));
-    setSelection({ type: 'comp', ids: [c.id] });
+    setSelection({ comps: [c.id], wires: [] });
   }
 
-  function deleteSelection() {
-    if (!selection) {
-      return;
+  /** 選択モードか配線モードにする。モードが変わるときは、配線中の線を取り消す */
+  function changeTool(next: Tool) {
+    if (next !== tool) {
+      setPending(null);
     }
-    if (selection.type === 'comp') {
-      deleteComponents(selection.ids);
-      return;
-    }
-    const id = selection.id;
-    setCircuit((cur) => edit.removeWire(cur, id));
-    setSelection(null);
+    setTool(next);
   }
 
   useShortcuts({
     enabled: !dialogs.anyOpen,
     onUndo: undoEdit,
     onRedo: redoEdit,
-    onDelete: deleteSelection,
+    onDelete: () => deleteSelection(),
     onCopy: clipboard.copy,
     onCut: clipboard.cut,
     onPaste: clipboard.startPaste,
     onSelectAll: () => {
       setPending(null);
-      const ids = circuit.components.map((c) => c.id);
-      setSelection(ids.length > 0 ? { type: 'comp', ids } : null);
+      setSelection(
+        edit.selectionOf(
+          circuit.components.map((c) => c.id),
+          circuit.wires.map((w) => w.id),
+        ),
+      );
     },
     onEscape: () => {
       clipboard.cancelPaste();
       setPending(null);
       setSelection(null);
     },
+    onSelectTool: () => changeTool('select'),
+    onWireTool: () => changeTool('wire'),
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
@@ -247,9 +255,9 @@ export function App() {
     }
   }
 
-  function moveComponents(positions: Map<string, Point>) {
+  function moveParts(comps: Map<string, Point>, wires: Map<string, Point[]>) {
     // ドラッグ中の移動は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-    setCircuit((cur) => edit.moveComponents(cur, positions), false);
+    setCircuit((cur) => edit.moveParts(cur, comps, wires), false);
   }
 
   function toggleInput(id: string) {
@@ -257,30 +265,32 @@ export function App() {
     setCircuit((cur) => edit.toggleSwitch(cur, id), false);
   }
 
-  function connect(from: PinRef, to: PinRef, points: Point[]) {
-    const id = newId();
-    setCircuit((cur) => edit.connect(cur, id, from, to, points));
+  function addWire(points: Point[]) {
+    const wire: Wire = { id: newId(), points };
+    setCircuit((cur) => edit.addWire(cur, wire));
   }
 
-  function disconnect(to: PinRef) {
-    setCircuit((cur) => edit.disconnect(cur, to));
-  }
-
-  /** 1つだけ選んでいる部品。プロパティ欄とヒントに使う */
+  /** 1つだけ選んでいる部品 (配線は選んでいない)。プロパティ欄とヒントに使う */
   const selectedComponent =
-    selection?.type === 'comp' && selection.ids.length === 1
-      ? circuit.components.find((c) => c.id === selection.ids[0])
+    selection?.comps.length === 1 && selection.wires.length === 0
+      ? circuit.components.find((c) => c.id === selection.comps[0])
       : undefined;
+
+  // 開いている回路の配線のつながり。描画 (Sheet) と、出力のぶつかりの警告に使う
+  const nets = useMemo(() => computeNets(circuit, project), [circuit, project]);
+  const conflict = nets.nets.some(isConflict);
 
   const hints = statusHints({
     dragMode,
+    wireTool: tool === 'wire',
     wiring: !!pending,
     placing: !!clipboard.placing,
     editing: !!editing,
-    wireSelected: selection?.type === 'wire',
+    wireSelected: selection?.comps.length === 0 && selection.wires.length === 1,
     selectedComponent,
-    multipleSelected: selection?.type === 'comp' && selection.ids.length > 1,
+    multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
     unstable,
+    conflict,
     inModule: circuit.id !== MAIN_ID,
     tickMs: preferences.tickMs,
   });
@@ -309,6 +319,7 @@ export function App() {
     stepOnce,
     stepBack,
     deleteCircuit: modules.deleteCircuit,
+    changeTool,
     addFromPalette: (kind: ComponentKind, custom?: string) => addComponent(kind, custom),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
     setClockPeriod: (id: string, period: number) =>
@@ -342,6 +353,8 @@ export function App() {
         onReorder={on.reorder}
       />
       <SheetToolbar
+        tool={tool}
+        onToolChange={on.changeTool}
         running={running}
         onToggleRunning={on.toggleRunning}
         onStep={on.stepOnce}
@@ -359,6 +372,8 @@ export function App() {
         <Sheet
           project={project}
           circuit={circuit}
+          nets={nets}
+          tool={tool}
           simStore={simStore}
           selection={selection}
           onSelect={setSelection}
@@ -373,16 +388,11 @@ export function App() {
           onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
           onAdd={addComponent}
           onMoveStart={history.checkpoint}
-          onMove={moveComponents}
-          // ドラッグ中は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-          onWirePointsChange={(id, points) =>
-            setCircuit((cur) => edit.setWirePoints(cur, id, points), false)
-          }
+          onMove={moveParts}
           // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
-          onDropOnTrash={(ids, moved) => deleteComponents(ids, !moved)}
+          onDropOnTrash={(moved) => deleteSelection(!moved)}
           onToggle={toggleInput}
-          onConnect={connect}
-          onDisconnect={disconnect}
+          onAddWire={addWire}
           onComponentDoubleClick={onCompDoubleClick}
           placing={clipboard.placing}
           onPlace={clipboard.paste}
@@ -400,7 +410,7 @@ export function App() {
           onLabelChange={on.setLabel}
         />
       </Flex>
-      <StatusBar hints={hints} unstable={unstable} />
+      <StatusBar hints={hints} unstable={unstable} conflict={conflict} />
       {dialogs.element}
     </Flex>
   );

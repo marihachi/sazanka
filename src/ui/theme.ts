@@ -50,6 +50,8 @@ const config = defineConfig({
           line: { value: '#888' },
           // 値が 1 の配線とピン
           on: { value: '#4fc3f7' },
+          // 出力ピンが 2 つ以上つながって、値がぶつかっている配線
+          conflict: { value: '#ef5350' },
         },
       },
     },

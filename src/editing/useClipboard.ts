@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { Selection } from './edit';
-import { newId, type Circuit, type PinRef } from '../circuit/circuit';
+import { newId, type Circuit } from '../circuit/circuit';
 import * as edit from './edit';
 import type { Point } from '../geometry/layout';
 import { dependsOn } from '../circuit/module';
 import { type CircuitDef, findDef, type Project } from '../circuit/project';
 
-/** 部品のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
+/** 部品と配線のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
 export function useClipboard({
   project,
   circuit,
@@ -15,7 +15,7 @@ export function useClipboard({
   onSelect,
   onPendingChange,
   setCircuit,
-  deleteComponents,
+  deleteSelection,
   showConfirm,
 }: {
   project: Project;
@@ -23,10 +23,10 @@ export function useClipboard({
   circuit: CircuitDef;
   selection: Selection;
   onSelect: (selection: Selection) => void;
-  onPendingChange: (pending: PinRef | null) => void;
+  onPendingChange: (pending: Point[] | null) => void;
   /** 開いている回路を、元に戻せる編集として更新する */
   setCircuit: (update: (c: CircuitDef) => CircuitDef) => void;
-  deleteComponents: (ids: string[]) => void;
+  deleteSelection: () => void;
   showConfirm: (request: ConfirmRequest) => void;
 }) {
   /** コピーした部品と配線 */
@@ -35,23 +35,23 @@ export function useClipboard({
   const [placing, setPlacing] = useState<Circuit | null>(null);
 
   function copy() {
-    if (selection?.type !== 'comp') {
+    if (!selection) {
       return;
     }
-    setClipboard(edit.extractComponents(circuit, selection.ids));
+    setClipboard(edit.extractParts(circuit, selection.comps, selection.wires));
   }
 
   function cut() {
-    if (selection?.type !== 'comp') {
+    if (!selection) {
       return;
     }
     copy();
-    deleteComponents(selection.ids);
+    deleteSelection();
   }
 
   /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
   function startPaste() {
-    if (!clipboard || clipboard.components.length === 0) {
+    if (!clipboard || (clipboard.components.length === 0 && clipboard.wires.length === 0)) {
       return;
     }
     // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
@@ -77,9 +77,14 @@ export function useClipboard({
     if (!placing) {
       return;
     }
-    const clone = edit.cloneComponents(placing, newId, delta);
+    const clone = edit.cloneParts(placing, newId, delta);
     setCircuit((cur) => edit.addParts(cur, clone));
-    onSelect({ type: 'comp', ids: clone.components.map((c) => c.id) });
+    onSelect(
+      edit.selectionOf(
+        clone.components.map((c) => c.id),
+        clone.wires.map((w) => w.id),
+      ),
+    );
     setPlacing(null);
   }
 

@@ -9,13 +9,13 @@
 
 ## 状態の用意
 
-- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v1.md` にある。
+- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v2.md` にある。
   - アプリはプロジェクトが変わるたびに自動で保存するので、書いた値が上書きされることがある。書き方は Skill の `browser-check` の「ハマりやすい点」に従う。
-  - 例（INPUT → AND → OUTPUT）:
+  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v2.md` の「ピンの先の位置」）に合わせる:
 
     ```js
     const project = {
-      version: 1,
+      version: 2,
       project: {
         circuits: [
           {
@@ -27,8 +27,8 @@
               { id: 'part-3', kind: 'OUTPUT', x: 3180, y: 1960 },
             ],
             wires: [
-              { id: 'wire-1', from: { comp: 'part-1', pin: 0 }, to: { comp: 'part-2', pin: 0 }, points: [] },
-              { id: 'wire-2', from: { comp: 'part-2', pin: 0 }, to: { comp: 'part-3', pin: 0 }, points: [] },
+              { id: 'wire-1', points: [{ x: 2960, y: 1980 }, { x: 2980, y: 1980 }, { x: 2980, y: 1960 }, { x: 3000, y: 1960 }] },
+              { id: 'wire-2', points: [{ x: 3100, y: 1980 }, { x: 3160, y: 1980 }] },
             ],
           },
         ],
@@ -40,12 +40,14 @@
 - 部品の座標は、シート（6000×4000、真ん中は (3000, 2000)）の中に置く。部品同士が重ならないよう、`GRID`（20）の何倍かずつ離す。
   - 表示（`sazanka.views`）を保存していない回路は、部品があれば回路全体が見える表示で開き、部品がなければシートの真ん中を等倍で開く（[シートの表示](view.md)）。
 - 発振する回路が要るときは、NOT の出力を自分の入力へつなぐ。
+- 部品の座標を読み書きして操作するときは、シートの `<g transform="translate(x y) scale(s)">` から、回路の座標を画面の座標に直す（画面の座標 = 回路の座標 × s + (x, y) + シートの左上）。
+- 配線モード（`W`）で何もないところや部品の上をクリックすると、配線の点を置く。選択の確認をするときは、選択モード（`V`）に戻っているかを確かめる（ツールバーのボタンの `aria-pressed`）。
 - INPUT の ON/OFF は保存データから読まない。ON にしたいときは、開いてからクリックする。
 - 保存データが空のときは、メイン回路だけの空のプロジェクトで開く。
 
 ## 要素の探し方
 
-- シート（配線や部品）は CSS Modules なので、クラス名にハッシュが付く。部分一致で探す（例: 配線は `wire` を含み、`wire-hit` と `wire-middle` を含まないクラス）。
+- シート（配線や部品）は CSS Modules なので、クラス名にハッシュが付く。部分一致で探す（例: 配線は `wire` を含み、`wire-hit` を含まないクラス。分岐の印は `junction`、出力のぶつかりは `conflict` を含む）。
 - Chakra UI の部品は、役割の属性で探せる。
   - ダイアログは `[role="dialog"]`、確定ボタンのある確認は `[role="alertdialog"]`。
   - タブは `[role="tab"]`、開いているタブは `aria-selected="true"`。

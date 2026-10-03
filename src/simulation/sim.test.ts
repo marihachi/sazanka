@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { Component, FlipFlopKind, GateKind } from '../circuit/component';
-import type { Circuit, Wire } from '../circuit/circuit';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { dependsOn, portsOf } from '../circuit/module';
-import { stepCircuit, step, type SimResult } from './sim';
+import { stepCircuit, step, type Link, type Netlist, type SimResult } from './sim';
+import { link, wired } from './testCircuits';
 import { mustGet } from '../util';
 
 /**
  * 値が落ち着くまで (または最大 ticks まで) 時間を進める。
  * 遅延の待ち行列に値が残っていることがあるので、いちばん長い遅延 (XOR の 3) より長く変化がないことを見る
  */
-function settle(circuit: Circuit, prev?: SimResult, ticks = 30): SimResult {
+function settle(circuit: Netlist, prev?: SimResult, ticks = 30): SimResult {
   let r = stepCircuit(circuit, prev);
   for (let i = 1; i < ticks; i++) {
     if (r.stableTicks > 3) {
@@ -41,13 +41,13 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
     { id: 'g', kind, x: 0, y: 0 },
     { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
   ];
-  const circuit: Circuit = {
+  const circuit: Netlist = {
     components: comps,
     // biome-ignore format: 表形式を維持するため
-    wires: [
-      { id: 'w1', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
-      { id: 'w2', from: { comp: 'b', pin: 0 }, to: { comp: 'g', pin: 1 } },
-      { id: 'w3', from: { comp: 'g', pin: 0 }, to: { comp: 'o', pin: 0 } },
+    links: [
+      { from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
+      { from: { comp: 'b', pin: 0 }, to: { comp: 'g', pin: 1 } },
+      { from: { comp: 'g', pin: 0 }, to: { comp: 'o', pin: 0 } },
     ],
   };
   return mustGet(settle(circuit).values, 'o:0');
@@ -83,7 +83,7 @@ describe('simulate', () => {
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
         { id: 'g', kind, x: 0, y: 0 },
       ],
-      wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
+      links: [{ from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
     });
     return mustGet(r.values, 'g:0');
   }
@@ -100,7 +100,7 @@ describe('simulate', () => {
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
         { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
       ],
-      wires: [],
+      links: [],
     });
     expect(r.values.get('n:0')).toBe(true);
     // OUTPUT は入力の値を pin 0 に持つ
@@ -114,7 +114,7 @@ describe('simulate', () => {
         { id: 'h', kind: 'HIGH', x: 0, y: 0 },
         { id: 'n', kind: 'NOT', x: 0, y: 0 },
       ],
-      wires: [{ id: 'w', from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+      links: [{ from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
     });
     expect(r.values.get('h:0')).toBe(true);
     expect(r.values.get('n:0')).toBe(false);
@@ -123,7 +123,7 @@ describe('simulate', () => {
   it('CLOCK は on の値をそのまま出す', () => {
     const r = settle({
       components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }],
-      wires: [],
+      links: [],
     });
     expect(r.values.get('k:0')).toBe(true);
   });
@@ -133,7 +133,7 @@ describe('simulate', () => {
     const r = settle(
       {
         components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
-        wires: [{ id: 'w', from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+        links: [{ from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
       },
       undefined,
       80,
@@ -144,7 +144,7 @@ describe('simulate', () => {
   });
 
   it('NOR で組んだ RS ラッチが状態を保持する', () => {
-    const build = (s: boolean, r: boolean): Circuit => ({
+    const build = (s: boolean, r: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
       components: [
         { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
@@ -153,11 +153,11 @@ describe('simulate', () => {
         { id: 'qn', kind: 'NOR', x: 0, y: 0 },
       ],
       // biome-ignore format: 表形式を維持するため
-      wires: [
-        { id: '1', from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
-        { id: '2', from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
-        { id: '3', from: { comp: 's', pin: 0 }, to: { comp: 'qn', pin: 0 } },
-        { id: '4', from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
+      links: [
+        { from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
+        { from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
+        { from: { comp: 's', pin: 0 }, to: { comp: 'qn', pin: 0 } },
+        { from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
       ],
     });
     let r = settle(build(true, false));
@@ -172,7 +172,7 @@ describe('simulate', () => {
 
   it('NOR で組んだ RS ラッチを S=R=0 のまま前回の結果なしで始めると発振し、S を入れると落ち着く', () => {
     // 2 つの NOR が同じ値から同じ遅延で動くので、そろって ON と OFF を繰り返す (実物の準安定と同じ)
-    const build = (s: boolean): Circuit => ({
+    const build = (s: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
       components: [
         { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
@@ -181,11 +181,11 @@ describe('simulate', () => {
         { id: 'qn', kind: 'NOR', x: 0, y: 0 },
       ],
       // biome-ignore format: 表形式を維持するため
-      wires: [
-        { id: '1', from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
-        { id: '2', from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
-        { id: '3', from: { comp: 's', pin: 0 }, to: { comp: 'qn', pin: 0 } },
-        { id: '4', from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
+      links: [
+        { from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
+        { from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
+        { from: { comp: 's', pin: 0 }, to: { comp: 'qn', pin: 0 } },
+        { from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
       ],
     });
     let r = settle(build(false), undefined, 80);
@@ -201,7 +201,7 @@ describe('simulate', () => {
 
   describe('フリップフロップ', () => {
     /** 入力スイッチ in0..inN を部品 f の各入力ピンにつないだ回路 */
-    function build(kind: FlipFlopKind, ins: boolean[]): Circuit {
+    function build(kind: FlipFlopKind, ins: boolean[]): Netlist {
       return {
         components: [
           ...ins.map(
@@ -215,8 +215,7 @@ describe('simulate', () => {
           ),
           { id: 'f', kind, x: 0, y: 0 },
         ],
-        wires: ins.map((_, i) => ({
-          id: `w${i}`,
+        links: ins.map((_, i) => ({
           from: { comp: `in${i}`, pin: 0 },
           to: { comp: 'f', pin: i },
         })),
@@ -302,89 +301,88 @@ describe('simulate', () => {
   });
 });
 
-function comp(
-  id: string,
-  kind: Component['kind'],
-  y = 0,
-  extra: Partial<Component> = {},
-): Component {
-  return { id, kind, x: 0, y, ...extra };
-}
-
-function wire(from: string, fromPin: number, to: string, toPin: number): Wire {
-  return {
-    id: `${from}.${fromPin}-${to}.${toPin}`,
-    from: { comp: from, pin: fromPin },
-    to: { comp: to, pin: toPin },
-  };
+function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
+  return { id, kind, x: 0, y: 0, ...extra };
 }
 
 /** 半加算器: 入力 A, B / 出力 S, C */
-const halfAdder: CircuitDef = {
+const halfAdder = wired({
   id: 'ha',
   name: 'HalfAdder',
   // biome-ignore format: 表形式を維持するため
   components: [
-    comp('a', 'INPUT', 0, { label: 'A' }),
-    comp('b', 'INPUT', 40, { label: 'B' }),
+    comp('a', 'INPUT', { label: 'A' }),
+    comp('b', 'INPUT', { label: 'B' }),
     comp('x', 'XOR'),
     comp('n', 'AND'),
-    comp('s', 'OUTPUT', 0, { label: 'S' }),
-    comp('c', 'OUTPUT', 40, { label: 'C' }),
+    comp('s', 'OUTPUT', { label: 'S' }),
+    comp('c', 'OUTPUT', { label: 'C' }),
   ],
   // biome-ignore format: 表形式を維持するため
-  wires: [
-    wire('a', 0, 'x', 0),
-    wire('b', 0, 'x', 1),
-    wire('a', 0, 'n', 0),
-    wire('b', 0, 'n', 1),
-    wire('x', 0, 's', 0),
-    wire('n', 0, 'c', 0),
+  links: [
+    link('a', 0, 'x', 0),
+    link('b', 0, 'x', 1),
+    link('a', 0, 'n', 0),
+    link('b', 0, 'n', 1),
+    link('x', 0, 's', 0),
+    link('n', 0, 'c', 0),
   ],
-};
+});
 
 /** 全加算器: 半加算器2つと OR。入力 A, B, Cin / 出力 S, Cout */
-const fullAdder: CircuitDef = {
+const fullAdder = wired({
   id: 'fa',
   name: 'FullAdder',
   // biome-ignore format: 表形式を維持するため
   components: [
-    comp('a', 'INPUT', 0),
-    comp('b', 'INPUT', 20),
-    comp('ci', 'INPUT', 40),
-    comp('h1', 'CUSTOM', 0, { custom: 'ha' }),
-    comp('h2', 'CUSTOM', 0, { custom: 'ha' }),
+    comp('a', 'INPUT'),
+    comp('b', 'INPUT'),
+    comp('ci', 'INPUT'),
+    comp('h1', 'CUSTOM', { custom: 'ha' }),
+    comp('h2', 'CUSTOM', { custom: 'ha' }),
     comp('or', 'OR'),
-    comp('s', 'OUTPUT', 0),
-    comp('co', 'OUTPUT', 20),
+    comp('s', 'OUTPUT'),
+    comp('co', 'OUTPUT'),
   ],
   // biome-ignore format: 表形式を維持するため
-  wires: [
-    wire('a', 0, 'h1', 0),
-    wire('b', 0, 'h1', 1),
-    wire('h1', 0, 'h2', 0),
-    wire('ci', 0, 'h2', 1),
-    wire('h2', 0, 's', 0),
-    wire('h1', 1, 'or', 0),
-    wire('h2', 1, 'or', 1),
-    wire('or', 0, 'co', 0),
+  links: [
+    link('a', 0, 'h1', 0),
+    link('b', 0, 'h1', 1),
+    link('h1', 0, 'h2', 0),
+    link('ci', 0, 'h2', 1),
+    link('h2', 0, 's', 0),
+    link('h1', 1, 'or', 0),
+    link('h2', 1, 'or', 1),
+    link('or', 0, 'co', 0),
   ],
-};
+});
 
-function mainWith(custom: string, nIn: number, nOut: number, ins: boolean[]): CircuitDef {
-  return {
+/**
+ * モジュール custom を 1 つ置き、入力ピンに INPUT (値は ins)、出力ピンに OUTPUT をつないだメイン回路。
+ * extra の部品とつながりも足す
+ */
+function mainWith(
+  custom: string,
+  nIn: number,
+  nOut: number,
+  ins: boolean[],
+  extra: { components: Component[]; links: Link[] } = { components: [], links: [] },
+): CircuitDef {
+  return wired({
     id: MAIN_ID,
     name: 'メイン',
     components: [
-      ...ins.map((on, i) => comp(`i${i}`, 'INPUT', i * 20, { on })),
-      comp('u', 'CUSTOM', 0, { custom }),
-      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT', j * 20)),
+      ...ins.map((on, i) => comp(`i${i}`, 'INPUT', { on })),
+      comp('u', 'CUSTOM', { custom }),
+      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT')),
+      ...extra.components,
     ],
-    wires: [
-      ...Array.from({ length: nIn }, (_, i) => wire(`i${i}`, 0, 'u', i)),
-      ...Array.from({ length: nOut }, (_, j) => wire('u', j, `o${j}`, 0)),
+    links: [
+      ...Array.from({ length: nIn }, (_, i) => link(`i${i}`, 0, 'u', i)),
+      ...Array.from({ length: nOut }, (_, j) => link('u', j, `o${j}`, 0)),
+      ...extra.links,
     ],
-  };
+  });
 }
 
 describe('モジュール', () => {
@@ -392,7 +390,7 @@ describe('モジュール', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };
-    expect(portsOf(comp('u', 'CUSTOM', 0, { custom: 'ha' }), project)).toEqual({
+    expect(portsOf(comp('u', 'CUSTOM', { custom: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
     });
@@ -432,23 +430,23 @@ describe('モジュール', () => {
   });
 
   it('モジュールの中のフリップフロップが状態を保つ', () => {
-    const reg: CircuitDef = {
+    const reg = wired({
       id: 'reg',
       name: 'Reg',
       // biome-ignore format: 表形式を維持するため
       components: [
-        comp('d', 'INPUT', 0),
-        comp('clk', 'INPUT', 20),
+        comp('d', 'INPUT'),
+        comp('clk', 'INPUT'),
         comp('ff', 'DFF'),
         comp('q', 'OUTPUT'),
       ],
       // biome-ignore format: 表形式を維持するため
-      wires: [
-        wire('d', 0, 'ff', 0),
-        wire('clk', 0, 'ff', 1),
-        wire('ff', 0, 'q', 0),
+      links: [
+        link('d', 0, 'ff', 0),
+        link('clk', 0, 'ff', 1),
+        link('ff', 0, 'q', 0),
       ],
-    };
+    });
     let r: SimResult | undefined;
     const step = (d: boolean, clk: boolean) => {
       r = settleProject({ circuits: [mainWith('reg', 2, 1, [d, clk]), reg] }, MAIN_ID, r);
@@ -461,10 +459,11 @@ describe('モジュール', () => {
   });
 
   it('モジュールのピンが減っても、存在しないピンへの配線は無視して計算する', () => {
-    // 半加算器の出力は2本。3本目 (pin 2) への配線は計算から除く
-    const main = mainWith('ha', 2, 2, [true, true]);
-    main.components.push(comp('o2', 'OUTPUT', 40));
-    main.wires.push(wire('u', 2, 'o2', 0));
+    // 半加算器の出力は2本。3本目 (pin 2) があった位置からの配線は、どのピンにもつながらない
+    const main = mainWith('ha', 2, 2, [true, true], {
+      components: [comp('o2', 'OUTPUT')],
+      links: [link('u', 2, 'o2', 0)],
+    });
     const project: Project = { circuits: [main, halfAdder] };
     const r = settleProject(project, MAIN_ID);
     expect(r.values.get('o1:0')).toBe(true);
@@ -475,13 +474,13 @@ describe('モジュール', () => {
     const a: CircuitDef = {
       id: 'a',
       name: 'A',
-      components: [comp('s', 'CUSTOM', 0, { custom: 'b' })],
+      components: [comp('s', 'CUSTOM', { custom: 'b' })],
       wires: [],
     };
     const b: CircuitDef = {
       id: 'b',
       name: 'B',
-      components: [comp('s', 'CUSTOM', 0, { custom: 'a' })],
+      components: [comp('s', 'CUSTOM', { custom: 'a' })],
       wires: [],
     };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };

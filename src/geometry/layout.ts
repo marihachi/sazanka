@@ -1,4 +1,4 @@
-// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置、配線の通り道
+// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置、範囲選択
 
 import { type Component, isFlipFlopKind } from '../circuit/component';
 import type { Ports } from '../circuit/module';
@@ -115,16 +115,26 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
 }
 
 /**
- * 複数の部品をまとめて delta だけ動かすとき、どれもはみ出さないように delta を縮める。
- * 部品の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
- * その間も収まるので、後の部品のために delta を縮めても、先に調べた部品ははみ出さない
+ * 複数の部品と配線の点をまとめて delta だけ動かすとき、どれもはみ出さないように delta を縮める。
+ * 部品と点の今の位置がはみ出していないことが前提。今の位置と移動先の両方が収まっていれば、
+ * その間も収まるので、後のもののために delta を縮めても、先に調べたものははみ出さない
  */
-export function clampMove(items: { c: Component; ports: Ports }[], delta: Point): Point {
+export function clampMove(
+  items: { c: Component; ports: Ports }[],
+  delta: Point,
+  points: readonly Point[] = [],
+): Point {
   // 部品を 1 つずつ、移動先がはみ出すなら delta を縮める (はみ出す向きの成分だけが 0 に近づく)
   let d = delta;
   for (const { c, ports } of items) {
     const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
     d = { x: p.x - c.x, y: p.y - c.y };
+  }
+  // 配線の点は、シートの範囲 (端を含む) に収める
+  for (const p of points) {
+    const x = Math.min(Math.max(p.x + d.x, 0), SHEET_WIDTH);
+    const y = Math.min(Math.max(p.y + d.y, 0), SHEET_HEIGHT);
+    d = { x: x - p.x, y: y - p.y };
   }
   return d;
 }
@@ -165,74 +175,74 @@ export function componentsInRect(
     .map(({ c }) => c.id);
 }
 
+/** 点 a と点 b を対角とする範囲に、すべての点が収まる配線の ID */
+export function wiresInRect(
+  wires: readonly { id: string; points: readonly Point[] }[],
+  a: Point,
+  b: Point,
+): string[] {
+  const left = Math.min(a.x, b.x);
+  const right = Math.max(a.x, b.x);
+  const top = Math.min(a.y, b.y);
+  const bottom = Math.max(a.y, b.y);
+  return wires
+    .filter((w) =>
+      w.points.every((p) => p.x >= left && p.x <= right && p.y >= top && p.y <= bottom),
+    )
+    .map((w) => w.id);
+}
+
 /**
- * 部品をまとめて、全体の中心が点 at に来るように動かすときの移動量。
+ * 部品と配線の点をまとめて、全体の中心が点 at に来るように動かすときの移動量。
  * グリッドに合わせ、シートからはみ出さないように縮める (貼り付ける位置に使う)
  */
-export function placeOffset(items: { c: Component; ports: Ports }[], at: Point): Point {
-  // 全体の範囲 (各部品の範囲を囲む長方形) の中心 cx, cy を求め、それが at に来る移動量にする
-  const rects = items.map(({ c, ports }) => componentBounds(c, ports));
+export function placeOffset(
+  items: { c: Component; ports: Ports }[],
+  points: readonly Point[],
+  at: Point,
+): Point {
+  // 全体の範囲 (各部品の範囲と配線の点を囲む長方形) の中心 cx, cy を求め、それが at に来る移動量にする
+  const rects = [
+    ...items.map(({ c, ports }) => componentBounds(c, ports)),
+    ...points.map((p) => ({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
+  ];
   const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
   const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
-  return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) });
+  return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) }, points);
 }
 
 /**
- * 配線が通る点の並び (曲がり角を含む)。from は出力ピンの先、to は入力ピンの先、points は利用者が置いた折れる点。
- * 点と点の間は縦横の線でつなぐ。出力ピンからは横に出て、入力ピンへは横から入るよう、
- * 最後の区間だけ縦→横、ほかは横→縦の順に曲がる。折れる点がなければ、中間で1回折れる形にする
+ * 配線中の点の並びを整える。同じ点が続くところと、前後とまっすぐ並んで、その間にある点 (曲がらない点) を省く。
+ * 例: (0,0) → (40,0) → (80,0) は (0,0) → (80,0)。折り返す点 ((0,0) → (80,0) → (40,0) の (80,0)) は残す
  */
-export function wireRoute(from: Point, points: readonly Point[], to: Point): Point[] {
-  // 例: 折れる点が p 1 つなら from → (p.x, from.y) → p → (p.x, to.y) → to。
-  // 点と点の間は「横に進んでから縦」、最後の区間だけ「縦に進んでから横」になる
-  const route: Point[] = [from];
-  if (points.length === 0) {
-    // 両端の x の真ん中 (グリッドに合わせる) で縦に折れる
-    const mid = snap((from.x + to.x) / 2);
-    route.push({ x: mid, y: from.y }, { x: mid, y: to.y });
-  } else {
-    let cur = from;
-    for (const p of points) {
-      route.push({ x: p.x, y: cur.y }, p);
-      cur = p;
-    }
-    route.push({ x: cur.x, y: to.y });
-  }
-  route.push(to);
-  return simplify(route);
-}
-
-/**
- * 同じ点が続くところと、前後とまっすぐ並んで曲がらない点を省く。
- * 両端が同じ高さのときなどに、長さ 0 の区間や、曲がらない「角」が残らないようにする
- */
-function simplify(route: Point[]): Point[] {
-  // 1 回目: 直前と同じ点を除く。2 回目: 前後と同じ縦線か横線の上にある点 (曲がらない点) を除く
-  const distinct = route.filter(
-    (p, i) => i === 0 || p.x !== route[i - 1].x || p.y !== route[i - 1].y,
+export function simplifyWire(points: readonly Point[]): Point[] {
+  const distinct = points.filter(
+    (p, i) => i === 0 || p.x !== points[i - 1].x || p.y !== points[i - 1].y,
   );
-  return distinct.filter((p, i) => {
-    if (i === 0 || i === distinct.length - 1) {
-      return true;
+  const out: Point[] = [];
+  for (const p of distinct) {
+    const a = out[out.length - 2];
+    const b = out[out.length - 1];
+    // a → b → p が同じ直線の上で、b が a と p の間にあれば、b は曲がらない点なので省く
+    const between =
+      a &&
+      b &&
+      ((a.x === b.x && b.x === p.x && (b.y - a.y) * (p.y - b.y) > 0) ||
+        (a.y === b.y && b.y === p.y && (b.x - a.x) * (p.x - b.x) > 0));
+    if (between) {
+      out.pop();
     }
-    const [a, b] = [distinct[i - 1], distinct[i + 1]];
-    return !((a.x === p.x && p.x === b.x) || (a.y === p.y && p.y === b.y));
-  });
+    out.push(p);
+  }
+  return out;
 }
 
 /**
- * 中間で1回折れる形の配線なら、その縦線の x 座標。
- * 折れる点がないか、出力ピンと同じ高さに1つだけある (縦線を動かした) 形が対象。縦線がない (両端が同じ高さ) ときは undefined
+ * 配線中に、最後の点 from からポインターの位置 at へ伸ばす区間の先。
+ * 縦か横の 1 方向にだけ伸ばすので、動いた量の大きい方の向きにまっすぐ進んだ点にする
  */
-export function wireMiddleX(from: Point, points: readonly Point[], to: Point): number | undefined {
-  if (from.y === to.y) {
-    return undefined;
-  }
-  if (points.length === 0) {
-    return snap((from.x + to.x) / 2);
-  }
-  if (points.length === 1 && points[0].y === from.y) {
-    return points[0].x;
-  }
-  return undefined;
+export function wireStepTo(from: Point, at: Point): Point {
+  return Math.abs(at.x - from.x) >= Math.abs(at.y - from.y)
+    ? { x: at.x, y: from.y }
+    : { x: from.x, y: at.y };
 }

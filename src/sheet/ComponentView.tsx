@@ -24,8 +24,6 @@ interface ComponentViewProps {
   pinNumber?: number;
   onBodyDown: (e: React.PointerEvent) => void;
   onBodyDoubleClick: () => void;
-  onInputPinDown: (e: React.PointerEvent, pin: number) => void;
-  onOutputPinDown: (e: React.PointerEvent, pin: number) => void;
 }
 
 export function ComponentView({
@@ -38,8 +36,6 @@ export function ComponentView({
   pinNumber,
   onBodyDown,
   onBodyDoubleClick,
-  onInputPinDown,
-  onOutputPinDown,
 }: ComponentViewProps) {
   const { w, h } = bodySize(c, ports);
   const value = outputValues[0];
@@ -173,13 +169,7 @@ export function ComponentView({
               x2={c.x}
               y2={p.y}
             />
-            <circle
-              className={styles.pin}
-              cx={p.x}
-              cy={p.y}
-              r={6}
-              onPointerDown={(e) => onInputPinDown(e, i)}
-            />
+            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} />
           </g>
         );
       })}
@@ -198,13 +188,7 @@ export function ComponentView({
               x2={p.x}
               y2={p.y}
             />
-            <circle
-              className={styles.pin}
-              cx={p.x}
-              cy={p.y}
-              r={6}
-              onPointerDown={(e) => onOutputPinDown(e, i)}
-            />
+            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} />
           </g>
         );
       })}

@@ -78,7 +78,7 @@ function checkCircuit(def: unknown): string | undefined {
     compIds.add(c.id);
   }
   for (const w of def.wires as unknown[]) {
-    if (!isWire(w) || !compIds.has(w.from.comp) || !compIds.has(w.to.comp)) {
+    if (!isWire(w)) {
       return `「${def.name}」に不正な配線があります`;
     }
   }
