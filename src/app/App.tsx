@@ -191,9 +191,11 @@ export function App() {
     setSelection({ comps: [c.id], wires: [] });
   }
 
-  /** 選択モードと配線モードを切り替える。配線中の線は取り消す */
+  /** 選択モードか配線モードにする。モードが変わるときは、配線中の線を取り消す */
   function changeTool(next: Tool) {
-    setPending(null);
+    if (next !== tool) {
+      setPending(null);
+    }
     setTool(next);
   }
 
@@ -219,7 +221,8 @@ export function App() {
       setPending(null);
       setSelection(null);
     },
-    onToggleWireTool: () => changeTool(tool === 'wire' ? 'select' : 'wire'),
+    onSelectTool: () => changeTool('select'),
+    onWireTool: () => changeTool('wire'),
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */

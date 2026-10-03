@@ -47,14 +47,14 @@ export const SheetToolbar = memo(function SheetToolbar({
       <ToolButton
         icon={selectIcon}
         label="選択"
-        title="選択モード (W で切り替え): 部品や配線を選んで動かす"
+        title="選択モード (V): 部品や配線を選んで動かす"
         onClick={() => onToolChange('select')}
         active={tool === 'select'}
       />
       <ToolButton
         icon={wireIcon}
         label="配線"
-        title="配線モード (W で切り替え): クリックした点から点へ配線を引く"
+        title="配線モード (W): クリックした点から点へ配線を引く"
         onClick={() => onToolChange('wire')}
         active={tool === 'wire'}
       />
