@@ -76,13 +76,16 @@ export function moveComponents<T extends Circuit>(
     wires: circuit.wires.map((w) => {
       const a = deltas.get(w.from.comp);
       const b = deltas.get(w.to.comp);
+      // 折れる点がないか、どちらの端も動いていなければ、そのまま
       if (!w.points || (!a && !b)) {
         return w;
       }
+      // 片方の端だけ動いたか、両端の動いた量が違えば、折れる点を消して中間で1回折れる形に戻す
       if (!a || !b || a.x !== b.x || a.y !== b.y) {
         const { points: _, ...rest } = w;
         return rest;
       }
+      // 両端が同じだけ動いたので、折れる点も同じだけ動かす
       return {
         ...w,
         points: w.points.map((p) => ({ x: p.x + a.x, y: p.y + a.y })),

@@ -115,6 +115,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     return ins;
   }
 
+  // この tick で、出力ピンの値が 1 つでも変わったか。下の stableTicks を数えるのに使う
   let changed = false;
   const emit = (id: string, out: boolean[]) => {
     out.forEach((v, pin) => {
@@ -144,6 +145,7 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   //    値が変わらなくなるまで繰り返す。遅延のない部品だけの輪 (INPUT を OUTPUT へ直接つないだモジュールの
   //    出力を、自分の入力へつないだときの BUF の輪など) もありうるので、回数は部品の数 + 1 までにする
   for (let i = 0; i < immediate.length + 1; i++) {
+    // 1 周の間、どの部品も周の始めの値 (now) を見る。部品を並べた順番で結果が変わらないようにするため
     const now = new Map(values);
     let moved = false;
     for (const c of immediate) {

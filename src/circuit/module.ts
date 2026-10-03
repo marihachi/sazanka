@@ -57,6 +57,8 @@ export function dependsOn(
   b: string,
   seen = new Set<string>(),
 ): boolean {
+  // seen は調べ終えた回路。一度調べた回路は飛ばす。
+  // 循環した参照で止まらなくなるのを防ぎ、同じ回路を何度も調べないため
   if (seen.has(a)) {
     return false;
   }
