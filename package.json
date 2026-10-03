@@ -10,8 +10,9 @@
     "test": "vitest run",
     "format": "biome format --write",
     "format:check": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "lint": "biome lint && npm run check:skills",
+    "check": "biome check && npm run check:skills",
+    "check:skills": "node scripts/check-skills.mjs"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.37.0",
