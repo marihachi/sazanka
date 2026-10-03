@@ -10,7 +10,7 @@ import {
   isFlipFlopKind,
   outputCount,
 } from '../circuit/component';
-import type { Circuit, PinRef } from '../circuit/circuit';
+import type { PinRef } from '../circuit/circuit';
 import { partSpecOf } from '../parts/specs';
 import type { FlipFlopState } from '../parts/spec';
 import type { Project } from '../circuit/project';
@@ -20,6 +20,21 @@ export type { FlipFlopState } from '../parts/spec';
 
 export function pinKey(comp: string, pin: number): string {
   return `${comp}:${pin}`;
+}
+
+/** 入力ピン to の値を、出力ピン from の値にするつながり */
+export interface Link {
+  from: PinRef;
+  to: PinRef;
+}
+
+/**
+ * 計算に使う回路。部品と、ピン同士のつながり (flatten.ts が配線のネットから作る)。
+ * 1 つの入力ピンにつながるのは、多くても 1 つの出力ピン
+ */
+export interface Netlist {
+  components: Component[];
+  links: Link[];
 }
 
 export interface SimResult {
@@ -82,7 +97,7 @@ function nextState(c: Component, ins: boolean[], s: FlipFlopState): FlipFlopStat
  *
  * 2 と 3 は全部品を同じ値から見るので、部品を並べた順番で結果が変わることはない。
  */
-export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
+export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
   const values = new Map<string, boolean>();
   const flipFlops = new Map<string, FlipFlopState>();
   const pending = new Map<string, boolean[][]>();
@@ -99,10 +114,10 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
     }
   }
 
-  // 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる配線は1本だけなので、1つに決まる
+  // 入力ピン (pinKey) → 接続元の出力ピン。入力ピンにつながる出力ピンは多くても1つなので、1つに決まる
   const driver = new Map<string, PinRef>();
-  for (const w of circuit.wires) {
-    driver.set(pinKey(w.to.comp, w.to.pin), w.from);
+  for (const l of circuit.links) {
+    driver.set(pinKey(l.to.comp, l.to.pin), l.from);
   }
 
   /** 入力ピンの値。何もつながっていない入力ピンは OFF */

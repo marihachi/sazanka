@@ -85,9 +85,15 @@ export function fitView(bounds: Rect, width: number, height: number): View {
   return hideOutside(centered, width, height);
 }
 
-/** 回路全体が占める範囲。部品がなければ undefined */
+/** 回路全体 (部品と配線) が占める範囲。部品も配線もなければ undefined */
 export function circuitBounds(circuit: CircuitDef, project: Project): Rect | undefined {
-  const rects = circuit.components.map((c) => componentBounds(c, portsOf(c, project)));
+  // 配線は部品と別に置けるので、配線の点も範囲に含める
+  const rects = [
+    ...circuit.components.map((c) => componentBounds(c, portsOf(c, project))),
+    ...circuit.wires.flatMap((w) =>
+      w.points.map((p) => ({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
+    ),
+  ];
   if (rects.length === 0) {
     return undefined;
   }

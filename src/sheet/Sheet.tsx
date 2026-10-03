@@ -10,19 +10,22 @@ import {
   type Point,
   SHEET_HEIGHT,
   SHEET_WIDTH,
+  simplifyWire,
   snap,
-  wireMiddleX,
+  wiresInRect,
+  wireStepTo,
 } from '../geometry/layout';
+import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry/net';
 import type { Component, ComponentKind } from '../circuit/component';
-import type { Circuit, PinRef } from '../circuit/circuit';
+import type { Circuit, Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { portComponents, portsOf } from '../circuit/module';
-import { pinKey } from '../simulation/sim';
+import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
-import { mustGet } from '../util';
+import type { Tool } from '../simulation/SheetToolbar';
 import { ComponentView } from './ComponentView';
 import { classNames } from '../ui/classNames';
-import type { Selection } from '../editing/edit';
+import { selectionOf, type Selection } from '../editing/edit';
 import { DRAG_MIME, type PaletteDrag } from '../palette/drag';
 import styles from './Sheet.module.css';
 import { toScreenLocal, useViewGestures } from './useViewGestures';
@@ -39,13 +42,22 @@ export interface SheetSize {
   height: number;
 }
 
-interface Drag {
-  /** 押した部品 */
+/** 押した部品か配線 */
+interface DragTarget {
+  type: 'comp' | 'wire';
   id: string;
-  /** 押した位置と、押した部品の位置の差 */
-  offset: Point;
-  /** 一緒に動かす部品 (押した部品を含む) と、ドラッグ開始時の位置 */
-  origins: Map<string, Point>;
+}
+
+interface Drag {
+  target: DragTarget;
+  /** 押した位置 (回路の座標) */
+  origin: Point;
+  /** 一緒に動かす部品 (押したものを含む) と、ドラッグ開始時の位置 */
+  comps: Map<string, Point>;
+  /** 一緒に動かす配線と、ドラッグ開始時の点の並び */
+  wires: Map<string, Point[]>;
+  /** 最後に動かした量 (ドラッグ開始時から)。同じ量なら動かし直さない */
+  delta: Point;
   moved: boolean;
   /** このドラッグで onMoveStart を呼んだか */
   started: boolean;
@@ -58,18 +70,30 @@ interface Drag {
 interface Band {
   start: Point;
   end: Point;
-  /** Shift を押して始めたときの、元の選択 (範囲内の部品を追加する) */
-  base: string[];
+  /** Shift を押して始めたときの、元の選択 (範囲内の部品と配線を追加する) */
+  base: Selection;
 }
 
-/** 配線の中央の縦線のドラッグ。start は押した位置 (クライアント座標) */
-interface WireDrag {
-  id: string;
-  pointerId: number;
-  start: Point;
-  /** 出力ピンの先。縦線の位置は、この高さに置いた折れる点で表す */
-  from: Point;
-  started: boolean;
+/** 貼り付ける部品と配線のうち、配線の点をすべて並べたもの (貼り付ける位置の計算に使う) */
+function wirePointsOf(part: Circuit): Point[] {
+  return part.wires.flatMap((w) => w.points);
+}
+
+/** ネットの値。出力ピンがちょうど 1 つならその値。ないか、2 つ以上 (ぶつかっている) なら OFF */
+function netValue(net: Net | undefined, sim: SimResult): boolean {
+  const driver = net?.outputs.length === 1 ? net.outputs[0] : undefined;
+  return !!driver && !!sim.values.get(pinKey(driver.comp, driver.pin));
+}
+
+/**
+ * 配線の点を置く位置。グリッドに合わせ、シートの範囲 (端を含む) に収める。
+ * 範囲の外に点があると、まとめて動かすときのはみ出しの判定 (clampMove) の前提が崩れるため
+ */
+function wireGridPoint(at: Point): Point {
+  return {
+    x: Math.min(Math.max(snap(at.x), 0), SHEET_WIDTH),
+    y: Math.min(Math.max(snap(at.y), 0), SHEET_HEIGHT),
+  };
 }
 
 /** 押した位置からこれ以上動いたらドラッグとみなす (px) */
@@ -81,13 +105,17 @@ const ZOOM_STEP = 1.25;
 interface SheetProps {
   project: Project;
   circuit: CircuitDef;
+  /** circuit の配線のつながり (geometry/net.ts) */
+  nets: Nets;
+  /** 選択モードか配線モードか */
+  tool: Tool;
   /** シミュレーションの結果。tick ごとに変わるので、props ではなく購読して受け取る (App を描き直さないため) */
   simStore: SimStore;
   selection: Selection;
   onSelect: (selection: Selection) => void;
-  /** 配線の途中で、接続元の出力ピン */
-  pending: PinRef | null;
-  onPendingChange: (pending: PinRef | null) => void;
+  /** 配線中に置いた点 (始点から順に)。配線中でなければ null */
+  pending: Point[] | null;
+  onPendingChange: (pending: Point[] | null) => void;
   dragMode: DragMode;
   onDragModeChange: (mode: DragMode) => void;
   onResize: (size: SheetSize) => void;
@@ -102,17 +130,14 @@ interface SheetProps {
   onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
   onMoveStart: () => void;
-  onMove: (positions: Map<string, Point>) => void;
-  /** 配線の中央の縦線を左右に動かした。points は、その位置を表す折れる点 */
-  onWirePointsChange: (id: string, points: Point[]) => void;
-  /** 削除エリアで離された。moved はそれまでに位置を動かしたか */
-  onDropOnTrash: (ids: string[], moved: boolean) => void;
+  /** 選んでいる部品と配線を動かした。comps は部品の新しい位置、wires は配線の新しい点の並び */
+  onMove: (comps: Map<string, Point>, wires: Map<string, Point[]>) => void;
+  /** 選んでいるものを削除エリアで離した。moved はそれまでに位置を動かしたか */
+  onDropOnTrash: (moved: boolean) => void;
   /** INPUT が (ドラッグせずに) クリックされた */
   onToggle: (id: string) => void;
-  /** 配線した。points は途中で置いた折れる点 */
-  onConnect: (from: PinRef, to: PinRef, points: Point[]) => void;
-  /** 入力ピンにつながった配線を外す */
-  onDisconnect: (to: PinRef) => void;
+  /** 配線を描き終えた。points は始点から終点までの点の並び (どの区間も縦か横) */
+  onAddWire: (points: Point[]) => void;
   onComponentDoubleClick: (c: Component) => void;
   /** 貼り付ける位置を選んでいる部品と配線 (コピー元の位置のまま)。ポインターについて動き、クリックで確定する */
   placing: Circuit | null;
@@ -124,6 +149,8 @@ interface SheetProps {
 export function Sheet({
   project,
   circuit,
+  nets,
+  tool,
   simStore,
   selection,
   onSelect,
@@ -139,11 +166,9 @@ export function Sheet({
   onAdd,
   onMoveStart,
   onMove,
-  onWirePointsChange,
   onDropOnTrash,
   onToggle,
-  onConnect,
-  onDisconnect,
+  onAddWire,
   onComponentDoubleClick,
   placing,
   onPlace,
@@ -161,7 +186,6 @@ export function Sheet({
     return svg;
   }
   const dragRef = useRef<Drag | null>(null);
-  const wireDragRef = useRef<WireDrag | null>(null);
   const [band, setBand] = useState<Band | null>(null);
   const [{ width, height }, setSize] = useState<SheetSize>({
     width: 0,
@@ -169,20 +193,33 @@ export function Sheet({
   });
   /** ポインターの位置 (回路の座標)。配線中の線の先と、貼り付ける部品の位置に使う。シートの上に来るまでは null */
   const [mouse, setMouse] = useState<Point | null>(null);
-  /** 配線の途中で置いた折れる点 (回路の座標) */
-  const [pendingPoints, setPendingPoints] = useState<Point[]>([]);
   /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
   const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
   const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
-  /** 入力ピン (pinKey) → つながっている配線 */
-  const wireTo = useMemo(
-    () => new Map(circuit.wires.map((w) => [pinKey(w.to.comp, w.to.pin), w])),
-    [circuit],
+  const wireMap = useMemo(() => new Map(circuit.wires.map((w) => [w.id, w])), [circuit]);
+  /** 入力ピン (pinKey) → それを動かす出力ピン。表示する入力ピンの値に使う */
+  const drivers = useMemo(
+    () => new Map(netLinks(nets.nets).map((l) => [pinKey(l.to.comp, l.to.pin), l.from])),
+    [nets],
   );
-  const selectedIds = useMemo(
-    () => new Set(selection?.type === 'comp' ? selection.ids : []),
-    [selection],
-  );
+  /** ピンの先の位置 ("x,y")。配線をつないで終えるかの判定に使う */
+  const pinTips = useMemo(() => {
+    const tips = new Set<string>();
+    for (const c of circuit.components) {
+      const ports = portsOf(c, project);
+      for (let i = 0; i < ports.inputs.length; i++) {
+        const p = inputPinPos(c, ports, i);
+        tips.add(`${p.x},${p.y}`);
+      }
+      for (let i = 0; i < ports.outputs.length; i++) {
+        const p = outputPinPos(c, ports, i);
+        tips.add(`${p.x},${p.y}`);
+      }
+    }
+    return tips;
+  }, [circuit, project]);
+  const selectedComps = useMemo(() => new Set(selection?.comps ?? []), [selection]);
+  const selectedWires = useMemo(() => new Set(selection?.wires ?? []), [selection]);
   /**
    * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。INPUT と OUTPUT で別々に数える。
    * メイン回路はピンにならないので空
@@ -263,7 +300,6 @@ export function Sheet({
   /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
   function cancelGesture() {
     dragRef.current = null;
-    wireDragRef.current = null;
     placeDownRef.current = null;
     setBand(null);
     onDragModeChange('none');
@@ -280,51 +316,118 @@ export function Sheet({
         pointerId: e.pointerId,
         start: { x: e.clientX, y: e.clientY },
       };
+      return;
+    }
+    if (tool === 'wire' && e.button === 0) {
+      // 配線モードでは、部品・ピン・配線の上も含めて、どこを押しても配線の点を置く
+      e.stopPropagation();
+      onWireClick(toLocal(e));
     }
   }
 
-  function onCompPointerDown(e: React.PointerEvent, c: Component) {
-    e.stopPropagation();
-    if (e.shiftKey) {
-      // Shift+クリックは選択に追加・解除するだけで、ドラッグは始めない
-      const ids = selectedIds.has(c.id)
-        ? [...selectedIds].filter((id) => id !== c.id)
-        : [...selectedIds, c.id];
-      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+  /**
+   * 配線モードでのクリック。at はポインターの位置 (回路の座標)。
+   * 配線中でなければ、そこから始める。配線中なら、最後の点から縦か横に伸ばした先に点を置き、
+   * その点がピンの先か配線の上ならつないで終える。最後の点と同じ点なら、そこで終える
+   */
+  function onWireClick(at: Point) {
+    const p = wireGridPoint(at);
+    if (!pending) {
+      onPendingChange([p]);
       return;
     }
-    // 選択中の部品を押したら、選択中の部品をまとめて動かす
-    const ids = selectedIds.has(c.id) ? [...selectedIds] : [c.id];
-    const p = toLocal(e);
+    const last = pending[pending.length - 1];
+    const next = wireStepTo(last, p);
+    if (next.x === last.x && next.y === last.y) {
+      // 点が 1 つだけ (始点をもう一度押した) なら、配線にならないので取り消す
+      if (pending.length >= 2) {
+        onAddWire(simplifyWire(pending));
+      }
+      onPendingChange(null);
+      return;
+    }
+    const points = [...pending, next];
+    const connects =
+      pinTips.has(`${next.x},${next.y}`) || circuit.wires.some((w) => isOnWire(next, w));
+    if (connects) {
+      onAddWire(simplifyWire(points));
+      onPendingChange(null);
+      return;
+    }
+    onPendingChange(points);
+  }
+
+  /** 押したものからドラッグを始める。選択中のものを押したら、選択中のものをまとめて動かす */
+  function startDrag(e: React.PointerEvent, target: DragTarget) {
+    const inSelection =
+      target.type === 'comp' ? selectedComps.has(target.id) : selectedWires.has(target.id);
+    const moving =
+      inSelection && selection
+        ? selection
+        : target.type === 'comp'
+          ? { comps: [target.id], wires: [] }
+          : { comps: [], wires: [target.id] };
     dragRef.current = {
-      id: c.id,
-      offset: { x: p.x - c.x, y: p.y - c.y },
-      origins: new Map(
-        ids.flatMap((id) => {
-          const o = compMap.get(id);
-          return o ? [[id, { x: o.x, y: o.y }] as const] : [];
+      target,
+      origin: toLocal(e),
+      comps: new Map(
+        moving.comps.flatMap((id) => {
+          const c = compMap.get(id);
+          return c ? [[id, { x: c.x, y: c.y }] as const] : [];
         }),
       ),
+      wires: new Map(
+        moving.wires.flatMap((id) => {
+          const w = wireMap.get(id);
+          return w ? [[id, w.points] as const] : [];
+        }),
+      ),
+      delta: { x: 0, y: 0 },
       moved: false,
       started: false,
       pointerId: e.pointerId,
       start: { x: e.clientX, y: e.clientY },
     };
-    if (!selectedIds.has(c.id)) {
-      onSelect({ type: 'comp', ids });
+    if (!inSelection) {
+      onSelect(moving);
     }
+  }
+
+  /** Shift+クリックで、部品か配線を選択に追加・解除する。ドラッグは始めない */
+  function toggleSelected(target: DragTarget) {
+    const toggle = (ids: string[]) =>
+      ids.includes(target.id) ? ids.filter((x) => x !== target.id) : [...ids, target.id];
+    const comps = selection?.comps ?? [];
+    const wires = selection?.wires ?? [];
+    onSelect(
+      target.type === 'comp'
+        ? selectionOf(toggle(comps), wires)
+        : selectionOf(comps, toggle(wires)),
+    );
+  }
+
+  function onCompPointerDown(e: React.PointerEvent, c: Component) {
+    e.stopPropagation();
+    if (e.shiftKey) {
+      toggleSelected({ type: 'comp', id: c.id });
+      return;
+    }
+    startDrag(e, { type: 'comp', id: c.id });
+  }
+
+  function onWirePointerDown(e: React.PointerEvent, w: Wire) {
+    e.stopPropagation();
+    if (e.shiftKey) {
+      toggleSelected({ type: 'wire', id: w.id });
+      return;
+    }
+    startDrag(e, { type: 'wire', id: w.id });
   }
 
   /** 何もないところを押したら、範囲選択を始める */
   function onBackgroundPointerDown(e: React.PointerEvent) {
-    if (pending) {
-      // 配線の途中なら、何もないところのクリックで折れる点を置く
-      const p = toLocal(e);
-      setPendingPoints([...pendingPoints, { x: snap(p.x), y: snap(p.y) }]);
-      return;
-    }
-    const base = e.shiftKey && selection?.type === 'comp' ? selection.ids : [];
-    onSelect(base.length > 0 ? { type: 'comp', ids: base } : null);
+    const base = e.shiftKey ? selection : null;
+    onSelect(base);
     const p = toLocal(e);
     sheetSvg().setPointerCapture(e.pointerId);
     setBand({ start: p, end: p, base });
@@ -336,31 +439,17 @@ export function Sheet({
     }
     const p = toLocal(e);
     setMouse(p);
-    const wireDrag = wireDragRef.current;
-    if (wireDrag && wireDrag.pointerId === e.pointerId) {
-      if (!wireDrag.started) {
-        if (
-          Math.hypot(e.clientX - wireDrag.start.x, e.clientY - wireDrag.start.y) < DRAG_THRESHOLD
-        ) {
-          return;
-        }
-        sheetSvg().setPointerCapture(e.pointerId);
-        // ドラッグ全体を1回の操作として元に戻せるようにする
-        onMoveStart();
-        wireDrag.started = true;
-      }
-      onWirePointsChange(wireDrag.id, [{ x: snap(p.x), y: wireDrag.from.y }]);
-      return;
-    }
     if (band) {
       setBand({ ...band, end: p });
-      const ids = [
-        ...new Set([
-          ...band.base,
-          ...componentsInRect(withPorts(circuit.components), band.start, p),
-        ]),
-      ];
-      onSelect(ids.length > 0 ? { type: 'comp', ids } : null);
+      const comps = new Set([
+        ...(band.base?.comps ?? []),
+        ...componentsInRect(withPorts(circuit.components), band.start, p),
+      ]);
+      const wires = new Set([
+        ...(band.base?.wires ?? []),
+        ...wiresInRect(circuit.wires, band.start, p),
+      ]);
+      onSelect(selectionOf([...comps], [...wires]));
       return;
     }
     const drag = dragRef.current;
@@ -394,41 +483,36 @@ export function Sheet({
     if (drag.moved) {
       onDragModeChange('moving');
     }
-    const anchor = mustGet(drag.origins, drag.id);
-    // ドラッグ開始時の位置からの移動量を、どの部品もはみ出さないように縮める
-    const items = [...drag.origins].flatMap(([id, o]) => {
+    // ドラッグ開始時の位置からの移動量。押した位置からポインターまでの差をグリッドに合わせ、
+    // どの部品も配線の点もはみ出さないように縮める。部品と配線の点はグリッドに乗っているので、動かしても乗ったまま
+    const items = [...drag.comps].flatMap(([id, o]) => {
       const c = compMap.get(id);
       return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
     });
-    // 押した部品の新しい位置 (ポインターの位置 - 押した位置のずれ、グリッドに合わせる) と、
-    // ドラッグ開始時の位置との差が、選んだ部品全体の移動量
-    const d = clampMove(items, {
-      x: snap(p.x - drag.offset.x) - anchor.x,
-      y: snap(p.y - drag.offset.y) - anchor.y,
-    });
-    const positions = new Map(items.map(({ c }) => [c.id, { x: c.x + d.x, y: c.y + d.y }]));
-    const unchanged = [...positions].every(([id, pos]) => {
-      const c = mustGet(compMap, id);
-      return c.x === pos.x && c.y === pos.y;
-    });
-    if (unchanged) {
+    const d = clampMove(
+      items,
+      { x: snap(p.x - drag.origin.x), y: snap(p.y - drag.origin.y) },
+      [...drag.wires.values()].flat(),
+    );
+    if (d.x === drag.delta.x && d.y === drag.delta.y) {
       return;
     }
+    drag.delta = d;
     drag.moved = true;
     onDragModeChange('moving');
     if (!drag.started) {
       onMoveStart();
       drag.started = true;
     }
-    onMove(positions);
+    const shift = (q: Point) => ({ x: q.x + d.x, y: q.y + d.y });
+    onMove(
+      new Map(items.map(({ c }) => [c.id, shift(c)])),
+      new Map([...drag.wires].map(([id, points]) => [id, points.map(shift)])),
+    );
   }
 
   function onPointerUp(e: React.PointerEvent) {
     if (endView(e)) {
-      return;
-    }
-    if (wireDragRef.current?.pointerId === e.pointerId) {
-      wireDragRef.current = null;
       return;
     }
     const placeDown = placeDownRef.current;
@@ -439,7 +523,7 @@ export function Sheet({
         Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
         DRAG_THRESHOLD * 2;
       if (placing && !moved) {
-        onPlace(placeOffset(withPorts(placing.components), toLocal(e)));
+        onPlace(placeOffset(withPorts(placing.components), wirePointsOf(placing), toLocal(e)));
       }
       return;
     }
@@ -452,28 +536,17 @@ export function Sheet({
     }
     if (dragMode === 'trash') {
       // 動かしていれば onMoveStart で履歴を積んであるので、削除はその 1 回の操作に含める (App.tsx)
-      onDropOnTrash([...drag.origins.keys()], drag.started);
+      onDropOnTrash(drag.started);
       return;
     }
     if (drag.moved) {
       return;
     }
-    // 動かさずに離したら、押した部品だけを選ぶ。スイッチはトグル
-    onSelect({ type: 'comp', ids: [drag.id] });
-    if (compMap.get(drag.id)?.kind === 'INPUT') {
-      onToggle(drag.id);
-    }
-  }
-
-  function onInputPinDown(e: React.PointerEvent, c: Component, pin: number) {
-    e.stopPropagation();
-    const to = { comp: c.id, pin };
-    if (pending) {
-      onConnect(pending, to, pendingPoints);
-      onPendingChange(null);
-    } else {
-      // 入力ピンから始めた場合は既存の配線を外す
-      onDisconnect(to);
+    // 動かさずに離したら、押したものだけを選ぶ。スイッチはトグル
+    const { type, id } = drag.target;
+    onSelect(type === 'comp' ? { comps: [id], wires: [] } : { comps: [], wires: [id] });
+    if (type === 'comp' && compMap.get(id)?.kind === 'INPUT') {
+      onToggle(id);
     }
   }
 
@@ -490,39 +563,30 @@ export function Sheet({
   }
 
   /**
-   * 配線中の仮の線。クリックで確定したときと同じ形に描く。
-   * 入力ピンの上にマウスがあれば、そのピンへ入る最後の区間の形 (縦→横)。
-   * 何もないところなら、そこに折れる点を置いたときの区間の形 (横→縦)
+   * 配線モードで、ポインターの位置でクリックしたときに置かれる点。
+   * クリックしたときと同じ計算 (onWireClick) にしないと、クリックした後に線が違う位置へ動いて見える
    */
-  function pendingPath(from: Point, at: Point): string {
-    for (const c of circuit.components) {
-      const ports = portsOf(c, project);
-      for (let i = 0; i < ports.inputs.length; i++) {
-        const tip = inputPinPos(c, ports, i);
-        // ピンの丸 (半径 6) の上にあるとき
-        if (Math.hypot(tip.x - at.x, tip.y - at.y) <= 8) {
-          return wirePath(from, pendingPoints, tip, roundWires);
-        }
-      }
-    }
-    // 折れる点はグリッドに合わせて置くので、仮の線もグリッドに合わせた位置へ引く
-    const p = { x: snap(at.x), y: snap(at.y) };
-    return wirePath(from, [...pendingPoints, p], p, roundWires);
+  function wireCursor(at: Point): Point {
+    const p = wireGridPoint(at);
+    return pending ? wireStepTo(pending[pending.length - 1], p) : p;
   }
 
   const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
   /** シートの画面上の範囲。この外には部品を置けない */
   const sheetStart = toScreen(view, { x: 0, y: 0 });
   const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
-
-  const pendingFrom = pending && compMap.get(pending.comp);
+  const cursor = tool === 'wire' && mouse && !placing ? wireCursor(mouse) : null;
 
   return (
     <div className={styles.sheetWrap}>
       {/* biome-ignore lint/a11y/noSvgWithoutTitle: 描画面なので題は付けない (title を付けるとシート全体にツールチップが出る) */}
       <svg
         ref={svgRef}
-        className={classNames(styles.sheet, (spaceHeld || panning) && styles.panning)}
+        className={classNames(
+          styles.sheet,
+          tool === 'wire' && styles.wireTool,
+          (spaceHeld || panning) && styles.panning,
+        )}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -577,56 +641,43 @@ export function Sheet({
         {/* ここから下は回路の座標で描く */}
         <g transform={transform}>
           {circuit.wires.map((w) => {
-            const from = compMap.get(w.from.comp);
-            const to = compMap.get(w.to.comp);
-            if (!from || !to) {
-              return null;
-            }
-            const fromPorts = portsOf(from, project);
-            const toPorts = portsOf(to, project);
-            // モジュールのピンが減った場合など、存在しないピンへの配線は描かない
-            if (w.from.pin >= fromPorts.outputs.length || w.to.pin >= toPorts.inputs.length) {
-              return null;
-            }
-            const a = outputPinPos(from, fromPorts, w.from.pin);
-            const b = inputPinPos(to, toPorts, w.to.pin);
-            const d = wirePath(a, w.points ?? [], b, roundWires);
-            const midX = wireMiddleX(a, w.points ?? [], b);
-            const on = sim.values.get(pinKey(w.from.comp, w.from.pin));
-            const selected = selection?.type === 'wire' && selection.id === w.id;
+            const net = nets.wireNet.get(w.id);
+            const d = wirePath(w.points, roundWires);
             return (
               <g key={w.id}>
                 <path
-                  className={classNames(styles.wire, on && styles.on, selected && styles.selected)}
+                  className={classNames(
+                    styles.wire,
+                    netValue(net, sim) && styles.on,
+                    net && isConflict(net) && styles.conflict,
+                    selectedWires.has(w.id) && styles.selected,
+                  )}
                   d={d}
                 />
                 <path
                   className={styles.wireHit}
                   d={d}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    onSelect({ type: 'wire', id: w.id });
-                  }}
+                  onPointerDown={(e) => onWirePointerDown(e, w)}
                 />
-                {/* 中央の縦線は、左右にドラッグして動かせる */}
-                {midX !== undefined && (
-                  <path
-                    className={styles.wireMiddle}
-                    d={`M${midX},${a.y} V${b.y}`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      onSelect({ type: 'wire', id: w.id });
-                      wireDragRef.current = {
-                        id: w.id,
-                        pointerId: e.pointerId,
-                        start: { x: e.clientX, y: e.clientY },
-                        from: a,
-                        started: false,
-                      };
-                    }}
-                  />
-                )}
               </g>
+            );
+          })}
+
+          {/* 分岐の印。配線の途中から分かれている点など、3 本以上の線が集まる点に描き、交差しているだけの点と見分ける */}
+          {nets.junctions.map(({ at, wire }) => {
+            const net = nets.wireNet.get(wire);
+            return (
+              <circle
+                key={`${at.x},${at.y}`}
+                className={classNames(
+                  styles.junction,
+                  netValue(net, sim) && styles.on,
+                  net && isConflict(net) && styles.conflict,
+                )}
+                cx={at.x}
+                cy={at.y}
+                r={4}
+              />
             );
           })}
 
@@ -643,19 +694,13 @@ export function Sheet({
                   (_, i) => !!sim.values.get(pinKey(c.id, i)),
                 )}
                 inputValues={ports.inputs.map((_, i) => {
-                  const w = wireTo.get(pinKey(c.id, i));
-                  return w ? !!sim.values.get(pinKey(w.from.comp, w.from.pin)) : false;
+                  const from = drivers.get(pinKey(c.id, i));
+                  return from ? !!sim.values.get(pinKey(from.comp, from.pin)) : false;
                 })}
-                selected={selectedIds.has(c.id)}
+                selected={selectedComps.has(c.id)}
                 pinNumber={pinNumbers.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
                 onBodyDoubleClick={() => onComponentDoubleClick(c)}
-                onInputPinDown={(e, pin) => onInputPinDown(e, c, pin)}
-                onOutputPinDown={(e, pin) => {
-                  e.stopPropagation();
-                  onPendingChange({ comp: c.id, pin });
-                  setPendingPoints([]);
-                }}
               />
             );
           })}
@@ -676,22 +721,14 @@ export function Sheet({
               // まだポインターがシートに来ていなければ (スマホなど)、表示している範囲の真ん中に置く
               const d = placeOffset(
                 withPorts(placing.components),
+                wirePointsOf(placing),
                 mouse ?? toWorld(view, center()),
               );
-              const parts = new Map(placing.components.map((c) => [c.id, c]));
               return (
                 <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>
-                  {placing.wires.map((w) => {
-                    const from = mustGet(parts, w.from.comp);
-                    const to = mustGet(parts, w.to.comp);
-                    const d = wirePath(
-                      outputPinPos(from, portsOf(from, project), w.from.pin),
-                      w.points ?? [],
-                      inputPinPos(to, portsOf(to, project), w.to.pin),
-                      roundWires,
-                    );
-                    return <path key={w.id} className={styles.wire} d={d} />;
-                  })}
+                  {placing.wires.map((w) => (
+                    <path key={w.id} className={styles.wire} d={wirePath(w.points, roundWires)} />
+                  ))}
                   {placing.components.map((c) => {
                     const ports = portsOf(c, project);
                     return (
@@ -708,8 +745,6 @@ export function Sheet({
                         selected
                         onBodyDown={() => {}}
                         onBodyDoubleClick={() => {}}
-                        onInputPinDown={() => {}}
-                        onOutputPinDown={() => {}}
                       />
                     );
                   })}
@@ -717,15 +752,13 @@ export function Sheet({
               );
             })()}
 
-          {pending && pendingFrom && mouse && (
-            <path
-              className={styles.pending}
-              d={pendingPath(
-                outputPinPos(pendingFrom, portsOf(pendingFrom, project), pending.pin),
-                mouse,
-              )}
-            />
+          {/* 配線中の仮の線。置いた点に、今クリックしたら置かれる点を足して描く */}
+          {pending && cursor && (
+            <path className={styles.pending} d={wirePath([...pending, cursor], roundWires)} />
           )}
+
+          {/* 配線モードでは、クリックで点が置かれる位置に印を出す */}
+          {cursor && <circle className={styles.cursor} cx={cursor.x} cy={cursor.y} r={4} />}
         </g>
       </svg>
       {/* 右下に重ねる。削除エリアはズームのパネルの上 */}

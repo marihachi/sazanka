@@ -19,13 +19,9 @@
   stroke-width: 2;
 }
 
+/* ピンの先の丸。配線はピンの先の位置でつながる (geometry/net.ts) ので、ここでは何も受けない */
 .pin {
   fill: transparent;
-  cursor: crosshair;
-}
-
-.pin:hover {
-  fill: var(--chakra-colors-accent-solid);
 }
 
 .pin-label {

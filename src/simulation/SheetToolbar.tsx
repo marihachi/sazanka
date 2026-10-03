@@ -1,13 +1,20 @@
 import { memo } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
+import selectIcon from '../assets/icons/select.svg';
+import wireIcon from '../assets/icons/wire.svg';
 import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
-import { ToolButton } from '../ui/ToolButton';
+import { ToolButton, ToolDivider } from '../ui/ToolButton';
+
+/** シートの操作のモード。配線モードでは、クリックで配線を引く */
+export type Tool = 'select' | 'wire';
 
 interface SheetToolbarProps {
+  tool: Tool;
+  onToolChange: (tool: Tool) => void;
   /** シミュレーションが動いているか */
   running: boolean;
   onToggleRunning: () => void;
@@ -25,6 +32,8 @@ interface SheetToolbarProps {
  * プロジェクト全体に効く操作はヘッダーに置く
  */
 export const SheetToolbar = memo(function SheetToolbar({
+  tool,
+  onToolChange,
   running,
   onToggleRunning,
   onStep,
@@ -35,6 +44,21 @@ export const SheetToolbar = memo(function SheetToolbar({
   return (
     // 選択中のタブと同じ色にして、タブの中の操作だと見せる (TabBar.tsx)
     <Flex align="center" gap="0.5" px="2" py="1" bg="bg.panel" borderBottomWidth="1px">
+      <ToolButton
+        icon={selectIcon}
+        label="選択"
+        title="選択モード (W で切り替え): 部品や配線を選んで動かす"
+        onClick={() => onToolChange('select')}
+        active={tool === 'select'}
+      />
+      <ToolButton
+        icon={wireIcon}
+        label="配線"
+        title="配線モード (W で切り替え): クリックした点から点へ配線を引く"
+        onClick={() => onToolChange('wire')}
+        active={tool === 'wire'}
+      />
+      <ToolDivider />
       <ToolButton
         icon={running ? pauseIcon : playIcon}
         label={running ? '一時停止' : '再開'}

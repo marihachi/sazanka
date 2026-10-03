@@ -11,6 +11,8 @@ export interface Shortcuts {
   onCut: () => void;
   onPaste: () => void;
   onEscape: () => void;
+  /** 選択モードと配線モードを切り替える */
+  onToggleWireTool: () => void;
 }
 
 /** 編集操作のキーボードショートカット */
@@ -64,6 +66,10 @@ export function useShortcuts(shortcuts: Shortcuts) {
       }
       if (e.key === 'Escape') {
         s.onEscape();
+      }
+      // 修飾キー付きは、ブラウザの操作 (Ctrl+W でタブを閉じるなど) に任せる
+      if (key === 'w' && !mod && !e.altKey) {
+        s.onToggleWireTool();
       }
     }
     window.addEventListener('keydown', onKey);

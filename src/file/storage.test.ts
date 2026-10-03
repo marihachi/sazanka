@@ -10,9 +10,38 @@ describe('readStored', () => {
   });
 
   it('版付きの保存データを読み込む', () => {
-    expect(readStored(JSON.stringify({ version: 1, project }))).toEqual({
+    expect(readStored(JSON.stringify({ version: 2, project }))).toEqual({
       project,
     });
+  });
+
+  it('version 1 のデータは、配線を点の並びに変えて読み込む', () => {
+    const v1 = {
+      circuits: [
+        {
+          id: 'main',
+          name: 'メイン',
+          // biome-ignore format: 表形式を維持するため
+          components: [
+            { id: 'a', kind: 'INPUT', x: 0, y: 0 },
+            { id: 'o', kind: 'OUTPUT', x: 100, y: 0 },
+          ],
+          wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'o', pin: 0 } }],
+        },
+      ],
+    };
+    const result = readStored(JSON.stringify({ version: 1, project: v1 }));
+    expect(result.error).toBeUndefined();
+    // a の出力ピンの先 (60, 20) と o の入力ピンの先 (80, 20) は同じ高さなので、まっすぐ結ぶ
+    expect(result.project.circuits[0].wires).toEqual([
+      {
+        id: 'w',
+        points: [
+          { x: 60, y: 20 },
+          { x: 80, y: 20 },
+        ],
+      },
+    ]);
   });
 
   it('INPUT / CLOCK の ON/OFF は読み込まない (古いデータには入っている)', () => {

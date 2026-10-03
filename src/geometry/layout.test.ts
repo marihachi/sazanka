@@ -11,9 +11,10 @@ import {
   inputPinPos,
   outputPinPos,
   placeOffset,
+  simplifyWire,
   snap,
-  wireMiddleX,
-  wireRoute,
+  wiresInRect,
+  wireStepTo,
 } from './layout';
 import type { Component, ComponentKind } from '../circuit/component';
 import type { Project } from '../circuit/project';
@@ -212,71 +213,6 @@ describe('componentBounds', () => {
   });
 });
 
-describe('wireRoute', () => {
-  const axisAligned = (route: { x: number; y: number }[]) =>
-    route.every((p, i) => i === 0 || p.x === route[i - 1].x || p.y === route[i - 1].y);
-
-  it('折れる点がなければ、中間で1回折れる', () => {
-    expect(wireRoute({ x: 0, y: 0 }, [], { x: 100, y: 40 })).toEqual([
-      { x: 0, y: 0 },
-      { x: 60, y: 0 },
-      { x: 60, y: 40 },
-      { x: 100, y: 40 },
-    ]);
-  });
-
-  it('折れる点を順に通り、縦横の線だけでつなぐ', () => {
-    // biome-ignore format: 表形式を維持するため
-    const points = [
-      { x: 200, y: 100 },
-      { x: 60, y: 200 },
-    ];
-    const route = wireRoute({ x: 0, y: 0 }, points, { x: 300, y: 300 });
-    expect(axisAligned(route)).toBe(true);
-    // 置いた点は、どこかの区間の上を通る (曲がらない点は、点の並びからは省かれる)
-    const onRoute = (p: { x: number; y: number }) =>
-      route.some((q, i) => {
-        if (i === 0) {
-          return false;
-        }
-        const r = route[i - 1];
-        return (
-          p.x >= Math.min(q.x, r.x) &&
-          p.x <= Math.max(q.x, r.x) &&
-          p.y >= Math.min(q.y, r.y) &&
-          p.y <= Math.max(q.y, r.y)
-        );
-      });
-    for (const p of points) {
-      expect(onRoute(p)).toBe(true);
-    }
-  });
-
-  it('両端が同じ高さなら、折れずにまっすぐつなぐ', () => {
-    expect(wireRoute({ x: 0, y: 40 }, [], { x: 100, y: 40 })).toEqual([
-      { x: 0, y: 40 },
-      { x: 100, y: 40 },
-    ]);
-    // 折れる点が一直線に並んでいても、長さ 0 の区間や曲がらない角を残さない
-    expect(
-      wireRoute({ x: 0, y: 40 }, [{ x: 60, y: 40 }], { x: 100, y: 40 }),
-      // biome-ignore format: 表形式を維持するため
-    ).toEqual([
-      { x: 0, y: 40 },
-      { x: 100, y: 40 },
-    ]);
-  });
-
-  it('入力ピンへは横から入る', () => {
-    const route = wireRoute({ x: 0, y: 0 }, [{ x: 200, y: 100 }], {
-      x: 300,
-      y: 300,
-    });
-    const [a, b] = route.slice(-2);
-    expect(a.y).toBe(b.y);
-  });
-});
-
 describe('componentsInRect', () => {
   const ports = { inputs: ['', ''], outputs: [''] };
   // AND の本体は 60×80
@@ -305,29 +241,75 @@ describe('placeOffset', () => {
   it('全体の中心が指定した点に来るよう、グリッドに合わせて動かす', () => {
     // 範囲は左右のピンを含めて x: 80〜180、y: 100〜180 なので、中心は (130, 140)
     const items = [{ c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports }];
-    expect(placeOffset(items, { x: 530, y: 345 })).toEqual({ x: 400, y: 200 });
+    expect(placeOffset(items, [], { x: 530, y: 345 })).toEqual({ x: 400, y: 200 });
   });
 
   it('シートからはみ出す位置なら縮める', () => {
     const items = [{ c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports }];
-    expect(placeOffset(items, { x: 0, y: 0 })).toEqual({ x: -80, y: -100 });
+    expect(placeOffset(items, [], { x: 0, y: 0 })).toEqual({ x: -80, y: -100 });
   });
 });
 
-describe('wireMiddleX', () => {
-  it('折れる点がなければ、両端の真ん中をグリッドに合わせた位置', () => {
-    expect(wireMiddleX({ x: 0, y: 0 }, [], { x: 100, y: 60 })).toBe(60);
+describe('placeOffset と配線の点', () => {
+  it('配線の点も全体の範囲に含める', () => {
+    // 点の範囲は x: 100〜300、y: 100 なので、中心は (200, 100)
+    // biome-ignore format: 表形式を維持するため
+    const points = [
+      { x: 100, y: 100 },
+      { x: 300, y: 100 },
+    ];
+    expect(placeOffset([], points, { x: 500, y: 300 })).toEqual({ x: 300, y: 200 });
   });
 
-  it('出力ピンと同じ高さに折れる点が1つだけなら、その x', () => {
-    expect(wireMiddleX({ x: 0, y: 0 }, [{ x: 20, y: 0 }], { x: 100, y: 60 })).toBe(20);
+  it('配線の点がシートからはみ出す位置なら縮める', () => {
+    expect(placeOffset([], [{ x: 100, y: 100 }], { x: -500, y: 50 })).toEqual({ x: -100, y: -40 });
+  });
+});
+
+describe('clampMove と配線の点', () => {
+  it('点がシートの端を越えないように縮める', () => {
+    expect(clampMove([], { x: -60, y: 40 }, [{ x: 40, y: 0 }])).toEqual({ x: -40, y: 40 });
+    expect(clampMove([], { x: 100, y: 0 }, [{ x: SHEET_WIDTH - 20, y: 0 }])).toEqual({
+      x: 20,
+      y: 0,
+    });
+  });
+});
+
+describe('wiresInRect', () => {
+  // biome-ignore format: 表形式を維持するため
+  const wires = [
+    { id: 'a', points: [{ x: 100, y: 100 }, { x: 200, y: 100 }] },
+    { id: 'b', points: [{ x: 100, y: 100 }, { x: 100, y: 300 }] },
+  ];
+
+  it('すべての点が範囲に収まる配線だけを選ぶ', () => {
+    expect(wiresInRect(wires, { x: 90, y: 90 }, { x: 210, y: 110 })).toEqual(['a']);
+    expect(wiresInRect(wires, { x: 210, y: 310 }, { x: 90, y: 90 })).toEqual(['a', 'b']);
+  });
+});
+
+describe('wireStepTo', () => {
+  it('最後の点から、動いた量の大きい方の向きにだけ伸ばす', () => {
+    expect(wireStepTo({ x: 0, y: 0 }, { x: 100, y: 40 })).toEqual({ x: 100, y: 0 });
+    expect(wireStepTo({ x: 0, y: 0 }, { x: 40, y: -100 })).toEqual({ x: 0, y: -100 });
   });
 
-  it('両端が同じ高さなら、縦線はない', () => {
-    expect(wireMiddleX({ x: 0, y: 0 }, [], { x: 100, y: 0 })).toBeUndefined();
+  it('同じだけ動いたときは横に伸ばす', () => {
+    expect(wireStepTo({ x: 0, y: 0 }, { x: 40, y: 40 })).toEqual({ x: 40, y: 0 });
+  });
+});
+
+describe('simplifyWire', () => {
+  const pts = (...xy: [number, number][]) => xy.map(([x, y]) => ({ x, y }));
+
+  it('同じ点が続くところと、まっすぐ進む途中の点を省く', () => {
+    expect(simplifyWire(pts([0, 0], [40, 0], [40, 0], [80, 0], [80, 40]))).toEqual(
+      pts([0, 0], [80, 0], [80, 40]),
+    );
   });
 
-  it('ほかの形の折れる点があれば対象外', () => {
-    expect(wireMiddleX({ x: 0, y: 0 }, [{ x: 20, y: 40 }], { x: 100, y: 60 })).toBeUndefined();
+  it('折り返す点は残す', () => {
+    expect(simplifyWire(pts([0, 0], [80, 0], [40, 0]))).toEqual(pts([0, 0], [80, 0], [40, 0]));
   });
 });

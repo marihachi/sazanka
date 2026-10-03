@@ -10,22 +10,30 @@ export interface Circuit {
   wires: Wire[];
 }
 
+/**
+ * 配線。points を順に結んだ線で、どの区間も縦か横 (2 点以上)。
+ * 部品とは参照でつながず、位置で接続を決める (geometry/net.ts)。
+ * 端が部品のピンの先や、ほかの配線の上 (端・折れる点・途中) にあれば接続。途中どうしが交わるだけなら接続しない
+ */
 export interface Wire {
   id: string;
-  from: PinRef; // 出力ピン
-  to: PinRef; // 入力ピン
-  /** 利用者が置いた、配線の折れる点 (シートの座標、並び順に通る)。なければ中間で1回折れる形 */
-  points?: { x: number; y: number }[];
+  points: { x: number; y: number }[];
 }
 
 export function isWire(w: unknown): w is Wire {
   return (
     isObject(w) &&
     typeof w.id === 'string' &&
-    isPinRef(w.from) &&
-    isPinRef(w.to) &&
-    (w.points === undefined || (Array.isArray(w.points) && w.points.every(isPoint)))
+    Array.isArray(w.points) &&
+    w.points.length >= 2 &&
+    w.points.every(isPoint) &&
+    isAxisAligned(w.points as { x: number; y: number }[])
   );
+}
+
+/** どの区間も縦か横か */
+function isAxisAligned(points: { x: number; y: number }[]): boolean {
+  return points.every((p, i) => i === 0 || p.x === points[i - 1].x || p.y === points[i - 1].y);
 }
 
 export function isPoint(p: unknown): boolean {
@@ -37,7 +45,7 @@ export interface PinRef {
   pin: number;
 }
 
-export function isPinRef(p: unknown): p is Wire['from'] {
+export function isPinRef(p: unknown): p is PinRef {
   return (
     isObject(p) && typeof p.comp === 'string' && Number.isInteger(p.pin) && (p.pin as number) >= 0
   );

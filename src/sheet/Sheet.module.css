@@ -14,6 +14,13 @@
   touch-action: none;
 }
 
+/* 配線モード。部品や配線の上でも、クリックで配線の点を置く */
+.sheet.wire-tool,
+.sheet.wire-tool * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: crosshair !important;
+}
+
 /* Space を押している間と、表示を移動している間 */
 .sheet.panning,
 .sheet.panning * {
@@ -31,8 +38,27 @@
   stroke: var(--chakra-colors-sheet-on);
 }
 
+/* 出力ピンが 2 つ以上つながって、値がぶつかっている */
+.wire.conflict {
+  stroke: var(--chakra-colors-sheet-conflict);
+}
+
 .wire.selected {
   stroke: var(--chakra-colors-accent-solid);
+}
+
+/* 分岐の印。配線と同じ色で塗る */
+.junction {
+  fill: var(--chakra-colors-sheet-line);
+  pointer-events: none;
+}
+
+.junction.on {
+  fill: var(--chakra-colors-sheet-on);
+}
+
+.junction.conflict {
+  fill: var(--chakra-colors-sheet-conflict);
 }
 
 .wire-hit {
@@ -42,19 +68,19 @@
   cursor: pointer;
 }
 
-/* 配線の中央の縦線。左右にドラッグして動かせる */
-.wire-middle {
-  stroke: transparent;
-  stroke-width: 10;
-  fill: none;
-  cursor: ew-resize;
-}
-
 .pending {
   stroke: var(--chakra-colors-accent-solid);
   stroke-dasharray: 4 4;
   stroke-width: 2;
   fill: none;
+  pointer-events: none;
+}
+
+/* 配線モードで、クリックで点が置かれる位置 */
+.cursor {
+  fill: none;
+  stroke: var(--chakra-colors-accent-solid);
+  stroke-width: 1.5;
   pointer-events: none;
 }
 

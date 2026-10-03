@@ -49,19 +49,25 @@ describe('checkProject', () => {
     ['内部用の BUF が入っている', main([comp('a', 'BUF')])],
     ['座標が数値でない', main([{ id: 'a', kind: 'AND', x: '0', y: 0 } as unknown as Component])],
     ['部品の ID が重複', main([comp('a', 'AND'), comp('a', 'OR')])],
+    ['配線の点が 1 つ', main([], [{ id: 'w', points: [{ x: 0, y: 0 }] }])],
     [
-      '配線の接続先がない',
+      '配線に斜めの区間がある',
       main(
-        [comp('a', 'INPUT')],
-        [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'x', pin: 0 } }],
+        [],
+        [
+          {
+            id: 'w',
+            points: [
+              { x: 0, y: 0 },
+              { x: 20, y: 20 },
+            ],
+          },
+        ],
       ),
     ],
     [
-      'ピン番号が負',
-      main(
-        [comp('a', 'INPUT')],
-        [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'a', pin: -1 } }],
-      ),
+      'version 1 の形の配線',
+      main([], [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'a', pin: 0 } }]),
     ],
     ['作者名が文字列でない', { ...emptyProject(), author: 1 }],
     ['存在しないモジュールを参照', main([comp('u', 'CUSTOM', { custom: 'ない' })])],

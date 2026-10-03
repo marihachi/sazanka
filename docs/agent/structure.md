@@ -28,7 +28,7 @@
   - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
-  - `ComponentView.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の SVG のパス（角の丸め）。
+  - `ComponentView.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
   - `useViewGestures.ts` … 表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2 本指）。
   - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。
   - `Sheet.module.css`、`ComponentView.module.css` … シートのスタイル（[見た目](styling.md)）。
@@ -36,6 +36,7 @@
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
   - `storage.ts` … localStorage への保存と読み込み。`share.ts` … 共有用 JSON。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。
+  - `upgradeV1.ts` … 形式 version 1 のプロジェクトを今の形に変える（保存データと共有用 JSON で共通）。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
@@ -45,15 +46,17 @@
   - `history.ts` … 履歴の計算。`useProjectHistory.ts` … 元に戻せるプロジェクトの状態。`switchStates.ts` … 元に戻すときに INPUT の ON/OFF を引き継ぐ。
   - `useClipboard.ts` … コピー・切り取り・貼り付け。`useShortcuts.ts` … キーボードの操作。
 - `simulation/` … シミュレーション（[シミュレーション](simulation.md)）。
-  - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開。
+  - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
+  - `testCircuits.ts` … テスト用の回路の作り方（つなぎたいピンから配線を引いた回路）。アプリからは使わない。
   - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数。
-  - `SheetToolbar.tsx` … シートのツールバー（一時停止、1 tick 送り・戻し、モジュールの削除）。
+  - `SheetToolbar.tsx` … シートのツールバー（選択モードと配線モードの切り替え、一時停止、1 tick 送り・戻し、モジュールの削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
-  - `layout.ts` … グリッド、部品の大きさ、ピンの座標、シートの大きさ、はみ出さない位置、配線の通り道。
+  - `layout.ts` … グリッド、部品の大きさ、ピンの座標、シートの大きさ、はみ出さない位置、範囲選択、配線中の点の置き方。
+  - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。
   - `view.ts` … 表示（位置と倍率）と、回路の座標と画面の座標の変換。
 - `circuit/` … 回路のデータ。
   - `component.ts` … 部品のデータ、置ける種類、種類ごとのピンと遅延を引く入口。特別な部品のピン、CLOCK の周期もここ。
-  - `circuit.ts` … 回路 1 つ分のデータ（部品と配線）と ID の作り方。
+  - `circuit.ts` … 回路 1 つ分のデータ（部品と配線）と ID の作り方。配線は点の並びで、部品を指さない。
   - `project.ts` … プロジェクトの構造と、外から来たデータの検証（`checkProject`）。
   - `module.ts` … モジュールのピンの決め方と、回路同士の依存（循環の判定）。
 - `parts/` … 部品の種類（[部品の種類](parts.md)）。
@@ -72,7 +75,7 @@
 
 `app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `util`
 
-- この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。
+- この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。
 - `circuit/` の中では、`module.ts` → `project.ts` → `circuit.ts` → `component.ts` → `parts/` の向きに使う。`component.ts` と `circuit.ts` はプロジェクトを知らず、`project.ts` と `module.ts` は知る。
 - `util.ts` は何も import しない。
 - 互いに import し合う形（循環）の落とし穴: 読み込みの途中では、相手のファイルの値がまだできていないことがある。読み込んだ時点で相手の値を使う処理（例: `parts/specs.ts` が読み込み時に `PARTS` から `Map` を作る）が循環に入ると、`undefined` を読んで壊れる。相手の値を関数の中で使うだけのときや、型だけを import するときは問題ない。
