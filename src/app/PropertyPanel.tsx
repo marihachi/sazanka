@@ -175,6 +175,7 @@ function ClockPeriodField({
   function change(next: string) {
     setText(next);
     const v = Number(next);
+    // 使えない値や、今と同じ値では反映しない (履歴を積まないため、session.begin も呼ばない)
     if (next.trim() === '' || !isClockPeriod(v) || v === period) {
       return;
     }

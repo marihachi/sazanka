@@ -140,7 +140,8 @@ export function stepCircuit(circuit: Circuit, prev?: SimResult): SimResult {
   }
 
   // 2. 遅延のない部品は、この tick のうちに伝える。BUF がつながっていても遅れないようにするため、
-  //    値が変わらなくなるまで繰り返す (遅延のない部品だけの輪は作れないので、必ず止まる)
+  //    値が変わらなくなるまで繰り返す。遅延のない部品だけの輪 (INPUT を OUTPUT へ直接つないだモジュールの
+  //    出力を、自分の入力へつないだときの BUF の輪など) もありうるので、回数は部品の数 + 1 までにする
   for (let i = 0; i < immediate.length + 1; i++) {
     const now = new Map(values);
     let moved = false;

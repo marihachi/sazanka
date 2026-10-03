@@ -83,6 +83,7 @@ export const TabBar = memo(function TabBar({
       const rect = tabRefs.current.get(d.id)?.getBoundingClientRect();
       return rect && rect.left + rect.width / 2 < e.clientX;
     }).length;
+    // 回路の一覧の先頭はメイン回路なので、モジュールの番号は 1 から
     setDrag({ ...drag, started: true, index: before + 1 });
   }
 

@@ -2,7 +2,9 @@ import type { Project } from '../circuit/project';
 
 /**
  * restored の INPUT / CLOCK の ON/OFF を、current の同じ部品の値で置き換える。
- * スイッチ操作やクロックは元に戻す対象ではないので、履歴をたどっても今の値を保つために使う。
+ * INPUT の ON/OFF は元に戻す対象ではないので、履歴をたどっても今の値を保つために使う。
+ * CLOCK の ON/OFF はプロジェクトに書かず、シミュレーションの中で持つ (simulation/useSimulation.ts)。
+ * CLOCK を含めているのは、部品の on をまとめて扱っているだけ
  */
 export function keepSwitchStates(restored: Project, current: Project): Project {
   const on = new Map<string, boolean | undefined>();

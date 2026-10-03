@@ -16,7 +16,7 @@ export function portComponents(def: Circuit): {
   inputs: Component[];
   outputs: Component[];
 } {
-  // 並び計算
+  // 並び計算: 上から、同じ高さなら左から。この順がピン番号になるので、変えると既存の配線が別のピンにつながる
   function byPosition(a: Component, b: Component): number {
     return a.y - b.y || a.x - b.x;
   }

@@ -33,6 +33,7 @@ function renameIds(
 ): CircuitDef {
   const ids = new Map(def.components.map((c, i) => [c.id, partId(i)]));
   const ref = (p: PinRef): PinRef => ({
+    // 検証 (checkProject) を通ったデータでは、配線の端の部品は必ず回路の中にある
     comp: ids.get(p.comp) ?? p.comp,
     pin: p.pin,
   });

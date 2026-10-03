@@ -390,6 +390,7 @@ export function Sheet({
       onDragModeChange('trash');
       return;
     }
+    // 削除エリアから外れたら、ふつうのドラッグの表示に戻す
     if (drag.moved) {
       onDragModeChange('moving');
     }
@@ -448,6 +449,7 @@ export function Sheet({
       return;
     }
     if (dragMode === 'trash') {
+      // 動かしていれば onMoveStart で履歴を積んであるので、削除はその 1 回の操作に含める (App.tsx)
       onDropOnTrash([...drag.origins.keys()], drag.started);
       return;
     }
