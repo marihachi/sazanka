@@ -218,8 +218,14 @@ export function App() {
     },
     onEscape: () => {
       clipboard.cancelPaste();
-      setPending(null);
       setSelection(null);
+      // 配線の途中なら、描いている配線を取り消すだけで、配線モードのまま (引き直せるように)。
+      // 配線の途中でなければ、選択モードに戻る
+      if (pending) {
+        setPending(null);
+      } else {
+        setTool('select');
+      }
     },
     onSelectTool: () => changeTool('select'),
     onWireTool: () => changeTool('wire'),

@@ -79,7 +79,7 @@ export function statusHints(ctx: HintContext): string[] {
   }
   if (ctx.wireTool) {
     return [
-      '配線モード: 何もないところ・ピン・配線の上をクリックして配線を開始 ・ V で選択モードに戻る',
+      '配線モード: 何もないところ・ピン・配線の上をクリックして配線を開始 ・ V か Esc で選択モードに戻る',
     ];
   }
   if (ctx.editing) {
