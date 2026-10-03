@@ -33,7 +33,7 @@
   - `useClipboard.ts` … コピー・切り取り・貼り付け。`useShortcuts.ts` … キーボード操作
 - `simulation/` … シミュレーション（[シミュレーション](simulation.md)）。
   - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開
-  - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。シートに結果を渡す入れ物（`SimStore`）もここ
+  - `useSimulation.ts` … 時間を進めるシミュレーションと、一時停止・1 tick 送り。シートに結果を渡す入れ物（`SimStore`）もここ。`frameTicks.ts` … 1 フレームで進める tick 数
   - `SheetToolbar.tsx` … 一時停止・1 tick 送りのボタンを並べたツールバー
 - `geometry/` … 座標の計算。`layout.ts` … 部品の大きさとピンの座標、シートの大きさ、配線の通り道。`view.ts` … シートの表示位置と倍率（回路の座標と画面の座標の変換）
 - `circuit/` … 回路のデータ。

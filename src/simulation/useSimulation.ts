@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { clockFlipsAt, clockPeriodOf } from '../circuit/component';
 import type { Project } from '../circuit/project';
+import { frameTicks } from './frameTicks';
 import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from './sim';
 
-/** 1 フレームで進める tick 数の上限。タブを離れていた間の遅れを一気に取り戻さないため */
-const MAX_TICKS_PER_FRAME = 20;
 /** 「1 tick 戻す」ために覚えておく tick 数 */
 const HISTORY_TICKS = 300;
 
@@ -145,6 +144,8 @@ export function useSimulation(
   const past = useRef<{ sim: SimResult; toggled: string[] }[]>([]);
   /** 前回の描画で見たプロジェクト。変わっていれば回路が編集された */
   const lastProject = useRef(project);
+  /** 前回の描画で開いていた回路。変わっていればタブを切り替えた */
+  const lastCircuitId = useRef(circuitId);
   // タイマーからは、常に最新のプロジェクトと開いている回路を見る
   const latest = useRef({ project, circuitId });
   latest.current = { project, circuitId };
@@ -177,9 +178,11 @@ export function useSimulation(
   }
 
   // 回路を編集したら、戻せる状態は捨てる。編集前の値に戻しても、今の回路とは噛み合わないため。
+  // タブを切り替えたときも捨てる。覚えているのは前のタブの回路の結果なので、戻すと別の回路の値が入る。
   // ボタンの押せる / 押せないをこの描画に間に合わせるため、効果ではなく描画中に見る
-  if (lastProject.current !== project) {
+  if (lastProject.current !== project || lastCircuitId.current !== circuitId) {
     lastProject.current = project;
+    lastCircuitId.current = circuitId;
     past.current = [];
   }
 
@@ -201,9 +204,9 @@ export function useSimulation(
       carry += now - last;
       last = now;
       // 間隔を変えても、ループを作り直さずに次のフレームから効かせる
-      const interval = tickMsRef.current;
-      const count = Math.min(Math.floor(carry / interval), MAX_TICKS_PER_FRAME);
-      carry -= count * interval;
+      const due = frameTicks(carry, tickMsRef.current);
+      const count = due.count;
+      carry = due.carry;
       let changed = false;
       for (let i = 0; i < count; i++) {
         changed = advance() || changed;

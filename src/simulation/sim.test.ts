@@ -170,6 +170,35 @@ describe('simulate', () => {
     expect(r.values.get('q:0')).toBe(false);
   });
 
+  it('NOR で組んだ RS ラッチを S=R=0 のまま前回の結果なしで始めると発振し、S を入れると落ち着く', () => {
+    // 2 つの NOR が同じ値から同じ遅延で動くので、そろって ON と OFF を繰り返す (実物の準安定と同じ)
+    const build = (s: boolean): Circuit => ({
+      // biome-ignore format: 表形式を維持するため
+      components: [
+        { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
+        { id: 'r', kind: 'INPUT', x: 0, y: 0 },
+        { id: 'q', kind: 'NOR', x: 0, y: 0 },
+        { id: 'qn', kind: 'NOR', x: 0, y: 0 },
+      ],
+      // biome-ignore format: 表形式を維持するため
+      wires: [
+        { id: '1', from: { comp: 'r', pin: 0 }, to: { comp: 'q', pin: 0 } },
+        { id: '2', from: { comp: 'qn', pin: 0 }, to: { comp: 'q', pin: 1 } },
+        { id: '3', from: { comp: 's', pin: 0 }, to: { comp: 'qn', pin: 0 } },
+        { id: '4', from: { comp: 'q', pin: 0 }, to: { comp: 'qn', pin: 1 } },
+      ],
+    });
+    let r = settle(build(false), undefined, 80);
+    expect(r.unstable).toBe(true);
+    expect(r.values.get('q:0')).toBe(r.values.get('qn:0'));
+    r = settle(build(true), r);
+    expect(r.unstable).toBe(false);
+    expect(r.values.get('q:0')).toBe(true);
+    r = settle(build(false), r);
+    expect(r.unstable).toBe(false);
+    expect(r.values.get('q:0')).toBe(true);
+  });
+
   describe('フリップフロップ', () => {
     /** 入力スイッチ in0..inN を部品 f の各入力ピンにつないだ回路 */
     function build(kind: FlipFlopKind, ins: boolean[]): Circuit {
