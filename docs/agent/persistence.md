@@ -26,6 +26,10 @@
   - 保存データと共有用 JSON の版は別々の番号。片方だけ上げることになったら、文書の分け方を開発者に相談する。
 - モジュールをファイルとして保存し、パスで参照する案を[検討中](../design/module-files.md)。まだ何も決まっていないので、実装しない。保存形式やモジュールの参照を変えるときは、この検討とぶつからないかだけ見て、進め方は開発者に聞く。
 
+## 進めている計画
+
+- version 3（モジュールのフットプリントとピン番号、部品の種類の名前のキャメルケース化）の計画が [docs/plans/module-footprint/plan.md](../plans/module-footprint/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
+
 ## 保存データ
 
 - プロジェクトは、変わるたびに localStorage の `sazanka.project` に自動で保存する（`App.tsx` の `useEffect` から `storage.ts` の `saveProject` を呼ぶ）。形は `{ version, project }`。
