@@ -1,8 +1,10 @@
-// シート上の配置: グリッド、部品の大きさ、ピンの座標、シートからはみ出さない位置、範囲選択
+// シート上の配置: グリッド、部品の大きさとピンの座標 (種類ごとの配置をマスから px に直す)、シートからはみ出さない位置、範囲選択。
+// 部品の種類ごとの配置 (大きさ、輪郭、ピンの置き方) は parts/layouts.ts
 
-import { type Component, isFlipFlopKind } from '../circuit/component';
+import type { Component } from '../circuit/component';
 import type { Ports } from '../circuit/module';
-import { partSpecOf } from '../parts/specs';
+import type { PinPlacement } from '../parts/layout';
+import { layoutOf } from '../parts/layouts';
 
 export const GRID = 20;
 
@@ -16,82 +18,45 @@ export function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
-/**
- * 入出力の部品 (INPUT、CLOCK、OUTPUT と、parts/ で形を端子にした HIGH など)。
- * どれも小さな正方形で、ピンは中央に1本
- */
-function isTerminal(c: Component): boolean {
-  return (
-    c.kind === 'INPUT' ||
-    c.kind === 'CLOCK' ||
-    c.kind === 'OUTPUT' ||
-    partSpecOf(c.kind)?.shape === 'terminal'
-  );
+/** 部品本体のサイズ。部品の種類の配置 (parts/layouts.ts) のマスを px に直す */
+export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
+  const { w, h } = layoutOf(c.kind, ports);
+  return { w: w * GRID, h: h * GRID };
 }
 
 /**
- * 部品本体のサイズ。
- * 部品の位置はグリッド上にあるので、ピンの先端もグリッド上に来るよう、高さはピンの並びに合わせて決めている
+ * ピンの先端座標。左の辺なら本体の左端から 1 マス左、右の辺なら右端から 1 マス右。
+ * 位置 (at) は本体の上端からのマスなので、部品がグリッド上にあれば、ピンの先もグリッドに乗る。
+ * 例: 幅 3 マスの部品が (100, 100) にあり、右の辺の 2 マスめのピンなら (100 + 4 × 20, 100 + 2 × 20) = (180, 140)
  */
-export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
-  if (isTerminal(c)) {
-    return { w: 40, h: 40 };
-  } else if (isFlipFlopKind(c.kind)) {
-    return { w: 60, h: 80 };
-  } else if (c.kind === 'CUSTOM') {
-    // ピンは上から 1 マスおき (GRID * (pin + 1)) に並ぶので、多い方のピンの数 + 1 マスの高さにする。
-    // 例: ピンが 3 本なら、ピンは y + 20, 40, 60 で、高さは 80
-    const n = Math.max(ports.inputs.length, ports.outputs.length, 1);
-    return { w: 80, h: (n + 1) * GRID };
-  } else {
-    // 論理ゲート (と、モジュールの展開でだけ作られる BUF)。
-    // 2入力を上下端から1グリッド内側、出力を中央に置いて、すべてグリッドに乗る高さ
-    return { w: 60, h: 80 };
+function pinTip(c: Component, w: number, p: PinPlacement): Point {
+  const y = c.y + p.at * GRID;
+  switch (p.side) {
+    case 'left':
+      return { x: c.x - GRID, y };
+    case 'right':
+      return { x: c.x + (w + 1) * GRID, y };
   }
 }
 
 /** 入力ピンの先端座標 */
 export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
-  const { h } = bodySize(c, ports);
-  let y: number;
-  if (isTerminal(c)) {
-    // 入力ピンがあるのは OUTPUT だけ (1本)
-    y = c.y + h / 2;
-  } else if (isFlipFlopKind(c.kind)) {
-    // 記憶素子: 上から 1 マスおき (y + 20, 40, 60)。高さ 80 に 3 本まで並ぶ
-    y = c.y + GRID * (pin + 1);
-  } else if (c.kind === 'CUSTOM') {
-    y = c.y + GRID * (pin + 1);
-  } else {
-    // 論理ゲート: 1入力 (NOT、BUF) は中央、2入力は上下端から1グリッド内側
-    if (ports.inputs.length === 1) {
-      y = c.y + h / 2;
-    } else {
-      y = pin === 0 ? c.y + GRID : c.y + h - GRID;
-    }
+  const layout = layoutOf(c.kind, ports);
+  const p = layout.inputs[pin];
+  if (!p) {
+    throw new Error(`入力ピン ${pin} がありません: ${c.kind}`);
   }
-  // ピンの先は、本体の左端から 1 マス左
-  return { x: c.x - GRID, y };
+  return pinTip(c, layout.w, p);
 }
 
 /** 出力ピンの先端座標 */
 export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
-  const { w, h } = bodySize(c, ports);
-  let y: number;
-  if (isTerminal(c)) {
-    // 出力ピンがあるのは OUTPUT 以外 (1本)
-    y = c.y + h / 2;
-  } else if (isFlipFlopKind(c.kind)) {
-    // Q と Q̄ は上下端から1グリッド内側 (高さ 80 なので y + 20 と y + 60)
-    y = pin === 0 ? c.y + GRID : c.y + h - GRID;
-  } else if (c.kind === 'CUSTOM') {
-    y = c.y + GRID * (pin + 1);
-  } else {
-    // 論理ゲート (と BUF) は1出力
-    y = c.y + h / 2;
+  const layout = layoutOf(c.kind, ports);
+  const p = layout.outputs[pin];
+  if (!p) {
+    throw new Error(`出力ピン ${pin} がありません: ${c.kind}`);
   }
-  // ピンの先は、本体の右端から 1 マス右
-  return { x: c.x + w + GRID, y };
+  return pinTip(c, layout.w, p);
 }
 
 /** シートの幅と高さ (横 300 マス、縦 200 マス)。部品はこの中にだけ置ける */
@@ -101,9 +66,9 @@ export const SHEET_HEIGHT = GRID * 200;
 /** 部品の本体とピンが、シートからはみ出さないよう位置を補正する。補正後もグリッド上に乗るようにする */
 export function clampPosition(c: Component, ports: Ports, p: Point): Point {
   const { w, h } = bodySize(c, ports);
-  // 左右はピンの先端まで、上はモジュール名 (本体の上に描く) の分も含める
+  // 左右はピンの先端まで、上は本体の上に書く名前 (モジュール名) の分も含める
   const minX = GRID;
-  const minY = c.kind === 'CUSTOM' ? GRID : 0;
+  const minY = layoutOf(c.kind, ports).nameAbove ? GRID : 0;
   // 右端は「本体の幅 + 右のピンの 1 マス」がシートに収まる位置。グリッドに乗るよう切り捨てる。
   // Math.max は、シートより大きな部品でも minX / minY を下回らないようにするため
   const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - GRID) / GRID) * GRID);
@@ -139,7 +104,7 @@ export function clampMove(
   return d;
 }
 
-/** シート上で部品が占める範囲。本体に加え、左右のピンの先端と、モジュール名の分を含める */
+/** シート上で部品が占める範囲。本体に加え、左右のピンの先端と、本体の上に書く名前 (モジュール名) の分を含める */
 export interface Rect {
   left: number;
   top: number;
@@ -151,7 +116,7 @@ export function componentBounds(c: Component, ports: Ports): Rect {
   const { w, h } = bodySize(c, ports);
   return {
     left: c.x - GRID,
-    top: c.kind === 'CUSTOM' ? c.y - GRID : c.y,
+    top: layoutOf(c.kind, ports).nameAbove ? c.y - GRID : c.y,
     right: c.x + w + GRID,
     bottom: c.y + h,
   };

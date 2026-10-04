@@ -1,6 +1,8 @@
 import type { Component, ComponentKind } from '../circuit/component';
 import { bodySize, inputPinPos, outputPinPos } from '../geometry/layout';
 import type { Ports } from '../circuit/module';
+import type { PartLayout } from '../parts/layout';
+import { layoutOf } from '../parts/layouts';
 import { partSpecOf } from '../parts/specs';
 import { classNames } from '../ui/classNames';
 import styles from './ComponentView.module.css';
@@ -9,6 +11,30 @@ import { labelOf, partViewOf } from '../parts/views';
 /** シート上の部品の中に書く名前 */
 function bodyLabelOf(kind: ComponentKind): string {
   return partViewOf(kind)?.bodyLabel ?? labelOf(kind);
+}
+
+/** 本体の輪郭。形は部品の種類の配置 (parts/layouts.ts) の body で決まる */
+function BodyOutline({
+  body,
+  x,
+  y,
+  w,
+  h,
+}: {
+  body: PartLayout['body'];
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}) {
+  switch (body) {
+    case 'rect':
+      return <rect className={styles.body} x={x} y={y} width={w} height={h} />;
+    case 'rounded':
+      return <rect className={styles.body} x={x} y={y} width={w} height={h} rx={4} />;
+    case 'circle':
+      return <circle className={styles.body} cx={x + w / 2} cy={y + h / 2} r={w / 2} />;
+  }
 }
 
 interface ComponentViewProps {
@@ -38,6 +64,7 @@ export function ComponentView({
   onBodyDoubleClick,
 }: ComponentViewProps) {
   const { w, h } = bodySize(c, ports);
+  const outline = <BodyOutline body={layoutOf(c.kind, ports).body} x={c.x} y={c.y} w={w} h={h} />;
   const value = outputValues[0];
   const numberBadge = pinNumber !== undefined && (
     <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
@@ -51,7 +78,7 @@ export function ComponentView({
   if (c.kind === 'INPUT') {
     body = (
       <>
-        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
+        {outline}
         <rect
           x={c.x + 8}
           y={c.y + 8}
@@ -73,7 +100,7 @@ export function ComponentView({
     const y0 = c.y + h / 2;
     body = (
       <>
-        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
+        {outline}
         {/* 矩形波の絵。本体の左から 6px、中央より 7px 下から始め、幅 7px・高さ 14px の段を描く
             (h は横、v は縦への相対的な移動。v が負なら上へ) */}
         <path
@@ -89,7 +116,7 @@ export function ComponentView({
     // 形が端子の部品 (HIGH など)。本体の中に記号を大きく書く
     body = (
       <>
-        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} rx={4} />
+        {outline}
         <text className={styles.terminalMark} x={c.x + w / 2} y={c.y + h / 2 + 6}>
           {bodyLabelOf(c.kind)}
         </text>
@@ -98,7 +125,7 @@ export function ComponentView({
   } else if (c.kind === 'OUTPUT') {
     body = (
       <>
-        <circle className={styles.body} cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2} />
+        {outline}
         <circle cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2 - 6} fill={lamp} pointerEvents="none" />
         {c.label && (
           <text className={styles.pinLabel} x={c.x + w + 6} y={c.y + h / 2 + 4}>
@@ -112,7 +139,7 @@ export function ComponentView({
     const isCustom = c.kind === 'CUSTOM';
     body = (
       <>
-        <rect className={styles.body} x={c.x} y={c.y} width={w} height={h} />
+        {outline}
         <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
           {isCustom ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
         </text>

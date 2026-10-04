@@ -1,6 +1,7 @@
 // 部品の種類の仕様 (ピン、遅延、評価、形) の書き方と、仕様を書くときに使う共通の処理。
 // 種類ごとの仕様は、このフォルダの種類のフォルダ (and/ など) の spec.ts に置き、specs.ts の PARTS に並べる。
-// 画面での見せ方 (表示名、アイコン、説明) は、同じ種類のフォルダの view.ts に置く (書き方は view.ts)
+// 画面での見せ方 (表示名、アイコン、説明) は、同じ種類のフォルダの view.ts に置く (書き方は view.ts)。
+// シート上の配置 (大きさ、輪郭、ピンの置き方) は layout.ts
 
 /** 記憶素子の内部状態 */
 export interface FlipFlopState {
@@ -30,7 +31,8 @@ interface PartSpecBase {
 
 /**
  * 入力から出力 (1 本) を決める部品。
- * 形は、ゲート (入力は 1 本か 2 本) か、端子 (小さな正方形。入力ピンはなし) から選ぶ。大きさとピンの座標は geometry/layout.ts
+ * 形は、ゲート (入力は 1 本か 2 本) か、端子 (小さな正方形。入力ピンはなし) から選ぶ。
+ * 形ごとの既定の配置 (大きさとピンの置き方) は layout.ts
  */
 export interface LogicPartSpec extends PartSpecBase {
   shape: 'gate' | 'terminal';

@@ -51,7 +51,7 @@
   - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数。
   - `SheetToolbar.tsx` … シートのツールバー（選択モードと配線モードの切り替え、一時停止、1 tick 送り・戻し、モジュールの削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
-  - `layout.ts` … グリッド、部品の大きさ、ピンの座標、シートの大きさ、はみ出さない位置、範囲選択、配線中の点の置き方。
+  - `layout.ts` … グリッド、部品の大きさとピンの座標（種類ごとの配置をマスから px に直す）、シートの大きさ、はみ出さない位置、範囲選択、配線中の点の置き方。
   - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。
   - `view.ts` … 表示（位置と倍率）と、回路の座標と画面の座標の変換。
 - `circuit/` … 回路のデータ。
@@ -60,8 +60,8 @@
   - `project.ts` … プロジェクトの構造と、外から来たデータの検証（`checkProject`）。
   - `module.ts` … モジュールのピンの決め方と、回路同士の依存（循環の判定）。
 - `parts/` … 部品の種類（[部品の種類](parts.md)）。
-  - `<種類>/` … 1 種類 1 フォルダ。`spec.ts`（仕様）、`view.ts`（見せ方）、`icon.svg`（アイコン）。
-  - `spec.ts` / `view.ts` … 仕様と見せ方の型と、共通の処理。`specs.ts` … 仕様の一覧（`PARTS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`PartIcon.tsx` … 種類のアイコン。
+  - `<種類>/` … 1 種類 1 フォルダ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）。
+  - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は形ごとの既定の配置も）。`specs.ts` … 仕様の一覧（`PARTS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `layoutOf`。`PartIcon.tsx` … 種類のアイコン。
 - `ui/` … 回路を知らない、共通の画面部品。
   - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。

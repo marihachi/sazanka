@@ -28,8 +28,15 @@ export function wired(def: {
 }): CircuitDef {
   const components = def.components.map((c, i) => ({ ...c, x: i * 200, y: i * 200 }));
   const byId = new Map(components.map((c) => [c.id, c]));
-  // モジュールのピンの位置は番号だけで決まり、ピンの数によらないので、モジュールを含まない空のプロジェクトで足りる
+  // モジュールのピンの位置は番号だけで決まり、ピンの数によらない。そこで中身の回路は見ずに
+  // (モジュールを含まない空のプロジェクトで引き)、モジュールには links で使う番号の分だけピンを置く
   const none: Project = { circuits: [] };
+  const used = (comp: string, side: 'from' | 'to') =>
+    Math.max(0, ...def.links.filter((l) => l[side].comp === comp).map((l) => l[side].pin + 1));
+  const pinsOf = (c: Component) =>
+    c.kind === 'CUSTOM'
+      ? { inputs: Array(used(c.id, 'to')).fill(''), outputs: Array(used(c.id, 'from')).fill('') }
+      : portsOf(c, none);
   return {
     id: def.id,
     name: def.name,
@@ -39,10 +46,7 @@ export function wired(def: {
       const b = mustGet(byId, to.comp);
       return {
         id: `${from.comp}.${from.pin}-${to.comp}.${to.pin}`,
-        points: [
-          outputPinPos(a, portsOf(a, none), from.pin),
-          inputPinPos(b, portsOf(b, none), to.pin),
-        ],
+        points: [outputPinPos(a, pinsOf(a), from.pin), inputPinPos(b, pinsOf(b), to.pin)],
       };
     }),
   };
