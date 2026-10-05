@@ -7,9 +7,9 @@ import {
   withoutSwitchStates,
 } from '../circuit/project';
 import { isObject } from '../util';
-import { upgradeV1 } from './upgradeV1';
+import { upgradeProject } from './upgrade';
 
-/** 共有用 JSON の形式の版。形式を変えたら上げて、古い版も読み込めるようにする */
+/** 共有用 JSON の形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
 const SHARE_VERSION = 2;
 
 interface ShareData {
@@ -81,8 +81,8 @@ export function parseProject(text: string, newId: () => string): ParseResult {
       error: '新しい版の sazanka で作られたデータのため読み込めません',
     };
   }
-  // version 1 は配線の形が違うので、今の形に変えてから確かめる
-  const raw = data.version < 2 ? upgradeV1(data.project) : data.project;
+  // 古い版は、今の版の形に変えてから確かめる
+  const raw = upgradeProject(data.project, data.version);
   const error = checkProject(raw);
   if (error) {
     return { ok: false, error: `回路データが壊れています (${error})` };

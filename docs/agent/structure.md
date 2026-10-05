@@ -36,7 +36,7 @@
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
   - `storage.ts` … localStorage への保存と読み込み。`share.ts` … 共有用 JSON。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。
-  - `upgradeV1.ts` … 形式 version 1 のプロジェクトを今の形に変える（保存データと共有用 JSON で共通）。
+  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データと共有用 JSON で共通）。`upgradeV1.ts` … version 1 → 2 の変換。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。

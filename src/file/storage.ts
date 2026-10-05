@@ -7,11 +7,11 @@ import {
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
 import { isObject } from '../util';
-import { upgradeV1 } from './upgradeV1';
+import { upgradeProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
 
-/** 保存データの形式の版。形式を変えたら上げて、古い版を読み込む分岐を readStored に足す */
+/** 保存データの形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
 const STORAGE_VERSION = 2;
 
 interface StoredData {
@@ -65,8 +65,8 @@ export function readStored(raw: string | null): LoadResult {
       error: '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
     };
   }
-  // version 1 は配線の形が違うので、今の形に変えてから確かめる
-  const project = data.version < 2 ? upgradeV1(data.project) : data.project;
+  // 古い版は、今の版の形に変えてから確かめる
+  const project = upgradeProject(data.project, data.version);
   if (checkProject(project) !== undefined) {
     return {
       project: emptyProject(),

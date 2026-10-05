@@ -10,12 +10,14 @@
 
 - 版を上げるのは、今の版で古いデータを読むのに変換が要る変更（項目の意味や形が変わるなど）のとき。部品の種類や、省略できる項目を足すだけなら上げない。
   - 上げなくてよいのは、公開しているのが最新版だけで、新しいデータが古い版で開かれることがほぼないため。古い版を開けるようにする（版ごとの URL を残す、オフラインで動かすなど）なら、この判断を見直す。そのときは、追加だけでも版を上げることと、古い版が新しいデータを上書きしないようにすることが要る。今は、古い版のアプリで新しいデータを開くと、「壊れている」か「新しい版のデータ」として断り、空のプロジェクトを自動保存で上書きしてしまう。
-- 保存データは `file/storage.ts` の `STORAGE_VERSION` を上げ、`readStored` に古い版を読む分岐を足す。
-- 共有用 JSON は `file/share.ts` の `SHARE_VERSION` を上げ、`parseProject` に古い版を読む分岐を足す。
-- 今の版は、どちらも 2。version 1 は、検証の前に `file/upgradeV1.ts` の `upgradeV1` で version 2 の形に変えてから読む（保存データと共有用 JSON で共通）。変え方は [version 2](../format/v2.md) の「version 1 からの変更」にある。
+- 版を上げるときにすること:
+  1. 保存データの `STORAGE_VERSION`（`file/storage.ts`）と、共有用 JSON の `SHARE_VERSION`（`file/share.ts`）を上げる。
+  2. 1 版分の変換（`file/upgradeV<N>.ts` の `upgradeV<N>`: version N → N+1）を作り、`file/upgrade.ts` の `UPGRADES` の末尾に足す。
+- 古い版のデータは、`file/upgrade.ts` の `upgradeProject` が、`UPGRADES` の変換を版の順に通して今の版の形にする。保存データ（`readStored`）と共有用 JSON（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
+- 今の版は、どちらも 2。version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../format/v2.md) の「version 1 からの変更」にある。
   - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
+  - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
 - どちらも、今より新しい版のデータは読み込まずに断る。
-- 古い版の変換の決まりは、下の「開発者からの指示」にある。今の作りはまだその形になっていない（`readStored` と `parseProject` がそれぞれ版で分岐し、`upgradeV1` が今のアプリのコードに頼っている）。直す計画は[古い版の変換を順に適用する形にする](../plans/upgrade-chain/plan.md)。終えたら、上の 2 行（`STORAGE_VERSION` と `SHARE_VERSION` の項目）も、変換を足す手順に合わせて直す。
 - 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`）も合わせる。置ける種類の判定（`component.ts` の `isPlaceableComponentKind`）は `PARTS` と `SPECIAL_KINDS` を見るので、`PARTS` に足した種類はそのまま検証を通る。
 
 ### 開発者からの指示
@@ -35,7 +37,6 @@
 ## 進めている計画
 
 - version 3（モジュールのフットプリントとピン番号、部品の種類の項目名と名前の変更）の計画が [docs/plans/format-v3/plan.md](../plans/format-v3/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
-- その前提として、古い版の変換を順に適用する形にする計画が [docs/plans/upgrade-chain/plan.md](../plans/upgrade-chain/plan.md) にある。古い版の読み込み（`upgradeV1` など）を触るときは、先に読む。
 
 ## 保存データ
 
