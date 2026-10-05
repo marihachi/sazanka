@@ -10,7 +10,7 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 - 128 ピン程度のモジュール（マイコンなど）も作れるようにする。左右だけでは足りないので、上下の辺にもピンを出す。
 - モジュールごとにパッケージ（フットプリント: 出し方とピン数）を持たせる。どのポートにも割り当てていない番号は NC にする。
 - 保存データと共有用 JSON の版を 3 に上げる。旧データの配線は書き換えず、つながりをそのまま保つ。
-- あわせて、部品の種類の項目名を `kind` から `partKind` に変え、種類の名前をキャメルケースにそろえる。
+- あわせて、部品の種類の項目名を `kind` から `partKind` に変え、種類の名前をキャメルケースにそろえる。モジュールを指す項目名も `custom` から `module` に、回路の部品の一覧の項目名を `components` から `parts` に変える。
 
 ## 背景
 
@@ -28,14 +28,14 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
       {
         "id": "main",
         "name": "メイン",
-        "components": [{ "id": "p1", "partKind": "module", "custom": "k3x9", "x": 2900, "y": 1900 }],
+        "parts": [{ "id": "p1", "partKind": "module", "module": "k3x9", "x": 2900, "y": 1900 }],
         "wires": []
       },
       {
         "id": "k3x9",
         "name": "半加算器",
         "footprint": { "styleKind": "dip", "pins": 8 },
-        "components": [
+        "parts": [
           { "id": "a", "partKind": "input", "x": 2800, "y": 1900, "label": "A", "pinNumber": 1 },
           { "id": "s", "partKind": "output", "x": 3000, "y": 1900, "label": "S", "pinNumber": 8 }
         ],
@@ -74,7 +74,13 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 | `BUF`（内部用。保存しない） | `buf` |
 
 - アプリの中の項目名（`Component.kind` → `partKind`）と種類の名前も同じにする。保存データとアプリの中で名前を分けると、読み替える場所が増えるため。
-- 型の名前も見直す。今の型の `PartKind`（仕様の一覧にある種類だけ）は、項目名の `partKind`（部品の種類すべて）と別のものを指して紛らわしい。名前は段階 2 で決める（例: `PartKind` → `SpecPartKind`、`ComponentKind` → `PartKind`）。
+- モジュールを指す項目名を `custom` から `module` に変える（アプリの中の `Component.custom` も）。`custom` は、モジュールの内部名が `CUSTOM` だったころの名残のため。`moduleId` にしないのは、モジュールを ID ではなくパスで指す案（[モジュールのファイル保存](../../design/module-files.md)）になっても名前がずれないようにするため。
+- 回路の部品の一覧の項目名を `components` から `parts` に変える（アプリの中の `Circuit.components` も）。`parts[].partKind` と言葉をそろえるため。React のコンポーネント（画面の部品）と紛らわしくなくなる利点もある。
+- 型と定数の名前も見直す。名前は段階 2 で決める。今の考え:
+  - 部品の型を `Component` から `Part` にする。
+  - 仕様の一覧 `PARTS`（`parts/specs.ts`）を `PART_SPECS` にし、`specs.ts` の中の `Part` 型も仕様の名前にする。`circuit.parts` と紛らわしくならないようにし、`PART_VIEWS` とも並べるため。
+  - 今の `PartKind`（仕様の一覧にある種類だけ）は、項目名の `partKind`（部品の種類すべて）と別のものを指すので、名前を変える（例: `PartKind` → `SpecPartKind`、`ComponentKind` → `PartKind`）。
+  - `parts/` フォルダは、部品の種類ごとの定義の置き場所として、名前を変えない。
 - 種類のフォルダの名前も合わせる（例: `parts/dff/` → `parts/dFlipFlop/`）。
 - 画面に出る名前（「AND」「D-FF」など）は見せ方（`view.ts` の `label`）が持つので、変わらない。
 
@@ -158,7 +164,7 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 
 ### `upgradeV2`（2 → 3、`file/upgradeV2.ts`）
 
-- 部品の項目名 `kind` を `partKind` に移し、種類の名前を上の表のとおりに読み替える。
+- 回路の `components` を `parts` に、部品の項目名 `kind` を `partKind` に、`custom` を `module` に移し、種類の名前を上の表のとおりに読み替える。
 - モジュールの回路（2 つ目以降）に `{ "styleKind": "split" }` を書き込む。
 - 配線は書き換えない。
 - 保存データの `STORAGE_VERSION`（`file/storage.ts`）と、共有用 JSON の `SHARE_VERSION`（`file/share.ts`）を、どちらも 3 に上げる。
@@ -190,7 +196,7 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 
 振る舞いを変える変更（Skill の `modify`）。
 
-- 部品の種類の項目名（`partKind`）と種類の名前の置き換え、型の名前の見直し（コード、種類のフォルダ、テスト、ドキュメント）。
+- 部品の種類の項目名（`partKind`）、モジュールを指す項目名（`module`）、部品の一覧の項目名（`parts`）、種類の名前の置き換え、型と定数の名前の見直し（コード、種類のフォルダ、テスト、ドキュメント）。
 - `footprint` と `pinNumber` の型と検証。
 - `footprint` から配置を作る道（上の「出し方」の最後の項目）。この段階で使うのは `split` だけ。
 - `upgradeV2` を作り、入口の並びに加える。版を 3 に上げる。始める前に、[古い版の変換を順に適用する形にする](../upgrade-chain/plan.md)を終えておく。
@@ -228,7 +234,7 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 
 ### 各段階で直すドキュメント
 
-- [用語](../../agent/glossary.md): 「入力ピンは左、出力ピンは右」、種類の名前、パッケージ（フットプリント）・NC・ピン番号の言葉。
+- [用語](../../agent/glossary.md): 「入力ピンは左、出力ピンは右」、部品と部品の種類のコードでの名前（`Part`、`partKind` など）、種類の名前、パッケージ（フットプリント）・NC・ピン番号の言葉。
 - 形式の文書: `docs/format/v3.md` を作り、`v2.md` を `docs/format/archive/` に移す（移したものは書き換えない）。
 - [保存データ](../../agent/persistence.md)、[部品の種類](../../agent/parts.md)、[ソースの構成](../../agent/structure.md)、[画面操作](../../agent/interaction.md)、[UI](../../agent/ui.md)（プロパティ欄）。
 - ステータスバーのヒント（`hints/hints.ts`、`parts/module/view.ts`）。
@@ -247,6 +253,6 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
 ## 決まっていないこと
 
 - `footprint` を配置まで届ける道（段階 2 で決める）。
-- 部品の種類の型の名前（段階 2 で決める）。
+- 部品と部品の種類の型と定数の名前（段階 2 で決める）。
 - 上下の辺のピン名の向き（段階 4 で決める）。
 - 入力か出力かを見分ける印（今は仮の印。上の「入力か出力かの見分け」）。
