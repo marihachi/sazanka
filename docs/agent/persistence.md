@@ -34,7 +34,7 @@
 
 ## 進めている計画
 
-- version 3（モジュールのフットプリントとピン番号、部品の種類の名前のキャメルケース化）の計画が [docs/plans/module-footprint/plan.md](../plans/module-footprint/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
+- version 3（モジュールのフットプリントとピン番号、部品の種類の項目名と名前の変更）の計画が [docs/plans/format-v3/plan.md](../plans/format-v3/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
 - その前提として、古い版の変換を順に適用する形にする計画が [docs/plans/upgrade-chain/plan.md](../plans/upgrade-chain/plan.md) にある。古い版の読み込み（`upgradeV1` など）を触るときは、先に読む。
 
 ## 保存データ
