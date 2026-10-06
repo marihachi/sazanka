@@ -1,7 +1,7 @@
 import icon from './icon.svg';
 import type { PartView } from '../view';
 
-export const rs: PartView = {
+export const rsLatch: PartView = {
   label: 'RS Latch',
   bodyLabel: 'RS',
   icon,

@@ -5,15 +5,15 @@ import {
   isClockPeriod,
   MAX_CLOCK_PERIOD,
   MIN_CLOCK_PERIOD,
-  type Component,
-} from '../circuit/component';
+  type Part,
+} from '../circuit/part';
 import { shallowEqual } from '../util';
 import { labelOf } from '../parts/views';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
-  component?: Component;
-  /** モジュールの名前 (CUSTOM のとき) */
+  part?: Part;
+  /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
   tickMs: number;
@@ -29,7 +29,7 @@ interface PropertyPanelProps {
  * 狭い画面では、部品を選んでいる間だけ出す (シートを狭くしすぎないため)
  */
 export const PropertyPanel = memo(function PropertyPanel({
-  component,
+  part,
   moduleName,
   tickMs,
   onEditStart,
@@ -41,7 +41,7 @@ export const PropertyPanel = memo(function PropertyPanel({
       as="aside"
       aria-label="部品のプロパティ"
       // 狭い画面では、部品を選んでいない間は出さない
-      display={{ base: component ? 'flex' : 'none', md: 'flex' }}
+      display={{ base: part ? 'flex' : 'none', md: 'flex' }}
       w={{ base: '160px', md: '200px' }}
       flexShrink={0}
       gap="3"
@@ -54,22 +54,22 @@ export const PropertyPanel = memo(function PropertyPanel({
       <Text as="h3" textStyle="xs" color="fg.muted">
         プロパティ
       </Text>
-      {component ? (
+      {part ? (
         <>
-          <Text fontWeight="semibold">{moduleName ?? labelOf(component.kind)}</Text>
+          <Text fontWeight="semibold">{moduleName ?? labelOf(part.kind)}</Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
-          {component.kind === 'CLOCK' ? (
+          {part.kind === 'clock' ? (
             <ClockPeriodField
-              key={component.id}
-              clock={component}
+              key={part.id}
+              clock={part}
               tickMs={tickMs}
               onEditStart={onEditStart}
               onChange={onClockPeriodChange}
             />
-          ) : component.kind === 'INPUT' || component.kind === 'OUTPUT' ? (
+          ) : part.kind === 'input' || part.kind === 'output' ? (
             <LabelField
-              key={component.id}
-              component={component}
+              key={part.id}
+              part={part}
               onEditStart={onEditStart}
               onChange={onLabelChange}
             />
@@ -113,15 +113,15 @@ function useEditSession(onEditStart: () => void) {
  * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
  */
 function LabelField({
-  component,
+  part,
   onEditStart,
   onChange,
 }: {
-  component: Component;
+  part: Part;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
 }) {
-  const [text, setText] = useState(component.label ?? '');
+  const [text, setText] = useState(part.label ?? '');
   const session = useEditSession(onEditStart);
 
   return (
@@ -134,7 +134,7 @@ function LabelField({
         onChange={(e) => {
           setText(e.target.value);
           session.begin();
-          onChange(component.id, e.target.value);
+          onChange(part.id, e.target.value);
         }}
         onBlur={session.end}
         onKeyDown={(e) => {
@@ -160,7 +160,7 @@ function ClockPeriodField({
   onEditStart,
   onChange,
 }: {
-  clock: Component;
+  clock: Part;
   tickMs: number;
   onEditStart: () => void;
   onChange: (id: string, period: number) => void;
@@ -227,8 +227,8 @@ function ClockPeriodField({
  * そのほかの props は、そのまま比べる (App は同じ関数を渡し続ける)
  */
 function samePanel(a: PropertyPanelProps, b: PropertyPanelProps): boolean {
-  const { component: pa, ...ra } = a;
-  const { component: pb, ...rb } = b;
-  const withoutPosition = (c?: Component) => c && { ...c, x: 0, y: 0 };
+  const { part: pa, ...ra } = a;
+  const { part: pb, ...rb } = b;
+  const withoutPosition = (c?: Part) => c && { ...c, x: 0, y: 0 };
   return shallowEqual(withoutPosition(pa), withoutPosition(pb)) && shallowEqual(ra, rb);
 }

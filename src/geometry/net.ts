@@ -3,7 +3,7 @@
 // 配線の途中どうしが交わるだけ (交差) ではつながらない
 
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
-import { portsOf } from '../circuit/module';
+import { pinoutOf } from '../circuit/module';
 import type { Project } from '../circuit/project';
 import { inputPinPos, outputPinPos, type Point } from './layout';
 
@@ -63,17 +63,17 @@ function pointKey(p: Point): string {
 export function computeNets(circuit: Circuit, project: Project): Nets {
   // ピンの先の位置 → そこにあるピン
   const pinsAt = new Map<string, { ref: PinRef; output: boolean }[]>();
-  for (const c of circuit.components) {
-    const ports = portsOf(c, project);
+  for (const c of circuit.parts) {
+    const pinout = pinoutOf(c, project);
     const add = (p: Point, ref: PinRef, output: boolean) => {
       const k = pointKey(p);
       pinsAt.set(k, [...(pinsAt.get(k) ?? []), { ref, output }]);
     };
-    for (let i = 0; i < ports.inputs.length; i++) {
-      add(inputPinPos(c, ports, i), { comp: c.id, pin: i }, false);
+    for (let i = 0; i < pinout.inputs.length; i++) {
+      add(inputPinPos(c, pinout, i), { comp: c.id, pin: i }, false);
     }
-    for (let i = 0; i < ports.outputs.length; i++) {
-      add(outputPinPos(c, ports, i), { comp: c.id, pin: i }, true);
+    for (let i = 0; i < pinout.outputs.length; i++) {
+      add(outputPinPos(c, pinout, i), { comp: c.id, pin: i }, true);
     }
   }
 

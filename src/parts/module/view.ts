@@ -1,7 +1,7 @@
 import icon from './icon.svg';
 import type { PartView } from '../view';
 
-/** モジュール (種類 CUSTOM)。パレットには、種類ではなくモジュールごとに出す (Palette.tsx) */
+/** モジュール (種類 module)。パレットには、種類ではなくモジュールごとに出す (Palette.tsx) */
 export const module: PartView = {
   label: 'CUSTOM',
   icon,

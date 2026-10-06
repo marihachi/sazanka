@@ -10,7 +10,7 @@ import { isObject } from '../util';
 import { upgradeProject } from './upgrade';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const SHARE_VERSION = 2;
+const SHARE_VERSION = 3;
 
 interface ShareData {
   /** sazanka の共有データであることの目印 */
@@ -33,7 +33,7 @@ function renameIds(
 ): CircuitDef {
   return {
     ...def,
-    components: def.components.map((c, i) => ({ ...c, id: partId(i) })),
+    parts: def.parts.map((c, i) => ({ ...c, id: partId(i) })),
     wires: def.wires.map((w, i) => ({ ...w, id: wireId(i) })),
   };
 }

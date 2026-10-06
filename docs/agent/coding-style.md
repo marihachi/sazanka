@@ -60,9 +60,9 @@ if (!raw) {
 
 ```ts
 // 並べて比べるもの
-const comps: Component[] = [
-  { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
-  { id: 'b', kind: 'INPUT', x: 0, y: 0, on: b },
+const parts: Part[] = [
+  { id: 'a', kind: 'input', x: 0, y: 0, on: a },
+  { id: 'b', kind: 'input', x: 0, y: 0, on: b },
 ];
 
 // まとまりごとに見せるもの
@@ -83,7 +83,7 @@ return {
 - コードを読んだだけでは意味が取りにくいところには、コメントを書く。たとえば次のようなもの。
   - 座標、SVG のパス、時間などの計算式。式が何を求めているか、どう導いたか、具体的な値の例（例: `geometry/layout.ts` のピンの根元と先端の座標（`sheetPin`）、`view.ts` の `zoomAt`、`wirePath.ts` の角の丸め）。
   - 意味の分からない数（例: `StatusBar.tsx` のヒントを出す時間の `3000 + 長さ × 250`）。
-  - 条件の意味がすぐに分からない分岐。それぞれの分岐で何をするか（例: `edit.ts` の `moveComponents` の配線の処理）。
+  - 条件の意味がすぐに分からない分岐。それぞれの分岐で何をするか（例: `edit.ts` の `moveParts` の配線の処理）。
   - 離れた場所で使う変数や引数の役割（例: `sim.ts` の `changed`、`module.ts` の `dependsOn` の `seen`）。
   - 書き方に理由があるもの（例: 値を写してから使う、大文字と小文字をそろえて比べる）。
   - 起きないはずの場合に備えた処理。なぜ起きないのか。

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import { statusHints, type HintContext } from './hints';
 
 const base: HintContext = {
@@ -20,7 +20,7 @@ function hints(ctx: Partial<HintContext>): string[] {
   return statusHints({ ...base, ...ctx });
 }
 
-function comp(kind: Component['kind']): Component {
+function comp(kind: Part['kind']): Part {
   return { id: 'x', kind, x: 0, y: 0 };
 }
 
@@ -49,27 +49,25 @@ describe('statusHints', () => {
   });
 
   it('操作の途中は、部品を選んでいてもそちらを優先する', () => {
-    expect(hints({ wiring: true, selectedComponent: comp('INPUT') })).toEqual(
-      hints({ wiring: true }),
-    );
+    expect(hints({ wiring: true, selectedPart: comp('input') })).toEqual(hints({ wiring: true }));
   });
 
   it('部品を選ぶと、その部品の説明と、移動・削除の方法を出す', () => {
     for (const kind of [
-      'INPUT',
-      'OUTPUT',
-      'CLOCK',
-      'HIGH',
-      'CUSTOM',
-      'RS',
-      'RSEN',
-      'DLATCH',
-      'DFF',
-      'TFF',
-      'JKFF',
-      'AND',
+      'input',
+      'output',
+      'clock',
+      'high',
+      'module',
+      'rsLatch',
+      'rsEnLatch',
+      'dLatch',
+      'dFlipFlop',
+      'tFlipFlop',
+      'jkFlipFlop',
+      'and',
     ] as const) {
-      const result = hints({ selectedComponent: comp(kind) });
+      const result = hints({ selectedPart: comp(kind) });
       expect(result).toContain('ドラッグで移動');
       expect(result.length).toBeGreaterThan(1);
     }

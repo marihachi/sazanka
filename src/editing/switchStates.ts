@@ -9,8 +9,8 @@ import type { Project } from '../circuit/project';
 export function keepSwitchStates(restored: Project, current: Project): Project {
   const on = new Map<string, boolean | undefined>();
   for (const d of current.circuits) {
-    for (const c of d.components) {
-      if (c.kind === 'INPUT' || c.kind === 'CLOCK') {
+    for (const c of d.parts) {
+      if (c.kind === 'input' || c.kind === 'clock') {
         on.set(`${d.id}/${c.id}`, c.on);
       }
     }
@@ -19,7 +19,7 @@ export function keepSwitchStates(restored: Project, current: Project): Project {
     ...restored,
     circuits: restored.circuits.map((d) => ({
       ...d,
-      components: d.components.map((c) => {
+      parts: d.parts.map((c) => {
         const key = `${d.id}/${c.id}`;
         return on.has(key) ? { ...c, on: on.get(key) } : c;
       }),

@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const xor = definePart({
-  kind: 'XOR',
+  kind: 'xor',
   shape: 'gate',
   inputs: ['', ''],
   delay: 3,

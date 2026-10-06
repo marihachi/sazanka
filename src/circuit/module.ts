@@ -1,46 +1,54 @@
 // モジュール: 回路を部品として使うときのピンの決め方と、回路同士の依存。
 // 展開 (シミュレーション用に1つの回路にする) は simulation/flatten.ts にある
 
-import { inputPinNames, outputPinNames, type Component } from './component';
+import { inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
-import { findDef, type CircuitDef, type Project } from './project';
+import { findDef, type CircuitDef, type Footprint, type Project } from './project';
 
-/** 部品の入出力ピン名 (表示用。名前のないピンは空文字) */
-export interface Ports {
+/**
+ * 部品のピンの割り当て。シート上の配置 (parts/layouts.ts の layoutOf) は、これから決める。
+ * モジュールのピンは中身の回路で決まるので、プロジェクトを読める pinoutOf で作り、配置まで届ける
+ */
+export interface Pinout {
+  /** 入力ピンの名前 (表示用。名前のないピンは空文字)。並び順がピン番号 */
   inputs: string[];
+  /** 出力ピンの名前。並び順は inputs と同じ */
   outputs: string[];
+  /** モジュールのピンの出し方。モジュール以外の部品にはない */
+  footprint?: Footprint;
 }
 
 /** モジュールのピンになる INPUT / OUTPUT (上から順) */
-export function portComponents(def: Circuit): {
-  inputs: Component[];
-  outputs: Component[];
+export function portParts(def: Circuit): {
+  inputs: Part[];
+  outputs: Part[];
 } {
   // 並び計算: 上から、同じ高さなら左から。この順がピン番号になるので、変えると既存の配線が別のピンにつながる
-  function byPosition(a: Component, b: Component): number {
+  function byPosition(a: Part, b: Part): number {
     return a.y - b.y || a.x - b.x;
   }
 
   return {
-    inputs: def.components.filter((c) => c.kind === 'INPUT').sort(byPosition),
-    outputs: def.components.filter((c) => c.kind === 'OUTPUT').sort(byPosition),
+    inputs: def.parts.filter((c) => c.kind === 'input').sort(byPosition),
+    outputs: def.parts.filter((c) => c.kind === 'output').sort(byPosition),
   };
 }
 
 /** 部品のピン名。モジュールは中の INPUT / OUTPUT のラベル、ほかは種類で決まる */
-export function portsOf(c: Component, project: Project): Ports {
-  if (c.kind === 'CUSTOM') {
-    const def = findDef(project, c.custom);
+export function pinoutOf(c: Part, project: Project): Pinout {
+  if (c.kind === 'module') {
+    const def = findDef(project, c.module);
 
     if (!def) {
-      return { inputs: [], outputs: [] };
+      return { inputs: [], outputs: [], footprint: { kind: 'split' } };
     }
 
-    const { inputs, outputs } = portComponents(def);
+    const { inputs, outputs } = portParts(def);
 
     return {
       inputs: inputs.map((k) => k.label ?? ''),
       outputs: outputs.map((k) => k.label ?? ''),
+      footprint: def.footprint ?? { kind: 'split' },
     };
   }
 
@@ -70,17 +78,17 @@ export function dependsOn(
     return false;
   }
 
-  return def.components.some(
+  return def.parts.some(
     (c) =>
-      c.kind === 'CUSTOM' &&
-      c.custom !== undefined &&
-      (c.custom === b || dependsOn(project, c.custom, b, seen)),
+      c.kind === 'module' &&
+      c.module !== undefined &&
+      (c.module === b || dependsOn(project, c.module, b, seen)),
   );
 }
 
 /** モジュール id を部品として直接置いている回路 */
 export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   return project.circuits.filter((d) =>
-    d.components.some((c) => c.kind === 'CUSTOM' && c.custom === id),
+    d.parts.some((c) => c.kind === 'module' && c.module === id),
   );
 }

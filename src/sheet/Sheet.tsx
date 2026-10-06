@@ -2,7 +2,7 @@ import { Stack } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clampMove,
-  componentsInRect,
+  partsInRect,
   GRID,
   inputPinPos,
   outputPinPos,
@@ -16,14 +16,14 @@ import {
   wireStepTo,
 } from '../geometry/layout';
 import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry/net';
-import type { Component, ComponentKind } from '../circuit/component';
+import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import { portComponents, portsOf } from '../circuit/module';
+import { portParts, pinoutOf } from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
 import type { Tool } from '../simulation/SheetToolbar';
-import { ComponentView } from './ComponentView';
+import { SheetPart } from './SheetPart';
 import { classNames } from '../ui/classNames';
 import { selectionOf, type Selection } from '../editing/edit';
 import { DRAG_MIME, type PaletteDrag } from '../palette/drag';
@@ -75,8 +75,8 @@ interface Band {
 }
 
 /** 貼り付ける部品と配線のうち、配線の点をすべて並べたもの (貼り付ける位置の計算に使う) */
-function wirePointsOf(part: Circuit): Point[] {
-  return part.wires.flatMap((w) => w.points);
+function wirePointsOf(fragment: Circuit): Point[] {
+  return fragment.wires.flatMap((w) => w.points);
 }
 
 /** ネットの値。出力ピンがちょうど 1 つならその値。ないか、2 つ以上 (ぶつかっている) なら OFF */
@@ -127,7 +127,7 @@ interface SheetProps {
   /** 配線の角を丸めるか (環境設定) */
   roundWires: boolean;
   /** パレットから部品がドロップされた */
-  onAdd: (kind: ComponentKind, custom: string | undefined, at: Point) => void;
+  onAdd: (kind: PartKind, module: string | undefined, at: Point) => void;
   /** 部品のドラッグで最初に位置が変わる直前。ドラッグ全体を1回の操作にするために使う */
   onMoveStart: () => void;
   /** 選んでいる部品と配線を動かした。comps は部品の新しい位置、wires は配線の新しい点の並び */
@@ -138,7 +138,7 @@ interface SheetProps {
   onToggle: (id: string) => void;
   /** 配線を描き終えた。points は始点から終点までの点の並び (どの区間も縦か横) */
   onAddWire: (points: Point[]) => void;
-  onComponentDoubleClick: (c: Component) => void;
+  onPartDoubleClick: (c: Part) => void;
   /** 貼り付ける位置を選んでいる部品と配線 (コピー元の位置のまま)。ポインターについて動き、クリックで確定する */
   placing: Circuit | null;
   /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
@@ -169,7 +169,7 @@ export function Sheet({
   onDropOnTrash,
   onToggle,
   onAddWire,
-  onComponentDoubleClick,
+  onPartDoubleClick,
   placing,
   onPlace,
 }: SheetProps) {
@@ -195,7 +195,7 @@ export function Sheet({
   const [mouse, setMouse] = useState<Point | null>(null);
   /** 貼り付けのために押した位置 (クライアント座標)。離したときに、動かしていなければ貼り付ける */
   const placeDownRef = useRef<{ pointerId: number; start: Point } | null>(null);
-  const compMap = useMemo(() => new Map(circuit.components.map((c) => [c.id, c])), [circuit]);
+  const compMap = useMemo(() => new Map(circuit.parts.map((c) => [c.id, c])), [circuit]);
   const wireMap = useMemo(() => new Map(circuit.wires.map((w) => [w.id, w])), [circuit]);
   /** 入力ピン (pinKey) → それを動かす出力ピン。表示する入力ピンの値に使う */
   const drivers = useMemo(
@@ -205,14 +205,14 @@ export function Sheet({
   /** ピンの先の位置 ("x,y")。配線をつないで終えるかの判定に使う */
   const pinTips = useMemo(() => {
     const tips = new Set<string>();
-    for (const c of circuit.components) {
-      const ports = portsOf(c, project);
-      for (let i = 0; i < ports.inputs.length; i++) {
-        const p = inputPinPos(c, ports, i);
+    for (const c of circuit.parts) {
+      const pinout = pinoutOf(c, project);
+      for (let i = 0; i < pinout.inputs.length; i++) {
+        const p = inputPinPos(c, pinout, i);
         tips.add(`${p.x},${p.y}`);
       }
-      for (let i = 0; i < ports.outputs.length; i++) {
-        const p = outputPinPos(c, ports, i);
+      for (let i = 0; i < pinout.outputs.length; i++) {
+        const p = outputPinPos(c, pinout, i);
         tips.add(`${p.x},${p.y}`);
       }
     }
@@ -228,11 +228,11 @@ export function Sheet({
     if (circuit.id === MAIN_ID) {
       return new Map<string, number>();
     }
-    const { inputs, outputs } = portComponents(circuit);
+    const { inputs, outputs } = portParts(circuit);
     return new Map(
       [...inputs, ...outputs].map((c) => [
         c.id,
-        (c.kind === 'INPUT' ? inputs : outputs).indexOf(c) + 1,
+        (c.kind === 'input' ? inputs : outputs).indexOf(c) + 1,
       ]),
     );
   }, [circuit]);
@@ -260,8 +260,8 @@ export function Sheet({
   });
 
   /** 部品と、そのピンの並び (geometry/layout.ts の計算に渡す形) */
-  function withPorts(components: Component[]) {
-    return components.map((c) => ({ c, ports: portsOf(c, project) }));
+  function withPinout(parts: Part[]) {
+    return parts.map((c) => ({ c, pinout: pinoutOf(c, project) }));
   }
 
   /** ポインターの位置を、回路の座標にする */
@@ -406,7 +406,7 @@ export function Sheet({
     );
   }
 
-  function onCompPointerDown(e: React.PointerEvent, c: Component) {
+  function onCompPointerDown(e: React.PointerEvent, c: Part) {
     e.stopPropagation();
     if (e.shiftKey) {
       toggleSelected({ type: 'comp', id: c.id });
@@ -443,7 +443,7 @@ export function Sheet({
       setBand({ ...band, end: p });
       const comps = new Set([
         ...(band.base?.comps ?? []),
-        ...componentsInRect(withPorts(circuit.components), band.start, p),
+        ...partsInRect(withPinout(circuit.parts), band.start, p),
       ]);
       const wires = new Set([
         ...(band.base?.wires ?? []),
@@ -487,7 +487,7 @@ export function Sheet({
     // どの部品も配線の点もはみ出さないように縮める。部品と配線の点はグリッドに乗っているので、動かしても乗ったまま
     const items = [...drag.comps].flatMap(([id, o]) => {
       const c = compMap.get(id);
-      return c ? [{ c: { ...c, ...o }, ports: portsOf(c, project) }] : [];
+      return c ? [{ c: { ...c, ...o }, pinout: pinoutOf(c, project) }] : [];
     });
     const d = clampMove(
       items,
@@ -523,7 +523,7 @@ export function Sheet({
         Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
         DRAG_THRESHOLD * 2;
       if (placing && !moved) {
-        onPlace(placeOffset(withPorts(placing.components), wirePointsOf(placing), toLocal(e)));
+        onPlace(placeOffset(withPinout(placing.parts), wirePointsOf(placing), toLocal(e)));
       }
       return;
     }
@@ -545,7 +545,7 @@ export function Sheet({
     // 動かさずに離したら、押したものだけを選ぶ。スイッチはトグル
     const { type, id } = drag.target;
     onSelect(type === 'comp' ? { comps: [id], wires: [] } : { comps: [], wires: [id] });
-    if (type === 'comp' && compMap.get(id)?.kind === 'INPUT') {
+    if (type === 'comp' && compMap.get(id)?.kind === 'input') {
       onToggle(id);
     }
   }
@@ -556,10 +556,10 @@ export function Sheet({
       return;
     }
     e.preventDefault();
-    const { kind, custom } = JSON.parse(data) as PaletteDrag;
+    const { kind, module } = JSON.parse(data) as PaletteDrag;
     const p = toLocal(e);
     // カーソルが部品の左上付近に来るよう少しずらす
-    onAdd(kind, custom, { x: p.x - GRID, y: p.y - GRID });
+    onAdd(kind, module, { x: p.x - GRID, y: p.y - GRID });
   }
 
   /**
@@ -681,26 +681,26 @@ export function Sheet({
             );
           })}
 
-          {circuit.components.map((c) => {
-            const ports = portsOf(c, project);
+          {circuit.parts.map((c) => {
+            const pinout = pinoutOf(c, project);
             return (
-              <ComponentView
+              <SheetPart
                 key={c.id}
                 comp={c}
-                ports={ports}
-                name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                pinout={pinout}
+                name={c.kind === 'module' ? findDef(project, c.module)?.name : undefined}
                 outputValues={Array.from(
-                  { length: Math.max(ports.outputs.length, 1) },
+                  { length: Math.max(pinout.outputs.length, 1) },
                   (_, i) => !!sim.values.get(pinKey(c.id, i)),
                 )}
-                inputValues={ports.inputs.map((_, i) => {
+                inputValues={pinout.inputs.map((_, i) => {
                   const from = drivers.get(pinKey(c.id, i));
                   return from ? !!sim.values.get(pinKey(from.comp, from.pin)) : false;
                 })}
                 selected={selectedComps.has(c.id)}
                 pinNumber={pinNumbers.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
-                onBodyDoubleClick={() => onComponentDoubleClick(c)}
+                onBodyDoubleClick={() => onPartDoubleClick(c)}
               />
             );
           })}
@@ -720,7 +720,7 @@ export function Sheet({
             (() => {
               // まだポインターがシートに来ていなければ (スマホなど)、表示している範囲の真ん中に置く
               const d = placeOffset(
-                withPorts(placing.components),
+                withPinout(placing.parts),
                 wirePointsOf(placing),
                 mouse ?? toWorld(view, center()),
               );
@@ -729,19 +729,19 @@ export function Sheet({
                   {placing.wires.map((w) => (
                     <path key={w.id} className={styles.wire} d={wirePath(w.points, roundWires)} />
                   ))}
-                  {placing.components.map((c) => {
-                    const ports = portsOf(c, project);
+                  {placing.parts.map((c) => {
+                    const pinout = pinoutOf(c, project);
                     return (
-                      <ComponentView
+                      <SheetPart
                         key={c.id}
                         comp={c}
-                        ports={ports}
-                        name={c.kind === 'CUSTOM' ? findDef(project, c.custom)?.name : undefined}
+                        pinout={pinout}
+                        name={c.kind === 'module' ? findDef(project, c.module)?.name : undefined}
                         outputValues={Array.from(
-                          { length: Math.max(ports.outputs.length, 1) },
+                          { length: Math.max(pinout.outputs.length, 1) },
                           () => false,
                         )}
-                        inputValues={ports.inputs.map(() => false)}
+                        inputValues={pinout.inputs.map(() => false)}
                         selected
                         onBodyDown={() => {}}
                         onBodyDoubleClick={() => {}}

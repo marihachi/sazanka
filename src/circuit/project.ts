@@ -1,7 +1,7 @@
 // プロジェクト (メイン回路と複数のモジュール) の構造と、外から来たデータの検証。
 // モジュールのピンの決め方と回路同士の依存は module.ts にある
 
-import { isComponent } from './component';
+import { isPart } from './part';
 import { isWire, type Circuit } from './circuit';
 import { isObject } from '../util';
 
@@ -10,6 +10,46 @@ export const MAIN_ID = 'main';
 export interface CircuitDef extends Circuit {
   id: string;
   name: string;
+  /**
+   * モジュールの外側のピンの出し方。モジュールの回路だけが持ち、メイン回路は持たない。
+   * 読み込んだデータのモジュールには必ずある (checkProject で確かめる)。テストなどで作った、持たないモジュールは split として扱う
+   */
+  footprint?: Footprint;
+}
+
+/**
+ * モジュールの外側のピンの出し方 (フットプリント)。
+ * dip は 2 辺、qfp は 4 辺にピンを出し、pins はピンの数。split は入力を左、出力を右に出す (version 2 までの形)
+ */
+export type Footprint =
+  | { kind: 'dip'; pins: number }
+  | { kind: 'qfp'; pins: number }
+  | { kind: 'split' };
+
+/** フットプリントのピンの数の上限 */
+export const MAX_FOOTPRINT_PINS = 256;
+
+/** フットプリントとして正しい形か。dip のピンは 4 以上の偶数、qfp は 8 以上の 4 の倍数で、どちらも上限以下 */
+export function isFootprint(f: unknown): f is Footprint {
+  if (!isObject(f)) {
+    return false;
+  }
+  const pins = f.pins;
+  const inRange = (min: number, step: number) =>
+    Number.isInteger(pins) &&
+    (pins as number) >= min &&
+    (pins as number) <= MAX_FOOTPRINT_PINS &&
+    (pins as number) % step === 0;
+  switch (f.kind) {
+    case 'dip':
+      return inRange(4, 2);
+    case 'qfp':
+      return inRange(8, 4);
+    case 'split':
+      return true;
+    default:
+      return false;
+  }
 }
 
 export interface Project {
@@ -21,7 +61,7 @@ export interface Project {
 
 export function emptyProject(): Project {
   return {
-    circuits: [{ id: MAIN_ID, name: 'メイン', components: [], wires: [] }],
+    circuits: [{ id: MAIN_ID, name: 'メイン', parts: [], wires: [] }],
   };
 }
 
@@ -55,21 +95,29 @@ export function withoutSwitchStates(project: Project): Project {
     ...project,
     circuits: project.circuits.map((d) => ({
       ...d,
-      components: d.components.map(({ on: _, ...c }) => c),
+      parts: d.parts.map(({ on: _, ...c }) => c),
     })),
   };
 }
 
-function checkCircuit(def: unknown): string | undefined {
+/** isModule は、モジュールの回路 (回路の一覧の 2 つ目以降) か */
+function checkCircuit(def: unknown, isModule: boolean): string | undefined {
   if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string') {
     return '回路の ID か名前がありません';
   }
-  if (!Array.isArray(def.components) || !Array.isArray(def.wires)) {
+  // 省略は許さない。既定値で補うと、あとで既定値を変えたときに、古いデータのモジュールのピンの位置が変わって配線が外れるため
+  if (isModule && def.footprint === undefined) {
+    return `「${def.name}」にフットプリントがありません`;
+  }
+  if (isModule && !isFootprint(def.footprint)) {
+    return `「${def.name}」に不正なフットプリントがあります`;
+  }
+  if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
     return `「${def.name}」の部品か配線がありません`;
   }
   const compIds = new Set<string>();
-  for (const c of def.components as unknown[]) {
-    if (!isComponent(c)) {
+  for (const c of def.parts as unknown[]) {
+    if (!isPart(c)) {
       return `「${def.name}」に不正な部品があります`;
     }
     if (compIds.has(c.id)) {
@@ -101,8 +149,8 @@ export function checkProject(project: unknown): string | undefined {
     return 'メイン回路がありません';
   }
   const ids = new Set<string>();
-  for (const def of circuits) {
-    const error = checkCircuit(def);
+  for (const [i, def] of circuits.entries()) {
+    const error = checkCircuit(def, i > 0);
     if (error) {
       return error;
     }
@@ -113,8 +161,8 @@ export function checkProject(project: unknown): string | undefined {
     ids.add(id);
   }
   for (const def of circuits as CircuitDef[]) {
-    for (const c of def.components) {
-      if (c.kind === 'CUSTOM' && !ids.has(c.custom ?? '')) {
+    for (const c of def.parts) {
+      if (c.kind === 'module' && !ids.has(c.module ?? '')) {
         return `「${def.name}」が存在しないモジュールを参照しています`;
       }
     }

@@ -1,8 +1,8 @@
 // シート上の配置: グリッド、部品の大きさとピンの座標 (種類ごとの配置をマスから px に直す)、シートからはみ出さない位置、範囲選択。
 // 部品の種類ごとの配置 (大きさ、輪郭、ピンの置き方) は parts/layouts.ts
 
-import type { Component } from '../circuit/component';
-import type { Ports } from '../circuit/module';
+import type { Part } from '../circuit/part';
+import type { Pinout } from '../circuit/module';
 import type { PartLayout, PinPlacement, PinSide } from '../parts/layout';
 import { layoutOf } from '../parts/layouts';
 
@@ -19,8 +19,8 @@ export function snap(v: number): number {
 }
 
 /** 部品本体のサイズ。部品の種類の配置 (parts/layouts.ts) のマスを px に直す */
-export function bodySize(c: Component, ports: Ports): { w: number; h: number } {
-  const { w, h } = layoutOf(c.kind, ports);
+export function bodySize(c: Part, pinout: Pinout): { w: number; h: number } {
+  const { w, h } = layoutOf(c.kind, pinout);
   return { w: w * GRID, h: h * GRID };
 }
 
@@ -36,7 +36,7 @@ export interface SheetPin {
  * 位置 (at) は本体の上端か左端からのマスなので、部品がグリッド上にあれば、ピンの先もグリッドに乗る。
  * 例: 幅 3 マスの部品が (100, 100) にあり、右の辺の 2 マスめのピンなら、先端は (100 + 4 × 20, 100 + 2 × 20) = (180, 140)
  */
-export function sheetPin(c: Component, layout: PartLayout, p: PinPlacement): SheetPin {
+export function sheetPin(c: Part, layout: PartLayout, p: PinPlacement): SheetPin {
   const right = c.x + layout.w * GRID;
   const bottom = c.y + layout.h * GRID;
   const along = p.at * GRID;
@@ -69,11 +69,8 @@ export function sheetPin(c: Component, layout: PartLayout, p: PinPlacement): She
 }
 
 /** 部品のすべてのピン。並び順はピン番号 */
-export function sheetPinsOf(
-  c: Component,
-  ports: Ports,
-): { inputs: SheetPin[]; outputs: SheetPin[] } {
-  const layout = layoutOf(c.kind, ports);
+export function sheetPinsOf(c: Part, pinout: Pinout): { inputs: SheetPin[]; outputs: SheetPin[] } {
+  const layout = layoutOf(c.kind, pinout);
   return {
     inputs: layout.inputs.map((p) => sheetPin(c, layout, p)),
     outputs: layout.outputs.map((p) => sheetPin(c, layout, p)),
@@ -81,8 +78,8 @@ export function sheetPinsOf(
 }
 
 /** 入力ピンの先端座標 */
-export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
-  const layout = layoutOf(c.kind, ports);
+export function inputPinPos(c: Part, pinout: Pinout, pin: number): Point {
+  const layout = layoutOf(c.kind, pinout);
   const p = layout.inputs[pin];
   if (!p) {
     throw new Error(`入力ピン ${pin} がありません: ${c.kind}`);
@@ -91,8 +88,8 @@ export function inputPinPos(c: Component, ports: Ports, pin: number): Point {
 }
 
 /** 出力ピンの先端座標 */
-export function outputPinPos(c: Component, ports: Ports, pin: number): Point {
-  const layout = layoutOf(c.kind, ports);
+export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
+  const layout = layoutOf(c.kind, pinout);
   const p = layout.outputs[pin];
   if (!p) {
     throw new Error(`出力ピン ${pin} がありません: ${c.kind}`);
@@ -121,9 +118,9 @@ export const SHEET_WIDTH = GRID * 300;
 export const SHEET_HEIGHT = GRID * 200;
 
 /** 部品の本体とピンが、シートからはみ出さないよう位置を補正する。補正後もグリッド上に乗るようにする */
-export function clampPosition(c: Component, ports: Ports, p: Point): Point {
-  const { w, h } = bodySize(c, ports);
-  const m = outerMargin(layoutOf(c.kind, ports));
+export function clampPosition(c: Part, pinout: Pinout, p: Point): Point {
+  const { w, h } = bodySize(c, pinout);
+  const m = outerMargin(layoutOf(c.kind, pinout));
   const minX = m.left;
   const minY = m.top;
   // 右端と下端は「本体 + 外の幅」がシートに収まる位置。グリッドに乗るよう切り捨てる。
@@ -142,14 +139,14 @@ export function clampPosition(c: Component, ports: Ports, p: Point): Point {
  * その間も収まるので、後のもののために delta を縮めても、先に調べたものははみ出さない
  */
 export function clampMove(
-  items: { c: Component; ports: Ports }[],
+  items: { c: Part; pinout: Pinout }[],
   delta: Point,
   points: readonly Point[] = [],
 ): Point {
   // 部品を 1 つずつ、移動先がはみ出すなら delta を縮める (はみ出す向きの成分だけが 0 に近づく)
   let d = delta;
-  for (const { c, ports } of items) {
-    const p = clampPosition(c, ports, { x: c.x + d.x, y: c.y + d.y });
+  for (const { c, pinout } of items) {
+    const p = clampPosition(c, pinout, { x: c.x + d.x, y: c.y + d.y });
     d = { x: p.x - c.x, y: p.y - c.y };
   }
   // 配線の点は、シートの範囲 (端を含む) に収める
@@ -169,9 +166,9 @@ export interface Rect {
 }
 
 /** シート上で部品が占める範囲。本体に加え、ピンの先端と、本体の上に書く名前 (モジュール名) の分を含める */
-export function componentBounds(c: Component, ports: Ports): Rect {
-  const { w, h } = bodySize(c, ports);
-  const m = outerMargin(layoutOf(c.kind, ports));
+export function partBounds(c: Part, pinout: Pinout): Rect {
+  const { w, h } = bodySize(c, pinout);
+  const m = outerMargin(layoutOf(c.kind, pinout));
   return {
     left: c.x - m.left,
     top: c.y - m.top,
@@ -181,18 +178,14 @@ export function componentBounds(c: Component, ports: Ports): Rect {
 }
 
 /** 点 a と点 b を対角とする範囲に、本体の全体が収まる部品の ID */
-export function componentsInRect(
-  items: { c: Component; ports: Ports }[],
-  a: Point,
-  b: Point,
-): string[] {
+export function partsInRect(items: { c: Part; pinout: Pinout }[], a: Point, b: Point): string[] {
   const left = Math.min(a.x, b.x);
   const right = Math.max(a.x, b.x);
   const top = Math.min(a.y, b.y);
   const bottom = Math.max(a.y, b.y);
   return items
-    .filter(({ c, ports }) => {
-      const { w, h } = bodySize(c, ports);
+    .filter(({ c, pinout }) => {
+      const { w, h } = bodySize(c, pinout);
       return c.x >= left && c.y >= top && c.x + w <= right && c.y + h <= bottom;
     })
     .map(({ c }) => c.id);
@@ -220,13 +213,13 @@ export function wiresInRect(
  * グリッドに合わせ、シートからはみ出さないように縮める (貼り付ける位置に使う)
  */
 export function placeOffset(
-  items: { c: Component; ports: Ports }[],
+  items: { c: Part; pinout: Pinout }[],
   points: readonly Point[],
   at: Point,
 ): Point {
   // 全体の範囲 (各部品の範囲と配線の点を囲む長方形) の中心 cx, cy を求め、それが at に来る移動量にする
   const rects = [
-    ...items.map(({ c, ports }) => componentBounds(c, ports)),
+    ...items.map(({ c, pinout }) => partBounds(c, pinout)),
     ...points.map((p) => ({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
   ];
   const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;

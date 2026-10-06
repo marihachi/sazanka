@@ -12,7 +12,7 @@ import { upgradeProject } from './upgrade';
 const STORAGE_KEY = 'sazanka.project';
 
 /** 保存データの形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 interface StoredData {
   version: number;

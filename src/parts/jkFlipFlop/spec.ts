@@ -2,8 +2,8 @@
 
 import { definePart, onRisingEdge } from '../spec';
 
-export const jkff = definePart({
-  kind: 'JKFF',
+export const jkFlipFlop = definePart({
+  kind: 'jkFlipFlop',
   shape: 'flipflop',
   inputs: ['J', '>', 'K'],
   delay: 3,

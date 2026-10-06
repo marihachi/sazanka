@@ -1,5 +1,5 @@
 // 部品の種類の仕様 (ピン、遅延、評価、形) の書き方と、仕様を書くときに使う共通の処理。
-// 種類ごとの仕様は、このフォルダの種類のフォルダ (and/ など) の spec.ts に置き、specs.ts の PARTS に並べる。
+// 種類ごとの仕様は、このフォルダの種類のフォルダ (and/ など) の spec.ts に置き、specs.ts の PART_SPECS に並べる。
 // 画面での見せ方 (表示名、アイコン、説明) は、同じ種類のフォルダの view.ts に置く (書き方は view.ts)。
 // シート上の配置 (大きさ、輪郭、ピンの置き方) は layout.ts
 
@@ -7,7 +7,7 @@
 export interface FlipFlopState {
   q: boolean;
   /**
-   * 前回観測した CLK (立ち上がり検出用)。ラッチ (RS, RSEN, DLATCH) は使わない。
+   * 前回観測した CLK (立ち上がり検出用)。ラッチ (rsLatch、rsEnLatch、dLatch) は使わない。
    * 前回の結果がない (ページを開いた直後など) ときは OFF から始まるので、
    * その時点で CLK が ON なら、立ち上がりとみなして1回動く
    */
@@ -48,7 +48,7 @@ export interface MemoryPartSpec extends PartSpecBase {
 
 export type PartSpec = LogicPartSpec | MemoryPartSpec;
 
-/** 仕様を定義する。種類の名前と形を文字列の型のまま残し、ComponentKind を PARTS から導けるようにする */
+/** 仕様を定義する。種類の名前と形を文字列の型のまま残し、PartKind を PART_SPECS から導けるようにする */
 export function definePart<const S extends PartSpec>(spec: S): S {
   return spec;
 }

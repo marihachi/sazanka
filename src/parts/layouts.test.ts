@@ -4,7 +4,7 @@ import { PART_VIEWS } from './views';
 
 describe('layoutOf', () => {
   // 置ける種類すべてと、内部用の BUF
-  const kinds = [...Object.keys(PART_VIEWS), 'BUF'];
+  const kinds = [...Object.keys(PART_VIEWS), 'buf'];
   // ピンの数を変えて確かめる (モジュールはピンの数で高さが変わる)
   const pinsList = [
     { inputs: [], outputs: [] },
@@ -40,9 +40,9 @@ describe('layoutOf', () => {
 
   it('既定と違う配置にした種類は、その配置になる', () => {
     const none = { inputs: [], outputs: [] };
-    expect(layoutOf('OUTPUT', none).body).toBe('circle');
-    expect(layoutOf('INPUT', none).body).toBe('rounded');
-    expect(layoutOf('CUSTOM', none).nameAbove).toBe(true);
-    expect(layoutOf('AND', none).nameAbove).toBe(false);
+    expect(layoutOf('output', none).body).toBe('circle');
+    expect(layoutOf('input', none).body).toBe('rounded');
+    expect(layoutOf('module', none).nameAbove).toBe(true);
+    expect(layoutOf('and', none).nameAbove).toBe(false);
   });
 });

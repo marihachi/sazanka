@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import type { Wire } from '../circuit/circuit';
 import type { Project } from '../circuit/project';
 import { computeNets, isConflict, isOnWire, netLinks } from './net';
@@ -14,15 +14,15 @@ function wire(id: string, ...points: [number, number][]): Wire {
 // INPUT a の出力ピンの先は (60, 20)、INPUT b は (60, 220)。
 // OUTPUT o の入力ピンの先は (380, 20)、OUTPUT p は (380, 220)
 // biome-ignore format: 表形式を維持するため
-const comps: Component[] = [
-  { id: 'a', kind: 'INPUT', x: 0, y: 0 },
-  { id: 'b', kind: 'INPUT', x: 0, y: 200 },
-  { id: 'o', kind: 'OUTPUT', x: 400, y: 0 },
-  { id: 'p', kind: 'OUTPUT', x: 400, y: 200 },
+const comps: Part[] = [
+  { id: 'a', kind: 'input', x: 0, y: 0 },
+  { id: 'b', kind: 'input', x: 0, y: 200 },
+  { id: 'o', kind: 'output', x: 400, y: 0 },
+  { id: 'p', kind: 'output', x: 400, y: 200 },
 ];
 
 function nets(...wires: Wire[]) {
-  return computeNets({ components: comps, wires }, project);
+  return computeNets({ parts: comps, wires }, project);
 }
 
 describe('isOnWire', () => {

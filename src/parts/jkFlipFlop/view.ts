@@ -1,7 +1,7 @@
 import icon from './icon.svg';
 import type { PartView } from '../view';
 
-export const jkff: PartView = {
+export const jkFlipFlop: PartView = {
   label: 'JK-FF',
   icon,
   group: 'flipflop',

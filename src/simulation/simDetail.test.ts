@@ -1,7 +1,7 @@
 // シミュレーションの細かい動きと、壊してはいけない不変条件のテスト。
 // 基本の真理値表とフリップフロップの動きは sim.test.ts にある
 import { describe, expect, it } from 'vitest';
-import type { Component, ComponentKind } from '../circuit/component';
+import type { Part, PartKind } from '../circuit/part';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { step, stepCircuit, type Netlist, type SimResult } from './sim';
 import { link, wired } from './testCircuits';
@@ -33,7 +33,7 @@ function settleProject(project: Project, id: string, prev?: SimResult, ticks = 3
   return r;
 }
 
-function comp(id: string, kind: ComponentKind, extra: Partial<Component> = {}): Component {
+function comp(id: string, kind: PartKind, extra: Partial<Part> = {}): Part {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -41,15 +41,15 @@ describe('値の伝わり方', () => {
   /** in → NOT → NOT → NOT → out の直列 */
   function chain(reversed: boolean): Netlist {
     // biome-ignore format: 表形式を維持するため
-    const components = [
-      comp('in', 'INPUT', { on: true }),
-      comp('n1', 'NOT'),
-      comp('n2', 'NOT'),
-      comp('n3', 'NOT'),
-      comp('out', 'OUTPUT'),
+    const parts = [
+      comp('in', 'input', { on: true }),
+      comp('n1', 'not'),
+      comp('n2', 'not'),
+      comp('n3', 'not'),
+      comp('out', 'output'),
     ];
     return {
-      components: reversed ? [...components].reverse() : components,
+      parts: reversed ? [...parts].reverse() : parts,
       // biome-ignore format: 表形式を維持するため
       links: [
         link('in', 0, 'n1', 0),
@@ -76,11 +76,11 @@ describe('値の伝わり方', () => {
   it('1つの出力を複数の入力につなげる', () => {
     const r = settle({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('in', 'INPUT', { on: true }),
-        comp('a', 'NOT'),
-        comp('b', 'BUF'),
-        comp('o', 'OUTPUT'),
+      parts: [
+        comp('in', 'input', { on: true }),
+        comp('a', 'not'),
+        comp('b', 'buf'),
+        comp('o', 'output'),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -100,10 +100,10 @@ describe('値の伝わり方', () => {
     // 保存データを手で書き換えた場合など。後から来た配線が使われる
     const r = settle({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('a', 'INPUT', { on: true }),
-        comp('b', 'INPUT', { on: false }),
-        comp('n', 'BUF'),
+      parts: [
+        comp('a', 'input', { on: true }),
+        comp('b', 'input', { on: false }),
+        comp('n', 'buf'),
       ],
       links: [link('a', 0, 'n', 0), link('b', 0, 'n', 0)],
     });
@@ -113,7 +113,7 @@ describe('値の伝わり方', () => {
 
   it('存在しない部品やピンを指す配線は無視する', () => {
     const r = settle({
-      components: [comp('a', 'INPUT', { on: true }), comp('o', 'OUTPUT')],
+      parts: [comp('a', 'input', { on: true }), comp('o', 'output')],
       // biome-ignore format: 表形式を維持するため
       links: [
         link('ない', 0, 'o', 0),
@@ -129,10 +129,10 @@ describe('値の伝わり方', () => {
   it('落ち着いた回路は発振とみなさない', () => {
     const circuit = {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('in', 'INPUT', { on: true }),
-        comp('n1', 'NOT'),
-        comp('n2', 'NOT'),
+      parts: [
+        comp('in', 'input', { on: true }),
+        comp('n1', 'not'),
+        comp('n2', 'not'),
       ],
       links: [link('in', 0, 'n1', 0), link('n1', 0, 'n2', 0)],
     };
@@ -146,10 +146,10 @@ describe('前回の結果の引き継ぎ', () => {
   function dff(d: boolean, clk: boolean, ffId = 'f'): Netlist {
     return {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('d', 'INPUT', { on: d }),
-        comp('c', 'INPUT', { on: clk }),
-        comp(ffId, 'DFF'),
+      parts: [
+        comp('d', 'input', { on: d }),
+        comp('c', 'input', { on: clk }),
+        comp(ffId, 'dFlipFlop'),
       ],
       links: [link('d', 0, ffId, 0), link('c', 0, ffId, 1)],
     };
@@ -204,11 +204,11 @@ describe('モジュール', () => {
     id: 'reg',
     name: 'Reg',
     // biome-ignore format: 表形式を維持するため
-    components: [
-      comp('d', 'INPUT'),
-      comp('clk', 'INPUT'),
-      comp('ff', 'DFF'),
-      comp('q', 'OUTPUT'),
+    parts: [
+      comp('d', 'input'),
+      comp('clk', 'input'),
+      comp('ff', 'dFlipFlop'),
+      comp('q', 'output'),
     ],
     // biome-ignore format: 表形式を維持するため
     links: [
@@ -224,13 +224,13 @@ describe('モジュール', () => {
       id: MAIN_ID,
       name: 'メイン',
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('d1', 'INPUT', { on: d1 }),
-        comp('c1', 'INPUT', { on: clk1 }),
-        comp('d2', 'INPUT', { on: d2 }),
-        comp('c2', 'INPUT', { on: clk2 }),
-        comp('u1', 'CUSTOM', { custom: 'reg' }),
-        comp('u2', 'CUSTOM', { custom: 'reg' }),
+      parts: [
+        comp('d1', 'input', { on: d1 }),
+        comp('c1', 'input', { on: clk1 }),
+        comp('d2', 'input', { on: d2 }),
+        comp('c2', 'input', { on: clk2 }),
+        comp('u1', 'module', { module: 'reg' }),
+        comp('u2', 'module', { module: 'reg' }),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -279,9 +279,9 @@ describe('モジュール', () => {
       id: 'self',
       name: '自分',
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('u', 'CUSTOM', { custom: 'self' }),
-        comp('o', 'OUTPUT'),
+      parts: [
+        comp('u', 'module', { module: 'self' }),
+        comp('o', 'output'),
       ],
       links: [link('u', 0, 'o', 0)],
     });
@@ -290,7 +290,7 @@ describe('モジュール', () => {
         {
           id: MAIN_ID,
           name: 'メイン',
-          components: [comp('u', 'CUSTOM', { custom: 'self' })],
+          parts: [comp('u', 'module', { module: 'self' })],
           wires: [],
         },
         self,
@@ -311,10 +311,10 @@ describe('保持と、段をつないだときの動き', () => {
   function latch(set: boolean, reset: boolean): Netlist {
     return {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('s', 'INPUT', { on: set }),
-        comp('r', 'INPUT', { on: reset }),
-        comp('l', 'RS'),
+      parts: [
+        comp('s', 'input', { on: set }),
+        comp('r', 'input', { on: reset }),
+        comp('l', 'rsLatch'),
       ],
       links: [link('s', 0, 'l', 0), link('r', 0, 'l', 1)],
     };
@@ -332,11 +332,11 @@ describe('保持と、段をつないだときの動き', () => {
   function rsen(set: boolean, en: boolean, reset: boolean): Netlist {
     return {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('s', 'INPUT', { on: set }),
-        comp('e', 'INPUT', { on: en }),
-        comp('r', 'INPUT', { on: reset }),
-        comp('l', 'RSEN'),
+      parts: [
+        comp('s', 'input', { on: set }),
+        comp('e', 'input', { on: en }),
+        comp('r', 'input', { on: reset }),
+        comp('l', 'rsEnLatch'),
       ],
       links: [link('s', 0, 'l', 0), link('e', 0, 'l', 1), link('r', 0, 'l', 2)],
     };
@@ -356,10 +356,10 @@ describe('保持と、段をつないだときの動き', () => {
   function dLatch(d: boolean, en: boolean): Netlist {
     return {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('d', 'INPUT', { on: d }),
-        comp('e', 'INPUT', { on: en }),
-        comp('l', 'DLATCH'),
+      parts: [
+        comp('d', 'input', { on: d }),
+        comp('e', 'input', { on: en }),
+        comp('l', 'dLatch'),
       ],
       links: [link('d', 0, 'l', 0), link('e', 0, 'l', 1)],
     };
@@ -380,10 +380,10 @@ describe('保持と、段をつないだときの動き', () => {
   function tff(t: boolean, clk: boolean): Netlist {
     return {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('t', 'INPUT', { on: t }),
-        comp('c', 'INPUT', { on: clk }),
-        comp('f', 'TFF'),
+      parts: [
+        comp('t', 'input', { on: t }),
+        comp('c', 'input', { on: clk }),
+        comp('f', 'tFlipFlop'),
       ],
       links: [link('t', 0, 'f', 0), link('c', 0, 'f', 1)],
     };
@@ -403,11 +403,11 @@ describe('保持と、段をつないだときの動き', () => {
     function counter(clk: boolean): Netlist {
       return {
         // biome-ignore format: 表形式を維持するため
-        components: [
-          comp('c', 'INPUT', { on: clk }),
-          comp('h', 'HIGH'),
-          comp('f1', 'TFF'),
-          comp('f2', 'TFF'),
+        parts: [
+          comp('c', 'input', { on: clk }),
+          comp('h', 'high'),
+          comp('f1', 'tFlipFlop'),
+          comp('f2', 'tFlipFlop'),
         ],
         // biome-ignore format: 表形式を維持するため
         links: [
@@ -435,13 +435,13 @@ describe('ゲート遅延', () => {
    * 入力が伝わる tick は数えない (入力そのものに遅延はない)
    */
   /** もう一方の入力に与える値。ゲートの出力が入力で変わるように選ぶ */
-  function delayTicks(kind: ComponentKind, other?: boolean): number {
+  function delayTicks(kind: PartKind, other?: boolean): number {
     const circuit: Netlist = {
-      components: [
-        comp('in', 'INPUT', { on: false }),
+      parts: [
+        comp('in', 'input', { on: false }),
         comp('g', kind),
-        comp('out', 'OUTPUT'),
-        ...(other === undefined ? [] : [comp('o', 'INPUT', { on: other })]),
+        comp('out', 'output'),
+        ...(other === undefined ? [] : [comp('o', 'input', { on: other })]),
       ],
       links: [
         link('in', 0, 'g', 0),
@@ -454,7 +454,7 @@ describe('ゲート遅延', () => {
     const before = r.values.get('out:0');
     const on: Netlist = {
       ...circuit,
-      components: circuit.components.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
+      parts: circuit.parts.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
     };
     for (let t = 0; t <= 10; t++) {
       r = stepCircuit(on, r);
@@ -466,27 +466,27 @@ describe('ゲート遅延', () => {
   }
 
   it('NOT・NAND・NOR は 1 tick、AND・OR は 2 tick、XOR は 3 tick 遅れる', () => {
-    expect(delayTicks('NOT')).toBe(1);
+    expect(delayTicks('not')).toBe(1);
     // AND / NAND はもう一方を ON、OR / NOR は OFF にしないと、入力で出力が変わらない
-    expect(delayTicks('NAND', true)).toBe(1);
-    expect(delayTicks('NOR', false)).toBe(1);
-    expect(delayTicks('AND', true)).toBe(2);
-    expect(delayTicks('OR', false)).toBe(2);
-    expect(delayTicks('XOR', false)).toBe(3);
+    expect(delayTicks('nand', true)).toBe(1);
+    expect(delayTicks('nor', false)).toBe(1);
+    expect(delayTicks('and', true)).toBe(2);
+    expect(delayTicks('or', false)).toBe(2);
+    expect(delayTicks('xor', false)).toBe(3);
   });
 
   it('BUF は遅れない (モジュールのピンで時間を食わない)', () => {
-    expect(delayTicks('BUF')).toBe(0);
+    expect(delayTicks('buf')).toBe(0);
   });
 
   it('直列につなぐと、段数のぶんだけ遅れる', () => {
     const chain: Netlist = {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('in', 'INPUT', { on: false }),
-        comp('n1', 'NOT'),
-        comp('n2', 'NOT'),
-        comp('n3', 'NOT'),
+      parts: [
+        comp('in', 'input', { on: false }),
+        comp('n1', 'not'),
+        comp('n2', 'not'),
+        comp('n3', 'not'),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -498,7 +498,7 @@ describe('ゲート遅延', () => {
     let r = settle(chain);
     const on: Netlist = {
       ...chain,
-      components: chain.components.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
+      parts: chain.parts.map((c) => (c.id === 'in' ? { ...c, on: true } : c)),
     };
     const seen: string[] = [];
     for (let t = 0; t < 4; t++) {
@@ -517,7 +517,7 @@ describe('ゲート遅延', () => {
     const inner = wired({
       id: 'inv',
       name: 'INV',
-      components: [comp('i', 'INPUT'), comp('n', 'NOT'), comp('o', 'OUTPUT')],
+      parts: [comp('i', 'input'), comp('n', 'not'), comp('o', 'output')],
       links: [link('i', 0, 'n', 0), link('n', 0, 'o', 0)],
     });
     function main(on: boolean): CircuitDef {
@@ -525,10 +525,10 @@ describe('ゲート遅延', () => {
         id: MAIN_ID,
         name: 'メイン',
         // biome-ignore format: 表形式を維持するため
-        components: [
-          comp('in', 'INPUT', { on }),
-          comp('u', 'CUSTOM', { custom: 'inv' }),
-          comp('out', 'OUTPUT'),
+        parts: [
+          comp('in', 'input', { on }),
+          comp('u', 'module', { module: 'inv' }),
+          comp('out', 'output'),
         ],
         links: [link('in', 0, 'u', 0), link('u', 0, 'out', 0)],
       });
@@ -549,11 +549,11 @@ describe('遅延より短い入力の変化', () => {
   function pulse(ticks: number): boolean {
     const circuit: Netlist = {
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('in', 'INPUT'),
-        comp('hi', 'HIGH'),
-        comp('g', 'AND'),
-        comp('out', 'OUTPUT'),
+      parts: [
+        comp('in', 'input'),
+        comp('hi', 'high'),
+        comp('g', 'and'),
+        comp('out', 'output'),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -564,7 +564,7 @@ describe('遅延より短い入力の変化', () => {
     };
     const withInput = (on: boolean): Netlist => ({
       ...circuit,
-      components: circuit.components.map((c) => (c.id === 'in' ? { ...c, on } : c)),
+      parts: circuit.parts.map((c) => (c.id === 'in' ? { ...c, on } : c)),
     });
     let r = settle(withInput(false));
     let arrived = false;

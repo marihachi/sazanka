@@ -3,13 +3,7 @@
 // 部品の種類ごとの評価 (入力から出力、記憶素子の次の状態) は parts/ の仕様にある
 
 import { flattenProject } from './flatten';
-import {
-  delayOf,
-  type Component,
-  inputCount,
-  isFlipFlopKind,
-  outputCount,
-} from '../circuit/component';
+import { delayOf, type Part, inputCount, isFlipFlopKind, outputCount } from '../circuit/part';
 import type { PinRef } from '../circuit/circuit';
 import { partSpecOf } from '../parts/specs';
 import type { FlipFlopState } from '../parts/spec';
@@ -33,7 +27,7 @@ export interface Link {
  * 1 つの入力ピンにつながるのは、多くても 1 つの出力ピン
  */
 export interface Netlist {
-  components: Component[];
+  parts: Part[];
   links: Link[];
 }
 
@@ -61,14 +55,14 @@ export const SETTLED_TICKS = 4;
 /** 落ち着かないまま、これだけの tick が過ぎたら発振とみなす */
 export const OSCILLATION_TICKS = 50;
 
-/** 記憶素子以外の部品の出力 (pin 0)。CUSTOM は展開済みの前提なので来ない */
-function evalGate(c: Component, ins: boolean[]): boolean {
+/** 記憶素子以外の部品の出力 (pin 0)。モジュールは展開済みの前提なので来ない */
+function evalGate(c: Part, ins: boolean[]): boolean {
   switch (c.kind) {
-    case 'INPUT':
-    case 'CLOCK':
+    case 'input':
+    case 'clock':
       return !!c.on;
-    case 'OUTPUT':
-    case 'BUF':
+    case 'output':
+    case 'buf':
       return ins[0];
   }
   const spec = partSpecOf(c.kind);
@@ -79,7 +73,7 @@ function evalGate(c: Component, ins: boolean[]): boolean {
 }
 
 /** 記憶素子の次の状態。ins は入力ピンの値 (ピン番号の順) */
-function nextState(c: Component, ins: boolean[], s: FlipFlopState): FlipFlopState {
+function nextState(c: Part, ins: boolean[], s: FlipFlopState): FlipFlopState {
   const spec = partSpecOf(c.kind);
   if (spec?.shape !== 'flipflop') {
     throw new Error(`not a flip-flop: ${c.kind}`);
@@ -101,7 +95,7 @@ export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
   const values = new Map<string, boolean>();
   const flipFlops = new Map<string, FlipFlopState>();
   const pending = new Map<string, boolean[][]>();
-  for (const c of circuit.components) {
+  for (const c of circuit.parts) {
     // 出力ピンのない OUTPUT も、表示する値を置くために pin 0 を持つ
     for (let p = 0; p < Math.max(outputCount(c.kind), 1); p++) {
       const k = pinKey(c.id, p);
@@ -121,7 +115,7 @@ export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
   }
 
   /** 入力ピンの値。何もつながっていない入力ピンは OFF */
-  function inputsOf(c: Component, from: Map<string, boolean>): boolean[] {
+  function inputsOf(c: Part, from: Map<string, boolean>): boolean[] {
     const ins: boolean[] = [];
     for (let p = 0; p < inputCount(c.kind); p++) {
       const d = driver.get(pinKey(c.id, p));
@@ -142,8 +136,8 @@ export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
     });
   };
 
-  const delayed = circuit.components.filter((c) => delayOf(c.kind) > 0);
-  const immediate = circuit.components.filter((c) => delayOf(c.kind) === 0);
+  const delayed = circuit.parts.filter((c) => delayOf(c.kind) > 0);
+  const immediate = circuit.parts.filter((c) => delayOf(c.kind) === 0);
 
   // 1. 待たせていた値を出す。前回の結果がなければ、落ち着いた状態から始める。
   //    出すのは、遅延の間ずっと同じ値だったときだけ。

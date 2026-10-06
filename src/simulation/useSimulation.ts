@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { clockFlipsAt, clockPeriodOf } from '../circuit/component';
+import { clockFlipsAt, clockPeriodOf } from '../circuit/part';
 import type { Project } from '../circuit/project';
 import { frameTicks } from './frameTicks';
 import { OSCILLATION_TICKS, SETTLED_TICKS, step, type SimResult } from './sim';
@@ -18,7 +18,7 @@ function clockKey(circuitId: string, compId: string): string {
  */
 function clocksFlippingAt(project: Project, tick: number): { keys: string[]; short: boolean } {
   const clocks = project.circuits.flatMap((d) =>
-    d.components.filter((c) => c.kind === 'CLOCK' && clockFlipsAt(c, tick)).map((c) => ({ d, c })),
+    d.parts.filter((c) => c.kind === 'clock' && clockFlipsAt(c, tick)).map((c) => ({ d, c })),
   );
   return {
     keys: clocks.map(({ d, c }) => clockKey(d.id, c.id)),
@@ -36,8 +36,8 @@ function withClockStates(project: Project, clockOn: ReadonlyMap<string, boolean>
     ...project,
     circuits: project.circuits.map((d) => ({
       ...d,
-      components: d.components.map((c) =>
-        c.kind === 'CLOCK' ? { ...c, on: !!clockOn.get(clockKey(d.id, c.id)) } : c,
+      parts: d.parts.map((c) =>
+        c.kind === 'clock' ? { ...c, on: !!clockOn.get(clockKey(d.id, c.id)) } : c,
       ),
     })),
   };
@@ -100,8 +100,8 @@ export function useSimulation(
   if (!clockOn.current) {
     clockOn.current = new Map(
       project.circuits.flatMap((d) =>
-        d.components
-          .filter((c) => c.kind === 'CLOCK')
+        d.parts
+          .filter((c) => c.kind === 'clock')
           .map((c) => [clockKey(d.id, c.id), !!c.on] as const),
       ),
     );
@@ -186,7 +186,7 @@ export function useSimulation(
     past.current = [];
   }
 
-  const hasClock = project.circuits.some((d) => d.components.some((c) => c.kind === 'CLOCK'));
+  const hasClock = project.circuits.some((d) => d.parts.some((c) => c.kind === 'clock'));
 
   // advance は ref 越しに最新の状態を見るので、貼り直さなくてよい。
   // project と circuitId は中では使わないが、回路を触ったら止まったループを動かし直すために並べている

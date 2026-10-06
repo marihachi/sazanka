@@ -1,7 +1,7 @@
 import icon from './icon.svg';
 import type { PartView } from '../view';
 
-export const dlatch: PartView = {
+export const dLatch: PartView = {
   label: 'D Latch',
   bodyLabel: 'DL',
   icon,

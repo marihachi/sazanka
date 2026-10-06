@@ -51,18 +51,18 @@ export function useClipboard({
 
   /** コピーした部品の貼り付けを始める。位置はシートをクリックして決める */
   function startPaste() {
-    if (!clipboard || (clipboard.components.length === 0 && clipboard.wires.length === 0)) {
+    if (!clipboard || (clipboard.parts.length === 0 && clipboard.wires.length === 0)) {
       return;
     }
     // モジュールを、それ自身の中や、それを含む回路に貼ると循環してしまう
-    const blocked = clipboard.components.find(
+    const blocked = clipboard.parts.find(
       (c) =>
-        c.kind === 'CUSTOM' &&
-        c.custom &&
-        (c.custom === circuit.id || dependsOn(project, c.custom, circuit.id)),
+        c.kind === 'module' &&
+        c.module &&
+        (c.module === circuit.id || dependsOn(project, c.module, circuit.id)),
     );
     if (blocked) {
-      const name = findDef(project, blocked.custom)?.name ?? '';
+      const name = findDef(project, blocked.module)?.name ?? '';
       showConfirm({
         message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
       });
@@ -81,7 +81,7 @@ export function useClipboard({
     setCircuit((cur) => edit.addParts(cur, clone));
     onSelect(
       edit.selectionOf(
-        clone.components.map((c) => c.id),
+        clone.parts.map((c) => c.id),
         clone.wires.map((w) => w.id),
       ),
     );

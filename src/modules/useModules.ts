@@ -36,9 +36,9 @@ export function useModules({
     circuit.id,
     ...project.circuits.map(
       (d) =>
-        `${d.id}:${d.name}:${d.components
-          .filter((c) => c.kind === 'CUSTOM')
-          .map((c) => c.custom)
+        `${d.id}:${d.name}:${d.parts
+          .filter((c) => c.kind === 'module')
+          .map((c) => c.module)
           .join(',')}`,
     ),
   ].join('|');
@@ -82,7 +82,8 @@ export function useModules({
         const def: CircuitDef = {
           id: newId(),
           name,
-          components: [],
+          footprint: { kind: 'split' },
+          parts: [],
           wires: [],
         };
         setProject((p) => ({ circuits: [...p.circuits, def] }));

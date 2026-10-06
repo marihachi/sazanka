@@ -3,7 +3,7 @@
 
 import type { PinRef } from '../circuit/circuit';
 import { findDef, type CircuitDef, type Project } from '../circuit/project';
-import { portComponents } from '../circuit/module';
+import { portParts } from '../circuit/module';
 import { computeNets, netLinks } from '../geometry/net';
 import type { Netlist } from './sim';
 
@@ -30,23 +30,23 @@ function flattenInto(
   // 最上位の回路の INPUT / OUTPUT は、利用者が操作・表示する端子なのでそのまま残す
   const inner = stack.length > 1;
   const modules = new Map<string, ModulePorts>();
-  for (const c of def.components) {
-    if (c.kind === 'CUSTOM') {
-      const child = findDef(project, c.custom);
+  for (const c of def.parts) {
+    if (c.kind === 'module') {
+      const child = findDef(project, c.module);
       // 見つからない・循環している参照は無視
       if (!child || stack.includes(child.id)) {
         continue;
       }
       const childPrefix = `${prefix}${c.id}/`;
       flattenInto(project, child, childPrefix, out, [...stack, child.id]);
-      const { inputs, outputs } = portComponents(child);
+      const { inputs, outputs } = portParts(child);
       modules.set(c.id, {
         inputs: inputs.map((k) => childPrefix + k.id),
         outputs: outputs.map((k) => childPrefix + k.id),
       });
     } else {
-      const kind = inner && (c.kind === 'INPUT' || c.kind === 'OUTPUT') ? 'BUF' : c.kind;
-      out.components.push({ ...c, id: prefix + c.id, kind });
+      const kind = inner && (c.kind === 'input' || c.kind === 'output') ? 'buf' : c.kind;
+      out.parts.push({ ...c, id: prefix + c.id, kind });
     }
   }
 
@@ -79,7 +79,7 @@ export interface Flattened {
 /** 回路定義 id を最上位として、モジュールを展開した1つの回路にする */
 export function flattenProject(project: Project, id: string): Flattened {
   const def = findDef(project, id);
-  const circuit: Netlist = { components: [], links: [] };
+  const circuit: Netlist = { parts: [], links: [] };
   if (!def) {
     return { circuit, modules: new Map() };
   }

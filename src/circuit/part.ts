@@ -4,92 +4,98 @@
 // 部品を並べた回路は circuit.ts、モジュールのピンは module.ts にある
 
 import { isObject } from '../util';
-import { isSpecialKind, type PartKind, partSpecOf, type SpecialKind } from '../parts/specs';
+import { isSpecialKind, type SpecKind, partSpecOf, type SpecialKind } from '../parts/specs';
 
 export type { FlipFlopKind, GateKind, SpecialKind } from '../parts/specs';
 
 /** 部品 */
-export interface Component {
+export interface Part {
   id: string;
-  kind: ComponentKind;
+  kind: PartKind;
   x: number;
   y: number;
   /** INPUT / CLOCK の出力状態 */
   on?: boolean;
   /** INPUT / OUTPUT のラベル (モジュールのピン名になる) */
   label?: string;
-  /** CUSTOM が参照する回路定義の ID */
-  custom?: string;
+  /** モジュールが参照する回路定義の ID */
+  module?: string;
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
   period?: number;
+  /**
+   * モジュールの中の INPUT / OUTPUT の、外側のピン番号 (1 から)。
+   * モジュールのフットプリントが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
+   */
+  pinNumber?: number;
 }
 
-export function isComponent(c: unknown): c is Component {
+export function isPart(c: unknown): c is Part {
   return (
     isObject(c) &&
     typeof c.id === 'string' &&
     typeof c.kind === 'string' &&
-    isPlaceableComponentKind(c.kind) &&
+    isPlaceablePartKind(c.kind) &&
     typeof c.x === 'number' &&
     typeof c.y === 'number' &&
-    (c.period === undefined || isClockPeriod(c.period))
+    (c.period === undefined || isClockPeriod(c.period)) &&
+    (c.pinNumber === undefined || Number.isInteger(c.pinNumber))
   );
 }
 
 /**
  * BUF: 入力をそのまま出力する。展開したモジュールのピンに使う内部用の部品
  */
-export type ComponentKind = PlaceableComponentKind | 'BUF';
+export type PartKind = PlaceablePartKind | 'buf';
 
 /**
  * 利用者が回路に置ける部品の種類。
  * 保存データや共有データに現れるのはこれだけ。
  */
-export type PlaceableComponentKind = PartKind | SpecialKind;
+export type PlaceablePartKind = SpecKind | SpecialKind;
 
-function isPlaceableComponentKind(kind: string): kind is PlaceableComponentKind {
+function isPlaceablePartKind(kind: string): kind is PlaceablePartKind {
   return partSpecOf(kind) !== undefined || isSpecialKind(kind);
 }
 
 /** 記憶素子 (ラッチとフリップフロップ) か */
-export function isFlipFlopKind(kind: ComponentKind): boolean {
+export function isFlipFlopKind(kind: PartKind): boolean {
   return partSpecOf(kind)?.shape === 'flipflop';
 }
 
 // 入力ピン
 
 /** 入力ピンの名前 (表示用)。名前のないピンは空文字。並び順がピン番号 */
-export function inputPinNames(kind: ComponentKind): string[] {
+export function inputPinNames(kind: PartKind): string[] {
   const spec = partSpecOf(kind);
   if (spec) {
     return [...spec.inputs];
   }
   switch (kind) {
-    case 'OUTPUT':
-    case 'BUF':
+    case 'output':
+    case 'buf':
       return [''];
-    // モジュールのピン数は中身の回路で決まる (module.ts の portsOf)。
+    // モジュールのピン数は中身の回路で決まる (module.ts の pinoutOf)。
     // シミュレーションでは展開してから数えるので、ここでは 0 でよい
     default:
       return [];
   }
 }
 
-export function inputCount(kind: ComponentKind): number {
+export function inputCount(kind: PartKind): number {
   return inputPinNames(kind).length;
 }
 
 // 出力ピン
 
-export function outputPinNames(kind: ComponentKind): string[] {
+export function outputPinNames(kind: PartKind): string[] {
   if (isFlipFlopKind(kind)) {
     return ['Q', 'Q̄'];
   }
   return Array(outputCount(kind)).fill('');
 }
 
-export function outputCount(kind: ComponentKind): number {
-  if (kind === 'OUTPUT' || kind === 'CUSTOM') {
+export function outputCount(kind: PartKind): number {
+  if (kind === 'output' || kind === 'module') {
     return 0;
   }
   return isFlipFlopKind(kind) ? 2 : 1; // フリップフロップは Q, Q̄
@@ -102,7 +108,7 @@ export function outputCount(kind: ComponentKind): number {
  * 特別な部品は遅延なし (0)。部品ではなく端子である INPUT / CLOCK / OUTPUT と、
  * モジュールのピンを表す内部用の BUF (モジュールにしただけで遅れないようにするため)
  */
-export function delayOf(kind: ComponentKind): number {
+export function delayOf(kind: PartKind): number {
   return partSpecOf(kind)?.delay ?? 0;
 }
 
@@ -121,7 +127,7 @@ export function isClockPeriod(v: unknown): v is number {
 }
 
 /** CLOCK の周期 (一往復の tick 数) */
-export function clockPeriodOf(c: Component): number {
+export function clockPeriodOf(c: Part): number {
   return c.period ?? DEFAULT_CLOCK_PERIOD;
 }
 
@@ -129,7 +135,7 @@ export function clockPeriodOf(c: Component): number {
  * CLOCK が、時刻 tick の時点で ON/OFF を切り替えるか。
  * 前半の半周期は OFF、後半は ON。周期が奇数なら、ON と OFF の長さは 1 tick 違う
  */
-export function clockFlipsAt(c: Component, tick: number): boolean {
+export function clockFlipsAt(c: Part, tick: number): boolean {
   const period = clockPeriodOf(c);
   // floor(tick * 2 / period) は、時刻 tick が何番目の半周期か。番号が前の tick から変わったら反転する
   return Math.floor((tick * 2) / period) !== Math.floor(((tick - 1) * 2) / period);

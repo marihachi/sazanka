@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from './component';
+import type { Part } from './part';
 import {
   checkProject,
   emptyProject,
@@ -10,7 +10,7 @@ import {
   withoutSwitchStates,
 } from './project';
 
-function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
+function comp(id: string, kind: Part['kind'], extra: Partial<Part> = {}): Part {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
@@ -19,7 +19,7 @@ describe('emptyProject / findDef', () => {
     const project = emptyProject();
     expect(project.circuits).toHaveLength(1);
     expect(project.circuits[0].id).toBe(MAIN_ID);
-    expect(project.circuits[0].components).toEqual([]);
+    expect(project.circuits[0].parts).toEqual([]);
   });
 
   it('findDef は ID の回路を返し、なければ undefined', () => {
@@ -31,8 +31,8 @@ describe('emptyProject / findDef', () => {
 });
 
 describe('checkProject', () => {
-  function main(components: Component[], wires: unknown[] = []) {
-    return { circuits: [{ id: MAIN_ID, name: 'メイン', components, wires }] };
+  function main(parts: Part[], wires: unknown[] = []) {
+    return { circuits: [{ id: MAIN_ID, name: 'メイン', parts, wires }] };
   }
 
   it('正しいプロジェクトは undefined', () => {
@@ -43,12 +43,12 @@ describe('checkProject', () => {
   const 壊れたもの: [string, unknown][] = [
     ['オブジェクトでない', [1, 2]],
     ['回路の一覧がない', {}],
-    ['メイン回路がない', { circuits: [{ id: 'x', name: 'x', components: [], wires: [] }] }],
-    ['回路に名前がない', { circuits: [{ id: MAIN_ID, components: [], wires: [] }] }],
-    ['部品の種類が不正', main([{ id: 'a', kind: 'FOO', x: 0, y: 0 } as unknown as Component])],
-    ['内部用の BUF が入っている', main([comp('a', 'BUF')])],
-    ['座標が数値でない', main([{ id: 'a', kind: 'AND', x: '0', y: 0 } as unknown as Component])],
-    ['部品の ID が重複', main([comp('a', 'AND'), comp('a', 'OR')])],
+    ['メイン回路がない', { circuits: [{ id: 'x', name: 'x', parts: [], wires: [] }] }],
+    ['回路に名前がない', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }] }],
+    ['部品の種類が不正', main([{ id: 'a', kind: 'FOO', x: 0, y: 0 } as unknown as Part])],
+    ['内部用の BUF が入っている', main([comp('a', 'buf')])],
+    ['座標が数値でない', main([{ id: 'a', kind: 'and', x: '0', y: 0 } as unknown as Part])],
+    ['部品の ID が重複', main([comp('a', 'and'), comp('a', 'or')])],
     ['配線の点が 1 つ', main([], [{ id: 'w', points: [{ x: 0, y: 0 }] }])],
     [
       '配線に斜めの区間がある',
@@ -70,13 +70,58 @@ describe('checkProject', () => {
       main([], [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'a', pin: 0 } }]),
     ],
     ['作者名が文字列でない', { ...emptyProject(), author: 1 }],
-    ['存在しないモジュールを参照', main([comp('u', 'CUSTOM', { custom: 'ない' })])],
+    ['存在しないモジュールを参照', main([comp('u', 'module', { module: 'ない' })])],
+    ['ピン番号が整数でない', main([comp('i', 'input', { pinNumber: 1.5 })])],
+    ['ピン番号が数値でない', main([{ ...comp('i', 'input'), pinNumber: '1' } as unknown as Part])],
   ];
   for (const [name, value] of 壊れたもの) {
     it(`壊れたデータを弾く: ${name}`, () => {
       expect(checkProject(value)).toBeTypeOf('string');
     });
   }
+
+  describe('モジュールのピンの出し方', () => {
+    function withModule(footprint: unknown) {
+      return {
+        circuits: [...main([]).circuits, { id: 'm', name: 'M', footprint, parts: [], wires: [] }],
+      };
+    }
+
+    it('正しい出し方なら undefined', () => {
+      // biome-ignore format: 表形式を維持するため
+      for (const f of [
+        { kind: 'split' },
+        { kind: 'dip', pins: 4 },
+        { kind: 'dip', pins: 256 },
+        { kind: 'qfp', pins: 8 },
+        { kind: 'qfp', pins: 256 },
+      ]) {
+        expect(checkProject(withModule(f))).toBeUndefined();
+      }
+    });
+
+    it('ない、または正しくない出し方を弾く', () => {
+      // biome-ignore format: 表形式を維持するため
+      for (const f of [
+        undefined,
+        { kind: 'sip', pins: 8 },
+        { kind: 'dip' },
+        { kind: 'dip', pins: 2 },
+        { kind: 'dip', pins: 7 },
+        { kind: 'dip', pins: 258 },
+        { kind: 'qfp', pins: 4 },
+        { kind: 'qfp', pins: 10 },
+        { kind: 'qfp', pins: 260 },
+        { kind: 'dip', pins: 8.5 },
+      ]) {
+        expect(checkProject(withModule(f))).toBeTypeOf('string');
+      }
+    });
+
+    it('メイン回路には求めない', () => {
+      expect(checkProject(main([]))).toBeUndefined();
+    });
+  });
 });
 
 describe('moveCircuit', () => {
@@ -84,7 +129,7 @@ describe('moveCircuit', () => {
     circuits: ['main', 'a', 'b', 'c'].map((id) => ({
       id,
       name: id,
-      components: [],
+      parts: [],
       wires: [],
     })),
   };
@@ -107,28 +152,28 @@ describe('withoutSwitchStates', () => {
       {
         id: MAIN_ID,
         name: 'メイン',
-        components: [
-          comp('a', 'INPUT', { on: true, label: 'A' }),
-          comp('c', 'CLOCK', { on: true, period: 20 }),
+        parts: [
+          comp('a', 'input', { on: true, label: 'A' }),
+          comp('c', 'clock', { on: true, period: 20 }),
         ],
         wires: [],
       },
-      { id: 'm', name: 'モジュール', components: [comp('b', 'INPUT', { on: false })], wires: [] },
+      { id: 'm', name: 'モジュール', parts: [comp('b', 'input', { on: false })], wires: [] },
     ],
   };
 
   it('すべての回路の INPUT / CLOCK から ON/OFF を外す', () => {
     const result = withoutSwitchStates(project);
-    const comps = result.circuits.flatMap((d) => d.components);
+    const comps = result.circuits.flatMap((d) => d.parts);
     expect(comps.every((c) => !('on' in c))).toBe(true);
   });
 
   it('ON/OFF 以外の項目は残し、元のプロジェクトは書き換えない', () => {
     const result = withoutSwitchStates(project);
-    expect(result.circuits[0].components).toEqual([
-      comp('a', 'INPUT', { label: 'A' }),
-      comp('c', 'CLOCK', { period: 20 }),
+    expect(result.circuits[0].parts).toEqual([
+      comp('a', 'input', { label: 'A' }),
+      comp('c', 'clock', { period: 20 }),
     ]);
-    expect(project.circuits[0].components[0].on).toBe(true);
+    expect(project.circuits[0].parts[0].on).toBe(true);
   });
 });

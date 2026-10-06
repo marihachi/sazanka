@@ -1,5 +1,5 @@
-import type { Component } from '../circuit/component';
-import { clockPeriodOf } from '../circuit/component';
+import type { Part } from '../circuit/part';
+import { clockPeriodOf } from '../circuit/part';
 import { partViewOf } from '../parts/views';
 
 /** 何も操作していないときに順に表示するヒント */
@@ -49,7 +49,7 @@ export interface HintContext {
   editing: boolean;
   /** 配線だけを 1 本選んでいる */
   wireSelected: boolean;
-  selectedComponent?: Component;
+  selectedPart?: Part;
   /** 部品を2つ以上選んでいる */
   multipleSelected: boolean;
   unstable: boolean;
@@ -96,7 +96,7 @@ export function statusHints(ctx: HintContext): string[] {
       'Ctrl+C でコピー、Ctrl+X で切り取り',
     ];
   }
-  const c = ctx.selectedComponent;
+  const c = ctx.selectedPart;
   if (c) {
     const move = ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除'];
     // ヒントの文は、種類ごとの見せ方 (parts/) にある

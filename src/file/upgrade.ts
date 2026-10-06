@@ -3,9 +3,10 @@
 // 各変換は今のアプリのコードに頼らない (決まりは docs/agent/persistence.md の「形式を変えるとき」)
 
 import { upgradeV1 } from './upgradeV1';
+import { upgradeV2 } from './upgradeV2';
 
 /** 1 版分の変換を、版の順に並べたもの。UPGRADES[i] は version i + 1 のプロジェクトを version i + 2 の形にする */
-const UPGRADES: ((project: unknown) => unknown)[] = [upgradeV1];
+const UPGRADES: ((project: unknown) => unknown)[] = [upgradeV1, upgradeV2];
 
 /**
  * version の版のプロジェクトを、今の版の形にする。今の版なら、そのまま返す。

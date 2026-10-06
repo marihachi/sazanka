@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const high = definePart({
-  kind: 'HIGH',
+  kind: 'high',
   shape: 'terminal',
   inputs: [],
   delay: 0,

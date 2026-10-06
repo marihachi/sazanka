@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const nand = definePart({
-  kind: 'NAND',
+  kind: 'nand',
   shape: 'gate',
   inputs: ['', ''],
   delay: 1,

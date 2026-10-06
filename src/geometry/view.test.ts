@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import { SHEET_HEIGHT, SHEET_WIDTH } from './layout';
 import { MAIN_ID, type Project } from '../circuit/project';
 import {
@@ -94,8 +94,8 @@ describe('isView', () => {
 });
 
 describe('overview', () => {
-  const project = (components: Component[]): Project => ({
-    circuits: [{ id: MAIN_ID, name: 'メイン', components, wires: [] }],
+  const project = (parts: Part[]): Project => ({
+    circuits: [{ id: MAIN_ID, name: 'メイン', parts, wires: [] }],
   });
 
   it('部品のない回路は、シートの中央を画面の真ん中に置いた等倍の表示', () => {
@@ -109,7 +109,7 @@ describe('overview', () => {
   });
 
   it('部品のある回路は、部品が画面に入る表示', () => {
-    const p = project([{ id: 'g', kind: 'AND', x: 100, y: 80 }]);
+    const p = project([{ id: 'g', kind: 'and', x: 100, y: 80 }]);
     const v = overview(p.circuits[0], p, 400, 300);
     const at = toScreen(v, { x: 100, y: 80 });
     expect(at.x).toBeGreaterThanOrEqual(0);
@@ -128,8 +128,8 @@ describe('clampScale', () => {
 });
 
 describe('circuitBounds', () => {
-  const project = (components: Component[]): Project => ({
-    circuits: [{ id: MAIN_ID, name: 'メイン', components, wires: [] }],
+  const project = (parts: Part[]): Project => ({
+    circuits: [{ id: MAIN_ID, name: 'メイン', parts, wires: [] }],
   });
 
   it('部品も配線もなければ undefined', () => {
@@ -158,8 +158,8 @@ describe('circuitBounds', () => {
   it('すべての部品の、ピンの先まで含めた範囲を合わせる', () => {
     // INPUT は 40×40 で右にピン、AND は 60×80 で左右にピン。ピンは本体から 1 グリッド (20) 出る
     const p = project([
-      { id: 'a', kind: 'INPUT', x: 100, y: 200 },
-      { id: 'b', kind: 'AND', x: 300, y: 100 },
+      { id: 'a', kind: 'input', x: 100, y: 200 },
+      { id: 'b', kind: 'and', x: 300, y: 100 },
     ]);
     expect(circuitBounds(p.circuits[0], p)).toEqual({
       left: 80,

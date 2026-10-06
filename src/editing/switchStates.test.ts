@@ -1,19 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { keepSwitchStates } from './switchStates';
 
-function comp(
-  id: string,
-  kind: Component['kind'],
-  y = 0,
-  extra: Partial<Component> = {},
-): Component {
+function comp(id: string, kind: Part['kind'], y = 0, extra: Partial<Part> = {}): Part {
   return { id, kind, x: 0, y, ...extra };
 }
 
-function main(components: Component[]): CircuitDef {
-  return { id: MAIN_ID, name: 'メイン', components, wires: [] };
+function main(parts: Part[]): CircuitDef {
+  return { id: MAIN_ID, name: 'メイン', parts, wires: [] };
 }
 
 describe('keepSwitchStates', () => {
@@ -22,9 +17,9 @@ describe('keepSwitchStates', () => {
       circuits: [
         // biome-ignore format: 表形式を維持するため
         main([
-          comp('i', 'INPUT', 0, { on: false }),
-          comp('k', 'CLOCK', 0, { on: false }),
-          comp('g', 'AND', 100),
+          comp('i', 'input', 0, { on: false }),
+          comp('k', 'clock', 0, { on: false }),
+          comp('g', 'and', 100),
         ]),
       ],
     };
@@ -32,16 +27,16 @@ describe('keepSwitchStates', () => {
       circuits: [
         // biome-ignore format: 表形式を維持するため
         main([
-          comp('i', 'INPUT', 40, { on: true }),
-          comp('k', 'CLOCK', 0, { on: true }),
+          comp('i', 'input', 40, { on: true }),
+          comp('k', 'clock', 0, { on: true }),
         ]),
       ],
     };
     const merged = keepSwitchStates(restored, current);
-    expect(merged.circuits[0].components).toEqual([
-      comp('i', 'INPUT', 0, { on: true }),
-      comp('k', 'CLOCK', 0, { on: true }),
-      comp('g', 'AND', 100),
+    expect(merged.circuits[0].parts).toEqual([
+      comp('i', 'input', 0, { on: true }),
+      comp('k', 'clock', 0, { on: true }),
+      comp('g', 'and', 100),
     ]);
   });
 });

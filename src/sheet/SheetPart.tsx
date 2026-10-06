@@ -1,15 +1,15 @@
-import type { Component, ComponentKind } from '../circuit/component';
+import type { Part, PartKind } from '../circuit/part';
 import { bodySize, type SheetPin, sheetPinsOf } from '../geometry/layout';
-import type { Ports } from '../circuit/module';
+import type { Pinout } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
 import { layoutOf } from '../parts/layouts';
 import { partSpecOf } from '../parts/specs';
 import { classNames } from '../ui/classNames';
-import styles from './ComponentView.module.css';
+import styles from './SheetPart.module.css';
 import { labelOf, partViewOf } from '../parts/views';
 
 /** シート上の部品の中に書く名前 */
-function bodyLabelOf(kind: ComponentKind): string {
+function bodyLabelOf(kind: PartKind): string {
   return partViewOf(kind)?.bodyLabel ?? labelOf(kind);
 }
 
@@ -84,10 +84,10 @@ function PinName({ pin, label }: { pin: SheetPin; label: string }) {
   }
 }
 
-interface ComponentViewProps {
-  comp: Component;
-  ports: Ports;
-  /** CUSTOM の表示名 */
+interface SheetPartProps {
+  comp: Part;
+  pinout: Pinout;
+  /** モジュールの表示名 */
   name?: string;
   /** 出力ピンの値 (OUTPUT は表示する入力値) */
   outputValues: boolean[];
@@ -99,9 +99,9 @@ interface ComponentViewProps {
   onBodyDoubleClick: () => void;
 }
 
-export function ComponentView({
+export function SheetPart({
   comp: c,
-  ports,
+  pinout,
   name,
   outputValues,
   inputValues,
@@ -109,10 +109,10 @@ export function ComponentView({
   pinNumber,
   onBodyDown,
   onBodyDoubleClick,
-}: ComponentViewProps) {
-  const { w, h } = bodySize(c, ports);
-  const pins = sheetPinsOf(c, ports);
-  const outline = <BodyOutline body={layoutOf(c.kind, ports).body} x={c.x} y={c.y} w={w} h={h} />;
+}: SheetPartProps) {
+  const { w, h } = bodySize(c, pinout);
+  const pins = sheetPinsOf(c, pinout);
+  const outline = <BodyOutline body={layoutOf(c.kind, pinout).body} x={c.x} y={c.y} w={w} h={h} />;
   const value = outputValues[0];
   const numberBadge = pinNumber !== undefined && (
     <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
@@ -123,7 +123,7 @@ export function ComponentView({
 
   // 文字の y はベースライン (文字の下端) なので、縦の中央に見せたいときは、文字の高さの半分ほど (+4 など) 下げる
   let body: React.ReactNode;
-  if (c.kind === 'INPUT') {
+  if (c.kind === 'input') {
     body = (
       <>
         {outline}
@@ -144,7 +144,7 @@ export function ComponentView({
         {numberBadge}
       </>
     );
-  } else if (c.kind === 'CLOCK') {
+  } else if (c.kind === 'clock') {
     const y0 = c.y + h / 2;
     body = (
       <>
@@ -170,7 +170,7 @@ export function ComponentView({
         </text>
       </>
     );
-  } else if (c.kind === 'OUTPUT') {
+  } else if (c.kind === 'output') {
     body = (
       <>
         {outline}
@@ -184,18 +184,18 @@ export function ComponentView({
       </>
     );
   } else {
-    const isCustom = c.kind === 'CUSTOM';
+    const isModule = c.kind === 'module';
     body = (
       <>
         {outline}
-        <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
-          {isCustom ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
+        <text className={styles.label} x={c.x + w / 2} y={isModule ? c.y - 6 : c.y + h / 2 + 4}>
+          {isModule ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
         </text>
-        {ports.inputs.map((label, i) => (
+        {pinout.inputs.map((label, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
           <PinName key={i} pin={pins.inputs[i]} label={label} />
         ))}
-        {ports.outputs.map((label, i) => (
+        {pinout.outputs.map((label, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
           <PinName key={i} pin={pins.outputs[i]} label={label} />
         ))}
@@ -215,7 +215,7 @@ export function ComponentView({
         // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
         <PinLead key={i} pin={pins.inputs[i]} on={v} />
       ))}
-      {ports.outputs.map((_, i) => (
+      {pinout.outputs.map((_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
         <PinLead key={i} pin={pins.outputs[i]} on={outputValues[i]} />
       ))}

@@ -3,8 +3,8 @@
 
 import { definePart } from '../spec';
 
-export const rsen = definePart({
-  kind: 'RSEN',
+export const rsEnLatch = definePart({
+  kind: 'rsEnLatch',
   shape: 'flipflop',
   inputs: ['S', 'EN', 'R'],
   delay: 3,

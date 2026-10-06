@@ -3,7 +3,7 @@ import { Box, Button, Flex, Text } from '@chakra-ui/react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import collapseAllIcon from '../assets/icons/collapse-all.svg';
 import expandAllIcon from '../assets/icons/expand-all.svg';
-import type { ComponentKind } from '../circuit/component';
+import type { PartKind } from '../circuit/part';
 import type { CircuitDef } from '../circuit/project';
 import { PartIcon } from '../parts/PartIcon';
 import { labelOf, PART_VIEWS, type PaletteGroupId, partViewOf } from '../parts/views';
@@ -27,7 +27,7 @@ const GROUPS: { id: PaletteGroupId; title: string }[] = [
 ];
 
 /** グループに並べる部品の種類 */
-function kindsOf(group: (typeof GROUPS)[number]): ComponentKind[] {
+function kindsOf(group: (typeof GROUPS)[number]): PartKind[] {
   return (Object.keys(PART_VIEWS) as (keyof typeof PART_VIEWS)[]).filter(
     (k) => PART_VIEWS[k].group === group.id,
   );
@@ -48,7 +48,7 @@ interface PaletteProps {
   /** 折り畳んでいるグループの ID */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
-  onAdd: (kind: ComponentKind, custom?: string) => void;
+  onAdd: (kind: PartKind, module?: string) => void;
 }
 
 /** 左側のパネル。置ける部品の一覧 (削除エリアはシートの右下、TrashZone.tsx) */
@@ -99,10 +99,10 @@ export const Palette = memo(function Palette({
             <PaletteItem
               key={def.id}
               label={def.name}
-              kind="CUSTOM"
-              custom={def.id}
+              kind="module"
+              module={def.id}
               disabledReason={blocked}
-              onAdd={() => onAdd('CUSTOM', def.id)}
+              onAdd={() => onAdd('module', def.id)}
             />
           ))}
           {modules.length === 0 && (
@@ -167,15 +167,15 @@ function PaletteGroup({ id, title, collapsed, onToggle, children }: PaletteGroup
 
 interface PaletteItemProps {
   label: string;
-  kind: ComponentKind;
-  custom?: string;
+  kind: PartKind;
+  module?: string;
   /** 置けない場合の理由。あればグレーアウトし、理由をツールチップに出す */
   disabledReason?: string;
   onAdd: () => void;
 }
 
 /** クリックで追加、シートへドラッグで好きな位置に追加 */
-function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItemProps) {
+function PaletteItem({ label, kind, module, disabledReason, onAdd }: PaletteItemProps) {
   const disabled = !!disabledReason;
   const button = (
     <Button
@@ -188,13 +188,13 @@ function PaletteItem({ label, kind, custom, disabledReason, onAdd }: PaletteItem
       px="2"
       cursor={disabled ? 'not-allowed' : 'grab'}
       // モジュールは、枠を点線にして組み込みの部品と見分ける
-      borderStyle={kind === 'CUSTOM' ? 'dashed' : 'solid'}
+      borderStyle={kind === 'module' ? 'dashed' : 'solid'}
       _hover={{ borderColor: 'accent.solid' }}
       disabled={disabled}
       draggable={!disabled}
       onClick={onAdd}
       onDragStart={(e) => {
-        const data: PaletteDrag = { kind, custom };
+        const data: PaletteDrag = { kind, module };
         e.dataTransfer.setData(DRAG_MIME, JSON.stringify(data));
         e.dataTransfer.effectAllowed = 'copy';
       }}

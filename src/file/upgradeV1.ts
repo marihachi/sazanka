@@ -1,9 +1,9 @@
 // 形式 version 1 のプロジェクトを、version 2 の形に変える。保存データと共有用 JSON の両方で使い、upgrade.ts から呼ぶ。
 // version 1 の配線は、出力ピンと入力ピンを部品 ID とピン番号で指し、形は通る点から自動で決めていた。
-// version 2 の配線は、通る点の並びそのもの。形式は docs/format/archive/v1.md と docs/format/v2.md。
+// version 2 の配線は、通る点の並びそのもの。形式は docs/format/archive/v1.md と docs/format/archive/v2.md。
 //
 // 今のアプリのコード (部品の型や検証、配置) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため。
-// 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの (docs/format/v2.md) をここに持つ。あとから直さない
+// 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの (docs/format/archive/v2.md) をここに持つ。あとから直さない
 
 import { isObject } from '../util';
 
@@ -125,7 +125,7 @@ function pinCounts(
 }
 
 /**
- * 入力ピンの先の位置 (version 2 の時点。docs/format/v2.md の「ピンの先の位置」)。
+ * 入力ピンの先の位置 (version 2 の時点。docs/format/archive/v2.md の「ピンの先の位置」)。
  * ピンの先は本体の左端から 1 マス左。inputs はその部品の入力ピンの数
  */
 function inputPinPosV2(c: ComponentV1, inputs: number, pin: number): Point {
