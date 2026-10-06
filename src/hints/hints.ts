@@ -36,12 +36,12 @@ const MODULE_HINTS = [
   'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
 ];
 
-/** フットプリントが split のモジュール (ピンの順が中の位置で決まる) で、MODULE_HINTS に足すヒント */
+/** パッケージが split のモジュール (ピンの順が中の位置で決まる) で、MODULE_HINTS に足すヒント */
 const SPLIT_MODULE_HINTS = [
   'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
 ];
 
-/** フットプリントが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、MODULE_HINTS に足すヒント */
+/** パッケージが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、MODULE_HINTS に足すヒント */
 const NUMBERED_MODULE_HINTS = [
   'INPUT / OUTPUT を置くと、空いているいちばん小さいピン番号が付く。動かしても番号は変わらない',
 ];
@@ -74,7 +74,7 @@ export interface HintContext {
   conflict: boolean;
   /** モジュールのタブを開いている */
   inModule: boolean;
-  /** 開いているモジュールが、ピン番号で外側のピンを決める (フットプリントが dip / qfp) */
+  /** 開いているモジュールが、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
   numberedModule: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;

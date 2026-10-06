@@ -24,7 +24,7 @@ export interface Part {
   period?: number;
   /**
    * モジュールの中の INPUT / OUTPUT の、外側のピン番号 (1 から)。
-   * モジュールのフットプリントが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
+   * モジュールのパッケージが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
    */
   pinNumber?: number;
 }

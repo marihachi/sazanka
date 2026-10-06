@@ -230,7 +230,7 @@ export function Sheet({
       return new Map<string, number>();
     }
     const { inputs, outputs } = portParts(circuit);
-    const numbered = usesPinNumbers(circuit.footprint);
+    const numbered = usesPinNumbers(circuit.package);
     return new Map(
       [...inputs, ...outputs].map((c) => [
         c.id,

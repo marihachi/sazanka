@@ -85,7 +85,7 @@ describe('readStored', () => {
           {
             id: 'mod',
             name: 'M',
-            footprint: { kind: 'split' },
+            package: { kind: 'split' },
             parts: [{ id: 'd', kind: 'dFlipFlop', x: 0, y: 0 }],
             wires: [],
           },

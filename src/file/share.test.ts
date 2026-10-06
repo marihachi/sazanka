@@ -19,7 +19,7 @@ const project: Project = {
     {
       id: 'mod',
       name: 'モジュール1',
-      footprint: { kind: 'split' },
+      package: { kind: 'split' },
       parts: [{ id: 'i', kind: 'input', x: 0, y: 0 }],
       wires: [],
     },

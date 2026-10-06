@@ -23,7 +23,7 @@
   - モジュールの回路には `split`（version 2 までの出し方）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
 - どちらも、今より新しい版のデータは読み込まずに断る。
 - 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`）も合わせる。置ける種類の判定（`part.ts` の `isPlaceablePartKind`）は `PART_SPECS` と `SPECIAL_KINDS` を見るので、`PART_SPECS` に足した種類はそのまま検証を通る。
-- モジュールの回路のフットプリント（`project.ts` の `CircuitDef.footprint`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。型で省略できるのは、メイン回路が持たないためと、テストでモジュールを手短に作れるようにするため。持たないモジュールは `split` として扱う（`module.ts` の `pinoutOf`）。
+- モジュールの回路のパッケージ（`project.ts` の `CircuitDef.package`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。型で省略できるのは、メイン回路が持たないためと、テストでモジュールを手短に作れるようにするため。持たないモジュールは `split` として扱う（`module.ts` の `pinoutOf`）。
 
 ### 開発者からの指示
 
@@ -41,7 +41,7 @@
 
 ## 進めている計画
 
-- version 3（モジュールのフットプリントとピン番号、部品の種類の項目名と名前の変更）の計画が [docs/plans/format-v3/plan.md](../plans/format-v3/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
+- version 3（モジュールのパッケージとピン番号、部品の種類の項目名と名前の変更）の計画が [docs/plans/format-v3/plan.md](../plans/format-v3/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
 
 ## 保存データ
 

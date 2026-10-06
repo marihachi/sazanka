@@ -52,7 +52,7 @@ describe('モジュールの dip の配置', () => {
   const layout = layoutOf('module', {
     inputs: ['A', 'B'],
     outputs: ['Y'],
-    footprint: { kind: 'dip', pins: 8 },
+    package: { kind: 'dip', pins: 8 },
     pinNumbers: { inputs: [1, 6], outputs: [3] },
   });
 
@@ -78,7 +78,7 @@ describe('モジュールの dip の配置', () => {
 
   it('向きの印を付ける。split には付けない', () => {
     expect(layout.directionMarks).toBe(true);
-    const split = layoutOf('module', { inputs: [''], outputs: [''], footprint: { kind: 'split' } });
+    const split = layoutOf('module', { inputs: [''], outputs: [''], package: { kind: 'split' } });
     expect(split.directionMarks).toBeFalsy();
     expect(split.nc ?? []).toEqual([]);
   });

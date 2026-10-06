@@ -81,9 +81,12 @@ describe('checkProject', () => {
   }
 
   describe('モジュールのピンの出し方', () => {
-    function withModule(footprint: unknown) {
+    function withModule(pkg: unknown) {
       return {
-        circuits: [...main([]).circuits, { id: 'm', name: 'M', footprint, parts: [], wires: [] }],
+        circuits: [
+          ...main([]).circuits,
+          { id: 'm', name: 'M', package: pkg, parts: [], wires: [] },
+        ],
       };
     }
 

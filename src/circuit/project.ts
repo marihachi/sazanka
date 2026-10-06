@@ -14,23 +14,23 @@ export interface CircuitDef extends Circuit {
    * モジュールの外側のピンの出し方。モジュールの回路だけが持ち、メイン回路は持たない。
    * 読み込んだデータのモジュールには必ずある (checkProject で確かめる)。テストなどで作った、持たないモジュールは split として扱う
    */
-  footprint?: Footprint;
+  package?: Package;
 }
 
 /**
- * モジュールの外側のピンの出し方 (フットプリント)。
+ * モジュールの外側のピンの出し方 (パッケージ)。
  * dip は 2 辺、qfp は 4 辺にピンを出し、pins はピンの数。split は入力を左、出力を右に出す (version 2 までの形)
  */
-export type Footprint =
+export type Package =
   | { kind: 'dip'; pins: number }
   | { kind: 'qfp'; pins: number }
   | { kind: 'split' };
 
-/** フットプリントのピンの数の上限 */
-export const MAX_FOOTPRINT_PINS = 256;
+/** パッケージのピンの数の上限 */
+export const MAX_PACKAGE_PINS = 256;
 
-/** フットプリントとして正しい形か。dip のピンは 4 以上の偶数、qfp は 8 以上の 4 の倍数で、どちらも上限以下 */
-export function isFootprint(f: unknown): f is Footprint {
+/** パッケージとして正しい形か。dip のピンは 4 以上の偶数、qfp は 8 以上の 4 の倍数で、どちらも上限以下 */
+export function isPackage(f: unknown): f is Package {
   if (!isObject(f)) {
     return false;
   }
@@ -38,7 +38,7 @@ export function isFootprint(f: unknown): f is Footprint {
   const inRange = (min: number, step: number) =>
     Number.isInteger(pins) &&
     (pins as number) >= min &&
-    (pins as number) <= MAX_FOOTPRINT_PINS &&
+    (pins as number) <= MAX_PACKAGE_PINS &&
     (pins as number) % step === 0;
   switch (f.kind) {
     case 'dip':
@@ -106,11 +106,11 @@ function checkCircuit(def: unknown, isModule: boolean): string | undefined {
     return '回路の ID か名前がありません';
   }
   // 省略は許さない。既定値で補うと、あとで既定値を変えたときに、古いデータのモジュールのピンの位置が変わって配線が外れるため
-  if (isModule && def.footprint === undefined) {
-    return `「${def.name}」にフットプリントがありません`;
+  if (isModule && def.package === undefined) {
+    return `「${def.name}」にパッケージがありません`;
   }
-  if (isModule && !isFootprint(def.footprint)) {
-    return `「${def.name}」に不正なフットプリントがあります`;
+  if (isModule && !isPackage(def.package)) {
+    return `「${def.name}」に不正なパッケージがあります`;
   }
   if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
     return `「${def.name}」の部品か配線がありません`;

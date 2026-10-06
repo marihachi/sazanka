@@ -65,11 +65,11 @@ describe('モジュールのピン', () => {
         { id: 'm', name: 'M', parts: [], wires: [] },
       ],
     };
-    expect(pinoutOf(comp('u', 'module', { module: 'm' }), project).footprint).toEqual({
+    expect(pinoutOf(comp('u', 'module', { module: 'm' }), project).package).toEqual({
       kind: 'split',
     });
     // モジュール以外の部品は持たない
-    expect(pinoutOf(comp('g', 'and'), project).footprint).toBeUndefined();
+    expect(pinoutOf(comp('g', 'and'), project).package).toBeUndefined();
   });
 
   it('モジュールのピン名は中の INPUT / OUTPUT のラベル。ラベルなしは空文字', () => {
@@ -79,7 +79,7 @@ describe('モジュールのピン', () => {
         {
           id: 'm',
           name: 'M',
-          footprint: { kind: 'split' },
+          package: { kind: 'split' },
           // biome-ignore format: 表形式を維持するため
           parts: [
             comp('i', 'input', { label: 'A' }),
@@ -93,13 +93,13 @@ describe('モジュールのピン', () => {
     expect(pinoutOf(comp('u', 'module', { module: 'm' }), project)).toEqual({
       inputs: ['A', ''],
       outputs: ['S'],
-      footprint: { kind: 'split' },
+      package: { kind: 'split' },
     });
     // 参照先がなければピンなし
     expect(pinoutOf(comp('u', 'module', { module: 'ない' }), project)).toEqual({
       inputs: [],
       outputs: [],
-      footprint: { kind: 'split' },
+      package: { kind: 'split' },
     });
   });
 
@@ -131,7 +131,7 @@ describe('モジュールのピン', () => {
 describe('dip のモジュールのピン番号', () => {
   /** 8 ピンの dip のモジュール */
   function dip(parts: Part[]): CircuitDef {
-    return { id: 'm', name: 'M', footprint: { kind: 'dip', pins: 8 }, parts, wires: [] };
+    return { id: 'm', name: 'M', package: { kind: 'dip', pins: 8 }, parts, wires: [] };
   }
 
   it('外側のピンは、入力か出力かを問わずピン番号の順に並ぶ', () => {
@@ -149,7 +149,7 @@ describe('dip のモジュールのピン番号', () => {
     expect(pinoutOf(comp('u', 'module', { module: 'm' }), project)).toEqual({
       inputs: ['B', 'A'],
       outputs: ['C', 'S'],
-      footprint: { kind: 'dip', pins: 8 },
+      package: { kind: 'dip', pins: 8 },
       pinNumbers: { inputs: [1, 3], outputs: [2, 8] },
     });
   });
@@ -180,14 +180,14 @@ describe('dip のモジュールのピン番号', () => {
   });
 
   it('split のモジュールには、外側のピンに出せないポートはない', () => {
-    const def: CircuitDef = { ...dip([comp('a', 'input')]), footprint: { kind: 'split' } };
+    const def: CircuitDef = { ...dip([comp('a', 'input')]), package: { kind: 'split' } };
     expect(portProblems(def).size).toBe(0);
   });
 });
 
 describe('assignPinNumbers', () => {
   function dip(parts: Part[], pins = 8): CircuitDef {
-    return { id: 'm', name: 'M', footprint: { kind: 'dip', pins }, parts, wires: [] };
+    return { id: 'm', name: 'M', package: { kind: 'dip', pins }, parts, wires: [] };
   }
   const numbers = (def: CircuitDef) => def.parts.map((c) => c.pinNumber);
 
@@ -233,7 +233,7 @@ describe('assignPinNumbers', () => {
   it('メイン回路と split のモジュールでは、置いたポートの番号を外す', () => {
     const main = { ...emptyProject().circuits[0], parts: [comp('a', 'input', { pinNumber: 2 })] };
     expect(assignPinNumbers(main, new Set(['a'])).parts[0]).not.toHaveProperty('pinNumber');
-    const split: CircuitDef = { ...main, id: 'm', footprint: { kind: 'split' } };
+    const split: CircuitDef = { ...main, id: 'm', package: { kind: 'split' } };
     expect(assignPinNumbers(split, new Set(['a'])).parts[0]).not.toHaveProperty('pinNumber');
   });
 

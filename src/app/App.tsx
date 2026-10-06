@@ -301,7 +301,7 @@ export function App() {
     unstable,
     conflict,
     inModule: circuit.id !== MAIN_ID,
-    numberedModule: usesPinNumbers(circuit.footprint),
+    numberedModule: usesPinNumbers(circuit.package),
     selectedPortProblem: selectedPart && problems.get(selectedPart.id),
     unexposedPorts: problems.size > 0,
     tickMs: preferences.tickMs,

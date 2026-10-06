@@ -82,7 +82,7 @@ export function useModules({
         const def: CircuitDef = {
           id: newId(),
           name,
-          footprint: { kind: 'dip', pins: 8 },
+          package: { kind: 'dip', pins: 8 },
           parts: [],
           wires: [],
         };

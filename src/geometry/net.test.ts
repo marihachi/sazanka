@@ -145,7 +145,7 @@ describe('NC のピン', () => {
         {
           id: 'm',
           name: 'M',
-          footprint: { kind: 'dip', pins: 4 },
+          package: { kind: 'dip', pins: 4 },
           parts: [{ id: 'a', kind: 'input', x: 0, y: 0, pinNumber: 1 }],
           wires: [],
         },

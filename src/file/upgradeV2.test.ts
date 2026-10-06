@@ -42,7 +42,7 @@ describe('upgradeV2', () => {
           wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 80, y: 20 }] }],
         },
         // モジュールの回路にだけ、version 2 までの出し方を書き込む
-        { id: 'mod', name: 'M', footprint: { kind: 'split' }, parts: [], wires: [] },
+        { id: 'mod', name: 'M', package: { kind: 'split' }, parts: [], wires: [] },
       ],
     });
   });
@@ -74,7 +74,7 @@ describe('upgradeV2', () => {
     expect(upgradeV2(null)).toBeNull();
     expect(upgradeV2({})).toEqual({});
     expect(upgradeV2({ circuits: [1, { id: 'm' }] })).toEqual({
-      circuits: [1, { id: 'm', footprint: { kind: 'split' } }],
+      circuits: [1, { id: 'm', package: { kind: 'split' } }],
     });
     // 表にない種類の名前は、そのまま残す
     const unknown = { circuits: [{ id: 'main', components: [{ kind: 'FOO' }], wires: [] }] };

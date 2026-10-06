@@ -2,13 +2,13 @@ import type { PartLayout, PartLayoutOf, PinPlacement } from '../layout';
 import type { Pinout } from '../../circuit/module';
 
 /**
- * モジュール。配置はピンの出し方 (pinout.footprint) で決まる。
+ * モジュール。配置はピンの出し方 (pinout.package) で決まる。
  * qfp の配置はまだないので、split と同じに置く
  */
 export const module: PartLayoutOf = (pinout) => {
-  const footprint = pinout.footprint;
-  if (footprint?.kind === 'dip' && pinout.pinNumbers) {
-    return dipLayout(pinout.pinNumbers, footprint.pins);
+  const pkg = pinout.package;
+  if (pkg?.kind === 'dip' && pinout.pinNumbers) {
+    return dipLayout(pinout.pinNumbers, pkg.pins);
   }
   return splitLayout(pinout);
 };

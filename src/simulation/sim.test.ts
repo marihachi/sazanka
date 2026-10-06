@@ -393,7 +393,7 @@ describe('モジュール', () => {
     expect(pinoutOf(comp('u', 'module', { module: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
-      footprint: { kind: 'split' },
+      package: { kind: 'split' },
     });
   });
 
@@ -401,7 +401,7 @@ describe('モジュール', () => {
     // 外側のピン番号: B が 1、C が 2、A が 3、S が 8。PinRef.pin の並びは、入力が B, A、出力が C, S
     const ha: CircuitDef = {
       ...halfAdder,
-      footprint: { kind: 'dip', pins: 8 },
+      package: { kind: 'dip', pins: 8 },
       parts: halfAdder.parts.map((c) => {
         const numbers: Record<string, number> = { a: 3, b: 1, c: 2, s: 8 };
         return c.id in numbers ? { ...c, pinNumber: numbers[c.id] } : c;
