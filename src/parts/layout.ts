@@ -15,6 +15,8 @@ export interface PinPlacement {
    * ピンの先をグリッドに乗せるため整数にする
    */
   at: number;
+  /** ピンの横に書く、外側のピン番号 (1 から)。dip / qfp のモジュールだけが持つ */
+  number?: number;
 }
 
 export interface PartLayout {
@@ -30,6 +32,16 @@ export interface PartLayout {
   outputs: PinPlacement[];
   /** 本体の上 1 マスに名前を書くか (モジュール)。部品の占める範囲に、その分を含める */
   nameAbove: boolean;
+  /**
+   * どのポートにもつながらないピン (NC) の置き方。線と「NC」の文字だけを描き、配線とはつながらない。
+   * なければ NC のピンはない
+   */
+  nc?: PinPlacement[];
+  /**
+   * ピンの線に、入力か出力かを示す向きの印 (三角) を付けるか。
+   * 辺から入力か出力かが分からない配置 (dip / qfp のモジュール) で付ける
+   */
+  directionMarks?: boolean;
 }
 
 /**

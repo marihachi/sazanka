@@ -13,6 +13,8 @@ const base: HintContext = {
   unstable: false,
   conflict: false,
   inModule: false,
+  numberedModule: false,
+  unexposedPorts: false,
   tickMs: 10,
 };
 
@@ -85,5 +87,24 @@ describe('statusHints', () => {
     const inModule = hints({ inModule: true });
     expect(inModule.length).toBeGreaterThan(idle.length);
     expect(inModule.slice(-idle.length)).toEqual(idle);
+  });
+
+  it('外側のピンに出せないポートを選ぶと、その理由を先頭に出す', () => {
+    const result = hints({ selectedPart: comp('input'), selectedPortProblem: 'duplicate' });
+    expect(result[0]).toContain('同じピン番号');
+    expect(result).toContain('ドラッグで移動');
+  });
+
+  it('外側のピンに出せないポートがあって何も選んでいなければ、そのことを出す', () => {
+    expect(hints({ inModule: true, unexposedPorts: true })).toHaveLength(1);
+    expect(hints({ inModule: true, unexposedPorts: true })[0]).toContain('外側のピンに出ていない');
+  });
+
+  it('モジュールのヒントは、ピンの決め方 (split か、ピン番号か) で変える', () => {
+    const split = hints({ inModule: true });
+    const numbered = hints({ inModule: true, numberedModule: true });
+    expect(split.some((h) => h.includes('上下の並び'))).toBe(true);
+    expect(numbered.some((h) => h.includes('上下の並び'))).toBe(false);
+    expect(numbered.some((h) => h.includes('ピン番号が付く'))).toBe(true);
   });
 });

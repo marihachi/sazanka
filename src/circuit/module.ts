@@ -10,19 +10,88 @@ import { findDef, type CircuitDef, type Footprint, type Project } from './projec
  * モジュールのピンは中身の回路で決まるので、プロジェクトを読める pinoutOf で作り、配置まで届ける
  */
 export interface Pinout {
-  /** 入力ピンの名前 (表示用。名前のないピンは空文字)。並び順がピン番号 */
+  /** 入力ピンの名前 (表示用。名前のないピンは空文字)。並び順が PinRef.pin の番号 */
   inputs: string[];
   /** 出力ピンの名前。並び順は inputs と同じ */
   outputs: string[];
   /** モジュールのピンの出し方。モジュール以外の部品にはない */
   footprint?: Footprint;
+  /**
+   * 外側のピン番号 (1 から)。inputs / outputs と同じ並び。
+   * フットプリントが dip / qfp のモジュールだけが持つ
+   */
+  pinNumbers?: { inputs: number[]; outputs: number[] };
 }
 
-/** モジュールのピンになる INPUT / OUTPUT (上から順) */
-export function portParts(def: Circuit): {
+/** ピン番号で外側のピンを決める出し方か (dip / qfp)。split は中の位置の順で決める */
+export function usesPinNumbers(
+  footprint: Footprint | undefined,
+): footprint is Extract<Footprint, { pins: number }> {
+  return footprint?.kind === 'dip' || footprint?.kind === 'qfp';
+}
+
+function isPort(c: Part): boolean {
+  return c.kind === 'input' || c.kind === 'output';
+}
+
+/**
+ * 外側のピンに出せないポートの理由。
+ * unassigned はピン番号がない、outOfRange はピン数の範囲の外、duplicate はほかのポートと同じ番号
+ */
+export type PortProblem = 'unassigned' | 'outOfRange' | 'duplicate';
+
+/**
+ * 外側のピンに出せないポート (部品 ID → 理由)。dip / qfp のモジュールだけが持ちうる。
+ * 重なりは、どれを出すか決められないので、同じ番号のポートをすべて出さない
+ */
+export function portProblems(def: Circuit & { footprint?: Footprint }): Map<string, PortProblem> {
+  const problems = new Map<string, PortProblem>();
+  const footprint = def.footprint;
+  if (!usesPinNumbers(footprint)) {
+    return problems;
+  }
+  const ports = def.parts.filter(isPort);
+  const inRange = (n: number) => n >= 1 && n <= footprint.pins;
+  // 番号ごとのポートの数。範囲の中の番号だけを数える
+  const counts = new Map<number, number>();
+  for (const c of ports) {
+    if (c.pinNumber !== undefined && inRange(c.pinNumber)) {
+      counts.set(c.pinNumber, (counts.get(c.pinNumber) ?? 0) + 1);
+    }
+  }
+  for (const c of ports) {
+    if (c.pinNumber === undefined) {
+      problems.set(c.id, 'unassigned');
+    } else if (!inRange(c.pinNumber)) {
+      problems.set(c.id, 'outOfRange');
+    } else if ((counts.get(c.pinNumber) ?? 0) > 1) {
+      problems.set(c.id, 'duplicate');
+    }
+  }
+  return problems;
+}
+
+/**
+ * モジュールのピンになる INPUT / OUTPUT。この並びが PinRef.pin の番号になる。
+ * split は中の位置の順 (上から、同じ高さなら左から)。
+ * dip / qfp はピン番号の順で、外側のピンに出せないポート (portProblems) は除く
+ */
+export function portParts(def: Circuit & { footprint?: Footprint }): {
   inputs: Part[];
   outputs: Part[];
 } {
+  if (usesPinNumbers(def.footprint)) {
+    const problems = portProblems(def);
+    // 外に出すポートは番号が重ならないので、番号の順に並べれば決まる
+    const exposed = def.parts
+      .filter((c) => isPort(c) && !problems.has(c.id))
+      .sort((a, b) => (a.pinNumber ?? 0) - (b.pinNumber ?? 0));
+    return {
+      inputs: exposed.filter((c) => c.kind === 'input'),
+      outputs: exposed.filter((c) => c.kind === 'output'),
+    };
+  }
+
   // 並び計算: 上から、同じ高さなら左から。この順がピン番号になるので、変えると既存の配線が別のピンにつながる
   function byPosition(a: Part, b: Part): number {
     return a.y - b.y || a.x - b.x;
@@ -44,11 +113,16 @@ export function pinoutOf(c: Part, project: Project): Pinout {
     }
 
     const { inputs, outputs } = portParts(def);
+    const footprint = def.footprint ?? { kind: 'split' };
+    const numberOf = (k: Part) => k.pinNumber ?? 0;
 
     return {
       inputs: inputs.map((k) => k.label ?? ''),
       outputs: outputs.map((k) => k.label ?? ''),
-      footprint: def.footprint ?? { kind: 'split' },
+      footprint,
+      ...(usesPinNumbers(footprint)
+        ? { pinNumbers: { inputs: inputs.map(numberOf), outputs: outputs.map(numberOf) } }
+        : {}),
     };
   }
 
@@ -56,6 +130,58 @@ export function pinoutOf(c: Part, project: Project): Pinout {
     inputs: inputPinNames(c.kind),
     outputs: outputPinNames(c.kind),
   };
+}
+
+/**
+ * 回路に新しく置いたポート (added に ID がある INPUT / OUTPUT) に、ピン番号を割り当てる。置く操作と貼り付けで使う。
+ * dip / qfp のモジュールでは、番号がない・範囲の外・ほかと重なるものに、空いているいちばん小さい番号を入れる。
+ * 空きがなければ番号を外す (割り当てなしとして知らせる)。
+ * メイン回路と split のモジュールでは番号を使わないので外す (貼り付けで持ち込んだものも)
+ */
+export function assignPinNumbers<T extends Circuit & { footprint?: Footprint }>(
+  def: T,
+  added: ReadonlySet<string>,
+): T {
+  const footprint = def.footprint;
+  const isAdded = (c: Part) => isPort(c) && added.has(c.id);
+  if (!def.parts.some(isAdded)) {
+    return def;
+  }
+  if (!usesPinNumbers(footprint)) {
+    return { ...def, parts: def.parts.map((c) => (isAdded(c) ? withoutPinNumber(c) : c)) };
+  }
+  // 前からあるポートの番号は、範囲の中なら (重なっていても) 使用中とみなし、新しいポートには使わない
+  const used = new Set(
+    def.parts
+      .filter((c) => isPort(c) && !added.has(c.id))
+      .map((c) => c.pinNumber)
+      .filter((n): n is number => n !== undefined && n >= 1 && n <= footprint.pins),
+  );
+  const parts = def.parts.map((c) => {
+    if (!isAdded(c)) {
+      return c;
+    }
+    const n = c.pinNumber;
+    if (n !== undefined && n >= 1 && n <= footprint.pins && !used.has(n)) {
+      used.add(n);
+      return c;
+    }
+    let free = 1;
+    while (used.has(free)) {
+      free++;
+    }
+    if (free > footprint.pins) {
+      return withoutPinNumber(c);
+    }
+    used.add(free);
+    return { ...c, pinNumber: free };
+  });
+  return { ...def, parts };
+}
+
+function withoutPinNumber(c: Part): Part {
+  const { pinNumber: _, ...rest } = c;
+  return rest;
 }
 
 /** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */

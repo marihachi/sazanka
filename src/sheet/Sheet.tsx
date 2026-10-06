@@ -19,7 +19,7 @@ import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry
 import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import { portParts, pinoutOf } from '../circuit/module';
+import { portParts, portProblems, pinoutOf, usesPinNumbers } from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
 import type { Tool } from '../simulation/SheetToolbar';
@@ -221,7 +221,8 @@ export function Sheet({
   const selectedComps = useMemo(() => new Set(selection?.comps ?? []), [selection]);
   const selectedWires = useMemo(() => new Set(selection?.wires ?? []), [selection]);
   /**
-   * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。INPUT と OUTPUT で別々に数える。
+   * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。
+   * split は INPUT と OUTPUT で別々に、中の位置の順に数える。dip / qfp はピン番号そのもの。
    * メイン回路はピンにならないので空
    */
   const pinNumbers = useMemo(() => {
@@ -229,13 +230,16 @@ export function Sheet({
       return new Map<string, number>();
     }
     const { inputs, outputs } = portParts(circuit);
+    const numbered = usesPinNumbers(circuit.footprint);
     return new Map(
       [...inputs, ...outputs].map((c) => [
         c.id,
-        (c.kind === 'input' ? inputs : outputs).indexOf(c) + 1,
+        numbered ? (c.pinNumber ?? 0) : (c.kind === 'input' ? inputs : outputs).indexOf(c) + 1,
       ]),
     );
   }, [circuit]);
+  /** 外側のピンに出せないポート (部品 ID → 理由)。印を付ける */
+  const problems = useMemo(() => portProblems(circuit), [circuit]);
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {
@@ -699,6 +703,7 @@ export function Sheet({
                 })}
                 selected={selectedComps.has(c.id)}
                 pinNumber={pinNumbers.get(c.id)}
+                portProblem={problems.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
                 onBodyDoubleClick={() => onPartDoubleClick(c)}
               />

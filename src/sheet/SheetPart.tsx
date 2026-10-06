@@ -1,6 +1,6 @@
 import type { Part, PartKind } from '../circuit/part';
 import { bodySize, type SheetPin, sheetPinsOf } from '../geometry/layout';
-import type { Pinout } from '../circuit/module';
+import type { Pinout, PortProblem } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
 import { layoutOf } from '../parts/layouts';
 import { partSpecOf } from '../parts/specs';
@@ -37,8 +37,22 @@ function BodyOutline({
   }
 }
 
-/** ピンの線と先端の丸。線は左か上の端から、右か下の端へ引く */
-function PinLead({ pin, on }: { pin: SheetPin; on: boolean | undefined }) {
+/**
+ * ピンの線と先端の丸。線は左か上の端から、右か下の端へ引く。
+ * direction があれば、線の中ほどに向きの印 (三角) を付ける。in は本体へ向き、out は外へ向く。
+ * nc (どのポートにもつながらないピン) は、配線とつながらないので先端の丸を描かない
+ */
+function PinLead({
+  pin,
+  on,
+  direction,
+  nc = false,
+}: {
+  pin: SheetPin;
+  on: boolean | undefined;
+  direction?: 'in' | 'out';
+  nc?: boolean;
+}) {
   const [from, to] =
     pin.side === 'left' || pin.side === 'top' ? [pin.tip, pin.base] : [pin.base, pin.tip];
   return (
@@ -50,8 +64,57 @@ function PinLead({ pin, on }: { pin: SheetPin; on: boolean | undefined }) {
         x2={to.x}
         y2={to.y}
       />
-      <circle className={styles.pin} cx={pin.tip.x} cy={pin.tip.y} r={6} />
+      {direction && <DirectionMark pin={pin} direction={direction} on={on} />}
+      {pin.number !== undefined && <OuterPinNumber pin={pin} />}
+      {!nc && <circle className={styles.pin} cx={pin.tip.x} cy={pin.tip.y} r={6} />}
     </g>
+  );
+}
+
+/**
+ * ピンの線の中ほどに描く、向きの印 (三角)。
+ * u は根元から先端へ向かう長さ 1 の向き、n はそれに直交する向き。
+ * 三角の先は、線の中点から u の向き (out) か逆向き (in) に 3px、底辺はその反対側に 3px、幅は 8px。
+ * 例: 左の辺の入力ピン (根元 (100, 120)、先端 (80, 120)) なら u = (-1, 0)、中点 (90, 120)、先は (93, 120)
+ */
+function DirectionMark({
+  pin,
+  direction,
+  on,
+}: {
+  pin: SheetPin;
+  direction: 'in' | 'out';
+  on: boolean | undefined;
+}) {
+  const ux = Math.sign(pin.tip.x - pin.base.x);
+  const uy = Math.sign(pin.tip.y - pin.base.y);
+  const sign = direction === 'out' ? 1 : -1;
+  const mx = (pin.base.x + pin.tip.x) / 2;
+  const my = (pin.base.y + pin.tip.y) / 2;
+  const apex = { x: mx + ux * 3 * sign, y: my + uy * 3 * sign };
+  const back = { x: mx - ux * 3 * sign, y: my - uy * 3 * sign };
+  // 直交する向き (uy, -ux) に 4px ずつ広げた 2 点が底辺
+  const points = [
+    `${apex.x},${apex.y}`,
+    `${back.x + uy * 4},${back.y - ux * 4}`,
+    `${back.x - uy * 4},${back.y + ux * 4}`,
+  ].join(' ');
+  return <polygon className={classNames(styles.direction, on && styles.on)} points={points} />;
+}
+
+/** ピンの線の上に書く、外側のピン番号 (dip / qfp のモジュール)。上下の辺のピンは線の右に書く */
+function OuterPinNumber({ pin }: { pin: SheetPin }) {
+  const mx = (pin.base.x + pin.tip.x) / 2;
+  const my = (pin.base.y + pin.tip.y) / 2;
+  const horizontal = pin.side === 'left' || pin.side === 'right';
+  return (
+    <text
+      className={classNames(styles.outerNumber, !horizontal && styles.start)}
+      x={horizontal ? mx : mx + 5}
+      y={horizontal ? my - 6 : my + 3}
+    >
+      {pin.number}
+    </text>
   );
 }
 
@@ -95,6 +158,8 @@ interface SheetPartProps {
   selected: boolean;
   /** モジュールの中の INPUT / OUTPUT のとき、外から見たピンの番号 (1 から)。部品の上に表示する */
   pinNumber?: number;
+  /** モジュールの中の INPUT / OUTPUT が、外側のピンに出せないとき、その理由。部品に印を付ける */
+  portProblem?: PortProblem;
   onBodyDown: (e: React.PointerEvent) => void;
   onBodyDoubleClick: () => void;
 }
@@ -107,6 +172,7 @@ export function SheetPart({
   inputValues,
   selected,
   pinNumber,
+  portProblem,
   onBodyDown,
   onBodyDoubleClick,
 }: SheetPartProps) {
@@ -114,10 +180,17 @@ export function SheetPart({
   const pins = sheetPinsOf(c, pinout);
   const outline = <BodyOutline body={layoutOf(c.kind, pinout).body} x={c.x} y={c.y} w={w} h={h} />;
   const value = outputValues[0];
-  const numberBadge = pinNumber !== undefined && (
-    <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
-      #{pinNumber}
+  // 外側のピンに出せないポートは、番号の代わりに印を出す (番号があれば添える)
+  const numberBadge = portProblem ? (
+    <text className={classNames(styles.pinNumber, styles.problem)} x={c.x + w / 2} y={c.y - 6}>
+      #{c.pinNumber ?? ''}?
     </text>
+  ) : (
+    pinNumber !== undefined && (
+      <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
+        #{pinNumber}
+      </text>
+    )
   );
   const lamp = value ? 'var(--chakra-colors-sheet-on)' : '#333';
 
@@ -199,6 +272,9 @@ export function SheetPart({
           // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
           <PinName key={i} pin={pins.outputs[i]} label={label} />
         ))}
+        {pins.nc.map((p) => (
+          <PinName key={`nc${p.number}`} pin={p} label="NC" />
+        ))}
       </>
     );
   }
@@ -212,12 +288,25 @@ export function SheetPart({
       style={{ cursor: 'move' }}
     >
       {inputValues.map((v, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-        <PinLead key={i} pin={pins.inputs[i]} on={v} />
+        <PinLead
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          key={i}
+          pin={pins.inputs[i]}
+          on={v}
+          direction={pins.directionMarks ? 'in' : undefined}
+        />
       ))}
       {pinout.outputs.map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-        <PinLead key={i} pin={pins.outputs[i]} on={outputValues[i]} />
+        <PinLead
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          key={i}
+          pin={pins.outputs[i]}
+          on={outputValues[i]}
+          direction={pins.directionMarks ? 'out' : undefined}
+        />
+      ))}
+      {pins.nc.map((p) => (
+        <PinLead key={`nc${p.number}`} pin={p} on={false} nc />
       ))}
       {body}
     </g>

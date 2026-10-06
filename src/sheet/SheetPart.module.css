@@ -47,6 +47,34 @@
   stroke: var(--chakra-colors-sheet-on);
 }
 
+/* ピンの線の中ほどの、入力か出力かを示す向きの三角 (dip / qfp のモジュール) */
+.direction {
+  fill: var(--chakra-colors-sheet-line);
+  pointer-events: none;
+}
+
+.direction.on {
+  fill: var(--chakra-colors-sheet-on);
+}
+
+/* ピンの線の上に書く、外側のピン番号 (dip / qfp のモジュール) */
+.outer-number {
+  fill: var(--chakra-colors-fg-muted);
+  font-size: 9px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.outer-number.start {
+  text-anchor: start;
+}
+
+/* 外側のピンに出せないポート (ピン番号がない・範囲外・重なり) の印 */
+.pin-number.problem {
+  fill: var(--chakra-colors-red-solid);
+  font-weight: 600;
+}
+
 /* 形が端子の部品の記号 (HIGH の「1」)。今ある HIGH は常に ON なので、ON の色で描く */
 .terminal-mark {
   fill: var(--chakra-colors-sheet-on);

@@ -4,7 +4,7 @@ import type { Selection } from './edit';
 import { newId, type Circuit } from '../circuit/circuit';
 import * as edit from './edit';
 import type { Point } from '../geometry/layout';
-import { dependsOn } from '../circuit/module';
+import { assignPinNumbers, dependsOn } from '../circuit/module';
 import { type CircuitDef, findDef, type Project } from '../circuit/project';
 
 /** 部品と配線のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
@@ -78,7 +78,10 @@ export function useClipboard({
       return;
     }
     const clone = edit.cloneParts(placing, newId, delta);
-    setCircuit((cur) => edit.addParts(cur, clone));
+    // 貼り付けた INPUT / OUTPUT のピン番号は、貼り付け先に合わせて付け直す
+    setCircuit((cur) =>
+      assignPinNumbers(edit.addParts(cur, clone), new Set(clone.parts.map((c) => c.id))),
+    );
     onSelect(
       edit.selectionOf(
         clone.parts.map((c) => c.id),

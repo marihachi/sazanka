@@ -29,6 +29,8 @@ export interface SheetPin {
   side: PinSide;
   base: Point;
   tip: Point;
+  /** ピンの横に書く、外側のピン番号 (dip / qfp のモジュール) */
+  number?: number;
 }
 
 /**
@@ -37,43 +39,40 @@ export interface SheetPin {
  * 例: 幅 3 マスの部品が (100, 100) にあり、右の辺の 2 マスめのピンなら、先端は (100 + 4 × 20, 100 + 2 × 20) = (180, 140)
  */
 export function sheetPin(c: Part, layout: PartLayout, p: PinPlacement): SheetPin {
+  const number = p.number === undefined ? {} : { number: p.number };
+  return { side: p.side, ...pinEnds(c, layout, p), ...number };
+}
+
+function pinEnds(c: Part, layout: PartLayout, p: PinPlacement): { base: Point; tip: Point } {
   const right = c.x + layout.w * GRID;
   const bottom = c.y + layout.h * GRID;
   const along = p.at * GRID;
   switch (p.side) {
     case 'left':
-      return {
-        side: p.side,
-        base: { x: c.x, y: c.y + along },
-        tip: { x: c.x - GRID, y: c.y + along },
-      };
+      return { base: { x: c.x, y: c.y + along }, tip: { x: c.x - GRID, y: c.y + along } };
     case 'right':
-      return {
-        side: p.side,
-        base: { x: right, y: c.y + along },
-        tip: { x: right + GRID, y: c.y + along },
-      };
+      return { base: { x: right, y: c.y + along }, tip: { x: right + GRID, y: c.y + along } };
     case 'top':
-      return {
-        side: p.side,
-        base: { x: c.x + along, y: c.y },
-        tip: { x: c.x + along, y: c.y - GRID },
-      };
+      return { base: { x: c.x + along, y: c.y }, tip: { x: c.x + along, y: c.y - GRID } };
     case 'bottom':
-      return {
-        side: p.side,
-        base: { x: c.x + along, y: bottom },
-        tip: { x: c.x + along, y: bottom + GRID },
-      };
+      return { base: { x: c.x + along, y: bottom }, tip: { x: c.x + along, y: bottom + GRID } };
   }
 }
 
-/** 部品のすべてのピン。並び順はピン番号 */
-export function sheetPinsOf(c: Part, pinout: Pinout): { inputs: SheetPin[]; outputs: SheetPin[] } {
+/**
+ * 部品のすべてのピン。inputs / outputs の並び順は PinRef.pin の番号。
+ * nc はどのポートにもつながらないピン (線と「NC」の文字だけを描く)。directionMarks は向きの印を付けるか
+ */
+export function sheetPinsOf(
+  c: Part,
+  pinout: Pinout,
+): { inputs: SheetPin[]; outputs: SheetPin[]; nc: SheetPin[]; directionMarks: boolean } {
   const layout = layoutOf(c.kind, pinout);
   return {
     inputs: layout.inputs.map((p) => sheetPin(c, layout, p)),
     outputs: layout.outputs.map((p) => sheetPin(c, layout, p)),
+    nc: (layout.nc ?? []).map((p) => sheetPin(c, layout, p)),
+    directionMarks: layout.directionMarks ?? false,
   };
 }
 
@@ -103,7 +102,7 @@ export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
  * 上は、本体の上に書く名前 (モジュール名) の分も取る
  */
 export function outerMargin(layout: PartLayout): Rect {
-  const pins = [...layout.inputs, ...layout.outputs];
+  const pins = [...layout.inputs, ...layout.outputs, ...(layout.nc ?? [])];
   const has = (side: PinSide) => pins.some((p) => p.side === side);
   return {
     left: GRID,

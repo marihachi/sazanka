@@ -397,6 +397,50 @@ describe('モジュール', () => {
     });
   });
 
+  it('dip のモジュールは、ピン番号の順に中の INPUT / OUTPUT とつながる', () => {
+    // 外側のピン番号: B が 1、C が 2、A が 3、S が 8。PinRef.pin の並びは、入力が B, A、出力が C, S
+    const ha: CircuitDef = {
+      ...halfAdder,
+      footprint: { kind: 'dip', pins: 8 },
+      parts: halfAdder.parts.map((c) => {
+        const numbers: Record<string, number> = { a: 3, b: 1, c: 2, s: 8 };
+        return c.id in numbers ? { ...c, pinNumber: numbers[c.id] } : c;
+      }),
+    };
+    // biome-ignore format: 表形式を維持するため
+    for (const [b, a] of [
+      [false, false],
+      [true, false],
+      [true, true],
+    ]) {
+      const main = wired(
+        {
+          id: MAIN_ID,
+          name: 'メイン',
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            comp('i0', 'input', { on: b }),
+            comp('i1', 'input', { on: a }),
+            comp('u', 'module', { module: 'ha' }),
+            comp('o0', 'output'),
+            comp('o1', 'output'),
+          ],
+          // biome-ignore format: 表形式を維持するため
+          links: [
+            link('i0', 0, 'u', 0),
+            link('i1', 0, 'u', 1),
+            link('u', 0, 'o0', 0),
+            link('u', 1, 'o1', 0),
+          ],
+        },
+        { circuits: [ha] },
+      );
+      const r = settleProject({ circuits: [main, ha] }, MAIN_ID);
+      // o0 は C (2 番)、o1 は S (8 番)
+      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([a && b, a !== b]);
+    }
+  });
+
   it('半加算器', () => {
     // biome-ignore format: 表形式を維持するため
     for (const [a, b] of [

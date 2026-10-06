@@ -135,3 +135,30 @@ describe('netLinks', () => {
     expect(netLinks(r.nets)).toEqual([]);
   });
 });
+
+describe('NC のピン', () => {
+  it('NC のピンの先に配線の端があっても、つながらない', () => {
+    // 4 ピンの dip のモジュール。1 番だけが入力 (A)、2〜4 番は NC
+    const project: Project = {
+      circuits: [
+        { id: 'main', name: 'メイン', parts: [], wires: [] },
+        {
+          id: 'm',
+          name: 'M',
+          footprint: { kind: 'dip', pins: 4 },
+          parts: [{ id: 'a', kind: 'input', x: 0, y: 0, pinNumber: 1 }],
+          wires: [],
+        },
+      ],
+    };
+    // モジュールを (200, 200) に置くと、1 番の先は (180, 220)、2 番 (NC) の先は (180, 260)
+    const parts: Part[] = [
+      { id: 'u', kind: 'module', module: 'm', x: 200, y: 200 },
+      { id: 'b', kind: 'input', x: 0, y: 200 },
+    ];
+    const toPin1 = computeNets({ parts, wires: [wire('w', [60, 220], [180, 220])] }, project);
+    expect(toPin1.nets.find((n) => n.wires.includes('w'))?.inputs).toEqual([{ comp: 'u', pin: 0 }]);
+    const toNc = computeNets({ parts, wires: [wire('w', [60, 220], [180, 260])] }, project);
+    expect(toNc.nets.find((n) => n.wires.includes('w'))?.inputs).toEqual([]);
+  });
+});
