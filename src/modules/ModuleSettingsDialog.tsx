@@ -30,7 +30,7 @@ type PackageKind = Package['kind'];
 const PACKAGE_KINDS: { value: PackageKind; label: string }[] = [
   { value: 'dip', label: 'DIP (左右の 2 辺にピン)' },
   { value: 'qfp', label: 'QFP (4 辺にピン)' },
-  { value: 'split', label: 'split (入力は左、出力は右)' },
+  { value: 'split', label: 'ロジック (入力は左、出力は右)' },
 ];
 
 /**
@@ -226,7 +226,7 @@ export function ModuleSettingsDialog({
             )}
             {changed && (
               <Text textStyle="sm" color="fg.warning">
-                パッケージやピンの割り当てを変えると、このモジュールを置いた所で、外の配線が外れたり、別のピンにつながったりすることがあります。
+                パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。
               </Text>
             )}
           </Stack>
@@ -334,11 +334,11 @@ function initialNumbers(ports: readonly Part[]): Map<string, number> {
 
 /**
  * 一覧に出すポートの名前。「入力 A」「出力 S」のように、入力か出力かとラベルで示す。
- * ラベルがなければ、一律で「入力 (名前未指定)」「出力 (名前未指定)」とする
+ * ラベルがなければ、一律で「入力 (名前未設定)」「出力 (名前未設定)」とする
  */
 function getPortName(c: Part): string {
   const side = c.kind === 'input' ? '入力' : '出力';
-  return c.label ? `${side} ${c.label}` : `${side} (名前未指定)`;
+  return c.label ? `${side} ${c.label}` : `${side} (名前未設定)`;
 }
 
 /** パッケージとポートのピン番号が同じか (適用しても何も変わらないか) */
