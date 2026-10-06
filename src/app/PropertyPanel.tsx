@@ -15,6 +15,11 @@ interface PropertyPanelProps {
   part?: Part;
   /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
+  /**
+   * dip / qfp のモジュールの中の INPUT / OUTPUT の、外側のピン番号の表示。
+   * 外側のピンに出せないときは undefined ではなく null。ピン番号を使わないところでは渡さない
+   */
+  pinNumber?: number | null;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
   tickMs: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
@@ -31,6 +36,7 @@ interface PropertyPanelProps {
 export const PropertyPanel = memo(function PropertyPanel({
   part,
   moduleName,
+  pinNumber,
   tickMs,
   onEditStart,
   onClockPeriodChange,
@@ -67,12 +73,28 @@ export const PropertyPanel = memo(function PropertyPanel({
               onChange={onClockPeriodChange}
             />
           ) : part.kind === 'input' || part.kind === 'output' ? (
-            <LabelField
-              key={part.id}
-              part={part}
-              onEditStart={onEditStart}
-              onChange={onLabelChange}
-            />
+            <>
+              <LabelField
+                key={part.id}
+                part={part}
+                onEditStart={onEditStart}
+                onChange={onLabelChange}
+              />
+              {/* ピン番号は表示だけ。編集はモジュール設定にまとめる (編集する場所を 1 つにするため) */}
+              {pinNumber !== undefined && (
+                <Stack gap="0.5">
+                  <Text textStyle="sm" fontWeight="medium">
+                    ピン番号
+                  </Text>
+                  <Text textStyle="sm">
+                    {pinNumber === null ? 'なし (外側のピンに出ていない)' : pinNumber}
+                  </Text>
+                  <Text textStyle="xs" color="fg.subtle">
+                    ツールバーの「モジュール設定」で変えられます
+                  </Text>
+                </Stack>
+              )}
+            </>
           ) : (
             <Text textStyle="xs" color="fg.subtle">
               この部品に設定できる項目はありません

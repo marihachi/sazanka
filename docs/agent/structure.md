@@ -24,8 +24,8 @@
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
-- `modules/` … モジュールの追加・改名・削除と、回路の切り替え。
-  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。
+- `modules/` … モジュールの追加・改名・削除・設定と、回路の切り替え。
+  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`ModuleSettingsDialog.tsx` … モジュール設定のダイアログ（パッケージとピンの割り当て。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
   - `SheetPart.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。

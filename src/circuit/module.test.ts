@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from './part';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import {
+  applyModuleSettings,
+  assignInOrder,
   assignPinNumbers,
+  calcFittingPins,
+  listPortsInPositionOrder,
   circuitsUsing,
   dependsOn,
   getPortsInPinOrder,
@@ -258,5 +262,67 @@ describe('dependsOn', () => {
     expect(dependsOn(project, MAIN_ID, 'b')).toBe(true);
     expect(dependsOn(project, 'a', 'b')).toBe(true);
     expect(dependsOn(project, 'b', 'a')).toBe(false);
+  });
+});
+
+describe('モジュール設定の計算', () => {
+  // biome-ignore format: 表形式を維持するため
+  const parts: Part[] = [
+    { ...comp('o1', 'output'), y: 0 },
+    { ...comp('i2', 'input'), y: 40 },
+    { ...comp('i1', 'input'), y: 0 },
+    { ...comp('g', 'and'), y: 0 },
+  ];
+  const def: CircuitDef = { id: 'm', name: 'M', package: { kind: 'split' }, parts, wires: [] };
+
+  it('ポートを、入力を上から、続けて出力を上から並べる', () => {
+    expect(listPortsInPositionOrder(def).map((c) => c.id)).toEqual(['i1', 'i2', 'o1']);
+  });
+
+  it('並びの先頭から番号を割り当てる。番号が足りなければ残りは割り当てない', () => {
+    const ports = listPortsInPositionOrder(def);
+    expect(assignInOrder(ports, 8)).toEqual(
+      new Map([
+        ['i1', 1],
+        ['i2', 2],
+        ['o1', 3],
+      ]),
+    );
+    expect(assignInOrder(ports, 2)).toEqual(
+      new Map([
+        ['i1', 1],
+        ['i2', 2],
+      ]),
+    );
+  });
+
+  it('ポートが収まるいちばん小さいピン数', () => {
+    expect([0, 3, 4, 5, 9].map((n) => calcFittingPins('dip', n))).toEqual([4, 4, 4, 6, 10]);
+    expect([0, 8, 9, 13].map((n) => calcFittingPins('qfp', n))).toEqual([8, 8, 12, 16]);
+    expect(calcFittingPins('qfp', 1000)).toBe(256);
+  });
+
+  it('パッケージとピン番号を当てはめる。範囲外と、numbers にないポートの番号は外す', () => {
+    const numbered: CircuitDef = {
+      ...def,
+      parts: [...parts.slice(0, 3).map((c) => ({ ...c, pinNumber: 9 })), parts[3]],
+    };
+    const result = applyModuleSettings(
+      numbered,
+      { kind: 'dip', pins: 4 },
+      new Map([
+        ['i1', 1],
+        ['o1', 5],
+      ]),
+    );
+    expect(result.package).toEqual({ kind: 'dip', pins: 4 });
+    expect(result.parts.map((c) => c.pinNumber)).toEqual([undefined, undefined, 1, undefined]);
+    expect(result.parts[0]).not.toHaveProperty('pinNumber');
+  });
+
+  it('split にすると、ポートのピン番号を外す', () => {
+    const numbered: CircuitDef = { ...def, parts: [{ ...parts[0], pinNumber: 1 }] };
+    const result = applyModuleSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
+    expect(result.parts[0]).not.toHaveProperty('pinNumber');
   });
 });

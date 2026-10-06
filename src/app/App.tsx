@@ -14,7 +14,13 @@ import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
 import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
-import { assignPinNumbers, getPinout, findUnexposedPorts, usesPinNumbers } from '../circuit/module';
+import {
+  applyModuleSettings,
+  assignPinNumbers,
+  getPinout,
+  findUnexposedPorts,
+  usesPinNumbers,
+} from '../circuit/module';
 import { statusHints } from '../hints/hints';
 import { computeNets, isConflict } from '../geometry/net';
 import {
@@ -74,6 +80,12 @@ export function App() {
     initialMessage: loaded.error ? `${loaded.error}空のプロジェクトで開きます。` : undefined,
     preferences,
     onPreferencesChange: setPreferences,
+    project,
+    // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
+    onApplyModuleSettings: (id, pkg, numbers) =>
+      history.commit((p) => ({
+        circuits: p.circuits.map((d) => (d.id === id ? applyModuleSettings(d, pkg, numbers) : d)),
+      })),
   });
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
@@ -331,6 +343,7 @@ export function App() {
     stepOnce,
     stepBack,
     deleteCircuit: modules.deleteCircuit,
+    openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
     changeTool,
     addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
@@ -372,6 +385,7 @@ export function App() {
         onStep={on.stepOnce}
         onStepBack={on.stepBack}
         canStepBack={canStepBack}
+        onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
         onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
       />
       <Flex flex="1" minH="0">
@@ -414,6 +428,14 @@ export function App() {
           moduleName={
             selectedPart?.kind === 'module'
               ? findDef(project, selectedPart.module)?.name
+              : undefined
+          }
+          pinNumber={
+            usesPinNumbers(circuit.package) &&
+            (selectedPart?.kind === 'input' || selectedPart?.kind === 'output')
+              ? problems.has(selectedPart.id)
+                ? null
+                : (selectedPart.pinNumber ?? null)
               : undefined
           }
           tickMs={preferences.tickMs}

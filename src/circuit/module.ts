@@ -3,7 +3,7 @@
 
 import { inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
-import { findDef, type CircuitDef, type Package, type Project } from './project';
+import { findDef, MAX_PACKAGE_PINS, type CircuitDef, type Package, type Project } from './project';
 
 /**
  * 部品のピンの割り当て (ピンの名前と、モジュールの外側のピン番号)。
@@ -218,4 +218,51 @@ export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   return project.circuits.filter((d) =>
     d.parts.some((c) => c.kind === 'module' && c.module === id),
   );
+}
+
+// モジュール設定 (modules/ModuleSettingsDialog.tsx) で使う計算
+
+/**
+ * ポートを、split のピンの順 (入力を上から、続けて出力を上から) に並べる。
+ * split から dip / qfp に変えるときと、「上から順に割り当て直す」で、この順に番号を振る
+ */
+export function listPortsInPositionOrder(def: Circuit): Part[] {
+  const { inputs, outputs } = getPortsInPinOrder({ ...def, package: { kind: 'split' } });
+  return [...inputs, ...outputs];
+}
+
+/** ポートの並び ports の先頭から、1 から pins までの番号を順に割り当てる (部品 ID → 番号)。番号が足りなければ、残りは割り当てない */
+export function assignInOrder(ports: readonly Part[], pins: number): Map<string, number> {
+  return new Map(ports.slice(0, pins).map((c, i) => [c.id, i + 1]));
+}
+
+/**
+ * ポートが count 本すべて収まる、いちばん小さいピン数。
+ * dip は 4 以上の偶数、qfp は 8 以上の 4 の倍数。上限 (MAX_PACKAGE_PINS) を超えるときは上限にする
+ */
+export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
+  const [min, step] = kind === 'dip' ? [4, 2] : [8, 4];
+  return Math.min(MAX_PACKAGE_PINS, Math.max(min, Math.ceil(count / step) * step));
+}
+
+/**
+ * モジュール設定を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
+ * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す
+ */
+export function applyModuleSettings<T extends Circuit & { package?: Package }>(
+  def: T,
+  pkg: Package,
+  numbers: ReadonlyMap<string, number>,
+): T {
+  const parts = def.parts.map((c) => {
+    if (!isPort(c)) {
+      return c;
+    }
+    const n = numbers.get(c.id);
+    if (!usesPinNumbers(pkg) || n === undefined || n < 1 || n > pkg.pins) {
+      return c.pinNumber === undefined ? c : withoutPinNumber(c);
+    }
+    return c.pinNumber === n ? c : { ...c, pinNumber: n };
+  });
+  return { ...def, package: pkg, parts };
 }

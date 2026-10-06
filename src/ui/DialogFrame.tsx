@@ -18,7 +18,7 @@ export function DialogFrame({
   /** 開いたときにフォーカスする要素 */
   initialFocus: React.RefObject<HTMLElement | null>;
   role?: 'dialog' | 'alertdialog';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   /** 渡すと中身を form にして、Enter で送信できるようにする */
   onSubmit?: (e: React.FormEvent) => void;
   children: React.ReactNode;
