@@ -94,7 +94,7 @@ export function ModuleSettingsDialog({
     });
   }, []);
   // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す
-  const names = useMemo(() => new Map(ports.map((c) => [c.id, portName(c, ports)])), [ports]);
+  const names = useMemo(() => new Map(ports.map((c) => [c.id, getPortName(c)])), [ports]);
   const options = useMemo(
     () => [
       <option key="" value="">
@@ -134,9 +134,10 @@ export function ModuleSettingsDialog({
       <ChakraDialog.Header>
         <ChakraDialog.Title>モジュール設定: {def.name}</ChakraDialog.Title>
       </ChakraDialog.Header>
-      <ChakraDialog.Body>
-        <Flex direction={{ base: 'column', md: 'row' }} gap="6">
-          <Stack gap="5" flex="1" minW="0">
+      {/* 種類やピン数、出ている注意で高さが変わらないよう、本文の高さは決めておき、中でスクロールする */}
+      <ChakraDialog.Body h="min(36rem, 70vh)" flex="none" overflowY="auto">
+        <Flex direction={{ base: 'column', md: 'row' }} gap="6" h={{ md: 'full' }}>
+          <Stack gap="5" flex="1" minW="0" minH="0">
             <HStack gap="3" align="start">
               <Field.Root flex="1">
                 <Field.Label>パッケージ</Field.Label>
@@ -183,7 +184,7 @@ export function ModuleSettingsDialog({
               </Text>
             )}
             {numbered && (
-              <Stack gap="2">
+              <Stack gap="2" flex={{ md: '1' }} minH="0">
                 <HStack justify="space-between">
                   <Text textStyle="sm" fontWeight="medium">
                     ピンの割り当て
@@ -197,7 +198,14 @@ export function ModuleSettingsDialog({
                     上から順に割り当て直す
                   </Button>
                 </HStack>
-                <Stack gap="1" maxH="45vh" overflowY="auto" pe="1">
+                <Stack
+                  gap="1"
+                  flex={{ md: '1' }}
+                  minH="0"
+                  maxH={{ base: '60', md: 'none' }}
+                  overflowY="auto"
+                  pe="1"
+                >
                   {Array.from({ length: pins }, (_, i) => i + 1).map((n) => (
                     <PinRow
                       key={n}
@@ -326,15 +334,11 @@ function initialNumbers(ports: readonly Part[]): Map<string, number> {
 
 /**
  * 一覧に出すポートの名前。「入力 A」「出力 S」のように、入力か出力かとラベルで示す。
- * ラベルがなければ、入力・出力それぞれの中の位置の順 (上から) の番号で示す (例: 「入力 (名前なし) 3 番目」)
+ * ラベルがなければ、一律で「入力 (名前未指定)」「出力 (名前未指定)」とする
  */
-function portName(c: Part, ports: readonly Part[]): string {
+function getPortName(c: Part): string {
   const side = c.kind === 'input' ? '入力' : '出力';
-  if (c.label) {
-    return `${side} ${c.label}`;
-  }
-  const order = ports.filter((p) => p.kind === c.kind).indexOf(c) + 1;
-  return `${side} (名前なし) ${order} 番目`;
+  return c.label ? `${side} ${c.label}` : `${side} (名前未指定)`;
 }
 
 /** パッケージとポートのピン番号が同じか (適用しても何も変わらないか) */
