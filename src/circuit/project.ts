@@ -11,15 +11,16 @@ export interface CircuitDef extends Circuit {
   id: string;
   name: string;
   /**
-   * モジュールの外側のピンの出し方。モジュールの回路だけが持ち、メイン回路は持たない。
+   * モジュールの形 (パッケージ)。モジュールの回路だけが持ち、メイン回路は持たない。
    * 読み込んだデータのモジュールには必ずある (checkProject で確かめる)。テストなどで作った、持たないモジュールは split として扱う
    */
   package?: Package;
 }
 
 /**
- * モジュールの外側のピンの出し方 (パッケージ)。
- * dip は 2 辺、qfp は 4 辺にピンを出し、pins はピンの数。split は入力を左、出力を右に出す (version 2 までの形)
+ * モジュールの形 (パッケージ)。形の種類 (kind) とピンの数 (pins) で、本体の大きさと、外側のピンを置ける辺と位置が決まる。
+ * dip は左右の 2 辺、qfp は 4 辺にピンを置く。split は入力を左、出力を右に置く (version 2 までの形)。
+ * どのピンにどのポートをつなぐか (割り当て) は、中の INPUT / OUTPUT の pinNumber で決まる
  */
 export type Package =
   | { kind: 'dip'; pins: number }

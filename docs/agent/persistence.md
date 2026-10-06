@@ -20,7 +20,7 @@
   - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
 - version 2 → 3 は `file/upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../format/v3.md) の「version 2 からの変更」にある。
   - 種類の名前の対応表（`KIND_NAMES_V3`）を中に持つ。今のアプリの種類の名前を変えても、ここは直さない。
-  - モジュールの回路には `split`（version 2 までの出し方）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
+  - モジュールの回路には `split`（version 2 までのモジュールの形）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
 - どちらも、今より新しい版のデータは読み込まずに断る。
 - 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`）も合わせる。置ける種類の判定（`part.ts` の `isPlaceablePartKind`）は `PART_SPECS` と `SPECIAL_KINDS` を見るので、`PART_SPECS` に足した種類はそのまま検証を通る。
 - モジュールの回路のパッケージ（`project.ts` の `CircuitDef.package`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。型で省略できるのは、メイン回路が持たないためと、テストでモジュールを手短に作れるようにするため。持たないモジュールは `split` として扱う（`module.ts` の `pinoutOf`）。

@@ -41,7 +41,7 @@ describe('upgradeV2', () => {
           // biome-ignore format: 表形式を維持するため
           wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 80, y: 20 }] }],
         },
-        // モジュールの回路にだけ、version 2 までの出し方を書き込む
+        // モジュールの回路にだけ、version 2 までのモジュールの形を書き込む
         { id: 'mod', name: 'M', package: { kind: 'split' }, parts: [], wires: [] },
       ],
     });

@@ -2,7 +2,7 @@ import type { PartLayout, PartLayoutOf, PinPlacement } from '../layout';
 import type { Pinout } from '../../circuit/module';
 
 /**
- * モジュール。配置はピンの出し方 (pinout.package) で決まる。
+ * モジュール。配置はモジュールの形 (pinout.package) で決まる。
  * qfp の配置はまだないので、split と同じに置く
  */
 export const module: PartLayoutOf = (pinout) => {
@@ -14,7 +14,7 @@ export const module: PartLayoutOf = (pinout) => {
 };
 
 /**
- * 出し方 split (version 2 までの形)。幅 4 マスで、本体の上に名前を書く。
+ * 形 split (version 2 までの形)。幅 4 マスで、本体の上に名前を書く。
  * 入力は左、出力は右に、それぞれ上から 1 マスおき (1, 2, 3… マスめ) に並ぶので、高さは多い方のピンの数 + 1 マスにする。
  * 例: ピンが 3 本なら、ピンは 1, 2, 3 マスめで、高さは 4 マス
  */
@@ -30,7 +30,7 @@ function splitLayout(pinout: Pinout): PartLayout {
 }
 
 /**
- * 出し方 dip。幅 3 マスで、本体の上に名前を書く。ピンは左右の 2 辺に、2 マスおきに pins / 2 本ずつ並ぶ。
+ * 形 dip。幅 3 マスで、本体の上に名前を書く。ピンは左右の 2 辺に、2 マスおきに pins / 2 本ずつ並ぶ。
  * 番号は実際の IC と同じく、左上の 1 番から反時計回り: 左の辺を上から下へ 1〜pins/2、右の辺を下から上へ pins/2+1〜pins。
  * 高さは (pins / 2 - 1) × 2 + 2 マス。例: 8 ピンなら左は 1〜4 番 (1, 3, 5, 7 マスめ)、右は下から 5〜8 番、高さは 8 マス
  */

@@ -80,7 +80,7 @@ describe('checkProject', () => {
     });
   }
 
-  describe('モジュールのピンの出し方', () => {
+  describe('モジュールのパッケージ', () => {
     function withModule(pkg: unknown) {
       return {
         circuits: [
@@ -90,7 +90,7 @@ describe('checkProject', () => {
       };
     }
 
-    it('正しい出し方なら undefined', () => {
+    it('正しいパッケージなら undefined', () => {
       // biome-ignore format: 表形式を維持するため
       for (const f of [
         { kind: 'split' },
@@ -103,7 +103,7 @@ describe('checkProject', () => {
       }
     });
 
-    it('ない、または正しくない出し方を弾く', () => {
+    it('ない、または正しくないパッケージを弾く', () => {
       // biome-ignore format: 表形式を維持するため
       for (const f of [
         undefined,

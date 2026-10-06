@@ -58,7 +58,7 @@ describe('モジュールのピン', () => {
     expect(outputs.map((k) => k.id)).toEqual(['o']);
   });
 
-  it('ピンの出し方を持たないモジュール (テストで作るもの) は split として扱う', () => {
+  it('パッケージを持たないモジュール (テストで作るもの) は split として扱う', () => {
     const project: Project = {
       circuits: [
         { id: MAIN_ID, name: 'メイン', parts: [], wires: [] },

@@ -6,15 +6,16 @@ import type { Circuit } from './circuit';
 import { findDef, type CircuitDef, type Package, type Project } from './project';
 
 /**
- * 部品のピンの割り当て。シート上の配置 (parts/layouts.ts の layoutOf) は、これから決める。
- * モジュールのピンは中身の回路で決まるので、プロジェクトを読める pinoutOf で作り、配置まで届ける
+ * 部品のピンの割り当て (ピンの名前と、モジュールの外側のピン番号)。
+ * シート上の配置 (parts/layouts.ts の layoutOf) は、これとモジュールの形 (package) から決めるので、形も一緒に持たせる。
+ * モジュールのピンと形は中身の回路で決まるので、プロジェクトを読める pinoutOf で作り、配置まで届ける
  */
 export interface Pinout {
   /** 入力ピンの名前 (表示用。名前のないピンは空文字)。並び順が PinRef.pin の番号 */
   inputs: string[];
   /** 出力ピンの名前。並び順は inputs と同じ */
   outputs: string[];
-  /** モジュールのピンの出し方。モジュール以外の部品にはない */
+  /** モジュールの形 (パッケージ)。配置を決めるために添える。モジュール以外の部品にはない */
   package?: Package;
   /**
    * 外側のピン番号 (1 から)。inputs / outputs と同じ並び。
@@ -23,7 +24,7 @@ export interface Pinout {
   pinNumbers?: { inputs: number[]; outputs: number[] };
 }
 
-/** ピン番号で外側のピンを決める出し方か (dip / qfp)。split は中の位置の順で決める */
+/** ピン番号で外側のピンを決める形か (dip / qfp)。split は中の位置の順で決める */
 export function usesPinNumbers(
   pkg: Package | undefined,
 ): pkg is Extract<Package, { pins: number }> {
