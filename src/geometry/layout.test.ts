@@ -9,8 +9,10 @@ import {
   SHEET_HEIGHT,
   SHEET_WIDTH,
   inputPinPos,
+  outerMargin,
   outputPinPos,
   placeOffset,
+  sheetPin,
   simplifyWire,
   snap,
   wiresInRect,
@@ -19,6 +21,7 @@ import {
 import type { Component, ComponentKind } from '../circuit/component';
 import type { Project } from '../circuit/project';
 import { portsOf } from '../circuit/module';
+import type { PartLayout } from '../parts/layout';
 
 describe('clampPosition', () => {
   const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };
@@ -210,6 +213,45 @@ describe('componentBounds', () => {
   it('モジュールは本体の上の名前の分も含める', () => {
     const mod: Component = { id: 'm', kind: 'CUSTOM', x: 100, y: 100 };
     expect(componentBounds(mod, { inputs: [''], outputs: [''] }).top).toBe(80);
+  });
+});
+
+describe('ピンの辺', () => {
+  // 幅 3、高さ 4 マスの本体の、4 つの辺に 1 本ずつピンを置いた配置
+  const layout: PartLayout = {
+    w: 3,
+    h: 4,
+    body: 'rect',
+    inputs: [
+      { side: 'left', at: 1 },
+      { side: 'top', at: 2 },
+    ],
+    outputs: [
+      { side: 'right', at: 3 },
+      { side: 'bottom', at: 1 },
+    ],
+    nameAbove: false,
+  };
+  const c: Component = { id: 'x', kind: 'CUSTOM', x: 100, y: 100 };
+
+  it('根元は辺の上、先端は辺から 1 マス外に来る', () => {
+    // biome-ignore format: 表形式を維持するため
+    expect([...layout.inputs, ...layout.outputs].map((p) => sheetPin(c, layout, p))).toEqual([
+      { side: 'left', base: { x: 100, y: 120 }, tip: { x: 80, y: 120 } },
+      { side: 'top', base: { x: 140, y: 100 }, tip: { x: 140, y: 80 } },
+      { side: 'right', base: { x: 160, y: 160 }, tip: { x: 180, y: 160 } },
+      { side: 'bottom', base: { x: 120, y: 180 }, tip: { x: 120, y: 200 } },
+    ]);
+  });
+
+  it('上下は、その辺にピンがあるときだけ外の幅を取る', () => {
+    expect(outerMargin(layout)).toEqual({ left: 20, top: 20, right: 20, bottom: 20 });
+    const sides: PartLayout = {
+      ...layout,
+      inputs: [layout.inputs[0]],
+      outputs: [layout.outputs[0]],
+    };
+    expect(outerMargin(sides)).toEqual({ left: 20, top: 0, right: 20, bottom: 0 });
   });
 });
 

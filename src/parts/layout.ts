@@ -2,13 +2,16 @@
 // 長さはすべてマス単位で書く。px に直してシート上の座標にするのは geometry/layout.ts。
 // 既定と違う配置にする種類は、種類のフォルダ (output/ など) の layout.ts に置き、layouts.ts の PART_LAYOUTS に並べる
 
-/** ピンが出る本体の辺。上下に置けるようにするときは 'top' | 'bottom' を足す */
-export type PinSide = 'left' | 'right';
+/** ピンが出る本体の辺 */
+export type PinSide = 'left' | 'right' | 'top' | 'bottom';
 
 /** ピンの置き方。ピンの先は、その辺から 1 マス外にある */
 export interface PinPlacement {
   side: PinSide;
-  /** 辺の上の位置。左右の辺なら、本体の上端から何マスめか。ピンの先をグリッドに乗せるため整数にする */
+  /**
+   * 辺の上の位置。左右の辺なら本体の上端から、上下の辺なら本体の左端から何マスめか。
+   * ピンの先をグリッドに乗せるため整数にする
+   */
   at: number;
 }
 

@@ -1,5 +1,5 @@
 import type { Component, ComponentKind } from '../circuit/component';
-import { bodySize, inputPinPos, outputPinPos } from '../geometry/layout';
+import { bodySize, type SheetPin, sheetPinsOf } from '../geometry/layout';
 import type { Ports } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
 import { layoutOf } from '../parts/layouts';
@@ -37,6 +37,53 @@ function BodyOutline({
   }
 }
 
+/** ピンの線と先端の丸。線は左か上の端から、右か下の端へ引く */
+function PinLead({ pin, on }: { pin: SheetPin; on: boolean | undefined }) {
+  const [from, to] =
+    pin.side === 'left' || pin.side === 'top' ? [pin.tip, pin.base] : [pin.base, pin.tip];
+  return (
+    <g>
+      <line
+        className={classNames(styles.lead, on && styles.on)}
+        x1={from.x}
+        y1={from.y}
+        x2={to.x}
+        y2={to.y}
+      />
+      <circle className={styles.pin} cx={pin.tip.x} cy={pin.tip.y} r={6} />
+    </g>
+  );
+}
+
+/** 本体の内側の、ピンの根元のそばに書くピン名。名前のないピンには書かない */
+function PinName({ pin, label }: { pin: SheetPin; label: string }) {
+  if (!label) {
+    return null;
+  }
+  switch (pin.side) {
+    case 'left':
+      return (
+        <text className={styles.pinLabel} x={pin.base.x + 4} y={pin.base.y + 4}>
+          {label}
+        </text>
+      );
+    case 'right':
+      return (
+        <text
+          className={classNames(styles.pinLabel, styles.end)}
+          x={pin.base.x - 4}
+          y={pin.base.y + 4}
+        >
+          {label}
+        </text>
+      );
+    case 'top':
+    case 'bottom':
+      // 上下の辺のピン名は、まだ書かない (上下にピンを置く配置がない)
+      return null;
+  }
+}
+
 interface ComponentViewProps {
   comp: Component;
   ports: Ports;
@@ -64,6 +111,7 @@ export function ComponentView({
   onBodyDoubleClick,
 }: ComponentViewProps) {
   const { w, h } = bodySize(c, ports);
+  const pins = sheetPinsOf(c, ports);
   const outline = <BodyOutline body={layoutOf(c.kind, ports).body} x={c.x} y={c.y} w={w} h={h} />;
   const value = outputValues[0];
   const numberBadge = pinNumber !== undefined && (
@@ -143,32 +191,14 @@ export function ComponentView({
         <text className={styles.label} x={c.x + w / 2} y={isCustom ? c.y - 6 : c.y + h / 2 + 4}>
           {isCustom ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
         </text>
-        {ports.inputs.map((label, i) =>
-          label ? (
-            <text
-              // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-              key={i}
-              className={styles.pinLabel}
-              x={c.x + 4}
-              y={inputPinPos(c, ports, i).y + 4}
-            >
-              {label}
-            </text>
-          ) : null,
-        )}
-        {ports.outputs.map((label, i) =>
-          label ? (
-            <text
-              // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-              key={i}
-              className={classNames(styles.pinLabel, styles.end)}
-              x={c.x + w - 4}
-              y={outputPinPos(c, ports, i).y + 4}
-            >
-              {label}
-            </text>
-          ) : null,
-        )}
+        {ports.inputs.map((label, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          <PinName key={i} pin={pins.inputs[i]} label={label} />
+        ))}
+        {ports.outputs.map((label, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          <PinName key={i} pin={pins.outputs[i]} label={label} />
+        ))}
       </>
     );
   }
@@ -181,44 +211,14 @@ export function ComponentView({
       onDoubleClick={onBodyDoubleClick}
       style={{ cursor: 'move' }}
     >
-      {inputValues.map((v, i) => {
-        const p = inputPinPos(c, ports, i);
-        return (
-          <g
-            // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-            key={i}
-          >
-            {/* ピンの丸から本体の左端までの線 */}
-            <line
-              className={classNames(styles.lead, v && styles.on)}
-              x1={p.x}
-              y1={p.y}
-              x2={c.x}
-              y2={p.y}
-            />
-            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} />
-          </g>
-        );
-      })}
-      {ports.outputs.map((_, i) => {
-        const p = outputPinPos(c, ports, i);
-        return (
-          <g
-            // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-            key={i}
-          >
-            {/* 本体の右端からピンの丸までの線 */}
-            <line
-              className={classNames(styles.lead, outputValues[i] && styles.on)}
-              x1={c.x + w}
-              y1={p.y}
-              x2={p.x}
-              y2={p.y}
-            />
-            <circle className={styles.pin} cx={p.x} cy={p.y} r={6} />
-          </g>
-        );
-      })}
+      {inputValues.map((v, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+        <PinLead key={i} pin={pins.inputs[i]} on={v} />
+      ))}
+      {ports.outputs.map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+        <PinLead key={i} pin={pins.outputs[i]} on={outputValues[i]} />
+      ))}
       {body}
     </g>
   );
