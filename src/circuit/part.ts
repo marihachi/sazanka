@@ -27,6 +27,11 @@ export interface Part {
    * モジュールのパッケージが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
    */
   pinNumber?: number;
+  /**
+   * INPUT / OUTPUT を見分ける番号 (ポート番号。1 から)。入力と出力で別々に振る。
+   * メイン回路とモジュールの回路のどちらでも持つ。読み込みでは、ないものや重なるものを付け直す (module.ts の fillPortNumbers)
+   */
+  portNumber?: number;
 }
 
 export function isPart(c: unknown): c is Part {
@@ -38,8 +43,14 @@ export function isPart(c: unknown): c is Part {
     typeof c.x === 'number' &&
     typeof c.y === 'number' &&
     (c.period === undefined || isClockPeriod(c.period)) &&
-    (c.pinNumber === undefined || Number.isInteger(c.pinNumber))
+    (c.pinNumber === undefined || Number.isInteger(c.pinNumber)) &&
+    (c.portNumber === undefined || isPortNumber(c.portNumber))
   );
+}
+
+/** ポート番号として使える値か (1 以上の整数) */
+export function isPortNumber(n: unknown): n is number {
+  return Number.isInteger(n) && (n as number) >= 1;
 }
 
 /**

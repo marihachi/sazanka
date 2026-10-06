@@ -93,11 +93,7 @@ export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
     };
   }
 
-  // 並び計算: 上から、同じ高さなら左から。この順がピン番号になるので、変えると既存の配線が別のピンにつながる
-  function byPosition(a: Part, b: Part): number {
-    return a.y - b.y || a.x - b.x;
-  }
-
+  // 中の位置の順がピンの順になるので、byPosition を変えると既存の配線が別のピンにつながる
   return {
     inputs: def.parts.filter((c) => c.kind === 'input').sort(byPosition),
     outputs: def.parts.filter((c) => c.kind === 'output').sort(byPosition),
@@ -185,6 +181,68 @@ function withoutPinNumber(c: Part): Part {
   return rest;
 }
 
+/** 上から、同じ高さなら左から。split のピンの順でもあるので、変えると既存の配線が別のピンにつながる */
+function byPosition(a: Part, b: Part): number {
+  return a.y - b.y || a.x - b.x;
+}
+
+/**
+ * 回路に新しく置いたポート (added に ID がある INPUT / OUTPUT) に、ポート番号を付ける。置く操作と貼り付けで使う。
+ * 入力と出力で別々に、前からあるポートと重ならなければ番号をそのまま使い、
+ * ないか重なれば、空いているいちばん小さい番号を付ける。複数あるときは、中の位置の順に付ける
+ */
+export function assignPortNumbers<T extends Circuit>(def: T, added: ReadonlySet<string>): T {
+  const isAdded = (c: Part) => isPort(c) && added.has(c.id);
+  if (!def.parts.some(isAdded)) {
+    return def;
+  }
+  const numbers = new Map<string, number>();
+  for (const kind of ['input', 'output'] as const) {
+    const used = new Set(
+      def.parts
+        .filter((c) => c.kind === kind && !added.has(c.id))
+        .map((c) => c.portNumber)
+        .filter((n) => n !== undefined),
+    );
+    const targets = def.parts.filter((c) => c.kind === kind && added.has(c.id)).sort(byPosition);
+    for (const c of targets) {
+      let n = c.portNumber;
+      if (n === undefined || used.has(n)) {
+        n = 1;
+        while (used.has(n)) {
+          n++;
+        }
+      }
+      used.add(n);
+      numbers.set(c.id, n);
+    }
+  }
+  const parts = def.parts.map((c) => {
+    const n = numbers.get(c.id);
+    return n === undefined || c.portNumber === n ? c : { ...c, portNumber: n };
+  });
+  return { ...def, parts };
+}
+
+/**
+ * 読み込んだ回路の、ポート番号がないポートと、ほかと重なるポートに番号を付ける。
+ * 重なるときは、中の位置の順で先のポートが番号を持ち続ける
+ */
+export function fillPortNumbers<T extends Circuit>(def: T): T {
+  const missing = new Set<string>();
+  for (const kind of ['input', 'output'] as const) {
+    const seen = new Set<number>();
+    for (const c of def.parts.filter((p) => p.kind === kind).sort(byPosition)) {
+      if (c.portNumber === undefined || seen.has(c.portNumber)) {
+        missing.add(c.id);
+      } else {
+        seen.add(c.portNumber);
+      }
+    }
+  }
+  return assignPortNumbers(def, missing);
+}
+
 /** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */
 export function dependsOn(
   project: Project,
@@ -247,22 +305,51 @@ export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
 
 /**
  * モジュール設定を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
- * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す
+ * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す。
+ * labels (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
  */
 export function applyModuleSettings<T extends Circuit & { package?: Package }>(
   def: T,
   pkg: Package,
   numbers: ReadonlyMap<string, number>,
+  labels: ReadonlyMap<string, string> = new Map(),
 ): T {
   const parts = def.parts.map((c) => {
     if (!isPort(c)) {
       return c;
     }
+    const text = labels.get(c.id);
+    const named = text === undefined ? c : withLabel(c, text);
     const n = numbers.get(c.id);
     if (!usesPinNumbers(pkg) || n === undefined || n < 1 || n > pkg.pins) {
-      return c.pinNumber === undefined ? c : withoutPinNumber(c);
+      return named.pinNumber === undefined ? named : withoutPinNumber(named);
     }
-    return c.pinNumber === n ? c : { ...c, pinNumber: n };
+    return named.pinNumber === n ? named : { ...named, pinNumber: n };
   });
   return { ...def, package: pkg, parts };
+}
+
+/** 名前を text にしたポート。空白だけなら名前なしにする。名前が変わらなければ c をそのまま返す */
+function withLabel(c: Part, text: string): Part {
+  const label = text.trim() || undefined;
+  if (label === c.label) {
+    return c;
+  }
+  const { label: _, ...rest } = c;
+  return label === undefined ? rest : { ...rest, label };
+}
+
+/**
+ * ポートの名前で、ほかのポートと重なるもの (部品 ID の集合)。labels は部品 ID → 名前 (前後の空白は除いて比べる)。
+ * 名前のないポートは、いくつあっても重なりとしない。入力と出力をまたいで比べる (ポートの名前は、入力か出力かに関係しないため)
+ */
+export function findDuplicateLabels(labels: ReadonlyMap<string, string>): Set<string> {
+  const ids = new Map<string, string[]>();
+  for (const [id, text] of labels) {
+    const label = text.trim();
+    if (label !== '') {
+      ids.set(label, [...(ids.get(label) ?? []), id]);
+    }
+  }
+  return new Set([...ids.values()].filter((list) => list.length > 1).flat());
 }

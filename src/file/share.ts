@@ -6,6 +6,7 @@ import {
   checkProject,
   withoutSwitchStates,
 } from '../circuit/project';
+import { fillPortNumbers } from '../circuit/module';
 import { isObject } from '../util';
 import { upgradeProject } from './upgrade';
 
@@ -87,13 +88,13 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   if (error) {
     return { ok: false, error: `回路データが壊れています (${error})` };
   }
-  // 古いデータには ON/OFF が入っていることがあるが、使わない
+  // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す
   const project = withoutSwitchStates(raw as Project);
   return {
     ok: true,
     project: {
       ...project,
-      circuits: project.circuits.map((d) => renameIds(d, newId, newId)),
+      circuits: project.circuits.map((d) => fillPortNumbers(renameIds(d, newId, newId))),
     },
   };
 }

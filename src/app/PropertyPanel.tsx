@@ -25,6 +25,11 @@ interface PropertyPanelProps {
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
   onEditStart: () => void;
   onClockPeriodChange: (id: string, period: number) => void;
+  /**
+   * 選んでいる INPUT / OUTPUT 以外の、同じ回路のポートの名前を、改行でつないだもの。
+   * 同じ名前を付けられないようにするために使う (memo で比べられるよう、集合ではなく文字列で渡す)
+   */
+  otherLabels?: string;
   /** INPUT / OUTPUT のラベルを変えた */
   onLabelChange: (id: string, label: string) => void;
 }
@@ -37,6 +42,7 @@ export const PropertyPanel = memo(function PropertyPanel({
   part,
   moduleName,
   pinNumber,
+  otherLabels = '',
   tickMs,
   onEditStart,
   onClockPeriodChange,
@@ -74,9 +80,21 @@ export const PropertyPanel = memo(function PropertyPanel({
             />
           ) : part.kind === 'input' || part.kind === 'output' ? (
             <>
+              {/* ポート番号は表示だけ。置いたときに決まり、利用者は変えない */}
+              {part.portNumber !== undefined && (
+                <Stack gap="0.5">
+                  <Text textStyle="sm" fontWeight="medium">
+                    ポート番号
+                  </Text>
+                  <Text textStyle="sm">
+                    {part.kind === 'input' ? '入力' : '出力'} {part.portNumber}
+                  </Text>
+                </Stack>
+              )}
               <LabelField
                 key={part.id}
                 part={part}
+                otherLabels={otherLabels}
                 onEditStart={onEditStart}
                 onChange={onLabelChange}
               />
@@ -136,18 +154,22 @@ function useEditSession(onEditStart: () => void) {
  */
 function LabelField({
   part,
+  otherLabels,
   onEditStart,
   onChange,
 }: {
   part: Part;
+  otherLabels: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
 }) {
   const [text, setText] = useState(part.label ?? '');
   const session = useEditSession(onEditStart);
+  const taken = (value: string) =>
+    value.trim() !== '' && otherLabels.split('\n').includes(value.trim());
 
   return (
-    <Field.Root>
+    <Field.Root invalid={taken(text)}>
       <Field.Label>ラベル</Field.Label>
       <Input
         size="sm"
@@ -155,6 +177,10 @@ function LabelField({
         placeholder="ラベルなし"
         onChange={(e) => {
           setText(e.target.value);
+          // ほかのポートと同じ名前は反映しない (欄の文字は残し、エラーを出す)
+          if (taken(e.target.value)) {
+            return;
+          }
           session.begin();
           onChange(part.id, e.target.value);
         }}
@@ -166,6 +192,7 @@ function LabelField({
           }
         }}
       />
+      <Field.ErrorText>ほかのポートと同じ名前は付けられません</Field.ErrorText>
       <Field.HelperText>モジュールの中では、ピンの名前になります</Field.HelperText>
     </Field.Root>
   );

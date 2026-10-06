@@ -39,6 +39,15 @@
   pointer-events: none;
 }
 
+/* INPUT / OUTPUT の下に出す、ポート番号 */
+.port-number {
+  fill: var(--chakra-colors-fg);
+  font-size: 10px;
+  opacity: 0.6;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
 .pin-label.end {
   text-anchor: end;
 }

@@ -338,6 +338,12 @@ export function SheetPart({
       </text>
     )
   );
+  // ポート番号は、本体の下に「入力 1」の形で出す
+  const portNumberText = c.portNumber !== undefined && (
+    <text className={styles.portNumber} x={c.x + w / 2} y={c.y + h + 12}>
+      {c.kind === 'input' ? '入力' : '出力'} {c.portNumber}
+    </text>
+  );
   const lamp = value ? 'var(--chakra-colors-sheet-on)' : '#333';
 
   // 文字の y はベースライン (文字の下端) なので、縦の中央に見せたいときは、文字の高さの半分ほど (+4 など) 下げる
@@ -361,6 +367,7 @@ export function SheetPart({
           </text>
         )}
         {numberBadge}
+        {portNumberText}
       </>
     );
   } else if (c.kind === 'clock') {
@@ -400,6 +407,7 @@ export function SheetPart({
           </text>
         )}
         {numberBadge}
+        {portNumberText}
       </>
     );
   } else {

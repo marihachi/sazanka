@@ -17,6 +17,7 @@ import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '..
 import {
   applyModuleSettings,
   assignPinNumbers,
+  assignPortNumbers,
   getPinout,
   findUnexposedPorts,
   usesPinNumbers,
@@ -82,9 +83,11 @@ export function App() {
     onPreferencesChange: setPreferences,
     project,
     // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
-    onApplyModuleSettings: (id, pkg, numbers) =>
+    onApplyModuleSettings: (id, pkg, numbers, labels) =>
       history.commit((p) => ({
-        circuits: p.circuits.map((d) => (d.id === id ? applyModuleSettings(d, pkg, numbers) : d)),
+        circuits: p.circuits.map((d) =>
+          d.id === id ? applyModuleSettings(d, pkg, numbers, labels) : d,
+        ),
       })),
   });
 
@@ -200,7 +203,10 @@ export function App() {
     }
     Object.assign(c, clampPosition(c, getPinout(c, project), c));
     // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
-    setCircuit((cur) => assignPinNumbers(edit.addPart(cur, c), new Set([c.id])));
+    setCircuit((cur) => {
+      const added = new Set([c.id]);
+      return assignPortNumbers(assignPinNumbers(edit.addPart(cur, c), added), added);
+    });
     setSelection({ comps: [c.id], wires: [] });
   }
 
@@ -438,6 +444,15 @@ export function App() {
                 : (selectedPart.pinNumber ?? null)
               : undefined
           }
+          otherLabels={circuit.parts
+            .filter(
+              (c) =>
+                (c.kind === 'input' || c.kind === 'output') &&
+                c.id !== selectedPart?.id &&
+                c.label !== undefined,
+            )
+            .map((c) => c.label)
+            .join('\n')}
           tickMs={preferences.tickMs}
           onEditStart={history.checkpoint}
           onClockPeriodChange={on.setClockPeriod}

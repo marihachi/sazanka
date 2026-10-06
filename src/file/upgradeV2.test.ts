@@ -33,7 +33,7 @@ describe('upgradeV2', () => {
           name: 'メイン',
           // biome-ignore format: 表形式を維持するため
           parts: [
-            { id: 'a', kind: 'input', x: 0, y: 0, label: 'A' },
+            { id: 'a', kind: 'input', x: 0, y: 0, label: 'A', portNumber: 1 },
             { id: 'm', kind: 'module', x: 100, y: 0, module: 'mod' },
             { id: 'c', kind: 'clock', x: 0, y: 100, period: 10 },
           ],
@@ -45,6 +45,25 @@ describe('upgradeV2', () => {
         { id: 'mod', name: 'M', package: { kind: 'split' }, parts: [], wires: [] },
       ],
     });
+  });
+
+  it('INPUT / OUTPUT に、入力と出力で別々に、中の位置の順でポート番号を書き込む', () => {
+    // biome-ignore format: 表形式を維持するため
+    const v2 = { circuits: [{ id: 'main', name: 'メイン', wires: [], components: [
+      { id: 'i2', kind: 'INPUT', x: 0, y: 100 },
+      { id: 'o1', kind: 'OUTPUT', x: 200, y: 0 },
+      { id: 'i3', kind: 'INPUT', x: 100, y: 100 },
+      { id: 'i1', kind: 'INPUT', x: 50, y: 0 },
+      { id: 'n', kind: 'NOT', x: 0, y: 0 },
+    ] }] };
+    const v3 = upgradeV2(v2) as { circuits: { parts: { id: string; portNumber?: number }[] }[] };
+    expect(v3.circuits[0].parts.map((p) => [p.id, p.portNumber])).toEqual([
+      ['i2', 2],
+      ['o1', 1],
+      ['i3', 3],
+      ['i1', 1],
+      ['n', undefined],
+    ]);
   });
 
   it('種類の名前をすべて変える', () => {

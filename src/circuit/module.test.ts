@@ -5,6 +5,9 @@ import {
   applyModuleSettings,
   assignInOrder,
   assignPinNumbers,
+  assignPortNumbers,
+  fillPortNumbers,
+  findDuplicateLabels,
   calcFittingPins,
   listPortsInPositionOrder,
   circuitsUsing,
@@ -245,6 +248,95 @@ describe('assignPinNumbers', () => {
     const def = dip([comp('g', 'and'), comp('a', 'input', { pinNumber: 9 })]);
     expect(assignPinNumbers(def, new Set(['g']))).toBe(def);
     expect(assignPinNumbers(def, new Set(['x'])).parts[1].pinNumber).toBe(9);
+  });
+});
+
+describe('assignPortNumbers', () => {
+  const main = (parts: Part[]) => ({ ...emptyProject().circuits[0], parts });
+  const numbers = (def: { parts: Part[] }) => def.parts.map((c) => c.portNumber);
+
+  it('置いたポートに、入力と出力で別々に、空いているいちばん小さい番号を付ける', () => {
+    // biome-ignore format: 表形式を維持するため
+    const def = main([
+      comp('a', 'input', { portNumber: 1 }), comp('b', 'input', { portNumber: 3 }),
+      comp('c', 'output', { portNumber: 1 }),
+      comp('d', 'input'), comp('e', 'output'),
+    ]);
+    expect(numbers(assignPortNumbers(def, new Set(['d', 'e'])))).toEqual([1, 3, 1, 2, 2]);
+  });
+
+  it('貼り付けたポートは、空いている番号ならそのまま、重なれば中の位置の順に付け直す', () => {
+    // biome-ignore format: 表形式を維持するため
+    const def = main([
+      comp('a', 'input', { portNumber: 1 }),
+      comp('p', 'input', { portNumber: 5 }),
+      comp('q', 'input', { portNumber: 1, y: 100 }),
+      comp('r', 'input', { portNumber: 1, y: 50 }),
+    ]);
+    expect(numbers(assignPortNumbers(def, new Set(['p', 'q', 'r'])))).toEqual([1, 5, 3, 2]);
+  });
+
+  it('ポート以外の部品だけなら、回路をそのまま返す', () => {
+    const def = main([comp('g', 'and'), comp('a', 'input', { portNumber: 4 })]);
+    expect(assignPortNumbers(def, new Set(['g']))).toBe(def);
+  });
+});
+
+describe('fillPortNumbers', () => {
+  it('ないものと重なるものに番号を付け、重なりでは中の位置の順で先のポートが番号を持ち続ける', () => {
+    // biome-ignore format: 表形式を維持するため
+    const def = { ...emptyProject().circuits[0], parts: [
+      comp('a', 'input', { portNumber: 2, y: 100 }),
+      comp('b', 'input', { portNumber: 2, y: 0 }),
+      comp('c', 'input'),
+      comp('d', 'output', { portNumber: 2 }),
+    ] };
+    expect(fillPortNumbers(def).parts.map((c) => c.portNumber)).toEqual([3, 2, 1, 2]);
+  });
+});
+
+describe('applyModuleSettings の名前', () => {
+  const def: CircuitDef = {
+    id: 'm',
+    name: 'M',
+    package: { kind: 'split' },
+    wires: [],
+    parts: [
+      comp('a', 'input', { label: 'A' }),
+      comp('b', 'output'),
+      comp('c', 'input', { label: 'C' }),
+    ],
+  };
+
+  it('名前を変え、空白だけなら名前なしにし、labels にないポートは変えない', () => {
+    const result = applyModuleSettings(
+      def,
+      { kind: 'split' },
+      new Map(),
+      new Map([
+        ['a', ' X '],
+        ['b', 'Y'],
+        ['c', '  '],
+      ]),
+    );
+    expect(result.parts.map((c) => c.label)).toEqual(['X', 'Y', undefined]);
+    expect(result.parts[2]).not.toHaveProperty('label');
+    expect(
+      applyModuleSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
+    ).toBe(def.parts[0]);
+  });
+});
+
+describe('findDuplicateLabels', () => {
+  it('入力と出力をまたいで重なりを見る。名前なしと前後の空白は数えない', () => {
+    const labels = new Map([
+      ['a', 'A'],
+      ['b', ' A'],
+      ['c', ''],
+      ['d', '  '],
+      ['e', 'E'],
+    ]);
+    expect(findDuplicateLabels(labels)).toEqual(new Set(['a', 'b']));
   });
 });
 

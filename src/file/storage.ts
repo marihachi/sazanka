@@ -7,6 +7,7 @@ import {
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
 import { isObject } from '../util';
+import { fillPortNumbers } from '../circuit/module';
 import { upgradeProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
@@ -74,7 +75,9 @@ export function readStored(raw: string | null): LoadResult {
     };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
-  return { project: withoutSwitchStates(project as Project) };
+  const loaded = withoutSwitchStates(project as Project);
+  // version 3 を公開する前の保存データには、ポート番号がない
+  return { project: { ...loaded, circuits: loaded.circuits.map(fillPortNumbers) } };
 }
 
 export function saveProject(project: Project) {

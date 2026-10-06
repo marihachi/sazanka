@@ -26,7 +26,12 @@ export function useDialogs({
   /** モジュール設定のダイアログで、設定するモジュールを探し、見本を描くのに使う */
   project: Project;
   /** モジュール設定を当てはめる (元に戻せる 1 回の編集にする) */
-  onApplyModuleSettings: (id: string, pkg: Package, numbers: Map<string, number>) => void;
+  onApplyModuleSettings: (
+    id: string,
+    pkg: Package,
+    numbers: Map<string, number>,
+    labels: Map<string, string>,
+  ) => void;
 }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(() =>
     initialMessage ? { message: initialMessage } : null,
@@ -60,7 +65,9 @@ export function useDialogs({
         <ModuleSettingsDialog
           def={moduleSettingsDef}
           project={project}
-          onApply={(pkg, numbers) => onApplyModuleSettings(moduleSettingsDef.id, pkg, numbers)}
+          onApply={(pkg, numbers, labels) =>
+            onApplyModuleSettings(moduleSettingsDef.id, pkg, numbers, labels)
+          }
           onClose={() => setModuleSettingsId(null)}
         />
       )}

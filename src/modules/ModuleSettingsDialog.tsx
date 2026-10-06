@@ -10,11 +10,12 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import {
   applyModuleSettings,
   assignInOrder,
   calcFittingPins,
+  findDuplicateLabels,
   getPinout,
   listPortsInPositionOrder,
 } from '../circuit/module';
@@ -34,7 +35,7 @@ const PACKAGE_KINDS: { value: PackageKind; label: string }[] = [
 ];
 
 /**
- * モジュール設定のダイアログ。開いているモジュールのパッケージ (形の種類とピン数) と、ピンの割り当てを編集する。
+ * モジュール設定のダイアログ。開いているモジュールのパッケージ (形の種類とピン数) と、ポートの名前と、ピンの割り当てを編集する。
  * 変更は「適用」でまとめて 1 回の編集にする (onApply)。適用する前の設定で、シート上での見え方を見本に出す
  */
 export function ModuleSettingsDialog({
@@ -46,8 +47,8 @@ export function ModuleSettingsDialog({
   /** 設定するモジュールの回路 */
   def: CircuitDef;
   project: Project;
-  /** 設定を当てはめる。numbers はポートの部品 ID → ピン番号 */
-  onApply: (pkg: Package, numbers: Map<string, number>) => void;
+  /** 設定を当てはめる。numbers はポートの部品 ID → ピン番号、labels はポートの部品 ID → 名前 */
+  onApply: (pkg: Package, numbers: Map<string, number>, labels: Map<string, string>) => void;
   onClose: () => void;
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -59,12 +60,23 @@ export function ModuleSettingsDialog({
   );
   // ピンの割り当ての下書き。開いたときの番号から、重なり (2 つめ以降) を除いて始める
   const [numbers, setNumbers] = useState(() => initialNumbers(ports));
+  // ポートの名前の下書き (部品 ID → 入力中の文字)
+  const [labels, setLabels] = useState(() => new Map(ports.map((c) => [c.id, c.label ?? ''])));
+  // 名前の一覧と見本は、打つたびに 128 行の選択肢を作り直すと重いので、入力より遅れて描き直してよい
+  const deferredLabels = useDeferredValue(labels);
+  const duplicates = useMemo(() => findDuplicateLabels(labels), [labels]);
 
   const pins = Number(pinsText);
   const draft: Package = kind === 'split' ? { kind } : { kind, pins };
   const valid = isPackage(draft);
-  const applied = valid ? applyModuleSettings(def, draft, numbers) : undefined;
-  const changed = applied !== undefined && !sameSettings(def, applied);
+  const applied = valid ? applyModuleSettings(def, draft, numbers, labels) : undefined;
+  const pinsChanged = applied !== undefined && !samePins(def, applied);
+  const changed = applied !== undefined && (pinsChanged || !sameLabels(def, applied));
+  const preview = valid ? applyModuleSettings(def, draft, numbers, deferredLabels) : def;
+
+  const changeLabel = useCallback((id: string, text: string) => {
+    setLabels((cur) => new Map(cur).set(id, text));
+  }, []);
 
   /** 形の種類を変える。ピン数は、新しい種類で使える数に直す。split から変えるときは、上から順に番号を割り当てる */
   function changeKind(next: PackageKind) {
@@ -94,7 +106,10 @@ export function ModuleSettingsDialog({
     });
   }, []);
   // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す
-  const names = useMemo(() => new Map(ports.map((c) => [c.id, getPortName(c)])), [ports]);
+  const names = useMemo(
+    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredLabels.get(c.id) ?? '')])),
+    [ports, deferredLabels],
+  );
   const options = useMemo(
     () => [
       <option key="" value="">
@@ -125,8 +140,8 @@ export function ModuleSettingsDialog({
       size="lg"
       onSubmit={(e) => {
         e.preventDefault();
-        if (applied && changed) {
-          onApply(draft, numbers);
+        if (applied && changed && duplicates.size === 0) {
+          onApply(draft, numbers, labels);
           onClose();
         }
       }}
@@ -183,6 +198,35 @@ export function ModuleSettingsDialog({
                 に並びます。ピン番号は使いません。
               </Text>
             )}
+            <Stack gap="2" flex={{ md: '1' }} minH="0">
+              <Text textStyle="sm" fontWeight="medium">
+                ポート
+              </Text>
+              <Stack
+                gap="1"
+                flex={{ md: '1' }}
+                minH="0"
+                maxH={{ base: '60', md: 'none' }}
+                overflowY="auto"
+                pe="1"
+              >
+                {ports.map((c) => (
+                  <PortRow
+                    key={c.id}
+                    id={c.id}
+                    heading={`${c.kind === 'input' ? '入力' : '出力'} ${c.portNumber ?? ''}`}
+                    value={labels.get(c.id) ?? ''}
+                    duplicate={duplicates.has(c.id)}
+                    onChange={changeLabel}
+                  />
+                ))}
+              </Stack>
+              {duplicates.size > 0 && (
+                <Text textStyle="sm" color="fg.error">
+                  ほかのポートと同じ名前は付けられません
+                </Text>
+              )}
+            </Stack>
             {numbered && (
               <Stack gap="2" flex={{ md: '1' }} minH="0">
                 <HStack justify="space-between">
@@ -224,7 +268,7 @@ export function ModuleSettingsDialog({
                 )}
               </Stack>
             )}
-            {changed && (
+            {pinsChanged && (
               <Text textStyle="sm" color="fg.warning">
                 パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。
               </Text>
@@ -234,7 +278,7 @@ export function ModuleSettingsDialog({
             <Text textStyle="sm" fontWeight="medium">
               見本
             </Text>
-            <Preview def={applied ?? def} project={project} />
+            <Preview def={preview} project={project} />
           </Stack>
         </Flex>
       </ChakraDialog.Body>
@@ -242,7 +286,7 @@ export function ModuleSettingsDialog({
         <Button ref={cancelRef} variant="outline" colorPalette="gray" onClick={onClose}>
           キャンセル
         </Button>
-        <Button type="submit" disabled={!changed}>
+        <Button type="submit" disabled={!changed || duplicates.size > 0}>
           適用
         </Button>
       </ChakraDialog.Footer>
@@ -281,6 +325,44 @@ const PinRow = memo(function PinRow({
         </NativeSelect.Field>
         <NativeSelect.Indicator />
       </NativeSelect.Root>
+    </HStack>
+  );
+});
+
+/**
+ * ポートの 1 行。入力か出力かとポート番号と、名前の入力欄。
+ * ポートが多いと、1 文字打つたびに全部の行を描き直すと重いので、memo で変わった行だけを描き直す
+ */
+const PortRow = memo(function PortRow({
+  id,
+  heading,
+  value,
+  duplicate,
+  onChange,
+}: {
+  id: string;
+  /** 「入力 1」の形の見出し */
+  heading: string;
+  /** 入力中の名前 */
+  value: string;
+  /** ほかのポートと名前が重なっているか */
+  duplicate: boolean;
+  onChange: (id: string, text: string) => void;
+}) {
+  return (
+    <HStack gap="2">
+      <Text textStyle="sm" w="14" flexShrink={0} color="fg.muted">
+        {heading}
+      </Text>
+      <Field.Root invalid={duplicate}>
+        <Input
+          size="sm"
+          aria-label={`${heading} の名前`}
+          placeholder="名前未設定"
+          value={value}
+          onChange={(e) => onChange(id, e.target.value)}
+        />
+      </Field.Root>
     </HStack>
   );
 });
@@ -333,18 +415,23 @@ function initialNumbers(ports: readonly Part[]): Map<string, number> {
 }
 
 /**
- * 一覧に出すポートの名前。「入力 A」「出力 S」のように、入力か出力かとラベルで示す。
- * ラベルがなければ、一律で「入力 (名前未設定)」「出力 (名前未設定)」とする
+ * 一覧に出すポートの名前。「入力 1 A」「出力 2 S」のように、入力か出力かと、ポート番号と、名前 (text) で示す。
+ * 名前が空白だけなら「入力 1 (名前未設定)」とする
  */
-function getPortName(c: Part): string {
+function getPortName(c: Part, text: string): string {
   const side = c.kind === 'input' ? '入力' : '出力';
-  return c.label ? `${side} ${c.label}` : `${side} (名前未設定)`;
+  return `${side} ${c.portNumber ?? ''} ${text.trim() || '(名前未設定)'}`;
 }
 
-/** パッケージとポートのピン番号が同じか (適用しても何も変わらないか) */
-function sameSettings(a: CircuitDef, b: CircuitDef): boolean {
+/** パッケージとポートのピン番号が同じか (外の配線に響く変更がないか) */
+function samePins(a: CircuitDef, b: CircuitDef): boolean {
   return (
     JSON.stringify(a.package ?? { kind: 'split' }) === JSON.stringify(b.package) &&
     a.parts.every((c, i) => c.pinNumber === b.parts[i].pinNumber)
   );
+}
+
+/** ポートの名前が同じか */
+function sameLabels(a: CircuitDef, b: CircuitDef): boolean {
+  return a.parts.every((c, i) => c.label === b.parts[i].label);
 }
