@@ -162,3 +162,49 @@ describe('NC のピン', () => {
     expect(toNc.nets.find((n) => n.wires.includes('w'))?.inputs).toEqual([]);
   });
 });
+
+describe('上下の辺のピン', () => {
+  it('qfp のモジュールの上と下のピンの先に配線の端があれば、つながる', () => {
+    // 8 ピンの qfp (1 辺 6 マス)。8 番 (上の辺の左から 2 マスめ) が入力、3 番 (下の辺の左から 2 マスめ) が出力
+    const project: Project = {
+      circuits: [
+        { id: 'main', name: 'メイン', parts: [], wires: [] },
+        {
+          id: 'm',
+          name: 'M',
+          package: { kind: 'qfp', pins: 8 },
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            { id: 'a', kind: 'input', x: 0, y: 0, pinNumber: 8 },
+            { id: 'q', kind: 'output', x: 100, y: 0, pinNumber: 3 },
+          ],
+          wires: [],
+        },
+      ],
+    };
+    // モジュールを (200, 200) に置くと、8 番の先は (240, 180)、3 番の先は (240, 340)。
+    // INPUT b の出力ピンの先は (60, 20)、OUTPUT o の入力ピンの先は (380, 320)
+    const parts: Part[] = [
+      { id: 'u', kind: 'module', module: 'm', x: 200, y: 200 },
+      { id: 'b', kind: 'input', x: 0, y: 0 },
+      { id: 'o', kind: 'output', x: 400, y: 300 },
+    ];
+    const result = computeNets(
+      {
+        parts,
+        // biome-ignore format: 表形式を維持するため
+        wires: [
+          wire('top', [60, 20], [240, 20], [240, 180]),
+          wire('bottom', [240, 340], [380, 340], [380, 320]),
+        ],
+      },
+      project,
+    );
+    expect(result.nets.find((n) => n.wires.includes('top'))?.inputs).toEqual([
+      { comp: 'u', pin: 0 },
+    ]);
+    expect(result.nets.find((n) => n.wires.includes('bottom'))?.outputs).toEqual([
+      { comp: 'u', pin: 0 },
+    ]);
+  });
+});

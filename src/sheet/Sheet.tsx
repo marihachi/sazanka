@@ -4,8 +4,7 @@ import {
   clampMove,
   partsInRect,
   GRID,
-  inputPinPos,
-  outputPinPos,
+  calcSheetPins,
   placeOffset,
   type Point,
   SHEET_HEIGHT,
@@ -211,14 +210,10 @@ export function Sheet({
   const pinTips = useMemo(() => {
     const tips = new Set<string>();
     for (const c of circuit.parts) {
-      const pinout = getPinout(c, project);
-      for (let i = 0; i < pinout.inputs.length; i++) {
-        const p = inputPinPos(c, pinout, i);
-        tips.add(`${p.x},${p.y}`);
-      }
-      for (let i = 0; i < pinout.outputs.length; i++) {
-        const p = outputPinPos(c, pinout, i);
-        tips.add(`${p.x},${p.y}`);
+      // 配置は部品ごとに 1 回だけ求める (ピンの多いモジュールで重くならないよう)
+      const pins = calcSheetPins(c, getPinout(c, project));
+      for (const p of [...pins.inputs, ...pins.outputs]) {
+        tips.add(`${p.tip.x},${p.tip.y}`);
       }
     }
     return tips;

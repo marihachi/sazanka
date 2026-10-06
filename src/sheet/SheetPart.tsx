@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Part, PartKind } from '../circuit/part';
 import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
@@ -146,11 +147,142 @@ function PinName({ pin, label }: { pin: SheetPin; label: string }) {
           {label}
         </text>
       );
+    // 上下の辺のピン名は、90 度回して縦に書く (ピンの間隔が 2 マスしかなく、横書きでは隣とぶつかるため)。
+    // rotate(-90) で文字は下から上へ進む。上の辺は文字の終わりを辺のそばに、下の辺は始まりを辺のそばに置き、
+    // どちらも本体の内側へ伸ばす。x の +4 は、横書きの y の +4 と同じく、文字の高さの半分ほどずらして線に中央を合わせるため
     case 'top':
+      return (
+        <text
+          className={classNames(styles.pinLabel, styles.end)}
+          x={pin.base.x + 4}
+          y={pin.base.y + 4}
+          transform={`rotate(-90 ${pin.base.x + 4} ${pin.base.y + 4})`}
+        >
+          {label}
+        </text>
+      );
     case 'bottom':
-      // 上下の辺のピン名は、まだ書かない (上下にピンを置く配置がない)
-      return null;
+      return (
+        <text
+          className={styles.pinLabel}
+          x={pin.base.x + 4}
+          y={pin.base.y - 4}
+          transform={`rotate(-90 ${pin.base.x + 4} ${pin.base.y - 4})`}
+        >
+          {label}
+        </text>
+      );
   }
+}
+
+/**
+ * ピンを、部品の左上を原点とする座標で求める。
+ * ピンの層 (PinLeads / PinNames) は、この座標で描き、外側の translate で部品の位置へ動かす
+ */
+function calcLocalPins(kind: PartKind, pinout: Pinout) {
+  return calcSheetPins({ id: '', kind, x: 0, y: 0 }, pinout);
+}
+
+/**
+ * 部品のピンの線、向きの印、外側のピン番号、NC の線 (本体より下に描く)。
+ * 座標は部品の左上が原点。部品を動かしても props が変わらないので、memo で描き直しを省ける。
+ * ピンの多いモジュール (128 ピンなど) をドラッグしても、ピンを描き直さずに済ませるため
+ */
+const PinLeads = memo(function PinLeads({
+  kind,
+  pinout,
+  inputValues,
+  outputValues,
+}: {
+  kind: PartKind;
+  pinout: Pinout;
+  inputValues: boolean[];
+  outputValues: boolean[];
+}) {
+  const pins = calcLocalPins(kind, pinout);
+  return (
+    <>
+      {inputValues.map((v, i) => (
+        <PinLead
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          key={i}
+          pin={pins.inputs[i]}
+          on={v}
+          direction={pins.directionMarks ? 'in' : undefined}
+        />
+      ))}
+      {pinout.outputs.map((_, i) => (
+        <PinLead
+          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+          key={i}
+          pin={pins.outputs[i]}
+          on={outputValues[i]}
+          direction={pins.directionMarks ? 'out' : undefined}
+        />
+      ))}
+      {pins.nc.map((p) => (
+        <PinLead key={`nc${p.number}`} pin={p} on={false} nc />
+      ))}
+    </>
+  );
+}, samePinLeads);
+
+/** 本体の内側に書くピン名と「NC」(本体より上に描く)。座標と memo の考え方は PinLeads と同じ */
+const PinNames = memo(function PinNames({ kind, pinout }: { kind: PartKind; pinout: Pinout }) {
+  const pins = calcLocalPins(kind, pinout);
+  return (
+    <>
+      {pinout.inputs.map((label, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+        <PinName key={i} pin={pins.inputs[i]} label={label} />
+      ))}
+      {pinout.outputs.map((label, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
+        <PinName key={i} pin={pins.outputs[i]} label={label} />
+      ))}
+      {pins.nc.map((p) => (
+        <PinName key={`nc${p.number}`} pin={p} label="NC" />
+      ))}
+    </>
+  );
+}, samePinNames);
+
+/** 描き直すかの判定。ピンの割り当てと値は描き直しのたびに新しい配列で届くので、中身で比べる */
+function samePinLeads(
+  a: { kind: PartKind; pinout: Pinout; inputValues: boolean[]; outputValues: boolean[] },
+  b: { kind: PartKind; pinout: Pinout; inputValues: boolean[]; outputValues: boolean[] },
+): boolean {
+  return (
+    samePinNames(a, b) &&
+    sameArray(a.inputValues, b.inputValues) &&
+    sameArray(a.outputValues, b.outputValues)
+  );
+}
+
+function samePinNames(
+  a: { kind: PartKind; pinout: Pinout },
+  b: { kind: PartKind; pinout: Pinout },
+): boolean {
+  const p = a.pinout;
+  const q = b.pinout;
+  return (
+    a.kind === b.kind &&
+    sameArray(p.inputs, q.inputs) &&
+    sameArray(p.outputs, q.outputs) &&
+    p.package?.kind === q.package?.kind &&
+    pinsOf(p.package) === pinsOf(q.package) &&
+    sameArray(p.pinNumbers?.inputs ?? [], q.pinNumbers?.inputs ?? []) &&
+    sameArray(p.pinNumbers?.outputs ?? [], q.pinNumbers?.outputs ?? [])
+  );
+}
+
+/** パッケージのピンの数。split とパッケージのない部品は undefined */
+function pinsOf(pkg: Pinout['package']): number | undefined {
+  return pkg && 'pins' in pkg ? pkg.pins : undefined;
+}
+
+function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
 interface SheetPartProps {
@@ -183,7 +315,6 @@ export function SheetPart({
   onBodyDoubleClick,
 }: SheetPartProps) {
   const { w, h } = bodySize(c, pinout);
-  const pins = calcSheetPins(c, pinout);
   const outline = (
     <BodyOutline
       body={getLayout(c.kind, pinout).body}
@@ -273,23 +404,17 @@ export function SheetPart({
     );
   } else {
     const isModule = c.kind === 'module';
+    // 名前は、配置が本体の上に書くと決めていれば上に (split / dip のモジュール)、そうでなければ本体の中央に書く
+    const nameAbove = getLayout(c.kind, pinout).nameAbove;
     body = (
       <>
         {outline}
-        <text className={styles.label} x={c.x + w / 2} y={isModule ? c.y - 6 : c.y + h / 2 + 4}>
+        <text className={styles.label} x={c.x + w / 2} y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}>
           {isModule ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
         </text>
-        {pinout.inputs.map((label, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-          <PinName key={i} pin={pins.inputs[i]} label={label} />
-        ))}
-        {pinout.outputs.map((label, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-          <PinName key={i} pin={pins.outputs[i]} label={label} />
-        ))}
-        {pins.nc.map((p) => (
-          <PinName key={`nc${p.number}`} pin={p} label="NC" />
-        ))}
+        <g transform={`translate(${c.x} ${c.y})`}>
+          <PinNames kind={c.kind} pinout={pinout} />
+        </g>
       </>
     );
   }
@@ -302,27 +427,14 @@ export function SheetPart({
       onDoubleClick={onBodyDoubleClick}
       style={{ cursor: 'move' }}
     >
-      {inputValues.map((v, i) => (
-        <PinLead
-          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-          key={i}
-          pin={pins.inputs[i]}
-          on={v}
-          direction={pins.directionMarks ? 'in' : undefined}
+      <g transform={`translate(${c.x} ${c.y})`}>
+        <PinLeads
+          kind={c.kind}
+          pinout={pinout}
+          inputValues={inputValues}
+          outputValues={outputValues}
         />
-      ))}
-      {pinout.outputs.map((_, i) => (
-        <PinLead
-          // biome-ignore lint/suspicious/noArrayIndexKey: ピンは番号そのものが識別子 (PinRef.pin と同じ)
-          key={i}
-          pin={pins.outputs[i]}
-          on={outputValues[i]}
-          direction={pins.directionMarks ? 'out' : undefined}
-        />
-      ))}
-      {pins.nc.map((p) => (
-        <PinLead key={`nc${p.number}`} pin={p} on={false} nc />
-      ))}
+      </g>
       {body}
     </g>
   );
