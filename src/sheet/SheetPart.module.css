@@ -69,10 +69,21 @@
   text-anchor: start;
 }
 
-/* 外側のピンに出せないポート (ピン番号がない・範囲外・重なり) の印 */
+/* 外側のピンに出せないポート (ピン番号がない・範囲外・重なり) の印。番号の文字を赤くし、本体の輪郭を赤い破線にする */
 .pin-number.problem {
   fill: var(--chakra-colors-red-solid);
   font-weight: 600;
+}
+
+.body.problem {
+  stroke: var(--chakra-colors-red-solid);
+  stroke-dasharray: 4 3;
+  stroke-width: 2;
+}
+
+/* 選んでいるときは、選択の色を優先する (破線は残す) */
+.selected .body.problem {
+  stroke: var(--chakra-colors-accent-solid);
 }
 
 /* 形が端子の部品の記号 (HIGH の「1」)。今ある HIGH は常に ON なので、ON の色で描く */

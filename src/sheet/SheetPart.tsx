@@ -13,27 +13,33 @@ function bodyLabelOf(kind: PartKind): string {
   return partViewOf(kind)?.bodyLabel ?? labelOf(kind);
 }
 
-/** 本体の輪郭。形は部品の種類の配置 (parts/layouts.ts) の body で決まる */
+/**
+ * 本体の輪郭。形は部品の種類の配置 (parts/layouts.ts) の body で決まる。
+ * problem なら、外側のピンに出せないポートの印として赤い破線にする
+ */
 function BodyOutline({
   body,
   x,
   y,
   w,
   h,
+  problem = false,
 }: {
   body: PartLayout['body'];
   x: number;
   y: number;
   w: number;
   h: number;
+  problem?: boolean;
 }) {
+  const className = classNames(styles.body, problem && styles.problem);
   switch (body) {
     case 'rect':
-      return <rect className={styles.body} x={x} y={y} width={w} height={h} />;
+      return <rect className={className} x={x} y={y} width={w} height={h} />;
     case 'rounded':
-      return <rect className={styles.body} x={x} y={y} width={w} height={h} rx={4} />;
+      return <rect className={className} x={x} y={y} width={w} height={h} rx={4} />;
     case 'circle':
-      return <circle className={styles.body} cx={x + w / 2} cy={y + h / 2} r={w / 2} />;
+      return <circle className={className} cx={x + w / 2} cy={y + h / 2} r={w / 2} />;
   }
 }
 
@@ -178,7 +184,16 @@ export function SheetPart({
 }: SheetPartProps) {
   const { w, h } = bodySize(c, pinout);
   const pins = sheetPinsOf(c, pinout);
-  const outline = <BodyOutline body={layoutOf(c.kind, pinout).body} x={c.x} y={c.y} w={w} h={h} />;
+  const outline = (
+    <BodyOutline
+      body={layoutOf(c.kind, pinout).body}
+      x={c.x}
+      y={c.y}
+      w={w}
+      h={h}
+      problem={portProblem !== undefined}
+    />
+  );
   const value = outputValues[0];
   // 外側のピンに出せないポートは、番号の代わりに印を出す (番号があれば添える)
   const numberBadge = portProblem ? (
