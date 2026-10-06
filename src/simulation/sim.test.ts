@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Part, FlipFlopKind, GateKind } from '../circuit/part';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import { dependsOn, pinoutOf } from '../circuit/module';
+import { dependsOn, getPinout } from '../circuit/module';
 import { stepCircuit, step, type Link, type Netlist, type SimResult } from './sim';
-import { link, wired } from './testCircuits';
+import { link, buildWiredCircuit } from './testCircuits';
 import { mustGet } from '../util';
 
 /**
@@ -306,7 +306,7 @@ function comp(id: string, kind: Part['kind'], extra: Partial<Part> = {}): Part {
 }
 
 /** 半加算器: 入力 A, B / 出力 S, C */
-const halfAdder = wired({
+const halfAdder = buildWiredCircuit({
   id: 'ha',
   name: 'HalfAdder',
   // biome-ignore format: 表形式を維持するため
@@ -330,7 +330,7 @@ const halfAdder = wired({
 });
 
 /** 全加算器: 半加算器2つと OR。入力 A, B, Cin / 出力 S, Cout */
-const fullAdder = wired({
+const fullAdder = buildWiredCircuit({
   id: 'fa',
   name: 'FullAdder',
   // biome-ignore format: 表形式を維持するため
@@ -368,7 +368,7 @@ function mainWith(
   ins: boolean[],
   extra: { parts: Part[]; links: Link[] } = { parts: [], links: [] },
 ): CircuitDef {
-  return wired({
+  return buildWiredCircuit({
     id: MAIN_ID,
     name: 'メイン',
     parts: [
@@ -390,7 +390,7 @@ describe('モジュール', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };
-    expect(pinoutOf(comp('u', 'module', { module: 'ha' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
       package: { kind: 'split' },
@@ -413,7 +413,7 @@ describe('モジュール', () => {
       [true, false],
       [true, true],
     ]) {
-      const main = wired(
+      const main = buildWiredCircuit(
         {
           id: MAIN_ID,
           name: 'メイン',
@@ -475,7 +475,7 @@ describe('モジュール', () => {
   });
 
   it('モジュールの中のフリップフロップが状態を保つ', () => {
-    const reg = wired({
+    const reg = buildWiredCircuit({
       id: 'reg',
       name: 'Reg',
       // biome-ignore format: 表形式を維持するため

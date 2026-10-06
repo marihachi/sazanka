@@ -9,10 +9,10 @@ import {
   SHEET_HEIGHT,
   SHEET_WIDTH,
   inputPinPos,
-  outerMargin,
+  calcMarginAroundBody,
   outputPinPos,
   placeOffset,
-  sheetPin,
+  toSheetPin,
   simplifyWire,
   snap,
   wiresInRect,
@@ -20,7 +20,7 @@ import {
 } from './layout';
 import type { Part, PartKind } from '../circuit/part';
 import type { Project } from '../circuit/project';
-import { pinoutOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
 
 describe('clampPosition', () => {
@@ -104,7 +104,7 @@ describe('ピンの位置', () => {
         y: 3 * GRID,
         module: 'mod',
       };
-      const pinout = pinoutOf(c, project);
+      const pinout = getPinout(c, project);
       const pins = [
         ...pinout.inputs.map((_, i) => inputPinPos(c, pinout, i)),
         ...pinout.outputs.map((_, i) => outputPinPos(c, pinout, i)),
@@ -236,7 +236,7 @@ describe('ピンの辺', () => {
 
   it('根元は辺の上、先端は辺から 1 マス外に来る', () => {
     // biome-ignore format: 表形式を維持するため
-    expect([...layout.inputs, ...layout.outputs].map((p) => sheetPin(c, layout, p))).toEqual([
+    expect([...layout.inputs, ...layout.outputs].map((p) => toSheetPin(c, layout, p))).toEqual([
       { side: 'left', base: { x: 100, y: 120 }, tip: { x: 80, y: 120 } },
       { side: 'top', base: { x: 140, y: 100 }, tip: { x: 140, y: 80 } },
       { side: 'right', base: { x: 160, y: 160 }, tip: { x: 180, y: 160 } },
@@ -245,13 +245,13 @@ describe('ピンの辺', () => {
   });
 
   it('上下は、その辺にピンがあるときだけ外の幅を取る', () => {
-    expect(outerMargin(layout)).toEqual({ left: 20, top: 20, right: 20, bottom: 20 });
+    expect(calcMarginAroundBody(layout)).toEqual({ left: 20, top: 20, right: 20, bottom: 20 });
     const sides: PartLayout = {
       ...layout,
       inputs: [layout.inputs[0]],
       outputs: [layout.outputs[0]],
     };
-    expect(outerMargin(sides)).toEqual({ left: 20, top: 0, right: 20, bottom: 0 });
+    expect(calcMarginAroundBody(sides)).toEqual({ left: 20, top: 0, right: 20, bottom: 0 });
   });
 });
 

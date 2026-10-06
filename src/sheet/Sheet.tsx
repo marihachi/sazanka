@@ -19,7 +19,12 @@ import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry
 import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import { portParts, portProblems, pinoutOf, usesPinNumbers } from '../circuit/module';
+import {
+  getPortsInPinOrder,
+  findUnexposedPorts,
+  getPinout,
+  usesPinNumbers,
+} from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
 import type { Tool } from '../simulation/SheetToolbar';
@@ -206,7 +211,7 @@ export function Sheet({
   const pinTips = useMemo(() => {
     const tips = new Set<string>();
     for (const c of circuit.parts) {
-      const pinout = pinoutOf(c, project);
+      const pinout = getPinout(c, project);
       for (let i = 0; i < pinout.inputs.length; i++) {
         const p = inputPinPos(c, pinout, i);
         tips.add(`${p.x},${p.y}`);
@@ -229,7 +234,7 @@ export function Sheet({
     if (circuit.id === MAIN_ID) {
       return new Map<string, number>();
     }
-    const { inputs, outputs } = portParts(circuit);
+    const { inputs, outputs } = getPortsInPinOrder(circuit);
     const numbered = usesPinNumbers(circuit.package);
     return new Map(
       [...inputs, ...outputs].map((c) => [
@@ -239,7 +244,7 @@ export function Sheet({
     );
   }, [circuit]);
   /** 外側のピンに出せないポート (部品 ID → 理由)。印を付ける */
-  const problems = useMemo(() => portProblems(circuit), [circuit]);
+  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {
@@ -264,8 +269,8 @@ export function Sheet({
   });
 
   /** 部品と、そのピンの並び (geometry/layout.ts の計算に渡す形) */
-  function withPinout(parts: Part[]) {
-    return parts.map((c) => ({ c, pinout: pinoutOf(c, project) }));
+  function attachPinouts(parts: Part[]) {
+    return parts.map((c) => ({ c, pinout: getPinout(c, project) }));
   }
 
   /** ポインターの位置を、回路の座標にする */
@@ -447,7 +452,7 @@ export function Sheet({
       setBand({ ...band, end: p });
       const comps = new Set([
         ...(band.base?.comps ?? []),
-        ...partsInRect(withPinout(circuit.parts), band.start, p),
+        ...partsInRect(attachPinouts(circuit.parts), band.start, p),
       ]);
       const wires = new Set([
         ...(band.base?.wires ?? []),
@@ -491,7 +496,7 @@ export function Sheet({
     // どの部品も配線の点もはみ出さないように縮める。部品と配線の点はグリッドに乗っているので、動かしても乗ったまま
     const items = [...drag.comps].flatMap(([id, o]) => {
       const c = compMap.get(id);
-      return c ? [{ c: { ...c, ...o }, pinout: pinoutOf(c, project) }] : [];
+      return c ? [{ c: { ...c, ...o }, pinout: getPinout(c, project) }] : [];
     });
     const d = clampMove(
       items,
@@ -527,7 +532,7 @@ export function Sheet({
         Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
         DRAG_THRESHOLD * 2;
       if (placing && !moved) {
-        onPlace(placeOffset(withPinout(placing.parts), wirePointsOf(placing), toLocal(e)));
+        onPlace(placeOffset(attachPinouts(placing.parts), wirePointsOf(placing), toLocal(e)));
       }
       return;
     }
@@ -686,7 +691,7 @@ export function Sheet({
           })}
 
           {circuit.parts.map((c) => {
-            const pinout = pinoutOf(c, project);
+            const pinout = getPinout(c, project);
             return (
               <SheetPart
                 key={c.id}
@@ -725,7 +730,7 @@ export function Sheet({
             (() => {
               // まだポインターがシートに来ていなければ (スマホなど)、表示している範囲の真ん中に置く
               const d = placeOffset(
-                withPinout(placing.parts),
+                attachPinouts(placing.parts),
                 wirePointsOf(placing),
                 mouse ?? toWorld(view, center()),
               );
@@ -735,7 +740,7 @@ export function Sheet({
                     <path key={w.id} className={styles.wire} d={wirePath(w.points, roundWires)} />
                   ))}
                   {placing.parts.map((c) => {
-                    const pinout = pinoutOf(c, project);
+                    const pinout = getPinout(c, project);
                     return (
                       <SheetPart
                         key={c.id}

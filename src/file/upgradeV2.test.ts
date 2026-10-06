@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pinoutOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 import { checkProject, type Project } from '../circuit/project';
 import { inputPinPos, outputPinPos } from '../geometry/layout';
 import { upgradeProject } from './upgrade';
@@ -121,7 +121,7 @@ describe('古い版から順に変えたときのつながり', () => {
     expect(checkProject(v3)).toBeUndefined();
     const project = v3 as Project;
     const [a, m, q] = project.circuits[0].parts;
-    const pinout = (p: (typeof project.circuits)[0]['parts'][0]) => pinoutOf(p, project);
+    const pinout = (p: (typeof project.circuits)[0]['parts'][0]) => getPinout(p, project);
     const [w1, w2] = project.circuits[0].wires;
     expect(w1.points[0]).toEqual(outputPinPos(a, pinout(a), 0));
     expect(w1.points.at(-1)).toEqual(inputPinPos(m, pinout(m), 1));

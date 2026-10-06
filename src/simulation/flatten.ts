@@ -3,7 +3,7 @@
 
 import type { PinRef } from '../circuit/circuit';
 import { findDef, type CircuitDef, type Project } from '../circuit/project';
-import { portParts } from '../circuit/module';
+import { getPortsInPinOrder } from '../circuit/module';
 import { computeNets, netLinks } from '../geometry/net';
 import type { Netlist } from './sim';
 
@@ -39,7 +39,7 @@ function flattenInto(
       }
       const childPrefix = `${prefix}${c.id}/`;
       flattenInto(project, child, childPrefix, out, [...stack, child.id]);
-      const { inputs, outputs } = portParts(child);
+      const { inputs, outputs } = getPortsInPinOrder(child);
       modules.set(c.id, {
         inputs: inputs.map((k) => childPrefix + k.id),
         outputs: outputs.map((k) => childPrefix + k.id),

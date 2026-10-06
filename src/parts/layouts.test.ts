@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { layoutOf } from './layouts';
+import { getLayout } from './layouts';
 import { PART_VIEWS } from './views';
 
-describe('layoutOf', () => {
+describe('getLayout', () => {
   // 置ける種類すべてと、内部用の BUF
   const kinds = [...Object.keys(PART_VIEWS), 'buf'];
   // ピンの数を変えて確かめる (モジュールはピンの数で高さが変わる)
@@ -15,7 +15,7 @@ describe('layoutOf', () => {
   it('大きさはマスの整数で、ピンは本体の高さの中の整数のマスにある', () => {
     for (const kind of kinds) {
       for (const pins of pinsList) {
-        const layout = layoutOf(kind, pins);
+        const layout = getLayout(kind, pins);
         expect(Number.isInteger(layout.w) && Number.isInteger(layout.h), kind).toBe(true);
         for (const p of [...layout.inputs, ...layout.outputs]) {
           expect(Number.isInteger(p.at) && p.at >= 0 && p.at <= layout.h, kind).toBe(true);
@@ -26,7 +26,7 @@ describe('layoutOf', () => {
 
   it('ピンを、渡したピンの数だけ置く。入力は左、出力は右', () => {
     for (const kind of kinds) {
-      const layout = layoutOf(kind, { inputs: ['', ''], outputs: [''] });
+      const layout = getLayout(kind, { inputs: ['', ''], outputs: [''] });
       expect(
         layout.inputs.map((p) => p.side),
         kind,
@@ -40,16 +40,16 @@ describe('layoutOf', () => {
 
   it('既定と違う配置にした種類は、その配置になる', () => {
     const none = { inputs: [], outputs: [] };
-    expect(layoutOf('output', none).body).toBe('circle');
-    expect(layoutOf('input', none).body).toBe('rounded');
-    expect(layoutOf('module', none).nameAbove).toBe(true);
-    expect(layoutOf('and', none).nameAbove).toBe(false);
+    expect(getLayout('output', none).body).toBe('circle');
+    expect(getLayout('input', none).body).toBe('rounded');
+    expect(getLayout('module', none).nameAbove).toBe(true);
+    expect(getLayout('and', none).nameAbove).toBe(false);
   });
 });
 
 describe('モジュールの dip の配置', () => {
   // 8 ピン。入力は 1 番と 6 番、出力は 3 番。ほかは NC
-  const layout = layoutOf('module', {
+  const layout = getLayout('module', {
     inputs: ['A', 'B'],
     outputs: ['Y'],
     package: { kind: 'dip', pins: 8 },
@@ -78,7 +78,7 @@ describe('モジュールの dip の配置', () => {
 
   it('向きの印を付ける。split には付けない', () => {
     expect(layout.directionMarks).toBe(true);
-    const split = layoutOf('module', { inputs: [''], outputs: [''], package: { kind: 'split' } });
+    const split = getLayout('module', { inputs: [''], outputs: [''], package: { kind: 'split' } });
     expect(split.directionMarks).toBeFalsy();
     expect(split.nc ?? []).toEqual([]);
   });

@@ -4,7 +4,7 @@
 import type { Part } from '../circuit/part';
 import type { Pinout } from '../circuit/module';
 import type { PartLayout, PinPlacement, PinSide } from '../parts/layout';
-import { layoutOf } from '../parts/layouts';
+import { getLayout } from '../parts/layouts';
 
 export const GRID = 20;
 
@@ -20,7 +20,7 @@ export function snap(v: number): number {
 
 /** 部品本体のサイズ。部品の種類の配置 (parts/layouts.ts) のマスを px に直す */
 export function bodySize(c: Part, pinout: Pinout): { w: number; h: number } {
-  const { w, h } = layoutOf(c.kind, pinout);
+  const { w, h } = getLayout(c.kind, pinout);
   return { w: w * GRID, h: h * GRID };
 }
 
@@ -38,12 +38,16 @@ export interface SheetPin {
  * 位置 (at) は本体の上端か左端からのマスなので、部品がグリッド上にあれば、ピンの先もグリッドに乗る。
  * 例: 幅 3 マスの部品が (100, 100) にあり、右の辺の 2 マスめのピンなら、先端は (100 + 4 × 20, 100 + 2 × 20) = (180, 140)
  */
-export function sheetPin(c: Part, layout: PartLayout, p: PinPlacement): SheetPin {
+export function toSheetPin(c: Part, layout: PartLayout, p: PinPlacement): SheetPin {
   const number = p.number === undefined ? {} : { number: p.number };
-  return { side: p.side, ...pinEnds(c, layout, p), ...number };
+  return { side: p.side, ...calcPinBaseAndTip(c, layout, p), ...number };
 }
 
-function pinEnds(c: Part, layout: PartLayout, p: PinPlacement): { base: Point; tip: Point } {
+function calcPinBaseAndTip(
+  c: Part,
+  layout: PartLayout,
+  p: PinPlacement,
+): { base: Point; tip: Point } {
   const right = c.x + layout.w * GRID;
   const bottom = c.y + layout.h * GRID;
   const along = p.at * GRID;
@@ -63,37 +67,37 @@ function pinEnds(c: Part, layout: PartLayout, p: PinPlacement): { base: Point; t
  * 部品のすべてのピン。inputs / outputs の並び順は PinRef.pin の番号。
  * nc はどのポートにもつながらないピン (線と「NC」の文字だけを描く)。directionMarks は向きの印を付けるか
  */
-export function sheetPinsOf(
+export function calcSheetPins(
   c: Part,
   pinout: Pinout,
 ): { inputs: SheetPin[]; outputs: SheetPin[]; nc: SheetPin[]; directionMarks: boolean } {
-  const layout = layoutOf(c.kind, pinout);
+  const layout = getLayout(c.kind, pinout);
   return {
-    inputs: layout.inputs.map((p) => sheetPin(c, layout, p)),
-    outputs: layout.outputs.map((p) => sheetPin(c, layout, p)),
-    nc: (layout.nc ?? []).map((p) => sheetPin(c, layout, p)),
+    inputs: layout.inputs.map((p) => toSheetPin(c, layout, p)),
+    outputs: layout.outputs.map((p) => toSheetPin(c, layout, p)),
+    nc: (layout.nc ?? []).map((p) => toSheetPin(c, layout, p)),
     directionMarks: layout.directionMarks ?? false,
   };
 }
 
 /** 入力ピンの先端座標 */
 export function inputPinPos(c: Part, pinout: Pinout, pin: number): Point {
-  const layout = layoutOf(c.kind, pinout);
+  const layout = getLayout(c.kind, pinout);
   const p = layout.inputs[pin];
   if (!p) {
     throw new Error(`入力ピン ${pin} がありません: ${c.kind}`);
   }
-  return sheetPin(c, layout, p).tip;
+  return toSheetPin(c, layout, p).tip;
 }
 
 /** 出力ピンの先端座標 */
 export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
-  const layout = layoutOf(c.kind, pinout);
+  const layout = getLayout(c.kind, pinout);
   const p = layout.outputs[pin];
   if (!p) {
     throw new Error(`出力ピン ${pin} がありません: ${c.kind}`);
   }
-  return sheetPin(c, layout, p).tip;
+  return toSheetPin(c, layout, p).tip;
 }
 
 /**
@@ -101,7 +105,7 @@ export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
  * 左右はピンの先まで取る (ピンのない辺も 1 マス)。上下は、その辺にピンがあればピンの先まで取る。
  * 上は、本体の上に書く名前 (モジュール名) の分も取る
  */
-export function outerMargin(layout: PartLayout): Rect {
+export function calcMarginAroundBody(layout: PartLayout): Rect {
   const pins = [...layout.inputs, ...layout.outputs, ...(layout.nc ?? [])];
   const has = (side: PinSide) => pins.some((p) => p.side === side);
   return {
@@ -119,7 +123,7 @@ export const SHEET_HEIGHT = GRID * 200;
 /** 部品の本体とピンが、シートからはみ出さないよう位置を補正する。補正後もグリッド上に乗るようにする */
 export function clampPosition(c: Part, pinout: Pinout, p: Point): Point {
   const { w, h } = bodySize(c, pinout);
-  const m = outerMargin(layoutOf(c.kind, pinout));
+  const m = calcMarginAroundBody(getLayout(c.kind, pinout));
   const minX = m.left;
   const minY = m.top;
   // 右端と下端は「本体 + 外の幅」がシートに収まる位置。グリッドに乗るよう切り捨てる。
@@ -167,7 +171,7 @@ export interface Rect {
 /** シート上で部品が占める範囲。本体に加え、ピンの先端と、本体の上に書く名前 (モジュール名) の分を含める */
 export function partBounds(c: Part, pinout: Pinout): Rect {
   const { w, h } = bodySize(c, pinout);
-  const m = outerMargin(layoutOf(c.kind, pinout));
+  const m = calcMarginAroundBody(getLayout(c.kind, pinout));
   return {
     left: c.x - m.left,
     top: c.y - m.top,

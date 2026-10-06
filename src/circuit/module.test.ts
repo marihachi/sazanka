@@ -5,9 +5,9 @@ import {
   assignPinNumbers,
   circuitsUsing,
   dependsOn,
-  portParts,
-  portProblems,
-  pinoutOf,
+  getPortsInPinOrder,
+  findUnexposedPorts,
+  getPinout,
 } from './module';
 import type { CircuitDef } from './project';
 
@@ -53,7 +53,7 @@ describe('モジュールのピン', () => {
       ],
       wires: [],
     };
-    const { inputs, outputs } = portParts(def);
+    const { inputs, outputs } = getPortsInPinOrder(def);
     expect(inputs.map((k) => k.id)).toEqual(['c', 'a', 'b']);
     expect(outputs.map((k) => k.id)).toEqual(['o']);
   });
@@ -65,11 +65,11 @@ describe('モジュールのピン', () => {
         { id: 'm', name: 'M', parts: [], wires: [] },
       ],
     };
-    expect(pinoutOf(comp('u', 'module', { module: 'm' }), project).package).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'm' }), project).package).toEqual({
       kind: 'split',
     });
     // モジュール以外の部品は持たない
-    expect(pinoutOf(comp('g', 'and'), project).package).toBeUndefined();
+    expect(getPinout(comp('g', 'and'), project).package).toBeUndefined();
   });
 
   it('モジュールのピン名は中の INPUT / OUTPUT のラベル。ラベルなしは空文字', () => {
@@ -90,13 +90,13 @@ describe('モジュールのピン', () => {
         },
       ],
     };
-    expect(pinoutOf(comp('u', 'module', { module: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'm' }), project)).toEqual({
       inputs: ['A', ''],
       outputs: ['S'],
       package: { kind: 'split' },
     });
     // 参照先がなければピンなし
-    expect(pinoutOf(comp('u', 'module', { module: 'ない' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'ない' }), project)).toEqual({
       inputs: [],
       outputs: [],
       package: { kind: 'split' },
@@ -105,23 +105,23 @@ describe('モジュールのピン', () => {
 
   it('モジュール以外のピン名は種類で決まる', () => {
     const project = emptyProject();
-    expect(pinoutOf(comp('g', 'and'), project)).toEqual({
+    expect(getPinout(comp('g', 'and'), project)).toEqual({
       inputs: ['', ''],
       outputs: [''],
     });
-    expect(pinoutOf(comp('n', 'not'), project)).toEqual({
+    expect(getPinout(comp('n', 'not'), project)).toEqual({
       inputs: [''],
       outputs: [''],
     });
-    expect(pinoutOf(comp('f', 'jkFlipFlop'), project)).toEqual({
+    expect(getPinout(comp('f', 'jkFlipFlop'), project)).toEqual({
       inputs: ['J', '>', 'K'],
       outputs: ['Q', 'Q̄'],
     });
-    expect(pinoutOf(comp('i', 'input'), project)).toEqual({
+    expect(getPinout(comp('i', 'input'), project)).toEqual({
       inputs: [],
       outputs: [''],
     });
-    expect(pinoutOf(comp('o', 'output'), project)).toEqual({
+    expect(getPinout(comp('o', 'output'), project)).toEqual({
       inputs: [''],
       outputs: [],
     });
@@ -142,11 +142,11 @@ describe('dip のモジュールのピン番号', () => {
       comp('s', 'output', { pinNumber: 8, label: 'S' }),
       comp('c', 'output', { pinNumber: 2, label: 'C' }),
     ]);
-    const { inputs, outputs } = portParts(def);
+    const { inputs, outputs } = getPortsInPinOrder(def);
     expect(inputs.map((c) => c.id)).toEqual(['b', 'a']);
     expect(outputs.map((c) => c.id)).toEqual(['c', 's']);
     const project: Project = { circuits: [emptyProject().circuits[0], def] };
-    expect(pinoutOf(comp('u', 'module', { module: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'm' }), project)).toEqual({
       inputs: ['B', 'A'],
       outputs: ['C', 'S'],
       package: { kind: 'dip', pins: 8 },
@@ -165,7 +165,7 @@ describe('dip のモジュールのピン番号', () => {
       comp('d2', 'output', { pinNumber: 4 }),
       comp('g', 'and', { pinNumber: 5 }),
     ]);
-    expect(portProblems(def)).toEqual(
+    expect(findUnexposedPorts(def)).toEqual(
       new Map([
         ['none', 'unassigned'],
         ['big', 'outOfRange'],
@@ -174,14 +174,14 @@ describe('dip のモジュールのピン番号', () => {
         ['d2', 'duplicate'],
       ]),
     );
-    const { inputs, outputs } = portParts(def);
+    const { inputs, outputs } = getPortsInPinOrder(def);
     expect(inputs.map((c) => c.id)).toEqual(['ok']);
     expect(outputs).toEqual([]);
   });
 
   it('split のモジュールには、外側のピンに出せないポートはない', () => {
     const def: CircuitDef = { ...dip([comp('a', 'input')]), package: { kind: 'split' } };
-    expect(portProblems(def).size).toBe(0);
+    expect(findUnexposedPorts(def).size).toBe(0);
   });
 });
 

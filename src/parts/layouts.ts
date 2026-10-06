@@ -26,8 +26,8 @@ const PART_LAYOUTS: Partial<Record<SpecKind | SpecialKind, PartLayoutOf>> = {
   module: module,
 };
 
-/** 種類の配置。pinout は部品のピンの割り当て (circuit/module.ts の pinoutOf) */
-export function layoutOf(kind: string, pinout: Pinout): PartLayout {
+/** 種類の配置。pinout は部品のピンの割り当て (circuit/module.ts の getPinout) */
+export function getLayout(kind: string, pinout: Pinout): PartLayout {
   const own = (PART_LAYOUTS as Partial<Record<string, PartLayoutOf>>)[kind];
   if (own) {
     return own(pinout);

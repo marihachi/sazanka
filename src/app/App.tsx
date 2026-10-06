@@ -14,7 +14,7 @@ import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
 import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
-import { assignPinNumbers, pinoutOf, portProblems, usesPinNumbers } from '../circuit/module';
+import { assignPinNumbers, getPinout, findUnexposedPorts, usesPinNumbers } from '../circuit/module';
 import { statusHints } from '../hints/hints';
 import { computeNets, isConflict } from '../geometry/net';
 import {
@@ -186,7 +186,7 @@ export function App() {
     if (module) {
       c.module = module;
     }
-    Object.assign(c, clampPosition(c, pinoutOf(c, project), c));
+    Object.assign(c, clampPosition(c, getPinout(c, project), c));
     // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
     setCircuit((cur) => assignPinNumbers(edit.addPart(cur, c), new Set([c.id])));
     setSelection({ comps: [c.id], wires: [] });
@@ -287,7 +287,7 @@ export function App() {
   const nets = useMemo(() => computeNets(circuit, project), [circuit, project]);
   const conflict = nets.nets.some(isConflict);
   // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
-  const problems = useMemo(() => portProblems(circuit), [circuit]);
+  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
 
   const hints = statusHints({
     dragMode,

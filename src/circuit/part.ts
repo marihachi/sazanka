@@ -74,7 +74,7 @@ export function inputPinNames(kind: PartKind): string[] {
     case 'output':
     case 'buf':
       return [''];
-    // モジュールのピン数は中身の回路で決まる (module.ts の pinoutOf)。
+    // モジュールのピン数は中身の回路で決まる (module.ts の getPinout)。
     // シミュレーションでは展開してから数えるので、ここでは 0 でよい
     default:
       return [];

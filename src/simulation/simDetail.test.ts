@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Part, PartKind } from '../circuit/part';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
 import { step, stepCircuit, type Netlist, type SimResult } from './sim';
-import { link, wired } from './testCircuits';
+import { link, buildWiredCircuit } from './testCircuits';
 
 /**
  * 値が落ち着くまで (または最大 ticks まで) 時間を進める。
@@ -200,7 +200,7 @@ describe('前回の結果の引き継ぎ', () => {
 
 describe('モジュール', () => {
   /** D-FF を1つ持つモジュール。入力 D, CLK / 出力 Q */
-  const reg = wired({
+  const reg = buildWiredCircuit({
     id: 'reg',
     name: 'Reg',
     // biome-ignore format: 表形式を維持するため
@@ -220,7 +220,7 @@ describe('モジュール', () => {
 
   /** 同じモジュールを2つ置いたメイン回路 */
   function main(d1: boolean, clk1: boolean, d2: boolean, clk2: boolean): CircuitDef {
-    return wired({
+    return buildWiredCircuit({
       id: MAIN_ID,
       name: 'メイン',
       // biome-ignore format: 表形式を維持するため
@@ -275,7 +275,7 @@ describe('モジュール', () => {
   });
 
   it('自分自身を含むモジュールは展開せず、発振もしない', () => {
-    const self = wired({
+    const self = buildWiredCircuit({
       id: 'self',
       name: '自分',
       // biome-ignore format: 表形式を維持するため
@@ -514,14 +514,14 @@ describe('ゲート遅延', () => {
   });
 
   it('モジュールにしても、中の部品の遅延だけで伝わる', () => {
-    const inner = wired({
+    const inner = buildWiredCircuit({
       id: 'inv',
       name: 'INV',
       parts: [comp('i', 'input'), comp('n', 'not'), comp('o', 'output')],
       links: [link('i', 0, 'n', 0), link('n', 0, 'o', 0)],
     });
     function main(on: boolean): CircuitDef {
-      return wired({
+      return buildWiredCircuit({
         id: MAIN_ID,
         name: 'メイン',
         // biome-ignore format: 表形式を維持するため

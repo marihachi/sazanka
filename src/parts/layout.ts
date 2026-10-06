@@ -45,7 +45,7 @@ export interface PartLayout {
 }
 
 /**
- * 種類の配置。部品のピンの割り当て (circuit/module.ts の pinoutOf) を受け取って配置を返す。
+ * 種類の配置。部品のピンの割り当て (circuit/module.ts の getPinout) を受け取って配置を返す。
  * ピンの数と形はモジュールごとに違うので、部品ごとに渡す
  */
 export type PartLayoutOf = (pinout: Pinout) => PartLayout;

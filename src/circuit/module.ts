@@ -7,8 +7,8 @@ import { findDef, type CircuitDef, type Package, type Project } from './project'
 
 /**
  * 部品のピンの割り当て (ピンの名前と、モジュールの外側のピン番号)。
- * シート上の配置 (parts/layouts.ts の layoutOf) は、これとモジュールの形 (package) から決めるので、形も一緒に持たせる。
- * モジュールのピンと形は中身の回路で決まるので、プロジェクトを読める pinoutOf で作り、配置まで届ける
+ * シート上の配置 (parts/layouts.ts の getLayout) は、これとモジュールの形 (package) から決めるので、形も一緒に持たせる。
+ * モジュールのピンと形は中身の回路で決まるので、プロジェクトを読める getPinout で作り、配置まで届ける
  */
 export interface Pinout {
   /** 入力ピンの名前 (表示用。名前のないピンは空文字)。並び順が PinRef.pin の番号 */
@@ -45,7 +45,7 @@ export type PortProblem = 'unassigned' | 'outOfRange' | 'duplicate';
  * 外側のピンに出せないポート (部品 ID → 理由)。dip / qfp のモジュールだけが持ちうる。
  * 重なりは、どれを出すか決められないので、同じ番号のポートをすべて出さない
  */
-export function portProblems(def: Circuit & { package?: Package }): Map<string, PortProblem> {
+export function findUnexposedPorts(def: Circuit & { package?: Package }): Map<string, PortProblem> {
   const problems = new Map<string, PortProblem>();
   const pkg = def.package;
   if (!usesPinNumbers(pkg)) {
@@ -75,14 +75,14 @@ export function portProblems(def: Circuit & { package?: Package }): Map<string, 
 /**
  * モジュールのピンになる INPUT / OUTPUT。この並びが PinRef.pin の番号になる。
  * split は中の位置の順 (上から、同じ高さなら左から)。
- * dip / qfp はピン番号の順で、外側のピンに出せないポート (portProblems) は除く
+ * dip / qfp はピン番号の順で、外側のピンに出せないポート (findUnexposedPorts) は除く
  */
-export function portParts(def: Circuit & { package?: Package }): {
+export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
   inputs: Part[];
   outputs: Part[];
 } {
   if (usesPinNumbers(def.package)) {
-    const problems = portProblems(def);
+    const problems = findUnexposedPorts(def);
     // 外に出すポートは番号が重ならないので、番号の順に並べれば決まる
     const exposed = def.parts
       .filter((c) => isPort(c) && !problems.has(c.id))
@@ -105,7 +105,7 @@ export function portParts(def: Circuit & { package?: Package }): {
 }
 
 /** 部品のピン名。モジュールは中の INPUT / OUTPUT のラベル、ほかは種類で決まる */
-export function pinoutOf(c: Part, project: Project): Pinout {
+export function getPinout(c: Part, project: Project): Pinout {
   if (c.kind === 'module') {
     const def = findDef(project, c.module);
 
@@ -113,7 +113,7 @@ export function pinoutOf(c: Part, project: Project): Pinout {
       return { inputs: [], outputs: [], package: { kind: 'split' } };
     }
 
-    const { inputs, outputs } = portParts(def);
+    const { inputs, outputs } = getPortsInPinOrder(def);
     const pkg = def.package ?? { kind: 'split' };
     const numberOf = (k: Part) => k.pinNumber ?? 0;
 

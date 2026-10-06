@@ -1,7 +1,7 @@
 // テスト用の回路の作り方 (sim.test.ts と simDetail.test.ts で使う)。アプリからは使わない
 
 import type { Part } from '../circuit/part';
-import { pinoutOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 import type { CircuitDef, Project } from '../circuit/project';
 import { inputPinPos, outputPinPos } from '../geometry/layout';
 import { mustGet } from '../util';
@@ -20,7 +20,7 @@ export function link(from: string, fromPin: number, to: string, toPin: number): 
  * 階段状に置くのは、ほかの部品のピンの先と同じ縦線・横線に並ばないようにして、
  * 配線の端がほかの配線の途中に乗る (意図しないつながりができる) のを避けるため
  */
-export function wired(
+export function buildWiredCircuit(
   def: { id: string; name: string; parts: Part[]; links: Link[] },
   modules?: Project,
 ): CircuitDef {
@@ -35,7 +35,7 @@ export function wired(
   const pinsOf = (c: Part) =>
     c.kind === 'module' && !modules
       ? { inputs: Array(used(c.id, 'to')).fill(''), outputs: Array(used(c.id, 'from')).fill('') }
-      : pinoutOf(c, modules ?? none);
+      : getPinout(c, modules ?? none);
   return {
     id: def.id,
     name: def.name,

@@ -1,8 +1,8 @@
 import type { Part, PartKind } from '../circuit/part';
-import { bodySize, type SheetPin, sheetPinsOf } from '../geometry/layout';
+import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
-import { layoutOf } from '../parts/layouts';
+import { getLayout } from '../parts/layouts';
 import { partSpecOf } from '../parts/specs';
 import { classNames } from '../ui/classNames';
 import styles from './SheetPart.module.css';
@@ -183,10 +183,10 @@ export function SheetPart({
   onBodyDoubleClick,
 }: SheetPartProps) {
   const { w, h } = bodySize(c, pinout);
-  const pins = sheetPinsOf(c, pinout);
+  const pins = calcSheetPins(c, pinout);
   const outline = (
     <BodyOutline
-      body={layoutOf(c.kind, pinout).body}
+      body={getLayout(c.kind, pinout).body}
       x={c.x}
       y={c.y}
       w={w}

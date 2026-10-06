@@ -3,7 +3,7 @@
 // 配線の途中どうしが交わるだけ (交差) ではつながらない
 
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
-import { pinoutOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 import type { Project } from '../circuit/project';
 import { inputPinPos, outputPinPos, type Point } from './layout';
 
@@ -64,7 +64,7 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
   // ピンの先の位置 → そこにあるピン
   const pinsAt = new Map<string, { ref: PinRef; output: boolean }[]>();
   for (const c of circuit.parts) {
-    const pinout = pinoutOf(c, project);
+    const pinout = getPinout(c, project);
     const add = (p: Point, ref: PinRef, output: boolean) => {
       const k = pointKey(p);
       pinsAt.set(k, [...(pinsAt.get(k) ?? []), { ref, output }]);

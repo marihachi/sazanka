@@ -210,6 +210,7 @@ version 3 の形式は、公開するまで変えてよい。公開する時期�
   - 当てはめた結果: コード、テスト、ドキュメント（形式の文書 `v3.md`、用語など）の名前を変えた。型は `Package`、検証は `isPackage`、ピン数の上限は `MAX_PACKAGE_PINS`、変数と引数は `pkg`。`upgradeV2` も `package` を書き込む（version 3 は公開前なので、変換を足さずに直した）。読み込みで断るときの文言は「「（回路の名前）」にパッケージがありません」「「（回路の名前）」に不正なパッケージがあります」。テスト 252 件が通り、ブラウザでも、読み込み・書き出し・DIP の描画と割り当て・断るときの文言を確かめた。
   - パッケージは「モジュールの形」（形の種類とピン数で、本体の大きさとピンを置ける辺と位置が決まるもの）と説明する。「ピンの出し方」とは呼ばない。どのピンにどのポートをつなぐか（割り当て）は、パッケージではなく `pinNumber` で決まる（開発者の指摘）。ドキュメントとコードのコメントの言い方も、これに合わせた。
 - 2026-10-06: 外側のピンと内側のポートの対応を、用語で「ピンの割り当て」と呼ぶ（開発者と決めた）。コードの `Pinout` は、段階 2 で決めたまま（部品のピンの名前と、モジュールの外側のピン番号。配置のためにパッケージも持つ）にする。名前は変えない。
+- 2026-10-06: 関数の名前を、何をするかが分かり、できれば動詞で始まる形にする（[コードの書き方](../../agent/coding-style.md)の「名前」。開発者の指示）。この計画で足した・名前を変えた関数を直した: `sheetPin` → `toSheetPin`、`pinEnds` → `calcPinBaseAndTip`、`sheetPinsOf` → `calcSheetPins`、`outerMargin` → `calcMarginAroundBody`、`portProblems` → `findUnexposedPorts`、`portParts` → `getPortsInPinOrder`、`pinoutOf` → `getPinout`、`layoutOf` → `getLayout`、`withPinout` → `attachPinouts`、`splitLayout` / `dipLayout` → `makeSplitLayout` / `makeDipLayout`、テスト用の `wired` → `buildWiredCircuit`。前からある「〜Of」の名前（`delayOf` など）は、その場所を触るときに直す（開発者と決めた）。この節より上と、段階 1〜3 の記録は、当時の名前のまま残す。
 
 ## 段階
 

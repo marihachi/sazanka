@@ -8,9 +8,9 @@ import type { Pinout } from '../../circuit/module';
 export const module: PartLayoutOf = (pinout) => {
   const pkg = pinout.package;
   if (pkg?.kind === 'dip' && pinout.pinNumbers) {
-    return dipLayout(pinout.pinNumbers, pkg.pins);
+    return makeDipLayout(pinout.pinNumbers, pkg.pins);
   }
-  return splitLayout(pinout);
+  return makeSplitLayout(pinout);
 };
 
 /**
@@ -18,7 +18,7 @@ export const module: PartLayoutOf = (pinout) => {
  * 入力は左、出力は右に、それぞれ上から 1 マスおき (1, 2, 3… マスめ) に並ぶので、高さは多い方のピンの数 + 1 マスにする。
  * 例: ピンが 3 本なら、ピンは 1, 2, 3 マスめで、高さは 4 マス
  */
-function splitLayout(pinout: Pinout): PartLayout {
+function makeSplitLayout(pinout: Pinout): PartLayout {
   return {
     w: 4,
     h: Math.max(pinout.inputs.length, pinout.outputs.length, 1) + 1,
@@ -34,7 +34,7 @@ function splitLayout(pinout: Pinout): PartLayout {
  * 番号は実際の IC と同じく、左上の 1 番から反時計回り: 左の辺を上から下へ 1〜pins/2、右の辺を下から上へ pins/2+1〜pins。
  * 高さは (pins / 2 - 1) × 2 + 2 マス。例: 8 ピンなら左は 1〜4 番 (1, 3, 5, 7 マスめ)、右は下から 5〜8 番、高さは 8 マス
  */
-function dipLayout(numbers: { inputs: number[]; outputs: number[] }, pins: number): PartLayout {
+function makeDipLayout(numbers: { inputs: number[]; outputs: number[] }, pins: number): PartLayout {
   const half = pins / 2;
   const place = (n: number): PinPlacement =>
     n <= half
