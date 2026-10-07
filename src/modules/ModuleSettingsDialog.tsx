@@ -36,7 +36,7 @@ const PACKAGE_KINDS: { value: PackageKind; label: string }[] = [
 
 /**
  * モジュール設定のダイアログ。開いているモジュールのパッケージ (形の種類とピン数) と、ポートの名前と、ピンの割り当てを編集する。
- * 変更は「適用」でまとめて 1 回の編集にする (onApply)。適用する前の設定で、シート上での見え方を見本に出す
+ * 変更は「適用」でまとめて 1 回の編集にする (onApply)。適用する前の設定で、シート上での見え方をプレビューに出す
  */
 export function ModuleSettingsDialog({
   def,
@@ -62,7 +62,7 @@ export function ModuleSettingsDialog({
   const [numbers, setNumbers] = useState(() => initialNumbers(ports));
   // ポートの名前の下書き (部品 ID → 入力中の文字)
   const [labels, setLabels] = useState(() => new Map(ports.map((c) => [c.id, c.label ?? ''])));
-  // 名前の一覧と見本は、打つたびに 128 行の選択肢を作り直すと重いので、入力より遅れて描き直してよい
+  // 名前の一覧とプレビューは、打つたびに 128 行の選択肢を作り直すと重いので、入力より遅れて描き直してよい
   const deferredLabels = useDeferredValue(labels);
   const duplicates = useMemo(() => findDuplicateLabels(labels), [labels]);
 
@@ -276,7 +276,7 @@ export function ModuleSettingsDialog({
           </Stack>
           <Stack gap="2" w={{ base: 'full', md: '72' }} flexShrink={0}>
             <Text textStyle="sm" fontWeight="medium">
-              見本
+              プレビュー
             </Text>
             <Preview def={preview} project={project} />
           </Stack>
@@ -385,7 +385,13 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
   const viewBox = `${r.left - pad} ${r.top - pad} ${r.right - r.left + pad * 2} ${r.bottom - r.top + pad * 2}`;
   return (
     <Box bg="sheet.bg" rounded="l2" borderWidth="1px" h="72">
-      <svg viewBox={viewBox} width="100%" height="100%" role="img" aria-label="モジュールの見本">
+      <svg
+        viewBox={viewBox}
+        width="100%"
+        height="100%"
+        role="img"
+        aria-label="モジュールのプレビュー"
+      >
         <SheetPart
           comp={part}
           pinout={pinout}
@@ -393,6 +399,7 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
           inputValues={pinout.inputs.map(() => false)}
           outputValues={pinout.outputs.map(() => false)}
           selected={false}
+          showPinNumbers
           onBodyDown={() => {}}
           onBodyDoubleClick={() => {}}
         />

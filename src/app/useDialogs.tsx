@@ -23,7 +23,7 @@ export function useDialogs({
   initialMessage?: string;
   preferences: Preferences;
   onPreferencesChange: (preferences: Preferences) => void;
-  /** モジュール設定のダイアログで、設定するモジュールを探し、見本を描くのに使う */
+  /** モジュール設定のダイアログで、設定するモジュールを探し、プレビューを描くのに使う */
   project: Project;
   /** モジュール設定を当てはめる (元に戻せる 1 回の編集にする) */
   onApplyModuleSettings: (

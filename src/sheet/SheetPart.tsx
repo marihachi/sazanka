@@ -54,11 +54,14 @@ function PinLead({
   on,
   direction,
   nc = false,
+  showNumber,
 }: {
   pin: SheetPin;
   on: boolean | undefined;
   direction?: 'in' | 'out';
   nc?: boolean;
+  /** 外側のピン番号を書くか */
+  showNumber: boolean;
 }) {
   const [from, to] =
     pin.side === 'left' || pin.side === 'top' ? [pin.tip, pin.base] : [pin.base, pin.tip];
@@ -72,7 +75,7 @@ function PinLead({
         y2={to.y}
       />
       {direction && <DirectionMark pin={pin} direction={direction} on={on} />}
-      {pin.number !== undefined && <OuterPinNumber pin={pin} />}
+      {showNumber && pin.number !== undefined && <OuterPinNumber pin={pin} />}
       {!nc && <circle className={styles.pin} cx={pin.tip.x} cy={pin.tip.y} r={6} />}
     </g>
   );
@@ -188,17 +191,22 @@ function calcLocalPins(kind: PartKind, pinout: Pinout) {
  * 座標は部品の左上が原点。部品を動かしても props が変わらないので、memo で描き直しを省ける。
  * ピンの多いモジュール (128 ピンなど) をドラッグしても、ピンを描き直さずに済ませるため
  */
+interface PinLeadsProps {
+  kind: PartKind;
+  pinout: Pinout;
+  inputValues: boolean[];
+  outputValues: boolean[];
+  /** 外側のピン番号を書くか */
+  showPinNumbers: boolean;
+}
+
 const PinLeads = memo(function PinLeads({
   kind,
   pinout,
   inputValues,
   outputValues,
-}: {
-  kind: PartKind;
-  pinout: Pinout;
-  inputValues: boolean[];
-  outputValues: boolean[];
-}) {
+  showPinNumbers,
+}: PinLeadsProps) {
   const pins = calcLocalPins(kind, pinout);
   return (
     <>
@@ -209,6 +217,7 @@ const PinLeads = memo(function PinLeads({
           pin={pins.inputs[i]}
           on={v}
           direction={pins.directionMarks ? 'in' : undefined}
+          showNumber={showPinNumbers}
         />
       ))}
       {pinout.outputs.map((_, i) => (
@@ -218,10 +227,11 @@ const PinLeads = memo(function PinLeads({
           pin={pins.outputs[i]}
           on={outputValues[i]}
           direction={pins.directionMarks ? 'out' : undefined}
+          showNumber={showPinNumbers}
         />
       ))}
       {pins.nc.map((p) => (
-        <PinLead key={`nc${p.number}`} pin={p} on={false} nc />
+        <PinLead key={`nc${p.number}`} pin={p} on={false} nc showNumber={showPinNumbers} />
       ))}
     </>
   );
@@ -248,11 +258,9 @@ const PinNames = memo(function PinNames({ kind, pinout }: { kind: PartKind; pino
 }, samePinNames);
 
 /** 描き直すかの判定。ピンの割り当てと値は描き直しのたびに新しい配列で届くので、中身で比べる */
-function samePinLeads(
-  a: { kind: PartKind; pinout: Pinout; inputValues: boolean[]; outputValues: boolean[] },
-  b: { kind: PartKind; pinout: Pinout; inputValues: boolean[]; outputValues: boolean[] },
-): boolean {
+function samePinLeads(a: PinLeadsProps, b: PinLeadsProps): boolean {
   return (
+    a.showPinNumbers === b.showPinNumbers &&
     samePinNames(a, b) &&
     sameArray(a.inputValues, b.inputValues) &&
     sameArray(a.outputValues, b.outputValues)
@@ -294,6 +302,11 @@ interface SheetPartProps {
   outputValues: boolean[];
   inputValues: boolean[];
   selected: boolean;
+  /**
+   * dip / qfp のモジュールの、外側のピン番号を書くか。シート上では書かず (ピンの割り当てはモジュール設定で確かめる)、
+   * モジュール設定のプレビューでだけ書く
+   */
+  showPinNumbers?: boolean;
   /** モジュールの中の INPUT / OUTPUT が、外側のピンに出せないとき、その理由。部品に印を付ける */
   portProblem?: PortProblem;
   onBodyDown: (e: React.PointerEvent) => void;
@@ -307,6 +320,7 @@ export function SheetPart({
   outputValues,
   inputValues,
   selected,
+  showPinNumbers = false,
   portProblem,
   onBodyDown,
   onBodyDoubleClick,
@@ -429,6 +443,7 @@ export function SheetPart({
           pinout={pinout}
           inputValues={inputValues}
           outputValues={outputValues}
+          showPinNumbers={showPinNumbers}
         />
       </g>
       {body}
