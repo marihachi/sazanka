@@ -23,6 +23,7 @@
 ### React を import できるファイル
 
 - React を使うのは `.tsx` と `use*.ts` だけ。それ以外の `.ts` では、`react`、`react-dom`、Chakra UI、Emotion の import を `noRestrictedImports` で禁じている（`biome.json` の `overrides`）。理由は[ソースの構成](structure.md)の「画面と計算の分け方」。
+- カスタムフック（`use*`）のファイルは、JSX を書かなければ `.ts`、書けば `.tsx` にする（例: `useModules.ts`、ダイアログを描いて返す `useDialogs.tsx`）。(開発者からの指示)
 - `ui/theme.ts` だけは禁止から外している。Chakra のテーマの設定で、JSX も状態も持たない画面の側のファイルのため。
 - Biome が見るのは import するパッケージだけ。`.ts` から `.tsx` のコンポーネントを import することは止められないが、これもしない。
 
