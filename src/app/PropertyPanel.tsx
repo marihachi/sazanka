@@ -15,7 +15,7 @@ interface PropertyPanelProps {
   part?: Part;
   /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
-  /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、ポートとして項目を出す */
+  /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、名前の欄を「ポート名」と呼ぶ */
   inModule?: boolean;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
   tickMs: number;
@@ -77,19 +77,12 @@ export const PropertyPanel = memo(function PropertyPanel({
             />
           ) : part.kind === 'input' || part.kind === 'output' ? (
             <>
-              {/* 種類とポート番号は表示だけ。ポート番号は置いたときに決まり、利用者は変えない。
+              {/* ポート番号は表示だけ (「入力 1」の形で、入力か出力かも示す)。置いたときに決まり、利用者は変えない。
                   パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
-              {inModule ? (
-                <ReadOnlyRow label="種類" value={part.kind === 'input' ? '入力' : '出力'} />
-              ) : null}
               {part.portNumber !== undefined && (
                 <ReadOnlyRow
                   label="ポート番号"
-                  value={
-                    inModule
-                      ? String(part.portNumber)
-                      : `${part.kind === 'input' ? '入力' : '出力'} ${part.portNumber}`
-                  }
+                  value={`${part.kind === 'input' ? '入力' : '出力'} ${part.portNumber}`}
                 />
               )}
               <LabelField
@@ -177,7 +170,7 @@ function LabelField({
       <Input
         size="sm"
         value={text}
-        placeholder="ラベルなし"
+        placeholder={title === 'ポート名' ? '名前未設定' : 'ラベルなし'}
         onChange={(e) => {
           setText(e.target.value);
           // ほかのポートと同じ名前は反映しない (欄の文字は残し、エラーを出す)
