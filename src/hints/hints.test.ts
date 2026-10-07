@@ -97,7 +97,9 @@ describe('statusHints', () => {
 
   it('外側のピンに出せないポートがあって何も選んでいなければ、そのことを出す', () => {
     expect(hints({ inModule: true, unexposedPorts: true })).toHaveLength(1);
-    expect(hints({ inModule: true, unexposedPorts: true })[0]).toContain('外側のピンに出ていない');
+    expect(hints({ inModule: true, unexposedPorts: true })[0]).toContain(
+      'ピンに割り当てられていない',
+    );
   });
 
   it('モジュールのヒントは、ピンの決め方 (split か、ピン番号か) で変える', () => {
@@ -105,6 +107,6 @@ describe('statusHints', () => {
     const numbered = hints({ inModule: true, numberedModule: true });
     expect(split.some((h) => h.includes('上下の並び'))).toBe(true);
     expect(numbered.some((h) => h.includes('上下の並び'))).toBe(false);
-    expect(numbered.some((h) => h.includes('ピン番号が付く'))).toBe(true);
+    expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);
   });
 });

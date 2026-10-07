@@ -25,14 +25,14 @@ const IDLE_HINTS = [
   '「一時停止」してから「1 tick 進める」「1 tick 戻す」で、信号が伝わる様子を 1 tick ずつ行き来できる',
   'タブの「+」でモジュールを追加すると、回路を部品としてまとめられる',
   '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
-  'モジュールの中の INPUT / OUTPUT がピンになる。プロパティ欄でラベルを付けるとピン名になる',
+  'モジュールの中の INPUT / OUTPUT に名前を付けると、ピンの名前になる',
 ];
 
 /** モジュールのタブを開いているときに追加で表示するヒント */
 const MODULE_HINTS = [
   'タブをダブルクリックすると、モジュールの名前を変更できる',
   'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
-  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる。部品の上の「入力 1」などはポート番号 (ピン番号とは別)',
+  'INPUT / OUTPUT を置くと、モジュールのピンが増える',
   'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
   'ツールバーの「モジュール設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
 ];
@@ -43,9 +43,7 @@ const SPLIT_MODULE_HINTS = [
 ];
 
 /** パッケージが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、MODULE_HINTS に足すヒント */
-const NUMBERED_MODULE_HINTS = [
-  'INPUT / OUTPUT を置くと、空いているいちばん小さいピン番号が付く。動かしても番号は変わらない',
-];
+const NUMBERED_MODULE_HINTS = ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'];
 
 /** 外側のピンに出せないポートの理由ごとの説明 */
 const PORT_PROBLEM_HINTS: Record<PortProblem, string> = {
@@ -139,9 +137,7 @@ export function statusHints(ctx: HintContext): string[] {
     ];
   }
   if (ctx.unexposedPorts) {
-    return [
-      '番号に「?」の付いた赤い INPUT / OUTPUT は、ピン番号がないか、範囲の外か、ほかと同じ番号のため、外側のピンに出ていない',
-    ];
+    return ['赤い INPUT / OUTPUT はピンに割り当てられていない。「モジュール設定」で割り当てられる'];
   }
   if (!ctx.inModule) {
     return IDLE_HINTS;
