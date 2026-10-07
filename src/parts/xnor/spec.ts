@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const xnor = definePart({
-  kind: 'XNOR',
+  kind: 'xnor',
   shape: 'gate',
   inputs: ['', ''],
   delay: 3,

@@ -24,19 +24,19 @@
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
-- `modules/` … モジュールの追加・改名・削除と、回路の切り替え。
-  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。
+- `modules/` … モジュールの追加・改名・削除・設定と、回路の切り替え。
+  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`ModuleSettingsDialog.tsx` … モジュール設定のダイアログ（パッケージとピンの割り当て。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
-  - `ComponentView.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
+  - `SheetPart.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
   - `useViewGestures.ts` … 表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2 本指）。
   - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。
-  - `Sheet.module.css`、`ComponentView.module.css` … シートのスタイル（[見た目](styling.md)）。
+  - `Sheet.module.css`、`SheetPart.module.css` … シートのスタイル（[見た目](styling.md)）。
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
   - `storage.ts` … localStorage への保存と読み込み。`share.ts` … 共有用 JSON。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。
-  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データと共有用 JSON で共通）。`upgradeV1.ts` … version 1 → 2 の変換。
+  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データと共有用 JSON で共通）。`upgradeV1.ts` … version 1 → 2 の変換。`upgradeV2.ts` … version 2 → 3 の変換。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
@@ -55,13 +55,13 @@
   - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。
   - `view.ts` … 表示（位置と倍率）と、回路の座標と画面の座標の変換。
 - `circuit/` … 回路のデータ。
-  - `component.ts` … 部品のデータ、置ける種類、種類ごとのピンと遅延を引く入口。特別な部品のピン、CLOCK の周期もここ。
+  - `part.ts` … 部品のデータ、置ける種類、種類ごとのピンと遅延を引く入口。特別な部品のピン、CLOCK の周期もここ。
   - `circuit.ts` … 回路 1 つ分のデータ（部品と配線）と ID の作り方。配線は点の並びで、部品を指さない。
   - `project.ts` … プロジェクトの構造と、外から来たデータの検証（`checkProject`）。
-  - `module.ts` … モジュールのピンの決め方と、回路同士の依存（循環の判定）。
+  - `module.ts` … モジュールのピンの決め方（ピン番号の割り当てと、外側のピンに出せないポートの判定を含む）と、回路同士の依存（循環の判定）。
 - `parts/` … 部品の種類（[部品の種類](parts.md)）。
-  - `<種類>/` … 1 種類 1 フォルダ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）。
-  - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は形ごとの既定の配置も）。`specs.ts` … 仕様の一覧（`PARTS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `layoutOf`。`PartIcon.tsx` … 種類のアイコン。
+  - `<種類>/` … 1 種類 1 フォルダ。フォルダの名前は種類の名前（`kind`）と同じ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）。
+  - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は形ごとの既定の配置も）。`specs.ts` … 仕様の一覧（`PART_SPECS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `getLayout`。`PartIcon.tsx` … 種類のアイコン。
 - `ui/` … 回路を知らない、共通の画面部品。
   - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。
@@ -76,6 +76,6 @@
 `app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `util`
 
 - この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。
-- `circuit/` の中では、`module.ts` → `project.ts` → `circuit.ts` → `component.ts` → `parts/` の向きに使う。`component.ts` と `circuit.ts` はプロジェクトを知らず、`project.ts` と `module.ts` は知る。
+- `circuit/` の中では、`module.ts` → `project.ts` → `circuit.ts` → `part.ts` → `parts/` の向きに使う。`part.ts` と `circuit.ts` はプロジェクトを知らず、`project.ts` と `module.ts` は知る。逆向きに、`parts/layout.ts` は配置の入力として `module.ts` の `Pinout` を型だけ import する。
 - `util.ts` は何も import しない。
-- 互いに import し合う形（循環）の落とし穴: 読み込みの途中では、相手のファイルの値がまだできていないことがある。読み込んだ時点で相手の値を使う処理（例: `parts/specs.ts` が読み込み時に `PARTS` から `Map` を作る）が循環に入ると、`undefined` を読んで壊れる。相手の値を関数の中で使うだけのときや、型だけを import するときは問題ない。
+- 互いに import し合う形（循環）の落とし穴: 読み込みの途中では、相手のファイルの値がまだできていないことがある。読み込んだ時点で相手の値を使う処理（例: `parts/specs.ts` が読み込み時に `PART_SPECS` から `Map` を作る）が循環に入ると、`undefined` を読んで壊れる。相手の値を関数の中で使うだけのときや、型だけを import するときは問題ない。

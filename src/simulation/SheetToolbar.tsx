@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Flex } from '@chakra-ui/react';
+import { Flex } from '@chakra-ui/react';
 import selectIcon from '../assets/icons/select.svg';
 import wireIcon from '../assets/icons/wire.svg';
 import pauseIcon from '../assets/icons/pause.svg';
@@ -7,6 +7,7 @@ import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
+import packageIcon from '../assets/icons/package.svg';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
 
 /** シートの操作のモード。配線モードでは、クリックで配線を引く */
@@ -23,6 +24,8 @@ interface SheetToolbarProps {
   /** 一時停止中に 1 tick だけ戻す */
   onStepBack: () => void;
   canStepBack: boolean;
+  /** 開いている回路がモジュールなら、そのモジュール設定 (パッケージとピンの割り当て) を開く。メイン回路では出さない */
+  onModuleSettings?: () => void;
   /** 開いている回路がモジュールなら、それを削除する。メイン回路では出さない */
   onDeleteModule?: () => void;
 }
@@ -39,6 +42,7 @@ export const SheetToolbar = memo(function SheetToolbar({
   onStep,
   onStepBack,
   canStepBack,
+  onModuleSettings,
   onDeleteModule,
 }: SheetToolbarProps) {
   return (
@@ -79,10 +83,20 @@ export const SheetToolbar = memo(function SheetToolbar({
         onClick={onStep}
         disabled={running}
       />
-      {onDeleteModule && (
-        <Box ms="auto">
-          <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
-        </Box>
+      {(onModuleSettings || onDeleteModule) && (
+        <Flex ms="auto" gap="0.5">
+          {onModuleSettings && (
+            <ToolButton
+              icon={packageIcon}
+              label="モジュール設定"
+              title="モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える"
+              onClick={onModuleSettings}
+            />
+          )}
+          {onDeleteModule && (
+            <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
+          )}
+        </Flex>
       )}
     </Flex>
   );

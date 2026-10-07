@@ -4,19 +4,19 @@ import {
   clockPeriodOf,
   DEFAULT_CLOCK_PERIOD,
   isClockPeriod,
-  type Component,
-} from './component';
+  type Part,
+} from './part';
 
-const clock = (period?: number): Component => ({
+const clock = (period?: number): Part => ({
   id: 'c',
-  kind: 'CLOCK',
+  kind: 'clock',
   x: 0,
   y: 0,
   ...(period && { period }),
 });
 
 /** 1 tick 目から ticks tick 目までに切り替わる時刻 */
-function flips(c: Component, ticks: number): number[] {
+function flips(c: Part, ticks: number): number[] {
   return Array.from({ length: ticks }, (_, i) => i + 1).filter((t) => clockFlipsAt(c, t));
 }
 

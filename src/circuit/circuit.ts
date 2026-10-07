@@ -1,12 +1,12 @@
 // 回路 1 つ分のデータ構造。
-// 部品のデータは component.ts (種類ごとの仕様は parts/)、複数の回路をまとめたプロジェクトは project.ts にある
+// 部品のデータは part.ts (種類ごとの仕様は parts/)、複数の回路をまとめたプロジェクトは project.ts にある
 
-import type { Component } from './component';
+import type { Part } from './part';
 import { isObject } from '../util';
 
 /** 回路 */
 export interface Circuit {
-  components: Component[];
+  parts: Part[];
   wires: Wire[];
 }
 

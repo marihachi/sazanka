@@ -5,21 +5,28 @@ import {
   isClockPeriod,
   MAX_CLOCK_PERIOD,
   MIN_CLOCK_PERIOD,
-  type Component,
-} from '../circuit/component';
+  type Part,
+} from '../circuit/part';
 import { shallowEqual } from '../util';
 import { labelOf } from '../parts/views';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
-  component?: Component;
-  /** モジュールの名前 (CUSTOM のとき) */
+  part?: Part;
+  /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
+  /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、名前の欄を「ポート名」と呼ぶ */
+  inModule?: boolean;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
   tickMs: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
   onEditStart: () => void;
   onClockPeriodChange: (id: string, period: number) => void;
+  /**
+   * 選んでいる INPUT / OUTPUT 以外の、同じ回路のポートの名前を、改行でつないだもの。
+   * 同じ名前を付けられないようにするために使う (memo で比べられるよう、集合ではなく文字列で渡す)
+   */
+  otherLabels?: string;
   /** INPUT / OUTPUT のラベルを変えた */
   onLabelChange: (id: string, label: string) => void;
 }
@@ -29,8 +36,10 @@ interface PropertyPanelProps {
  * 狭い画面では、部品を選んでいる間だけ出す (シートを狭くしすぎないため)
  */
 export const PropertyPanel = memo(function PropertyPanel({
-  component,
+  part,
   moduleName,
+  inModule = false,
+  otherLabels = '',
   tickMs,
   onEditStart,
   onClockPeriodChange,
@@ -41,7 +50,7 @@ export const PropertyPanel = memo(function PropertyPanel({
       as="aside"
       aria-label="部品のプロパティ"
       // 狭い画面では、部品を選んでいない間は出さない
-      display={{ base: component ? 'flex' : 'none', md: 'flex' }}
+      display={{ base: part ? 'flex' : 'none', md: 'flex' }}
       w={{ base: '160px', md: '200px' }}
       flexShrink={0}
       gap="3"
@@ -54,25 +63,37 @@ export const PropertyPanel = memo(function PropertyPanel({
       <Text as="h3" textStyle="xs" color="fg.muted">
         プロパティ
       </Text>
-      {component ? (
+      {part ? (
         <>
-          <Text fontWeight="semibold">{moduleName ?? labelOf(component.kind)}</Text>
+          <Text fontWeight="semibold">{moduleName ?? labelOf(part.kind)}</Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
-          {component.kind === 'CLOCK' ? (
+          {part.kind === 'clock' ? (
             <ClockPeriodField
-              key={component.id}
-              clock={component}
+              key={part.id}
+              clock={part}
               tickMs={tickMs}
               onEditStart={onEditStart}
               onChange={onClockPeriodChange}
             />
-          ) : component.kind === 'INPUT' || component.kind === 'OUTPUT' ? (
-            <LabelField
-              key={component.id}
-              component={component}
-              onEditStart={onEditStart}
-              onChange={onLabelChange}
-            />
+          ) : part.kind === 'input' || part.kind === 'output' ? (
+            <>
+              {/* ポート番号は表示だけ (「入力 1」の形で、入力か出力かも示す)。置いたときに決まり、利用者は変えない。
+                  パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
+              {part.portNumber !== undefined && (
+                <ReadOnlyRow
+                  label="ポート番号"
+                  value={`${part.kind === 'input' ? '入力' : '出力'} ${part.portNumber}`}
+                />
+              )}
+              <LabelField
+                key={part.id}
+                part={part}
+                title={inModule ? 'ポート名' : 'ラベル'}
+                otherLabels={otherLabels}
+                onEditStart={onEditStart}
+                onChange={onLabelChange}
+              />
+            </>
           ) : (
             <Text textStyle="xs" color="fg.subtle">
               この部品に設定できる項目はありません
@@ -112,29 +133,52 @@ function useEditSession(onEditStart: () => void) {
  * INPUT / OUTPUT のラベルの入力欄。入力したらすぐに反映する。
  * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
  */
+/** 表示だけの項目 */
+function ReadOnlyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack gap="0.5">
+      <Text textStyle="sm" fontWeight="medium">
+        {label}
+      </Text>
+      <Text textStyle="sm">{value}</Text>
+    </Stack>
+  );
+}
+
 function LabelField({
-  component,
+  part,
+  title,
+  otherLabels,
   onEditStart,
   onChange,
 }: {
-  component: Component;
+  part: Part;
+  /** 欄の名前。モジュールの中では「ポート名」、メイン回路では「ラベル」 */
+  title: string;
+  otherLabels: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
 }) {
-  const [text, setText] = useState(component.label ?? '');
+  const [text, setText] = useState(part.label ?? '');
   const session = useEditSession(onEditStart);
+  const taken = (value: string) =>
+    value.trim() !== '' && otherLabels.split('\n').includes(value.trim());
 
   return (
-    <Field.Root>
-      <Field.Label>ラベル</Field.Label>
+    <Field.Root invalid={taken(text)}>
+      <Field.Label>{title}</Field.Label>
       <Input
         size="sm"
         value={text}
-        placeholder="ラベルなし"
+        placeholder={title === 'ポート名' ? '名前未設定' : 'ラベルなし'}
         onChange={(e) => {
           setText(e.target.value);
+          // ほかのポートと同じ名前は反映しない (欄の文字は残し、エラーを出す)
+          if (taken(e.target.value)) {
+            return;
+          }
           session.begin();
-          onChange(component.id, e.target.value);
+          onChange(part.id, e.target.value);
         }}
         onBlur={session.end}
         onKeyDown={(e) => {
@@ -144,6 +188,7 @@ function LabelField({
           }
         }}
       />
+      <Field.ErrorText>ほかのポートと同じ名前は付けられません</Field.ErrorText>
       <Field.HelperText>モジュールの中では、ピンの名前になります</Field.HelperText>
     </Field.Root>
   );
@@ -160,7 +205,7 @@ function ClockPeriodField({
   onEditStart,
   onChange,
 }: {
-  clock: Component;
+  clock: Part;
   tickMs: number;
   onEditStart: () => void;
   onChange: (id: string, period: number) => void;
@@ -227,8 +272,8 @@ function ClockPeriodField({
  * そのほかの props は、そのまま比べる (App は同じ関数を渡し続ける)
  */
 function samePanel(a: PropertyPanelProps, b: PropertyPanelProps): boolean {
-  const { component: pa, ...ra } = a;
-  const { component: pb, ...rb } = b;
-  const withoutPosition = (c?: Component) => c && { ...c, x: 0, y: 0 };
+  const { part: pa, ...ra } = a;
+  const { part: pb, ...rb } = b;
+  const withoutPosition = (c?: Part) => c && { ...c, x: 0, y: 0 };
   return shallowEqual(withoutPosition(pa), withoutPosition(pb)) && shallowEqual(ra, rb);
 }

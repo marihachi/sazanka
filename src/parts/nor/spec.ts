@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const nor = definePart({
-  kind: 'NOR',
+  kind: 'nor',
   shape: 'gate',
   inputs: ['', ''],
   delay: 1,

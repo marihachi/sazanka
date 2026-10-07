@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { Component, FlipFlopKind, GateKind } from '../circuit/component';
+import type { Part, FlipFlopKind, GateKind } from '../circuit/part';
 import { MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import { dependsOn, portsOf } from '../circuit/module';
+import { dependsOn, getPinout } from '../circuit/module';
 import { stepCircuit, step, type Link, type Netlist, type SimResult } from './sim';
-import { link, wired } from './testCircuits';
+import { link, buildWiredCircuit } from './testCircuits';
 import { mustGet } from '../util';
 
 /**
@@ -35,14 +35,14 @@ function settleProject(project: Project, id: string, prev?: SimResult, ticks = 3
 
 function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
   // biome-ignore format: 表形式を維持するため
-  const comps: Component[] = [
-    { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
-    { id: 'b', kind: 'INPUT', x: 0, y: 0, on: b },
+  const comps: Part[] = [
+    { id: 'a', kind: 'input', x: 0, y: 0, on: a },
+    { id: 'b', kind: 'input', x: 0, y: 0, on: b },
     { id: 'g', kind, x: 0, y: 0 },
-    { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
+    { id: 'o', kind: 'output', x: 0, y: 0 },
   ];
   const circuit: Netlist = {
-    components: comps,
+    parts: comps,
     // biome-ignore format: 表形式を維持するため
     links: [
       { from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } },
@@ -56,12 +56,12 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
 describe('simulate', () => {
   // biome-ignore format: 表形式を維持するため
   const table: [GateKind, boolean[]][] = [
-    ['AND', [false, false, false, true]],
-    ['OR', [false, true, true, true]],
-    ['NAND', [true, true, true, false]],
-    ['NOR', [true, false, false, false]],
-    ['XOR', [false, true, true, false]],
-    ['XNOR', [true, false, false, true]],
+    ['and', [false, false, false, true]],
+    ['or', [false, true, true, true]],
+    ['nand', [true, true, true, false]],
+    ['nor', [true, false, false, false]],
+    ['xor', [false, true, true, false]],
+    ['xnor', [true, false, false, true]],
   ];
   for (const [kind, expected] of table) {
     it(`${kind} の真理値表`, () => {
@@ -76,11 +76,11 @@ describe('simulate', () => {
   }
 
   /** 入力スイッチ a の値を部品 g の pin 0 に入れたときの g の出力 */
-  function oneInput(kind: 'NOT' | 'BUF', a: boolean): boolean {
+  function oneInput(kind: 'not' | 'buf', a: boolean): boolean {
     const r = settle({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        { id: 'a', kind: 'INPUT', x: 0, y: 0, on: a },
+      parts: [
+        { id: 'a', kind: 'input', x: 0, y: 0, on: a },
         { id: 'g', kind, x: 0, y: 0 },
       ],
       links: [{ from: { comp: 'a', pin: 0 }, to: { comp: 'g', pin: 0 } }],
@@ -89,16 +89,16 @@ describe('simulate', () => {
   }
 
   it('NOT は反転し、BUF はそのまま出す', () => {
-    expect([oneInput('NOT', false), oneInput('NOT', true)]).toEqual([true, false]);
-    expect([oneInput('BUF', false), oneInput('BUF', true)]).toEqual([false, true]);
+    expect([oneInput('not', false), oneInput('not', true)]).toEqual([true, false]);
+    expect([oneInput('buf', false), oneInput('buf', true)]).toEqual([false, true]);
   });
 
   it('何もつながっていない入力ピンは OFF として扱う', () => {
     const r = settle({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        { id: 'n', kind: 'NOT', x: 0, y: 0 },
-        { id: 'o', kind: 'OUTPUT', x: 0, y: 0 },
+      parts: [
+        { id: 'n', kind: 'not', x: 0, y: 0 },
+        { id: 'o', kind: 'output', x: 0, y: 0 },
       ],
       links: [],
     });
@@ -110,9 +110,9 @@ describe('simulate', () => {
   it('HIGH は何もつながなくても常に ON を出す', () => {
     const r = settle({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        { id: 'h', kind: 'HIGH', x: 0, y: 0 },
-        { id: 'n', kind: 'NOT', x: 0, y: 0 },
+      parts: [
+        { id: 'h', kind: 'high', x: 0, y: 0 },
+        { id: 'n', kind: 'not', x: 0, y: 0 },
       ],
       links: [{ from: { comp: 'h', pin: 0 }, to: { comp: 'n', pin: 0 } }],
     });
@@ -122,7 +122,7 @@ describe('simulate', () => {
 
   it('CLOCK は on の値をそのまま出す', () => {
     const r = settle({
-      components: [{ id: 'k', kind: 'CLOCK', x: 0, y: 0, on: true }],
+      parts: [{ id: 'k', kind: 'clock', x: 0, y: 0, on: true }],
       links: [],
     });
     expect(r.values.get('k:0')).toBe(true);
@@ -132,7 +132,7 @@ describe('simulate', () => {
     // 遅延があるので毎 tick 反転し続ける。しばらく続いたところで発振とみなす
     const r = settle(
       {
-        components: [{ id: 'n', kind: 'NOT', x: 0, y: 0 }],
+        parts: [{ id: 'n', kind: 'not', x: 0, y: 0 }],
         links: [{ from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
       },
       undefined,
@@ -146,11 +146,11 @@ describe('simulate', () => {
   it('NOR で組んだ RS ラッチが状態を保持する', () => {
     const build = (s: boolean, r: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
-        { id: 'r', kind: 'INPUT', x: 0, y: 0, on: r },
-        { id: 'q', kind: 'NOR', x: 0, y: 0 },
-        { id: 'qn', kind: 'NOR', x: 0, y: 0 },
+      parts: [
+        { id: 's', kind: 'input', x: 0, y: 0, on: s },
+        { id: 'r', kind: 'input', x: 0, y: 0, on: r },
+        { id: 'q', kind: 'nor', x: 0, y: 0 },
+        { id: 'qn', kind: 'nor', x: 0, y: 0 },
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -174,11 +174,11 @@ describe('simulate', () => {
     // 2 つの NOR が同じ値から同じ遅延で動くので、そろって ON と OFF を繰り返す (実物の準安定と同じ)
     const build = (s: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
-      components: [
-        { id: 's', kind: 'INPUT', x: 0, y: 0, on: s },
-        { id: 'r', kind: 'INPUT', x: 0, y: 0 },
-        { id: 'q', kind: 'NOR', x: 0, y: 0 },
-        { id: 'qn', kind: 'NOR', x: 0, y: 0 },
+      parts: [
+        { id: 's', kind: 'input', x: 0, y: 0, on: s },
+        { id: 'r', kind: 'input', x: 0, y: 0 },
+        { id: 'q', kind: 'nor', x: 0, y: 0 },
+        { id: 'qn', kind: 'nor', x: 0, y: 0 },
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -203,11 +203,11 @@ describe('simulate', () => {
     /** 入力スイッチ in0..inN を部品 f の各入力ピンにつないだ回路 */
     function build(kind: FlipFlopKind, ins: boolean[]): Netlist {
       return {
-        components: [
+        parts: [
           ...ins.map(
-            (on, i): Component => ({
+            (on, i): Part => ({
               id: `in${i}`,
-              kind: 'INPUT',
+              kind: 'input',
               x: 0,
               y: 0,
               on,
@@ -239,7 +239,7 @@ describe('simulate', () => {
       // [D, CLK]
       expect(
         // biome-ignore format: 表形式を維持するため
-        run('DFF', [
+        run('dFlipFlop', [
           [H, L],
           [H, H],
           [L, H],
@@ -253,7 +253,7 @@ describe('simulate', () => {
       // [T, CLK]
       expect(
         // biome-ignore format: 表形式を維持するため
-        run('TFF', [
+        run('tFlipFlop', [
           [H, H],
           [H, L],
           [H, H],
@@ -266,7 +266,7 @@ describe('simulate', () => {
     it('JK-FF の動作', () => {
       // [J, CLK, K]
       expect(
-        run('JKFF', [
+        run('jkFlipFlop', [
           [H, H, L], // セット
           [L, L, L],
           [L, H, L], // 保持
@@ -282,14 +282,14 @@ describe('simulate', () => {
 
     it('前回の結果がないときに CLK が ON なら、立ち上がりとみなして1回動く', () => {
       // [D, CLK]
-      expect(run('DFF', [[H, H]])).toEqual([H]);
+      expect(run('dFlipFlop', [[H, H]])).toEqual([H]);
     });
 
     it('RS ラッチはクロックなしで、S / R の変化だけで動く', () => {
       // [S, R]
       expect(
         // biome-ignore format: 表形式を維持するため
-        run('RS', [
+        run('rsLatch', [
           [H, L],
           [L, L],
           [L, H],
@@ -301,22 +301,22 @@ describe('simulate', () => {
   });
 });
 
-function comp(id: string, kind: Component['kind'], extra: Partial<Component> = {}): Component {
+function comp(id: string, kind: Part['kind'], extra: Partial<Part> = {}): Part {
   return { id, kind, x: 0, y: 0, ...extra };
 }
 
 /** 半加算器: 入力 A, B / 出力 S, C */
-const halfAdder = wired({
+const halfAdder = buildWiredCircuit({
   id: 'ha',
   name: 'HalfAdder',
   // biome-ignore format: 表形式を維持するため
-  components: [
-    comp('a', 'INPUT', { label: 'A' }),
-    comp('b', 'INPUT', { label: 'B' }),
-    comp('x', 'XOR'),
-    comp('n', 'AND'),
-    comp('s', 'OUTPUT', { label: 'S' }),
-    comp('c', 'OUTPUT', { label: 'C' }),
+  parts: [
+    comp('a', 'input', { label: 'A' }),
+    comp('b', 'input', { label: 'B' }),
+    comp('x', 'xor'),
+    comp('n', 'and'),
+    comp('s', 'output', { label: 'S' }),
+    comp('c', 'output', { label: 'C' }),
   ],
   // biome-ignore format: 表形式を維持するため
   links: [
@@ -330,19 +330,19 @@ const halfAdder = wired({
 });
 
 /** 全加算器: 半加算器2つと OR。入力 A, B, Cin / 出力 S, Cout */
-const fullAdder = wired({
+const fullAdder = buildWiredCircuit({
   id: 'fa',
   name: 'FullAdder',
   // biome-ignore format: 表形式を維持するため
-  components: [
-    comp('a', 'INPUT'),
-    comp('b', 'INPUT'),
-    comp('ci', 'INPUT'),
-    comp('h1', 'CUSTOM', { custom: 'ha' }),
-    comp('h2', 'CUSTOM', { custom: 'ha' }),
-    comp('or', 'OR'),
-    comp('s', 'OUTPUT'),
-    comp('co', 'OUTPUT'),
+  parts: [
+    comp('a', 'input'),
+    comp('b', 'input'),
+    comp('ci', 'input'),
+    comp('h1', 'module', { module: 'ha' }),
+    comp('h2', 'module', { module: 'ha' }),
+    comp('or', 'or'),
+    comp('s', 'output'),
+    comp('co', 'output'),
   ],
   // biome-ignore format: 表形式を維持するため
   links: [
@@ -358,24 +358,24 @@ const fullAdder = wired({
 });
 
 /**
- * モジュール custom を 1 つ置き、入力ピンに INPUT (値は ins)、出力ピンに OUTPUT をつないだメイン回路。
+ * モジュール module を 1 つ置き、入力ピンに INPUT (値は ins)、出力ピンに OUTPUT をつないだメイン回路。
  * extra の部品とつながりも足す
  */
 function mainWith(
-  custom: string,
+  module: string,
   nIn: number,
   nOut: number,
   ins: boolean[],
-  extra: { components: Component[]; links: Link[] } = { components: [], links: [] },
+  extra: { parts: Part[]; links: Link[] } = { parts: [], links: [] },
 ): CircuitDef {
-  return wired({
+  return buildWiredCircuit({
     id: MAIN_ID,
     name: 'メイン',
-    components: [
-      ...ins.map((on, i) => comp(`i${i}`, 'INPUT', { on })),
-      comp('u', 'CUSTOM', { custom }),
-      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'OUTPUT')),
-      ...extra.components,
+    parts: [
+      ...ins.map((on, i) => comp(`i${i}`, 'input', { on })),
+      comp('u', 'module', { module }),
+      ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'output')),
+      ...extra.parts,
     ],
     links: [
       ...Array.from({ length: nIn }, (_, i) => link(`i${i}`, 0, 'u', i)),
@@ -390,10 +390,55 @@ describe('モジュール', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };
-    expect(portsOf(comp('u', 'CUSTOM', { custom: 'ha' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { module: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
+      package: { kind: 'split' },
     });
+  });
+
+  it('dip のモジュールは、ピン番号の順に中の INPUT / OUTPUT とつながる', () => {
+    // 外側のピン番号: B が 1、C が 2、A が 3、S が 8。PinRef.pin の並びは、入力が B, A、出力が C, S
+    const ha: CircuitDef = {
+      ...halfAdder,
+      package: { kind: 'dip', pins: 8 },
+      parts: halfAdder.parts.map((c) => {
+        const numbers: Record<string, number> = { a: 3, b: 1, c: 2, s: 8 };
+        return c.id in numbers ? { ...c, pinNumber: numbers[c.id] } : c;
+      }),
+    };
+    // biome-ignore format: 表形式を維持するため
+    for (const [b, a] of [
+      [false, false],
+      [true, false],
+      [true, true],
+    ]) {
+      const main = buildWiredCircuit(
+        {
+          id: MAIN_ID,
+          name: 'メイン',
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            comp('i0', 'input', { on: b }),
+            comp('i1', 'input', { on: a }),
+            comp('u', 'module', { module: 'ha' }),
+            comp('o0', 'output'),
+            comp('o1', 'output'),
+          ],
+          // biome-ignore format: 表形式を維持するため
+          links: [
+            link('i0', 0, 'u', 0),
+            link('i1', 0, 'u', 1),
+            link('u', 0, 'o0', 0),
+            link('u', 1, 'o1', 0),
+          ],
+        },
+        { circuits: [ha] },
+      );
+      const r = settleProject({ circuits: [main, ha] }, MAIN_ID);
+      // o0 は C (2 番)、o1 は S (8 番)
+      expect([r.values.get('o0:0'), r.values.get('o1:0')]).toEqual([a && b, a !== b]);
+    }
   });
 
   it('半加算器', () => {
@@ -430,15 +475,15 @@ describe('モジュール', () => {
   });
 
   it('モジュールの中のフリップフロップが状態を保つ', () => {
-    const reg = wired({
+    const reg = buildWiredCircuit({
       id: 'reg',
       name: 'Reg',
       // biome-ignore format: 表形式を維持するため
-      components: [
-        comp('d', 'INPUT'),
-        comp('clk', 'INPUT'),
-        comp('ff', 'DFF'),
-        comp('q', 'OUTPUT'),
+      parts: [
+        comp('d', 'input'),
+        comp('clk', 'input'),
+        comp('ff', 'dFlipFlop'),
+        comp('q', 'output'),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -461,7 +506,7 @@ describe('モジュール', () => {
   it('モジュールのピンが減っても、存在しないピンへの配線は無視して計算する', () => {
     // 半加算器の出力は2本。3本目 (pin 2) があった位置からの配線は、どのピンにもつながらない
     const main = mainWith('ha', 2, 2, [true, true], {
-      components: [comp('o2', 'OUTPUT')],
+      parts: [comp('o2', 'output')],
       links: [link('u', 2, 'o2', 0)],
     });
     const project: Project = { circuits: [main, halfAdder] };
@@ -474,13 +519,13 @@ describe('モジュール', () => {
     const a: CircuitDef = {
       id: 'a',
       name: 'A',
-      components: [comp('s', 'CUSTOM', { custom: 'b' })],
+      parts: [comp('s', 'module', { module: 'b' })],
       wires: [],
     };
     const b: CircuitDef = {
       id: 'b',
       name: 'B',
-      components: [comp('s', 'CUSTOM', { custom: 'a' })],
+      parts: [comp('s', 'module', { module: 'a' })],
       wires: [],
     };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };

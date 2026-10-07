@@ -5,6 +5,8 @@ import { PreferencesDialog } from '../preferences/PreferencesDialog';
 import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
 import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
+import { ModuleSettingsDialog } from '../modules/ModuleSettingsDialog';
+import { findDef, type Package, type Project } from '../circuit/project';
 
 /**
  * 画面内のダイアログの開閉と、描く部分。
@@ -14,11 +16,22 @@ export function useDialogs({
   initialMessage,
   preferences,
   onPreferencesChange,
+  project,
+  onApplyModuleSettings,
 }: {
   /** 開いた直後に出すお知らせ (保存データが読めなかったときなど) */
   initialMessage?: string;
   preferences: Preferences;
   onPreferencesChange: (preferences: Preferences) => void;
+  /** モジュール設定のダイアログで、設定するモジュールを探し、プレビューを描くのに使う */
+  project: Project;
+  /** モジュール設定を当てはめる (元に戻せる 1 回の編集にする) */
+  onApplyModuleSettings: (
+    id: string,
+    pkg: Package,
+    numbers: Map<string, number>,
+    labels: Map<string, string>,
+  ) => void;
 }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(() =>
     initialMessage ? { message: initialMessage } : null,
@@ -27,6 +40,9 @@ export function useDialogs({
   const [text, setText] = useState<TextRequest | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  /** モジュール設定のダイアログで設定しているモジュールの ID */
+  const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null);
+  const moduleSettingsDef = moduleSettingsId ? findDef(project, moduleSettingsId) : undefined;
 
   const element = (
     <>
@@ -45,6 +61,16 @@ export function useDialogs({
           onClose={() => setPreferencesOpen(false)}
         />
       )}
+      {moduleSettingsDef && (
+        <ModuleSettingsDialog
+          def={moduleSettingsDef}
+          project={project}
+          onApply={(pkg, numbers, labels) =>
+            onApplyModuleSettings(moduleSettingsDef.id, pkg, numbers, labels)
+          }
+          onClose={() => setModuleSettingsId(null)}
+        />
+      )}
     </>
   );
 
@@ -57,8 +83,10 @@ export function useDialogs({
     showText: setText,
     openAbout: () => setAboutOpen(true),
     openPreferences: () => setPreferencesOpen(true),
+    /** モジュール id のモジュール設定を開く */
+    openModuleSettings: (id: string) => setModuleSettingsId(id),
     /** どれかのダイアログが開いているか */
-    anyOpen: !!confirm || !!prompt || !!text || aboutOpen || preferencesOpen,
+    anyOpen: !!confirm || !!prompt || !!text || aboutOpen || preferencesOpen || !!moduleSettingsDef,
     element,
   };
 }

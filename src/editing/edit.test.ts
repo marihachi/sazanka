@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addComponent,
+  addPart,
   addParts,
   addWire,
   cloneParts,
@@ -18,11 +18,11 @@ import type { CircuitDef } from '../circuit/project';
 // 配線の点は、編集で点がどう変わるかを確かめるためのもの。つながりは geometry/net.test.ts で確かめる
 const base: Circuit = {
   // biome-ignore format: 表形式を維持するため
-  components: [
-    { id: 'a', kind: 'INPUT', x: 0, y: 0, on: false },
-    { id: 'b', kind: 'INPUT', x: 0, y: 40, on: false },
-    { id: 'g', kind: 'AND', x: 120, y: 0 },
-    { id: 'o', kind: 'OUTPUT', x: 240, y: 20 },
+  parts: [
+    { id: 'a', kind: 'input', x: 0, y: 0, on: false },
+    { id: 'b', kind: 'input', x: 0, y: 40, on: false },
+    { id: 'g', kind: 'and', x: 120, y: 0 },
+    { id: 'o', kind: 'output', x: 240, y: 20 },
   ],
   // biome-ignore format: 表形式を維持するため
   wires: [
@@ -35,13 +35,13 @@ const base: Circuit = {
 describe('edit', () => {
   it('部品を削除しても、つながっていた配線は残る', () => {
     const c = removeParts(base, ['g'], []);
-    expect(c.components.map((k) => k.id)).toEqual(['a', 'b', 'o']);
+    expect(c.parts.map((k) => k.id)).toEqual(['a', 'b', 'o']);
     expect(c.wires).toEqual(base.wires);
   });
 
   it('部品と配線をまとめて削除する', () => {
     const c = removeParts(base, ['a', 'g'], ['w2']);
-    expect(c.components.map((x) => x.id)).toEqual(['b', 'o']);
+    expect(c.parts.map((x) => x.id)).toEqual(['b', 'o']);
     expect(c.wires.map((w) => w.id)).toEqual(['w1', 'w3']);
   });
 
@@ -58,13 +58,13 @@ describe('edit', () => {
 
   it('空白だけのラベルはラベルなしになる', () => {
     const labeled = setLabel(base, 'a', ' x ');
-    expect(labeled.components[0].label).toBe('x');
-    expect(setLabel(labeled, 'a', '  ').components[0].label).toBeUndefined();
+    expect(labeled.parts[0].label).toBe('x');
+    expect(setLabel(labeled, 'a', '  ').parts[0].label).toBeUndefined();
   });
 
   it('部品を足すと末尾に並ぶ', () => {
-    const added = addComponent(base, { id: 'n', kind: 'NOT', x: 0, y: 80 });
-    expect(added.components.map((k) => k.id)).toEqual(['a', 'b', 'g', 'o', 'n']);
+    const added = addPart(base, { id: 'n', kind: 'not', x: 0, y: 80 });
+    expect(added.parts.map((k) => k.id)).toEqual(['a', 'b', 'g', 'o', 'n']);
   });
 
   it('回路定義の ID や名前は編集しても残る', () => {
@@ -73,14 +73,14 @@ describe('edit', () => {
   });
 
   it('スイッチの ON/OFF を切り替える', () => {
-    expect(toggleSwitch(base, 'a').components[0].on).toBe(true);
+    expect(toggleSwitch(base, 'a').parts[0].on).toBe(true);
   });
 
   it('ない部品や配線を指しても、何も変わらない', () => {
     const c = removeParts(base, ['ない'], ['ない']);
-    expect(c.components).toEqual(base.components);
+    expect(c.parts).toEqual(base.parts);
     expect(c.wires).toEqual(base.wires);
-    expect(toggleSwitch(base, 'ない').components).toEqual(base.components);
+    expect(toggleSwitch(base, 'ない').parts).toEqual(base.parts);
   });
 });
 
@@ -99,7 +99,7 @@ describe('moveParts', () => {
         ],
       ]),
     );
-    expect(c.components.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
+    expect(c.parts.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
       { id: 'a', x: 20, y: 20 },
       { id: 'b', x: 0, y: 40 },
       { id: 'g', x: 120, y: 0 },
@@ -120,15 +120,15 @@ describe('moveParts', () => {
 
 describe('コピーと貼り付け', () => {
   it('取り出すのは選んだ部品と配線だけ', () => {
-    const part = extractParts(base, ['a', 'g'], ['w1']);
-    expect(part.components.map((c) => c.id)).toEqual(['a', 'g']);
-    expect(part.wires.map((w) => w.id)).toEqual(['w1']);
+    const fragment = extractParts(base, ['a', 'g'], ['w1']);
+    expect(fragment.parts.map((c) => c.id)).toEqual(['a', 'g']);
+    expect(fragment.wires.map((w) => w.id)).toEqual(['w1']);
   });
 
   it('配線だけでも取り出せる', () => {
-    const part = extractParts(base, [], ['w2', 'w3']);
-    expect(part.components).toEqual([]);
-    expect(part.wires.map((w) => w.id)).toEqual(['w2', 'w3']);
+    const fragment = extractParts(base, [], ['w2', 'w3']);
+    expect(fragment.parts).toEqual([]);
+    expect(fragment.wires.map((w) => w.id)).toEqual(['w2', 'w3']);
   });
 
   it('複製すると新しい ID が付き、部品も配線の点も同じだけずれる', () => {
@@ -137,9 +137,7 @@ describe('コピーと貼り付け', () => {
       x: 40,
       y: 40,
     });
-    expect(clone.components.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
-      { id: 'n1', x: 40, y: 40 },
-    ]);
+    expect(clone.parts.map(({ id, x, y }) => ({ id, x, y }))).toEqual([{ id: 'n1', x: 40, y: 40 }]);
     expect(clone.wires).toEqual([
       {
         id: 'n2',
@@ -158,9 +156,9 @@ describe('コピーと貼り付け', () => {
       y: 40,
     });
     const c = addParts(base, clone);
-    expect(c.components).toHaveLength(base.components.length + 2);
+    expect(c.parts).toHaveLength(base.parts.length + 2);
     expect(c.wires).toHaveLength(base.wires.length + 1);
-    expect(c.components.slice(0, base.components.length)).toEqual(base.components);
+    expect(c.parts.slice(0, base.parts.length)).toEqual(base.parts);
   });
 });
 
@@ -175,6 +173,6 @@ describe('selectionOf', () => {
 describe('setClockPeriod', () => {
   it('CLOCK の周期を変える', () => {
     const c = setClockPeriod(base, 'a', 20);
-    expect(c.components.find((x) => x.id === 'a')?.period).toBe(20);
+    expect(c.parts.find((x) => x.id === 'a')?.period).toBe(20);
   });
 });

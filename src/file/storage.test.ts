@@ -10,7 +10,7 @@ describe('readStored', () => {
   });
 
   it('版付きの保存データを読み込む', () => {
-    expect(readStored(JSON.stringify({ version: 2, project }))).toEqual({
+    expect(readStored(JSON.stringify({ version: 3, project }))).toEqual({
       project,
     });
   });
@@ -55,9 +55,43 @@ describe('readStored', () => {
         },
       ],
     };
-    const result = readStored(JSON.stringify({ version: 1, project: withSwitch }));
+    const result = readStored(JSON.stringify({ version: 2, project: withSwitch }));
     expect(result.error).toBeUndefined();
-    expect(result.project.circuits[0].components[0].on).toBeUndefined();
+    expect(result.project.circuits[0].parts[0].on).toBeUndefined();
+  });
+
+  it('version 2 のデータは、version 3 の形に変えて読み込む', () => {
+    const v2 = {
+      circuits: [
+        {
+          id: 'main',
+          name: 'メイン',
+          components: [{ id: 'm', kind: 'CUSTOM', x: 100, y: 0, custom: 'mod' }],
+          wires: [],
+        },
+        { id: 'mod', name: 'M', components: [{ id: 'd', kind: 'DFF', x: 0, y: 0 }], wires: [] },
+      ],
+    };
+    const result = readStored(JSON.stringify({ version: 2, project: v2 }));
+    expect(result).toEqual({
+      project: {
+        circuits: [
+          {
+            id: 'main',
+            name: 'メイン',
+            parts: [{ id: 'm', kind: 'module', x: 100, y: 0, module: 'mod' }],
+            wires: [],
+          },
+          {
+            id: 'mod',
+            name: 'M',
+            package: { kind: 'split' },
+            parts: [{ id: 'd', kind: 'dFlipFlop', x: 0, y: 0 }],
+            wires: [],
+          },
+        ],
+      },
+    });
   });
 
   it('新しい版のデータは読み込まず、理由を返す', () => {

@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const or = definePart({
-  kind: 'OR',
+  kind: 'or',
   shape: 'gate',
   inputs: ['', ''],
   delay: 2,

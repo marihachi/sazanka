@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import type { Wire } from '../circuit/circuit';
 import type { Project } from '../circuit/project';
 import { computeNets, isConflict, isOnWire, netLinks } from './net';
@@ -14,15 +14,15 @@ function wire(id: string, ...points: [number, number][]): Wire {
 // INPUT a の出力ピンの先は (60, 20)、INPUT b は (60, 220)。
 // OUTPUT o の入力ピンの先は (380, 20)、OUTPUT p は (380, 220)
 // biome-ignore format: 表形式を維持するため
-const comps: Component[] = [
-  { id: 'a', kind: 'INPUT', x: 0, y: 0 },
-  { id: 'b', kind: 'INPUT', x: 0, y: 200 },
-  { id: 'o', kind: 'OUTPUT', x: 400, y: 0 },
-  { id: 'p', kind: 'OUTPUT', x: 400, y: 200 },
+const comps: Part[] = [
+  { id: 'a', kind: 'input', x: 0, y: 0 },
+  { id: 'b', kind: 'input', x: 0, y: 200 },
+  { id: 'o', kind: 'output', x: 400, y: 0 },
+  { id: 'p', kind: 'output', x: 400, y: 200 },
 ];
 
 function nets(...wires: Wire[]) {
-  return computeNets({ components: comps, wires }, project);
+  return computeNets({ parts: comps, wires }, project);
 }
 
 describe('isOnWire', () => {
@@ -133,5 +133,78 @@ describe('netLinks', () => {
   it('出力ピンのないネットからは何も作らない', () => {
     const r = nets(wire('w', [380, 20], [380, 220]));
     expect(netLinks(r.nets)).toEqual([]);
+  });
+});
+
+describe('NC のピン', () => {
+  it('NC のピンの先に配線の端があっても、つながらない', () => {
+    // 4 ピンの dip のモジュール。1 番だけが入力 (A)、2〜4 番は NC
+    const project: Project = {
+      circuits: [
+        { id: 'main', name: 'メイン', parts: [], wires: [] },
+        {
+          id: 'm',
+          name: 'M',
+          package: { kind: 'dip', pins: 4 },
+          parts: [{ id: 'a', kind: 'input', x: 0, y: 0, pinNumber: 1 }],
+          wires: [],
+        },
+      ],
+    };
+    // モジュールを (200, 200) に置くと、1 番の先は (180, 220)、2 番 (NC) の先は (180, 260)
+    const parts: Part[] = [
+      { id: 'u', kind: 'module', module: 'm', x: 200, y: 200 },
+      { id: 'b', kind: 'input', x: 0, y: 200 },
+    ];
+    const toPin1 = computeNets({ parts, wires: [wire('w', [60, 220], [180, 220])] }, project);
+    expect(toPin1.nets.find((n) => n.wires.includes('w'))?.inputs).toEqual([{ comp: 'u', pin: 0 }]);
+    const toNc = computeNets({ parts, wires: [wire('w', [60, 220], [180, 260])] }, project);
+    expect(toNc.nets.find((n) => n.wires.includes('w'))?.inputs).toEqual([]);
+  });
+});
+
+describe('上下の辺のピン', () => {
+  it('qfp のモジュールの上と下のピンの先に配線の端があれば、つながる', () => {
+    // 8 ピンの qfp (1 辺 6 マス)。8 番 (上の辺の左から 2 マスめ) が入力、3 番 (下の辺の左から 2 マスめ) が出力
+    const project: Project = {
+      circuits: [
+        { id: 'main', name: 'メイン', parts: [], wires: [] },
+        {
+          id: 'm',
+          name: 'M',
+          package: { kind: 'qfp', pins: 8 },
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            { id: 'a', kind: 'input', x: 0, y: 0, pinNumber: 8 },
+            { id: 'q', kind: 'output', x: 100, y: 0, pinNumber: 3 },
+          ],
+          wires: [],
+        },
+      ],
+    };
+    // モジュールを (200, 200) に置くと、8 番の先は (240, 180)、3 番の先は (240, 340)。
+    // INPUT b の出力ピンの先は (60, 20)、OUTPUT o の入力ピンの先は (380, 320)
+    const parts: Part[] = [
+      { id: 'u', kind: 'module', module: 'm', x: 200, y: 200 },
+      { id: 'b', kind: 'input', x: 0, y: 0 },
+      { id: 'o', kind: 'output', x: 400, y: 300 },
+    ];
+    const result = computeNets(
+      {
+        parts,
+        // biome-ignore format: 表形式を維持するため
+        wires: [
+          wire('top', [60, 20], [240, 20], [240, 180]),
+          wire('bottom', [240, 340], [380, 340], [380, 320]),
+        ],
+      },
+      project,
+    );
+    expect(result.nets.find((n) => n.wires.includes('top'))?.inputs).toEqual([
+      { comp: 'u', pin: 0 },
+    ]);
+    expect(result.nets.find((n) => n.wires.includes('bottom'))?.outputs).toEqual([
+      { comp: 'u', pin: 0 },
+    ]);
   });
 });

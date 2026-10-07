@@ -3,36 +3,39 @@ import {
   bodySize,
   clampMove,
   clampPosition,
-  componentBounds,
-  componentsInRect,
+  partBounds,
+  partsInRect,
   GRID,
   SHEET_HEIGHT,
   SHEET_WIDTH,
   inputPinPos,
+  calcMarginAroundBody,
   outputPinPos,
   placeOffset,
+  toSheetPin,
   simplifyWire,
   snap,
   wiresInRect,
   wireStepTo,
 } from './layout';
-import type { Component, ComponentKind } from '../circuit/component';
+import type { Part, PartKind } from '../circuit/part';
 import type { Project } from '../circuit/project';
-import { portsOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
+import type { PartLayout } from '../parts/layout';
 
 describe('clampPosition', () => {
-  const and: Component = { id: 'g', kind: 'AND', x: 0, y: 0 };
-  const ports = { inputs: ['', ''], outputs: [''] };
+  const and: Part = { id: 'g', kind: 'and', x: 0, y: 0 };
+  const pinout = { inputs: ['', ''], outputs: [''] };
 
   it('シートの中ならそのまま', () => {
-    expect(clampPosition(and, ports, { x: 100, y: 100 })).toEqual({
+    expect(clampPosition(and, pinout, { x: 100, y: 100 })).toEqual({
       x: 100,
       y: 100,
     });
   });
 
   it('左上にはみ出すと、入力ピンの先端が収まる位置に戻す', () => {
-    expect(clampPosition(and, ports, { x: -60, y: -40 })).toEqual({
+    expect(clampPosition(and, pinout, { x: -60, y: -40 })).toEqual({
       x: 20,
       y: 0,
     });
@@ -40,39 +43,39 @@ describe('clampPosition', () => {
 
   it('右下にはみ出すと、出力ピンの先端と本体が収まるグリッド位置に戻す', () => {
     // 幅 60 + 出力ピン 20、高さ 80
-    expect(clampPosition(and, ports, { x: 99999, y: 99999 })).toEqual({
+    expect(clampPosition(and, pinout, { x: 99999, y: 99999 })).toEqual({
       x: SHEET_WIDTH - 80,
       y: SHEET_HEIGHT - 80,
     });
   });
 
   it('モジュールは本体の上の名前の分も空ける', () => {
-    const mod: Component = { id: 'm', kind: 'CUSTOM', x: 0, y: 0 };
+    const mod: Part = { id: 'm', kind: 'module', x: 0, y: 0 };
     expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }).y).toBe(20);
   });
 });
 
 describe('ピンの位置', () => {
   it('部品がグリッド上にあれば、すべてのピンの先端もグリッド上に来る', () => {
-    const kinds: ComponentKind[] = [
-      'AND',
-      'OR',
-      'NOT',
-      'NAND',
-      'NOR',
-      'XOR',
-      'BUF',
-      'RS',
-      'RSEN',
-      'DLATCH',
-      'DFF',
-      'TFF',
-      'JKFF',
-      'INPUT',
-      'CLOCK',
-      'HIGH',
-      'OUTPUT',
-      'CUSTOM',
+    const kinds: PartKind[] = [
+      'and',
+      'or',
+      'not',
+      'nand',
+      'nor',
+      'xor',
+      'buf',
+      'rsLatch',
+      'rsEnLatch',
+      'dLatch',
+      'dFlipFlop',
+      'tFlipFlop',
+      'jkFlipFlop',
+      'input',
+      'clock',
+      'high',
+      'output',
+      'module',
     ];
     // ピンが 3 入力 2 出力のモジュール
     const project: Project = {
@@ -82,29 +85,29 @@ describe('ピンの位置', () => {
           name: 'M',
           wires: [],
           // biome-ignore format: 表形式を維持するため
-          components: [
-            { id: 'a', kind: 'INPUT', x: 0, y: 0 },
-            { id: 'b', kind: 'INPUT', x: 0, y: 40 },
-            { id: 'c', kind: 'INPUT', x: 0, y: 80 },
-            { id: 'p', kind: 'OUTPUT', x: 0, y: 0 },
-            { id: 'q', kind: 'OUTPUT', x: 0, y: 40 },
+          parts: [
+            { id: 'a', kind: 'input', x: 0, y: 0 },
+            { id: 'b', kind: 'input', x: 0, y: 40 },
+            { id: 'c', kind: 'input', x: 0, y: 80 },
+            { id: 'p', kind: 'output', x: 0, y: 0 },
+            { id: 'q', kind: 'output', x: 0, y: 40 },
           ],
         },
       ],
     };
     const onGrid = (v: number) => v % GRID === 0;
     for (const kind of kinds) {
-      const c: Component = {
+      const c: Part = {
         id: 'x',
         kind,
         x: 2 * GRID,
         y: 3 * GRID,
-        custom: 'mod',
+        module: 'mod',
       };
-      const ports = portsOf(c, project);
+      const pinout = getPinout(c, project);
       const pins = [
-        ...ports.inputs.map((_, i) => inputPinPos(c, ports, i)),
-        ...ports.outputs.map((_, i) => outputPinPos(c, ports, i)),
+        ...pinout.inputs.map((_, i) => inputPinPos(c, pinout, i)),
+        ...pinout.outputs.map((_, i) => outputPinPos(c, pinout, i)),
       ];
       for (const p of pins) {
         expect(onGrid(p.x) && onGrid(p.y), `${kind} (${p.x}, ${p.y})`).toBe(true);
@@ -114,7 +117,7 @@ describe('ピンの位置', () => {
 });
 
 describe('bodySize', () => {
-  const comp = (kind: ComponentKind): Component => ({
+  const comp = (kind: PartKind): Part => ({
     id: 'x',
     kind,
     x: 0,
@@ -123,16 +126,16 @@ describe('bodySize', () => {
   const none = { inputs: [], outputs: [] };
 
   it('入出力の部品は正方形、ゲートとフリップフロップは同じ高さ', () => {
-    expect(bodySize(comp('INPUT'), none)).toEqual({ w: 40, h: 40 });
-    expect(bodySize(comp('HIGH'), none)).toEqual({ w: 40, h: 40 });
-    expect(bodySize(comp('OUTPUT'), none)).toEqual({ w: 40, h: 40 });
-    expect(bodySize(comp('AND'), none)).toEqual({ w: 60, h: 80 });
-    expect(bodySize(comp('DFF'), none)).toEqual({ w: 60, h: 80 });
+    expect(bodySize(comp('input'), none)).toEqual({ w: 40, h: 40 });
+    expect(bodySize(comp('high'), none)).toEqual({ w: 40, h: 40 });
+    expect(bodySize(comp('output'), none)).toEqual({ w: 40, h: 40 });
+    expect(bodySize(comp('and'), none)).toEqual({ w: 60, h: 80 });
+    expect(bodySize(comp('dFlipFlop'), none)).toEqual({ w: 60, h: 80 });
   });
 
   it('モジュールはピンの多いほうに合わせて高くなる', () => {
     const size = (nIn: number, nOut: number) =>
-      bodySize(comp('CUSTOM'), {
+      bodySize(comp('module'), {
         inputs: Array(nIn).fill(''),
         outputs: Array(nOut).fill(''),
       });
@@ -145,15 +148,15 @@ describe('bodySize', () => {
 
 describe('ピンの位置', () => {
   it('2入力のゲートは上下端から1グリッド内側、出力は中央', () => {
-    const and: Component = { id: 'g', kind: 'AND', x: 100, y: 100 };
-    const ports = { inputs: ['', ''], outputs: [''] };
-    expect(inputPinPos(and, ports, 0)).toEqual({ x: 80, y: 120 });
-    expect(inputPinPos(and, ports, 1)).toEqual({ x: 80, y: 160 });
-    expect(outputPinPos(and, ports, 0)).toEqual({ x: 180, y: 140 });
+    const and: Part = { id: 'g', kind: 'and', x: 100, y: 100 };
+    const pinout = { inputs: ['', ''], outputs: [''] };
+    expect(inputPinPos(and, pinout, 0)).toEqual({ x: 80, y: 120 });
+    expect(inputPinPos(and, pinout, 1)).toEqual({ x: 80, y: 160 });
+    expect(outputPinPos(and, pinout, 0)).toEqual({ x: 180, y: 140 });
   });
 
   it('1入力のゲートは入力も中央', () => {
-    const not: Component = { id: 'n', kind: 'NOT', x: 100, y: 100 };
+    const not: Part = { id: 'n', kind: 'not', x: 100, y: 100 };
     expect(inputPinPos(not, { inputs: [''], outputs: [''] }, 0)).toEqual({
       x: 80,
       y: 140,
@@ -161,12 +164,12 @@ describe('ピンの位置', () => {
   });
 
   it('フリップフロップは入力が上から順、Q と Q̄ は上下端から1グリッド内側', () => {
-    const ff: Component = { id: 'f', kind: 'DFF', x: 100, y: 100 };
-    const ports = { inputs: ['D', '>'], outputs: ['Q', 'Q̄'] };
-    expect(inputPinPos(ff, ports, 0).y).toBe(120);
-    expect(inputPinPos(ff, ports, 1).y).toBe(140);
-    expect(outputPinPos(ff, ports, 0).y).toBe(120);
-    expect(outputPinPos(ff, ports, 1).y).toBe(160);
+    const ff: Part = { id: 'f', kind: 'dFlipFlop', x: 100, y: 100 };
+    const pinout = { inputs: ['D', '>'], outputs: ['Q', 'Q̄'] };
+    expect(inputPinPos(ff, pinout, 0).y).toBe(120);
+    expect(inputPinPos(ff, pinout, 1).y).toBe(140);
+    expect(outputPinPos(ff, pinout, 0).y).toBe(120);
+    expect(outputPinPos(ff, pinout, 1).y).toBe(160);
   });
 });
 
@@ -179,11 +182,11 @@ describe('snap', () => {
 });
 
 describe('clampMove', () => {
-  const ports = { inputs: ['', ''], outputs: [''] };
+  const pinout = { inputs: ['', ''], outputs: [''] };
   // biome-ignore format: 表形式を維持するため
   const items = [
-    { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
-    { c: { id: 'b', kind: 'AND', x: 200, y: 20 } as Component, ports },
+    { c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout },
+    { c: { id: 'b', kind: 'and', x: 200, y: 20 } as Part, pinout },
   ];
 
   it('どれもはみ出さなければそのまま', () => {
@@ -196,10 +199,10 @@ describe('clampMove', () => {
   });
 });
 
-describe('componentBounds', () => {
+describe('partBounds', () => {
   it('本体に、左右のピンの先端を含める', () => {
-    const and: Component = { id: 'g', kind: 'AND', x: 100, y: 100 };
-    expect(componentBounds(and, { inputs: ['', ''], outputs: [''] })).toEqual({
+    const and: Part = { id: 'g', kind: 'and', x: 100, y: 100 };
+    expect(partBounds(and, { inputs: ['', ''], outputs: [''] })).toEqual({
       left: 80,
       top: 100,
       right: 180,
@@ -208,44 +211,83 @@ describe('componentBounds', () => {
   });
 
   it('モジュールは本体の上の名前の分も含める', () => {
-    const mod: Component = { id: 'm', kind: 'CUSTOM', x: 100, y: 100 };
-    expect(componentBounds(mod, { inputs: [''], outputs: [''] }).top).toBe(80);
+    const mod: Part = { id: 'm', kind: 'module', x: 100, y: 100 };
+    expect(partBounds(mod, { inputs: [''], outputs: [''] }).top).toBe(80);
   });
 });
 
-describe('componentsInRect', () => {
-  const ports = { inputs: ['', ''], outputs: [''] };
+describe('ピンの辺', () => {
+  // 幅 3、高さ 4 マスの本体の、4 つの辺に 1 本ずつピンを置いた配置
+  const layout: PartLayout = {
+    w: 3,
+    h: 4,
+    body: 'rect',
+    inputs: [
+      { side: 'left', at: 1 },
+      { side: 'top', at: 2 },
+    ],
+    outputs: [
+      { side: 'right', at: 3 },
+      { side: 'bottom', at: 1 },
+    ],
+    nameAbove: false,
+  };
+  const c: Part = { id: 'x', kind: 'module', x: 100, y: 100 };
+
+  it('根元は辺の上、先端は辺から 1 マス外に来る', () => {
+    // biome-ignore format: 表形式を維持するため
+    expect([...layout.inputs, ...layout.outputs].map((p) => toSheetPin(c, layout, p))).toEqual([
+      { side: 'left', base: { x: 100, y: 120 }, tip: { x: 80, y: 120 } },
+      { side: 'top', base: { x: 140, y: 100 }, tip: { x: 140, y: 80 } },
+      { side: 'right', base: { x: 160, y: 160 }, tip: { x: 180, y: 160 } },
+      { side: 'bottom', base: { x: 120, y: 180 }, tip: { x: 120, y: 200 } },
+    ]);
+  });
+
+  it('上下は、その辺にピンがあるときだけ外の幅を取る', () => {
+    expect(calcMarginAroundBody(layout)).toEqual({ left: 20, top: 20, right: 20, bottom: 20 });
+    const sides: PartLayout = {
+      ...layout,
+      inputs: [layout.inputs[0]],
+      outputs: [layout.outputs[0]],
+    };
+    expect(calcMarginAroundBody(sides)).toEqual({ left: 20, top: 0, right: 20, bottom: 0 });
+  });
+});
+
+describe('partsInRect', () => {
+  const pinout = { inputs: ['', ''], outputs: [''] };
   // AND の本体は 60×80
   // biome-ignore format: 表形式を維持するため
   const items = [
-    { c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports },
-    { c: { id: 'b', kind: 'AND', x: 300, y: 100 } as Component, ports },
+    { c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout },
+    { c: { id: 'b', kind: 'and', x: 300, y: 100 } as Part, pinout },
   ];
 
   it('本体の全体が収まる部品だけを選ぶ', () => {
-    expect(componentsInRect(items, { x: 100, y: 100 }, { x: 160, y: 180 })).toEqual(['a']);
+    expect(partsInRect(items, { x: 100, y: 100 }, { x: 160, y: 180 })).toEqual(['a']);
   });
 
   it('一部がかかっただけの部品は選ばない', () => {
-    expect(componentsInRect(items, { x: 100, y: 100 }, { x: 159, y: 180 })).toEqual([]);
+    expect(partsInRect(items, { x: 100, y: 100 }, { x: 159, y: 180 })).toEqual([]);
   });
 
   it('範囲の向き (どの角から始めたか) によらない', () => {
-    expect(componentsInRect(items, { x: 400, y: 200 }, { x: 90, y: 90 })).toEqual(['a', 'b']);
+    expect(partsInRect(items, { x: 400, y: 200 }, { x: 90, y: 90 })).toEqual(['a', 'b']);
   });
 });
 
 describe('placeOffset', () => {
-  const ports = { inputs: ['', ''], outputs: [''] };
+  const pinout = { inputs: ['', ''], outputs: [''] };
 
   it('全体の中心が指定した点に来るよう、グリッドに合わせて動かす', () => {
     // 範囲は左右のピンを含めて x: 80〜180、y: 100〜180 なので、中心は (130, 140)
-    const items = [{ c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports }];
+    const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
     expect(placeOffset(items, [], { x: 530, y: 345 })).toEqual({ x: 400, y: 200 });
   });
 
   it('シートからはみ出す位置なら縮める', () => {
-    const items = [{ c: { id: 'a', kind: 'AND', x: 100, y: 100 } as Component, ports }];
+    const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
     expect(placeOffset(items, [], { x: 0, y: 0 })).toEqual({ x: -80, y: -100 });
   });
 });

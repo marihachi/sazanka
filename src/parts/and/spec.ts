@@ -3,7 +3,7 @@
 import { definePart } from '../spec';
 
 export const and = definePart({
-  kind: 'AND',
+  kind: 'and',
   shape: 'gate',
   inputs: ['', ''],
   delay: 2,

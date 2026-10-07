@@ -6,11 +6,12 @@ import {
   checkProject,
   withoutSwitchStates,
 } from '../circuit/project';
+import { fillPortNumbers } from '../circuit/module';
 import { isObject } from '../util';
 import { upgradeProject } from './upgrade';
 
 /** 共有用 JSON の形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const SHARE_VERSION = 2;
+const SHARE_VERSION = 3;
 
 interface ShareData {
   /** sazanka の共有データであることの目印 */
@@ -33,7 +34,7 @@ function renameIds(
 ): CircuitDef {
   return {
     ...def,
-    components: def.components.map((c, i) => ({ ...c, id: partId(i) })),
+    parts: def.parts.map((c, i) => ({ ...c, id: partId(i) })),
     wires: def.wires.map((w, i) => ({ ...w, id: wireId(i) })),
   };
 }
@@ -87,13 +88,13 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   if (error) {
     return { ok: false, error: `回路データが壊れています (${error})` };
   }
-  // 古いデータには ON/OFF が入っていることがあるが、使わない
+  // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す
   const project = withoutSwitchStates(raw as Project);
   return {
     ok: true,
     project: {
       ...project,
-      circuits: project.circuits.map((d) => renameIds(d, newId, newId)),
+      circuits: project.circuits.map((d) => fillPortNumbers(renameIds(d, newId, newId))),
     },
   };
 }

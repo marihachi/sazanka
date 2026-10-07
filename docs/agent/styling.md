@@ -12,7 +12,7 @@
 
 ## シートの CSS Modules
 
-- シートの SVG（`Sheet.tsx`、`ComponentView.tsx`）は、Chakra を使わず CSS Modules で書く。ドラッグ中に何十回も描き直すので、実行時にスタイルを作る Chakra の書き方では重くなるため。
+- シートの SVG（`Sheet.tsx`、`SheetPart.tsx`）は、Chakra を使わず CSS Modules で書く。ドラッグ中に何十回も描き直すので、実行時にスタイルを作る Chakra の書き方では重くなるため。
 - CSS Modules は、コンポーネントごとに `sheet/` に置き（`Sheet.tsx` と `Sheet.module.css`）、そのコンポーネントから `styles` として import する。ほかのコンポーネントのクラスは使わない。
 - CSS のクラス名はケバブケース、TS からはキャメルケースで参照する（`vite.config.ts` の `localsConvention`）。存在しないクラス名を参照しても型エラーにならず `undefined` になるだけなので、足したり改名したりしたら両方を見比べる。
 - 色は、テーマのトークンが出す CSS の変数で参照する（例: `var(--chakra-colors-sheet-on)`）。

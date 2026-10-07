@@ -2,50 +2,50 @@
 // 種類を足すときは、このフォルダに種類のフォルダを足して PART_VIEWS に並べる (仕様の一覧は specs.ts)
 import { and } from './and/view';
 import { clock } from './clock/view';
-import { dff } from './dff/view';
-import { dlatch } from './dlatch/view';
+import { dFlipFlop } from './dFlipFlop/view';
+import { dLatch } from './dLatch/view';
 import { high } from './high/view';
 import { input } from './input/view';
-import { jkff } from './jkff/view';
+import { jkFlipFlop } from './jkFlipFlop/view';
 import { module } from './module/view';
 import { nand } from './nand/view';
 import { nor } from './nor/view';
 import { not } from './not/view';
 import { or } from './or/view';
 import { output } from './output/view';
-import { rs } from './rs/view';
-import { rsen } from './rsen/view';
-import type { PartKind, SpecialKind } from './specs';
+import { rsLatch } from './rsLatch/view';
+import { rsEnLatch } from './rsEnLatch/view';
+import type { SpecKind, SpecialKind } from './specs';
 import type { PartView } from './view';
-import { tff } from './tff/view';
+import { tFlipFlop } from './tFlipFlop/view';
 import { xnor } from './xnor/view';
 import { xor } from './xor/view';
 
 export type { HintContext, PaletteGroupId, PartView } from './view';
 
 /**
- * 利用者が置ける種類 (仕様の一覧 PARTS の種類と、特別な部品) ごとの見せ方。種類が欠けると型エラーになる。
+ * 利用者が置ける種類 (仕様の一覧 PART_SPECS の種類と、特別な部品) ごとの見せ方。種類が欠けると型エラーになる。
  * 並び順が、パレットのグループの中での並び順になる
  */
-export const PART_VIEWS: Record<PartKind | SpecialKind, PartView> = {
-  INPUT: input,
-  OUTPUT: output,
-  CLOCK: clock,
-  HIGH: high,
-  AND: and,
-  OR: or,
-  NOT: not,
-  NAND: nand,
-  NOR: nor,
-  XOR: xor,
-  XNOR: xnor,
-  RS: rs,
-  RSEN: rsen,
-  DLATCH: dlatch,
-  DFF: dff,
-  TFF: tff,
-  JKFF: jkff,
-  CUSTOM: module,
+export const PART_VIEWS: Record<SpecKind | SpecialKind, PartView> = {
+  input: input,
+  output: output,
+  clock: clock,
+  high: high,
+  and: and,
+  or: or,
+  not: not,
+  nand: nand,
+  nor: nor,
+  xor: xor,
+  xnor: xnor,
+  rsLatch: rsLatch,
+  rsEnLatch: rsEnLatch,
+  dLatch: dLatch,
+  dFlipFlop: dFlipFlop,
+  tFlipFlop: tFlipFlop,
+  jkFlipFlop: jkFlipFlop,
+  module: module,
 };
 
 /** 種類の見せ方。内部用の BUF なら undefined */

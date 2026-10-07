@@ -1,6 +1,7 @@
-import type { Component } from '../circuit/component';
-import { clockPeriodOf } from '../circuit/component';
+import type { Part } from '../circuit/part';
+import { clockPeriodOf } from '../circuit/part';
 import { partViewOf } from '../parts/views';
+import type { PortProblem } from '../circuit/module';
 
 /** 何も操作していないときに順に表示するヒント */
 const IDLE_HINTS = [
@@ -24,17 +25,32 @@ const IDLE_HINTS = [
   '「一時停止」してから「1 tick 進める」「1 tick 戻す」で、信号が伝わる様子を 1 tick ずつ行き来できる',
   'タブの「+」でモジュールを追加すると、回路を部品としてまとめられる',
   '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
-  'モジュールの中の INPUT / OUTPUT がピンになる。プロパティ欄でラベルを付けるとピン名になる',
+  'モジュールの中の INPUT / OUTPUT に名前を付けると、ピンの名前になる',
 ];
 
 /** モジュールのタブを開いているときに追加で表示するヒント */
 const MODULE_HINTS = [
   'タブをダブルクリックすると、モジュールの名前を変更できる',
   'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
-  'このモジュールの INPUT / OUTPUT が、外側から見たピンになる。部品の上の #1, #2… がピンの番号',
-  'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
+  'INPUT / OUTPUT を置くと、モジュールのピンが増える',
   'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
+  'ツールバーの「モジュール設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
 ];
+
+/** パッケージが split のモジュール (ピンの順が中の位置で決まる) で、MODULE_HINTS に足すヒント */
+const SPLIT_MODULE_HINTS = [
+  'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
+];
+
+/** パッケージが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、MODULE_HINTS に足すヒント */
+const NUMBERED_MODULE_HINTS = ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'];
+
+/** 外側のピンに出せないポートの理由ごとの説明 */
+const PORT_PROBLEM_HINTS: Record<PortProblem, string> = {
+  unassigned: 'この INPUT / OUTPUT はピン番号がないため、外側のピンに出ていない',
+  outOfRange: 'この INPUT / OUTPUT はピン番号がピン数の範囲の外にあるため、外側のピンに出ていない',
+  duplicate: 'この INPUT / OUTPUT はほかと同じピン番号のため、外側のピンに出ていない',
+};
 
 export interface HintContext {
   /** 部品をドラッグ中か。'trash' は削除エリアの上 */
@@ -49,7 +65,7 @@ export interface HintContext {
   editing: boolean;
   /** 配線だけを 1 本選んでいる */
   wireSelected: boolean;
-  selectedComponent?: Component;
+  selectedPart?: Part;
   /** 部品を2つ以上選んでいる */
   multipleSelected: boolean;
   unstable: boolean;
@@ -57,6 +73,12 @@ export interface HintContext {
   conflict: boolean;
   /** モジュールのタブを開いている */
   inModule: boolean;
+  /** 開いているモジュールが、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
+  numberedModule: boolean;
+  /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
+  selectedPortProblem?: PortProblem;
+  /** 開いているモジュールに、外側のピンに出せないポートがある */
+  unexposedPorts: boolean;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期の表示に使う */
   tickMs: number;
 }
@@ -96,14 +118,15 @@ export function statusHints(ctx: HintContext): string[] {
       'Ctrl+C でコピー、Ctrl+X で切り取り',
     ];
   }
-  const c = ctx.selectedComponent;
+  const c = ctx.selectedPart;
   if (c) {
     const move = ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除'];
     // ヒントの文は、種類ごとの見せ方 (parts/) にある
     const own = partViewOf(c.kind)?.hints ?? [];
     const lines =
       typeof own === 'function' ? own({ period: clockPeriodOf(c), tickMs: ctx.tickMs }) : own;
-    return [...lines, ...move];
+    const problem = ctx.selectedPortProblem ? [PORT_PROBLEM_HINTS[ctx.selectedPortProblem]] : [];
+    return [...problem, ...lines, ...move];
   }
   if (ctx.unstable) {
     return ['発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている'];
@@ -113,5 +136,12 @@ export function statusHints(ctx: HintContext): string[] {
       '赤い配線に出力ピンが2つ以上つながっていて、値が決まらない。つながる入力ピンは OFF になる',
     ];
   }
-  return ctx.inModule ? [...MODULE_HINTS, ...IDLE_HINTS] : IDLE_HINTS;
+  if (ctx.unexposedPorts) {
+    return ['赤い INPUT / OUTPUT はピンに割り当てられていない。「モジュール設定」で割り当てられる'];
+  }
+  if (!ctx.inModule) {
+    return IDLE_HINTS;
+  }
+  const own = ctx.numberedModule ? NUMBERED_MODULE_HINTS : SPLIT_MODULE_HINTS;
+  return [...MODULE_HINTS, ...own, ...IDLE_HINTS];
 }

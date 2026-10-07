@@ -1,0 +1,96 @@
+.body {
+  fill: #222;
+  stroke: #555;
+}
+
+.selected .body {
+  stroke: var(--chakra-colors-accent-solid);
+}
+
+.label {
+  fill: var(--chakra-colors-fg);
+  font-size: 13px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.lead {
+  stroke: var(--chakra-colors-sheet-line);
+  stroke-width: 2;
+}
+
+/* ピンの先の丸。配線はピンの先の位置でつながる (geometry/net.ts) ので、ここでは何も受けない */
+.pin {
+  fill: transparent;
+}
+
+.pin-label {
+  fill: var(--chakra-colors-fg);
+  font-size: 11px;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+/* INPUT / OUTPUT の上に出す、ポート番号 */
+.pin-number {
+  fill: var(--chakra-colors-accent-solid);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.pin-label.end {
+  text-anchor: end;
+}
+
+.lead.on {
+  stroke: var(--chakra-colors-sheet-on);
+}
+
+/* ピンの線の中ほどの、入力か出力かを示す向きの三角 (dip / qfp のモジュール) */
+.direction {
+  fill: var(--chakra-colors-sheet-line);
+  pointer-events: none;
+}
+
+.direction.on {
+  fill: var(--chakra-colors-sheet-on);
+}
+
+/* ピンの線の上に書く、外側のピン番号 (dip / qfp のモジュール) */
+.outer-number {
+  fill: var(--chakra-colors-fg-muted);
+  font-size: 9px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.outer-number.start {
+  text-anchor: start;
+}
+
+/* 外側のピンに出せないポート (ピン番号がない・範囲外・重なり) の印。番号の文字を赤くし、本体の輪郭を赤い破線にする */
+.pin-number.problem {
+  fill: var(--chakra-colors-red-solid);
+  font-weight: 600;
+}
+
+.body.problem {
+  stroke: var(--chakra-colors-red-solid);
+  stroke-dasharray: 4 3;
+  stroke-width: 2;
+}
+
+/* 選んでいるときは、選択の色を優先する (破線は残す) */
+.selected .body.problem {
+  stroke: var(--chakra-colors-accent-solid);
+}
+
+/* 形が端子の部品の記号 (HIGH の「1」)。今ある HIGH は常に ON なので、ON の色で描く */
+.terminal-mark {
+  fill: var(--chakra-colors-sheet-on);
+  font-size: 18px;
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}

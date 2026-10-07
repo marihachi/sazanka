@@ -11,10 +11,17 @@ import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
 import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
-import type { Component, ComponentKind } from '../circuit/component';
+import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
-import { portsOf } from '../circuit/module';
+import {
+  applyModuleSettings,
+  assignPinNumbers,
+  assignPortNumbers,
+  getPinout,
+  findUnexposedPorts,
+  usesPinNumbers,
+} from '../circuit/module';
 import { statusHints } from '../hints/hints';
 import { computeNets, isConflict } from '../geometry/net';
 import {
@@ -74,6 +81,14 @@ export function App() {
     initialMessage: loaded.error ? `${loaded.error}空のプロジェクトで開きます。` : undefined,
     preferences,
     onPreferencesChange: setPreferences,
+    project,
+    // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
+    onApplyModuleSettings: (id, pkg, numbers, labels) =>
+      history.commit((p) => ({
+        circuits: p.circuits.map((d) =>
+          d.id === id ? applyModuleSettings(d, pkg, numbers, labels) : d,
+        ),
+      })),
   });
 
   /** 開いている回路を更新する。record を false にすると元に戻す対象にしない */
@@ -162,8 +177,8 @@ export function App() {
   });
 
   /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */
-  function addComponent(kind: ComponentKind, custom?: string, at?: Point) {
-    const n = circuit.components.length;
+  function addPart(kind: PartKind, module?: string, at?: Point) {
+    const n = circuit.parts.length;
     const center = toWorld(view, {
       x: sheetSize.width / 2,
       y: sheetSize.height / 2,
@@ -173,21 +188,25 @@ export function App() {
       x: center.x - GRID * 2 + (n % 10) * GRID,
       y: center.y - GRID * 2 + (n % 10) * GRID,
     };
-    const c: Component = {
+    const c: Part = {
       id: newId(),
       kind,
       x: snap(base.x),
       y: snap(base.y),
     };
     // ON/OFF を持つ部品は OFF から始める。CLOCK の実際の ON/OFF はシミュレーションの中で持つ (useSimulation.ts)
-    if (kind === 'INPUT' || kind === 'CLOCK') {
+    if (kind === 'input' || kind === 'clock') {
       c.on = false;
     }
-    if (custom) {
-      c.custom = custom;
+    if (module) {
+      c.module = module;
     }
-    Object.assign(c, clampPosition(c, portsOf(c, project), c));
-    setCircuit((cur) => edit.addComponent(cur, c));
+    Object.assign(c, clampPosition(c, getPinout(c, project), c));
+    // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
+    setCircuit((cur) => {
+      const added = new Set([c.id]);
+      return assignPortNumbers(assignPinNumbers(edit.addPart(cur, c), added), added);
+    });
     setSelection({ comps: [c.id], wires: [] });
   }
 
@@ -211,7 +230,7 @@ export function App() {
       setPending(null);
       setSelection(
         edit.selectionOf(
-          circuit.components.map((c) => c.id),
+          circuit.parts.map((c) => c.id),
           circuit.wires.map((w) => w.id),
         ),
       );
@@ -255,9 +274,9 @@ export function App() {
     resetInteraction();
   }
 
-  function onCompDoubleClick(c: Component) {
-    if (c.kind === 'CUSTOM' && c.custom && findDef(project, c.custom)) {
-      openCircuit(c.custom);
+  function onCompDoubleClick(c: Part) {
+    if (c.kind === 'module' && c.module && findDef(project, c.module)) {
+      openCircuit(c.module);
     }
   }
 
@@ -277,14 +296,16 @@ export function App() {
   }
 
   /** 1つだけ選んでいる部品 (配線は選んでいない)。プロパティ欄とヒントに使う */
-  const selectedComponent =
+  const selectedPart =
     selection?.comps.length === 1 && selection.wires.length === 0
-      ? circuit.components.find((c) => c.id === selection.comps[0])
+      ? circuit.parts.find((c) => c.id === selection.comps[0])
       : undefined;
 
   // 開いている回路の配線のつながり。描画 (Sheet) と、出力のぶつかりの警告に使う
   const nets = useMemo(() => computeNets(circuit, project), [circuit, project]);
   const conflict = nets.nets.some(isConflict);
+  // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
+  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
 
   const hints = statusHints({
     dragMode,
@@ -293,11 +314,14 @@ export function App() {
     placing: !!clipboard.placing,
     editing: !!editing,
     wireSelected: selection?.comps.length === 0 && selection.wires.length === 1,
-    selectedComponent,
+    selectedPart,
     multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
     unstable,
     conflict,
     inModule: circuit.id !== MAIN_ID,
+    numberedModule: usesPinNumbers(circuit.package),
+    selectedPortProblem: selectedPart && problems.get(selectedPart.id),
+    unexposedPorts: problems.size > 0,
     tickMs: preferences.tickMs,
   });
 
@@ -325,8 +349,9 @@ export function App() {
     stepOnce,
     stepBack,
     deleteCircuit: modules.deleteCircuit,
+    openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
     changeTool,
-    addFromPalette: (kind: ComponentKind, custom?: string) => addComponent(kind, custom),
+    addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
     setClockPeriod: (id: string, period: number) =>
       setCircuit((cur) => edit.setClockPeriod(cur, id, period), false),
@@ -366,6 +391,7 @@ export function App() {
         onStep={on.stepOnce}
         onStepBack={on.stepBack}
         canStepBack={canStepBack}
+        onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
         onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
       />
       <Flex flex="1" minH="0">
@@ -392,31 +418,46 @@ export function App() {
           showGrid={preferences.showGrid}
           roundWires={preferences.roundWires}
           onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
-          onAdd={addComponent}
+          onAdd={addPart}
           onMoveStart={history.checkpoint}
           onMove={moveParts}
           // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
           onDropOnTrash={(moved) => deleteSelection(!moved)}
           onToggle={toggleInput}
           onAddWire={addWire}
-          onComponentDoubleClick={onCompDoubleClick}
+          onPartDoubleClick={onCompDoubleClick}
           placing={clipboard.placing}
           onPlace={clipboard.paste}
         />
         <PropertyPanel
-          component={selectedComponent}
+          part={selectedPart}
           moduleName={
-            selectedComponent?.kind === 'CUSTOM'
-              ? findDef(project, selectedComponent.custom)?.name
+            selectedPart?.kind === 'module'
+              ? findDef(project, selectedPart.module)?.name
               : undefined
           }
+          inModule={circuit.id !== MAIN_ID}
+          otherLabels={circuit.parts
+            .filter(
+              (c) =>
+                (c.kind === 'input' || c.kind === 'output') &&
+                c.id !== selectedPart?.id &&
+                c.label !== undefined,
+            )
+            .map((c) => c.label)
+            .join('\n')}
           tickMs={preferences.tickMs}
           onEditStart={history.checkpoint}
           onClockPeriodChange={on.setClockPeriod}
           onLabelChange={on.setLabel}
         />
       </Flex>
-      <StatusBar hints={hints} unstable={unstable} conflict={conflict} />
+      <StatusBar
+        hints={hints}
+        unstable={unstable}
+        conflict={conflict}
+        unexposedPorts={problems.size > 0}
+      />
       {dialogs.element}
     </Flex>
   );

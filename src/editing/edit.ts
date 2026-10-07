@@ -3,7 +3,7 @@
 // 元に戻す対象にするかどうかは、使う側 (app/App.tsx) が useProjectHistory.ts で決める
 
 import type { Point } from '../geometry/layout';
-import type { Component } from '../circuit/component';
+import type { Part } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 
 /** 選んでいる部品と配線。どちらも複数を同時に選べる。何も選んでいなければ null (両方が空のものは作らない) */
@@ -14,19 +14,15 @@ export function selectionOf(comps: readonly string[], wires: readonly string[]):
   return comps.length > 0 || wires.length > 0 ? { comps: [...comps], wires: [...wires] } : null;
 }
 
-function updateComponent<T extends Circuit>(
-  circuit: T,
-  id: string,
-  update: (c: Component) => Component,
-): T {
+function updatePart<T extends Circuit>(circuit: T, id: string, update: (c: Part) => Part): T {
   return {
     ...circuit,
-    components: circuit.components.map((c) => (c.id === id ? update(c) : c)),
+    parts: circuit.parts.map((c) => (c.id === id ? update(c) : c)),
   };
 }
 
-export function addComponent<T extends Circuit>(circuit: T, c: Component): T {
-  return { ...circuit, components: [...circuit.components, c] };
+export function addPart<T extends Circuit>(circuit: T, c: Part): T {
+  return { ...circuit, parts: [...circuit.parts, c] };
 }
 
 export function addWire<T extends Circuit>(circuit: T, wire: Wire): T {
@@ -43,7 +39,7 @@ export function removeParts<T extends Circuit>(
   const wireSet = new Set(wires);
   return {
     ...circuit,
-    components: circuit.components.filter((c) => !compSet.has(c.id)),
+    parts: circuit.parts.filter((c) => !compSet.has(c.id)),
     wires: circuit.wires.filter((w) => !wireSet.has(w.id)),
   };
 }
@@ -59,7 +55,7 @@ export function moveParts<T extends Circuit>(
 ): T {
   return {
     ...circuit,
-    components: circuit.components.map((c) => {
+    parts: circuit.parts.map((c) => {
       const p = comps.get(c.id);
       return p ? { ...c, x: p.x, y: p.y } : c;
     }),
@@ -71,17 +67,17 @@ export function moveParts<T extends Circuit>(
 }
 
 export function toggleSwitch<T extends Circuit>(circuit: T, id: string): T {
-  return updateComponent(circuit, id, (c) => ({ ...c, on: !c.on }));
+  return updatePart(circuit, id, (c) => ({ ...c, on: !c.on }));
 }
 
 /** CLOCK の周期 (一往復の tick 数) を変える */
 export function setClockPeriod<T extends Circuit>(circuit: T, id: string, period: number): T {
-  return updateComponent(circuit, id, (c) => ({ ...c, period }));
+  return updatePart(circuit, id, (c) => ({ ...c, period }));
 }
 
 /** 空白だけのラベルは、ラベルなしにする */
 export function setLabel<T extends Circuit>(circuit: T, id: string, value: string): T {
-  return updateComponent(circuit, id, (c) => ({
+  return updatePart(circuit, id, (c) => ({
     ...c,
     label: value.trim() || undefined,
   }));
@@ -96,21 +92,21 @@ export function extractParts(
   const compSet = new Set(comps);
   const wireSet = new Set(wires);
   return {
-    components: circuit.components.filter((c) => compSet.has(c.id)),
+    parts: circuit.parts.filter((c) => compSet.has(c.id)),
     wires: circuit.wires.filter((w) => wireSet.has(w.id)),
   };
 }
 
 /** 貼り付け用に、部品と配線へ newId で新しい ID を付け、どちらも delta だけずらす */
-export function cloneParts(part: Circuit, newId: () => string, delta: Point): Circuit {
+export function cloneParts(fragment: Circuit, newId: () => string, delta: Point): Circuit {
   return {
-    components: part.components.map((c) => ({
+    parts: fragment.parts.map((c) => ({
       ...c,
       id: newId(),
       x: c.x + delta.x,
       y: c.y + delta.y,
     })),
-    wires: part.wires.map((w) => ({
+    wires: fragment.wires.map((w) => ({
       ...w,
       id: newId(),
       points: w.points.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })),
@@ -119,10 +115,10 @@ export function cloneParts(part: Circuit, newId: () => string, delta: Point): Ci
 }
 
 /** 部品と配線をまとめて足す。ID が回路の中の既存のものと重ならない前提 (cloneParts で付け直したもの) */
-export function addParts<T extends Circuit>(circuit: T, part: Circuit): T {
+export function addParts<T extends Circuit>(circuit: T, fragment: Circuit): T {
   return {
     ...circuit,
-    components: [...circuit.components, ...part.components],
-    wires: [...circuit.wires, ...part.wires],
+    parts: [...circuit.parts, ...fragment.parts],
+    wires: [...circuit.wires, ...fragment.wires],
   };
 }

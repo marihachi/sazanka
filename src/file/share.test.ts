@@ -1,8 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { emptyProject, MAIN_ID, type Project } from '../circuit/project';
+import { emptyProject, MAIN_ID, type Project, withoutSwitchStates } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
 
 const project: Project = {
+  circuits: [
+    {
+      id: MAIN_ID,
+      name: 'メイン',
+      // biome-ignore format: 表形式を維持するため
+      parts: [
+        { id: 'a', kind: 'input', x: 0, y: 0, on: true, portNumber: 1 },
+        { id: 'm', kind: 'module', x: 100, y: 0, module: 'mod' },
+      ],
+      // a の出力ピンの先 (60, 20) から、m の入力ピンの先 (80, 20) へ
+      // biome-ignore format: 表形式を維持するため
+      wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 80, y: 20 }] }],
+    },
+    {
+      id: 'mod',
+      name: 'モジュール1',
+      package: { kind: 'split' },
+      parts: [{ id: 'i', kind: 'input', x: 0, y: 0, portNumber: 1 }],
+      wires: [],
+    },
+  ],
+};
+
+/** 上の project を version 2 の形で書いたもの (部品の一覧は components、種類の名前は大文字、モジュールの参照は custom) */
+const projectV2 = {
   circuits: [
     {
       id: MAIN_ID,
@@ -12,7 +37,6 @@ const project: Project = {
         { id: 'a', kind: 'INPUT', x: 0, y: 0, on: true },
         { id: 'm', kind: 'CUSTOM', x: 100, y: 0, custom: 'mod' },
       ],
-      // a の出力ピンの先 (60, 20) から、m の入力ピンの先 (80, 20) へ
       // biome-ignore format: 表形式を維持するため
       wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 80, y: 20 }] }],
     },
@@ -26,7 +50,7 @@ const project: Project = {
 };
 
 function withProject(p: unknown): string {
-  return JSON.stringify({ app: 'sazanka', version: 2, project: p });
+  return JSON.stringify({ app: 'sazanka', version: 3, project: p });
 }
 
 /** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
@@ -46,13 +70,13 @@ describe('share', () => {
       circuits: [
         {
           ...main,
-          components: [
-            { id: 'part-1', kind: 'INPUT', x: 0, y: 0 }, // ON/OFF (on) は書き出さない
-            { ...main.components[1], id: 'part-2' },
+          parts: [
+            { id: 'part-1', kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
+            { ...main.parts[1], id: 'part-2' },
           ],
           wires: [{ ...main.wires[0], id: 'wire-1' }],
         },
-        { ...mod, components: [{ ...mod.components[0], id: 'part-1' }] },
+        { ...mod, parts: [{ ...mod.parts[0], id: 'part-1' }] },
       ],
     });
   });
@@ -66,13 +90,13 @@ describe('share', () => {
           {
             ...main,
             // biome-ignore format: 表形式を維持するため
-            components: [
-              { id: 'id1', kind: 'INPUT', x: 0, y: 0 },
-              { ...main.components[1], id: 'id2' },
+            parts: [
+              { id: 'id1', kind: 'input', x: 0, y: 0, portNumber: 1 },
+              { ...main.parts[1], id: 'id2' },
             ],
             wires: [{ ...main.wires[0], id: 'id3' }],
           },
-          { ...mod, components: [{ ...mod.components[0], id: 'id4' }] },
+          { ...mod, parts: [{ ...mod.parts[0], id: 'id4' }] },
         ],
       },
     });
@@ -113,7 +137,7 @@ describe('share', () => {
         circuits: [
           {
             ...main,
-            components: [{ id: 'a', kind: 'BUF', x: 0, y: 0 }],
+            parts: [{ id: 'a', kind: 'buf', x: 0, y: 0 }],
             wires: [],
           },
         ],
@@ -122,7 +146,7 @@ describe('share', () => {
         circuits: [
           {
             ...main,
-            components: [{ id: 'a', kind: 'AND', x: '0', y: 0 }],
+            parts: [{ id: 'a', kind: 'and', x: '0', y: 0 }],
             wires: [],
           },
         ],
@@ -143,7 +167,7 @@ describe('share', () => {
         circuits: [
           {
             ...main,
-            components: [main.components[0], main.components[0]],
+            parts: [main.parts[0], main.parts[0]],
             wires: [],
           },
         ],
@@ -159,9 +183,9 @@ describe('share', () => {
   it('INPUT / CLOCK の ON/OFF は書き出さず、読み込んでも使わない', () => {
     expect(serializeProject(project)).not.toContain('"on"');
     // ON/OFF を含む古いデータを読み込んでも、OFF から始まる
-    const old = JSON.stringify({ app: 'sazanka', version: 1, project });
+    const old = JSON.stringify({ app: 'sazanka', version: 2, project: projectV2 });
     const result = parse(old);
-    expect(result.ok && result.project.circuits[0].components[0].on).toBeUndefined();
+    expect(result.ok && result.project.circuits[0].parts[0].on).toBeUndefined();
   });
 
   it('ラベルやモジュールの参照は保ったまま往復する', () => {
@@ -171,8 +195,8 @@ describe('share', () => {
       return;
     }
     const [main] = result.project.circuits;
-    expect(main.components[0]).toMatchObject({ kind: 'INPUT', x: 0, y: 0 });
-    expect(main.components[1]).toMatchObject({ kind: 'CUSTOM', custom: 'mod' });
+    expect(main.parts[0]).toMatchObject({ kind: 'input', x: 0, y: 0 });
+    expect(main.parts[1]).toMatchObject({ kind: 'module', module: 'mod' });
     // モジュールの参照先 (回路の ID) は付け直さない
     expect(result.project.circuits[1].id).toBe('mod');
   });
@@ -204,9 +228,34 @@ describe('配線の点', () => {
   });
 });
 
-describe('version 1 のデータ', () => {
-  it('配線を、version 1 で描いていた形の点の並びに変えて読み込む', () => {
-    const [main, mod] = project.circuits;
+describe('古い版のデータ', () => {
+  it('ポート番号がないものや重なるものは、読み込むときに付け直す', () => {
+    // biome-ignore format: 表形式を維持するため
+    const main = { id: MAIN_ID, name: 'メイン', wires: [], parts: [
+      { id: 'a', kind: 'input', x: 0, y: 100, portNumber: 1 },
+      { id: 'b', kind: 'input', x: 0, y: 0, portNumber: 1 },
+      { id: 'c', kind: 'input', x: 0, y: 200 },
+      { id: 'd', kind: 'output', x: 0, y: 0 },
+    ] };
+    const result = parse(withProject({ circuits: [main] }));
+    expect(result.ok && result.project.circuits[0].parts.map((c) => c.portNumber)).toEqual([
+      2, 1, 3, 1,
+    ]);
+    expect(
+      parse(withProject({ circuits: [{ ...main, parts: [{ ...main.parts[0], portNumber: 0 }] }] }))
+        .ok,
+    ).toBe(false);
+  });
+
+  it('version 2 のデータは、version 3 の形に変えて読み込む', () => {
+    const result = parse(JSON.stringify({ app: 'sazanka', version: 2, project: projectV2 }));
+    expect(result.ok && withoutIds(result.project)).toEqual(
+      withoutIds(withoutSwitchStates(project)),
+    );
+  });
+
+  it('version 1 のデータは、配線を version 1 で描いていた形の点の並びに変えて読み込む', () => {
+    const [main, mod] = projectV2.circuits;
     const v1 = {
       circuits: [
         { ...main, wires: [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'm', pin: 0 } }] },
@@ -214,9 +263,20 @@ describe('version 1 のデータ', () => {
       ],
     };
     const result = parse(JSON.stringify({ app: 'sazanka', version: 1, project: v1 }));
-    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual(main.wires[0].points);
+    expect(result.ok && result.project.circuits[0].wires[0].points).toEqual(
+      project.circuits[0].wires[0].points,
+    );
   });
 });
+
+/** 部品と配線の ID を除いたプロジェクト。読み込むと ID は付け直されるので、比べるときに使う */
+function withoutIds(p: Project) {
+  return p.circuits.map(({ parts, wires, ...d }) => ({
+    ...d,
+    parts: parts.map(({ id: _, ...c }) => c),
+    wires: wires.map(({ id: _, ...w }) => w),
+  }));
+}
 
 describe('CLOCK の周期', () => {
   it('範囲外の周期を持つ部品は読み込まない', () => {
@@ -225,7 +285,7 @@ describe('CLOCK の周期', () => {
       circuits: [
         {
           ...main,
-          components: [{ id: 'c', kind: 'CLOCK', x: 20, y: 0, period: 0 }],
+          parts: [{ id: 'c', kind: 'clock', x: 20, y: 0, period: 0 }],
           wires: [],
         },
         project.circuits[1],

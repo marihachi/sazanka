@@ -1,9 +1,9 @@
 // シートの表示 (スクロールと拡大縮小): 回路の座標と画面の座標の変換。
 // 部品の大きさや配置は layout.ts、表示の保存は file/storage.ts にある
 
-import { componentBounds, GRID, SHEET_HEIGHT, SHEET_WIDTH, type Point, type Rect } from './layout';
+import { partBounds, GRID, SHEET_HEIGHT, SHEET_WIDTH, type Point, type Rect } from './layout';
 import type { CircuitDef, Project } from '../circuit/project';
-import { portsOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 
 /** シートの表示位置と倍率。画面の座標 = 回路の座標 × scale + (x, y) */
 export interface View {
@@ -89,7 +89,7 @@ export function fitView(bounds: Rect, width: number, height: number): View {
 export function circuitBounds(circuit: CircuitDef, project: Project): Rect | undefined {
   // 配線は部品と別に置けるので、配線の点も範囲に含める
   const rects = [
-    ...circuit.components.map((c) => componentBounds(c, portsOf(c, project))),
+    ...circuit.parts.map((c) => partBounds(c, getPinout(c, project))),
     ...circuit.wires.flatMap((w) =>
       w.points.map((p) => ({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
     ),

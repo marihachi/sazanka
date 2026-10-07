@@ -3,9 +3,9 @@
 // 配線の途中どうしが交わるだけ (交差) ではつながらない
 
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
-import { portsOf } from '../circuit/module';
+import { getPinout } from '../circuit/module';
 import type { Project } from '../circuit/project';
-import { inputPinPos, outputPinPos, type Point } from './layout';
+import { calcSheetPins, type Point } from './layout';
 
 /** 配線でつながったピンと配線のまとまり */
 export interface Net {
@@ -63,17 +63,18 @@ function pointKey(p: Point): string {
 export function computeNets(circuit: Circuit, project: Project): Nets {
   // ピンの先の位置 → そこにあるピン
   const pinsAt = new Map<string, { ref: PinRef; output: boolean }[]>();
-  for (const c of circuit.components) {
-    const ports = portsOf(c, project);
+  for (const c of circuit.parts) {
     const add = (p: Point, ref: PinRef, output: boolean) => {
       const k = pointKey(p);
       pinsAt.set(k, [...(pinsAt.get(k) ?? []), { ref, output }]);
     };
-    for (let i = 0; i < ports.inputs.length; i++) {
-      add(inputPinPos(c, ports, i), { comp: c.id, pin: i }, false);
+    // 配置は部品ごとに 1 回だけ求める。ピンごとに求めると、ピンの多いモジュール (128 ピンなど) で重くなるため
+    const pins = calcSheetPins(c, getPinout(c, project));
+    for (const [i, p] of pins.inputs.entries()) {
+      add(p.tip, { comp: c.id, pin: i }, false);
     }
-    for (let i = 0; i < ports.outputs.length; i++) {
-      add(outputPinPos(c, ports, i), { comp: c.id, pin: i }, true);
+    for (const [i, p] of pins.outputs.entries()) {
+      add(p.tip, { comp: c.id, pin: i }, true);
     }
   }
 

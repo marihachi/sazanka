@@ -9,22 +9,22 @@
 
 ## 状態の用意
 
-- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v2.md` にある。
+- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v3.md` にある。
   - アプリはプロジェクトが変わるたびに自動で保存するので、書いた値が上書きされることがある。書き方は Skill の `browser-check` の「ハマりやすい点」に従う。
-  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v2.md` の「ピンの先の位置」）に合わせる:
+  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v3.md` の「ピンの先の位置」）に合わせる:
 
     ```js
     const project = {
-      version: 2,
+      version: 3,
       project: {
         circuits: [
           {
             id: 'main',
             name: 'メイン',
-            components: [
-              { id: 'part-1', kind: 'INPUT', x: 2900, y: 1960 },
-              { id: 'part-2', kind: 'AND', x: 3020, y: 1940 },
-              { id: 'part-3', kind: 'OUTPUT', x: 3180, y: 1960 },
+            parts: [
+              { id: 'part-1', kind: 'input', x: 2900, y: 1960 },
+              { id: 'part-2', kind: 'and', x: 3020, y: 1940 },
+              { id: 'part-3', kind: 'output', x: 3180, y: 1960 },
             ],
             wires: [
               { id: 'wire-1', points: [{ x: 2960, y: 1980 }, { x: 2980, y: 1980 }, { x: 2980, y: 1960 }, { x: 3000, y: 1960 }] },

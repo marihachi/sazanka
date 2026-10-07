@@ -1,7 +1,7 @@
 import icon from './icon.svg';
 import type { PartView } from '../view';
 
-export const dff: PartView = {
+export const dFlipFlop: PartView = {
   label: 'D-FF',
   icon,
   group: 'flipflop',

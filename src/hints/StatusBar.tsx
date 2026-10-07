@@ -15,10 +15,17 @@ interface StatusBarProps {
   unstable: boolean;
   /** 出力ピンが 2 つ以上つながったネットがある */
   conflict: boolean;
+  /** 開いているモジュールに、外側のピンに出せないポートがある */
+  unexposedPorts: boolean;
 }
 
-/** 画面下のステータスバー。使い方のヒントと、発振と出力のぶつかりの警告を出す */
-export const StatusBar = memo(function StatusBar({ hints, unstable, conflict }: StatusBarProps) {
+/** 画面下のステータスバー。使い方のヒントと、発振、出力のぶつかり、ピンに出ていないポートの警告を出す */
+export const StatusBar = memo(function StatusBar({
+  hints,
+  unstable,
+  conflict,
+  unexposedPorts,
+}: StatusBarProps) {
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
   /** マウスが載っている間は切り替えを止める */
@@ -57,6 +64,11 @@ export const StatusBar = memo(function StatusBar({ hints, unstable, conflict }: 
       <Box key={hint} flex="1" minW="0" truncate color="fg.muted" animation="fade-in 0.4s ease-out">
         {hint}
       </Box>
+      {unexposedPorts && (
+        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
+          ピンに出ていない INPUT / OUTPUT があります
+        </Badge>
+      )}
       {conflict && (
         <Badge colorPalette="red" variant="subtle" flexShrink={0}>
           出力がぶつかっています
@@ -76,6 +88,7 @@ function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
   return (
     a.unstable === b.unstable &&
     a.conflict === b.conflict &&
+    a.unexposedPorts === b.unexposedPorts &&
     a.hints.length === b.hints.length &&
     a.hints.every((h, i) => h === b.hints[i])
   );
