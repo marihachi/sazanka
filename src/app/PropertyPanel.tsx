@@ -15,11 +15,8 @@ interface PropertyPanelProps {
   part?: Part;
   /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
-  /**
-   * dip / qfp のモジュールの中の INPUT / OUTPUT の、外側のピン番号の表示。
-   * 外側のピンに出せないときは undefined ではなく null。ピン番号を使わないところでは渡さない
-   */
-  pinNumber?: number | null;
+  /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、ポートとして項目を出す */
+  inModule?: boolean;
   /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
   tickMs: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
@@ -41,7 +38,7 @@ interface PropertyPanelProps {
 export const PropertyPanel = memo(function PropertyPanel({
   part,
   moduleName,
-  pinNumber,
+  inModule = false,
   otherLabels = '',
   tickMs,
   onEditStart,
@@ -80,38 +77,29 @@ export const PropertyPanel = memo(function PropertyPanel({
             />
           ) : part.kind === 'input' || part.kind === 'output' ? (
             <>
-              {/* ポート番号は表示だけ。置いたときに決まり、利用者は変えない */}
+              {/* 種類とポート番号は表示だけ。ポート番号は置いたときに決まり、利用者は変えない。
+                  パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
+              {inModule ? (
+                <ReadOnlyRow label="種類" value={part.kind === 'input' ? '入力' : '出力'} />
+              ) : null}
               {part.portNumber !== undefined && (
-                <Stack gap="0.5">
-                  <Text textStyle="sm" fontWeight="medium">
-                    ポート番号
-                  </Text>
-                  <Text textStyle="sm">
-                    {part.kind === 'input' ? '入力' : '出力'} {part.portNumber}
-                  </Text>
-                </Stack>
+                <ReadOnlyRow
+                  label="ポート番号"
+                  value={
+                    inModule
+                      ? String(part.portNumber)
+                      : `${part.kind === 'input' ? '入力' : '出力'} ${part.portNumber}`
+                  }
+                />
               )}
               <LabelField
                 key={part.id}
                 part={part}
+                title={inModule ? 'ポート名' : 'ラベル'}
                 otherLabels={otherLabels}
                 onEditStart={onEditStart}
                 onChange={onLabelChange}
               />
-              {/* ピン番号は表示だけ。編集はモジュール設定にまとめる (編集する場所を 1 つにするため) */}
-              {pinNumber !== undefined && (
-                <Stack gap="0.5">
-                  <Text textStyle="sm" fontWeight="medium">
-                    ピン番号
-                  </Text>
-                  <Text textStyle="sm">
-                    {pinNumber === null ? 'なし (外側のピンに出ていない)' : pinNumber}
-                  </Text>
-                  <Text textStyle="xs" color="fg.subtle">
-                    ツールバーの「モジュール設定」で変えられます
-                  </Text>
-                </Stack>
-              )}
             </>
           ) : (
             <Text textStyle="xs" color="fg.subtle">
@@ -152,13 +140,28 @@ function useEditSession(onEditStart: () => void) {
  * INPUT / OUTPUT のラベルの入力欄。入力したらすぐに反映する。
  * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
  */
+/** 表示だけの項目 */
+function ReadOnlyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack gap="0.5">
+      <Text textStyle="sm" fontWeight="medium">
+        {label}
+      </Text>
+      <Text textStyle="sm">{value}</Text>
+    </Stack>
+  );
+}
+
 function LabelField({
   part,
+  title,
   otherLabels,
   onEditStart,
   onChange,
 }: {
   part: Part;
+  /** 欄の名前。モジュールの中では「ポート名」、メイン回路では「ラベル」 */
+  title: string;
   otherLabels: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
@@ -170,7 +173,7 @@ function LabelField({
 
   return (
     <Field.Root invalid={taken(text)}>
-      <Field.Label>ラベル</Field.Label>
+      <Field.Label>{title}</Field.Label>
       <Input
         size="sm"
         value={text}

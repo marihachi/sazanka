@@ -17,13 +17,8 @@ import {
 import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry/net';
 import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
-import { findDef, MAIN_ID, type CircuitDef, type Project } from '../circuit/project';
-import {
-  getPortsInPinOrder,
-  findUnexposedPorts,
-  getPinout,
-  usesPinNumbers,
-} from '../circuit/module';
+import { findDef, type CircuitDef, type Project } from '../circuit/project';
+import { findUnexposedPorts, getPinout } from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
 import type { Tool } from '../simulation/SheetToolbar';
@@ -220,24 +215,6 @@ export function Sheet({
   }, [circuit, project]);
   const selectedComps = useMemo(() => new Set(selection?.comps ?? []), [selection]);
   const selectedWires = useMemo(() => new Set(selection?.wires ?? []), [selection]);
-  /**
-   * モジュールの中の INPUT / OUTPUT の、外から見たピンの番号 (部品 ID → 1 から)。
-   * split は INPUT と OUTPUT で別々に、中の位置の順に数える。dip / qfp はピン番号そのもの。
-   * メイン回路はピンにならないので空
-   */
-  const pinNumbers = useMemo(() => {
-    if (circuit.id === MAIN_ID) {
-      return new Map<string, number>();
-    }
-    const { inputs, outputs } = getPortsInPinOrder(circuit);
-    const numbered = usesPinNumbers(circuit.package);
-    return new Map(
-      [...inputs, ...outputs].map((c) => [
-        c.id,
-        numbered ? (c.pinNumber ?? 0) : (c.kind === 'input' ? inputs : outputs).indexOf(c) + 1,
-      ]),
-    );
-  }, [circuit]);
   /** 外側のピンに出せないポート (部品 ID → 理由)。印を付ける */
   const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
 
@@ -702,7 +679,6 @@ export function Sheet({
                   return from ? !!sim.values.get(pinKey(from.comp, from.pin)) : false;
                 })}
                 selected={selectedComps.has(c.id)}
-                pinNumber={pinNumbers.get(c.id)}
                 portProblem={problems.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
                 onBodyDoubleClick={() => onPartDoubleClick(c)}

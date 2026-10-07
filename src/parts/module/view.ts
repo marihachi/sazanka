@@ -8,6 +8,6 @@ export const module: PartView = {
   description: '回路をまとめた部品。中の INPUT / OUTPUT がピンになる',
   hints: [
     'ダブルクリックでモジュールの回路を開く',
-    'ピンの番号は、中を開くと INPUT / OUTPUT の上に #1, #2… と出る',
+    'ピンの並びとピン番号は、中を開いてツールバーの「モジュール設定」で確かめられる',
   ],
 };

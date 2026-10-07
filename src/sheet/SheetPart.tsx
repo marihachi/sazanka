@@ -294,8 +294,6 @@ interface SheetPartProps {
   outputValues: boolean[];
   inputValues: boolean[];
   selected: boolean;
-  /** モジュールの中の INPUT / OUTPUT のとき、外から見たピンの番号 (1 から)。部品の上に表示する */
-  pinNumber?: number;
   /** モジュールの中の INPUT / OUTPUT が、外側のピンに出せないとき、その理由。部品に印を付ける */
   portProblem?: PortProblem;
   onBodyDown: (e: React.PointerEvent) => void;
@@ -309,7 +307,6 @@ export function SheetPart({
   outputValues,
   inputValues,
   selected,
-  pinNumber,
   portProblem,
   onBodyDown,
   onBodyDoubleClick,
@@ -326,22 +323,15 @@ export function SheetPart({
     />
   );
   const value = outputValues[0];
-  // 外側のピンに出せないポートは、番号の代わりに印を出す (番号があれば添える)
-  const numberBadge = portProblem ? (
-    <text className={classNames(styles.pinNumber, styles.problem)} x={c.x + w / 2} y={c.y - 6}>
-      #{c.pinNumber ?? ''}?
-    </text>
-  ) : (
-    pinNumber !== undefined && (
-      <text className={styles.pinNumber} x={c.x + w / 2} y={c.y - 6}>
-        #{pinNumber}
-      </text>
-    )
-  );
-  // ポート番号は、本体の下に「入力 1」の形で出す
-  const portNumberText = c.portNumber !== undefined && (
-    <text className={styles.portNumber} x={c.x + w / 2} y={c.y + h + 12}>
+  // INPUT / OUTPUT の上に、ポート番号を「入力 1」の形で出す。外側のピンに出せないポートは、赤くして「?」を添える
+  const numberBadge = c.portNumber !== undefined && (
+    <text
+      className={classNames(styles.pinNumber, portProblem && styles.problem)}
+      x={c.x + w / 2}
+      y={c.y - 6}
+    >
       {c.kind === 'input' ? '入力' : '出力'} {c.portNumber}
+      {portProblem && ' ?'}
     </text>
   );
   const lamp = value ? 'var(--chakra-colors-sheet-on)' : '#333';
@@ -367,7 +357,6 @@ export function SheetPart({
           </text>
         )}
         {numberBadge}
-        {portNumberText}
       </>
     );
   } else if (c.kind === 'clock') {
@@ -407,7 +396,6 @@ export function SheetPart({
           </text>
         )}
         {numberBadge}
-        {portNumberText}
       </>
     );
   } else {

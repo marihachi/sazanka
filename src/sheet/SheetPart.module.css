@@ -31,19 +31,10 @@
   pointer-events: none;
 }
 
-/* モジュールの中の INPUT / OUTPUT の上に出す、外から見たピンの番号 */
+/* INPUT / OUTPUT の上に出す、ポート番号 */
 .pin-number {
   fill: var(--chakra-colors-accent-solid);
   font-size: 11px;
-  text-anchor: middle;
-  pointer-events: none;
-}
-
-/* INPUT / OUTPUT の下に出す、ポート番号 */
-.port-number {
-  fill: var(--chakra-colors-fg);
-  font-size: 10px;
-  opacity: 0.6;
   text-anchor: middle;
   pointer-events: none;
 }

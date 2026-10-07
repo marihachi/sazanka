@@ -89,7 +89,7 @@ export const SheetToolbar = memo(function SheetToolbar({
             <ToolButton
               icon={packageIcon}
               label="モジュール設定"
-              title="モジュール設定: パッケージ (形とピン数) とピンの割り当てを変える"
+              title="モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える"
               onClick={onModuleSettings}
             />
           )}

@@ -436,14 +436,7 @@ export function App() {
               ? findDef(project, selectedPart.module)?.name
               : undefined
           }
-          pinNumber={
-            usesPinNumbers(circuit.package) &&
-            (selectedPart?.kind === 'input' || selectedPart?.kind === 'output')
-              ? problems.has(selectedPart.id)
-                ? null
-                : (selectedPart.pinNumber ?? null)
-              : undefined
-          }
+          inModule={circuit.id !== MAIN_ID}
           otherLabels={circuit.parts
             .filter(
               (c) =>
