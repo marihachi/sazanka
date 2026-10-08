@@ -4,7 +4,6 @@ import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
 import { getLayout } from '../parts/layouts';
-import { partSpecOf } from '../parts/specs';
 import { classNames } from '../ui/classNames';
 import styles from './SheetPart.module.css';
 import { labelOf, partViewOf } from '../parts/views';
@@ -389,12 +388,12 @@ export function SheetPart({
         />
       </>
     );
-  } else if (partSpecOf(c.kind)?.shape === 'terminal') {
-    // 形が端子の部品 (HIGH など)。本体の中に記号を大きく書く
+  } else if (c.kind === 'high') {
+    // HIGH。本体の中に記号を大きく書く
     body = (
       <>
         {outline}
-        <text className={styles.terminalMark} x={c.x + w / 2} y={c.y + h / 2 + 6}>
+        <text className={styles.highMark} x={c.x + w / 2} y={c.y + h / 2 + 6}>
           {bodyLabelOf(c.kind)}
         </text>
       </>

@@ -70,7 +70,7 @@ function isPlaceablePartKind(kind: string): kind is PlaceablePartKind {
 
 /** 記憶素子 (ラッチとフリップフロップ) か */
 export function isFlipFlopKind(kind: PartKind): boolean {
-  return partSpecOf(kind)?.shape === 'flipflop';
+  return partSpecOf(kind)?.behavior === 'flipFlop';
 }
 
 // 入力ピン

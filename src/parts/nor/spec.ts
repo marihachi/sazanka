@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const nor = definePart({
   kind: 'nor',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: ['', ''],
   delay: 1,
   output: ([a, b]) => !(a || b),

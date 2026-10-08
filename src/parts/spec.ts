@@ -1,4 +1,4 @@
-// 部品の種類の仕様 (ピン、遅延、評価、形) の書き方と、仕様を書くときに使う共通の処理。
+// 部品の種類の仕様 (ピン、遅延、動作の分類と評価) の書き方と、仕様を書くときに使う共通の処理。
 // 種類ごとの仕様は、このフォルダの種類のフォルダ (and/ など) の spec.ts に置き、specs.ts の PART_SPECS に並べる。
 // 画面での見せ方 (表示名、アイコン、説明) は、同じ種類のフォルダの view.ts に置く (書き方は view.ts)。
 // シート上の配置 (大きさ、輪郭、ピンの置き方) は layout.ts
@@ -30,25 +30,24 @@ interface PartSpecBase {
 }
 
 /**
- * 入力から出力 (1 本) を決める部品。
- * 形は、ゲート (入力は 1 本か 2 本) か、端子 (小さな正方形。入力ピンはなし) から選ぶ。
- * 形ごとの既定の配置 (大きさとピンの置き方) は layout.ts
+ * 入力から出力 (1 本) を決める部品 (ゲート、HIGH)。
+ * 仕様には動作だけを書く。見た目 (配置) は layout.ts。種類の layout.ts がなければゲートの配置になる
  */
 export interface LogicPartSpec extends PartSpecBase {
-  shape: 'gate' | 'terminal';
+  behavior: 'logic';
   output: (ins: readonly boolean[]) => boolean;
 }
 
-/** 記憶素子 (ラッチとフリップフロップ)。出力は Q, Q̄ の 2 本。入力は 3 本まで */
-export interface MemoryPartSpec extends PartSpecBase {
-  shape: 'flipflop';
+/** 記憶素子 (ラッチとフリップフロップ)。出力は Q, Q̄ の 2 本。入力は 3 本まで。既定の配置は記憶素子の配置 */
+export interface FlipFlopPartSpec extends PartSpecBase {
+  behavior: 'flipFlop';
   /** 次の状態。ins は入力ピンの値 (ピン番号の順) */
   next: (ins: readonly boolean[], s: FlipFlopState) => FlipFlopState;
 }
 
-export type PartSpec = LogicPartSpec | MemoryPartSpec;
+export type PartSpec = LogicPartSpec | FlipFlopPartSpec;
 
-/** 仕様を定義する。種類の名前と形を文字列の型のまま残し、PartKind を PART_SPECS から導けるようにする */
+/** 仕様を定義する。種類の名前と動作の分類を文字列の型のまま残し、PartKind を PART_SPECS から導けるようにする */
 export function definePart<const S extends PartSpec>(spec: S): S {
   return spec;
 }

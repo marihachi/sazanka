@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const high = definePart({
   kind: 'high',
-  shape: 'terminal',
+  behavior: 'logic',
   inputs: [],
   delay: 0,
   output: () => true,

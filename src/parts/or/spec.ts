@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const or = definePart({
   kind: 'or',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: ['', ''],
   delay: 2,
   output: ([a, b]) => a || b,

@@ -3,13 +3,8 @@
 
 import { clock } from './clock/layout';
 import { input } from './input/layout';
-import {
-  flipflopLayout,
-  gateLayout,
-  type PartLayout,
-  type PartLayoutOf,
-  terminalLayout,
-} from './layout';
+import { high } from './high/layout';
+import { flipflopLayout, gateLayout, type PartLayout, type PartLayoutOf } from './layout';
 import { module } from './module/layout';
 import { output } from './output/layout';
 import type { Pinout } from '../circuit/module';
@@ -17,9 +12,10 @@ import { type SpecKind, partSpecOf, type SpecialKind } from './specs';
 
 /**
  * 既定と違う配置にする種類ごとの配置。
- * ここにない種類は、仕様の形 (shape) の既定の配置になる。特別な部品は仕様を持たないので、すべてここに置く
+ * ここにない種類は、仕様の動作の分類 (behavior) の既定の配置になる。特別な部品は仕様を持たないので、すべてここに置く
  */
 const PART_LAYOUTS: Partial<Record<SpecKind | SpecialKind, PartLayoutOf>> = {
+  high: high,
   input: input,
   output: output,
   clock: clock,
@@ -32,11 +28,9 @@ export function getLayout(kind: string, pinout: Pinout): PartLayout {
   if (own) {
     return own(pinout);
   }
-  switch (partSpecOf(kind)?.shape) {
-    case 'flipflop':
+  switch (partSpecOf(kind)?.behavior) {
+    case 'flipFlop':
       return flipflopLayout(pinout);
-    case 'terminal':
-      return terminalLayout(pinout);
     default:
       // ゲートと、仕様を持たない内部用の BUF
       return gateLayout(pinout);

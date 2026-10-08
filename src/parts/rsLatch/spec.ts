@@ -5,7 +5,7 @@ import { definePart } from '../spec';
 
 export const rsLatch = definePart({
   kind: 'rsLatch',
-  shape: 'flipflop',
+  behavior: 'flipFlop',
   inputs: ['S', 'R'],
   delay: 2,
   next: ([set, reset], s) => ({ q: reset ? false : set ? true : s.q, clk: false }),

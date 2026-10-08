@@ -5,7 +5,7 @@ import { definePart } from '../spec';
 
 export const dLatch = definePart({
   kind: 'dLatch',
-  shape: 'flipflop',
+  behavior: 'flipFlop',
   inputs: ['D', 'EN'],
   delay: 3,
   next: ([d, en], s) => ({ q: en ? d : s.q, clk: false }),

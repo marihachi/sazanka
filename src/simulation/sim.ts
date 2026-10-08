@@ -66,7 +66,7 @@ function evalGate(c: Part, ins: boolean[]): boolean {
       return ins[0];
   }
   const spec = partSpecOf(c.kind);
-  if (spec?.shape !== 'gate' && spec?.shape !== 'terminal') {
+  if (spec?.behavior !== 'logic') {
     throw new Error(`not a gate: ${c.kind}`);
   }
   return spec.output(ins);
@@ -75,7 +75,7 @@ function evalGate(c: Part, ins: boolean[]): boolean {
 /** 記憶素子の次の状態。ins は入力ピンの値 (ピン番号の順) */
 function nextState(c: Part, ins: boolean[], s: FlipFlopState): FlipFlopState {
   const spec = partSpecOf(c.kind);
-  if (spec?.shape !== 'flipflop') {
+  if (spec?.behavior !== 'flipFlop') {
     throw new Error(`not a flip-flop: ${c.kind}`);
   }
   return spec.next(ins, s);

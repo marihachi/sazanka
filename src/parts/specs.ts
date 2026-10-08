@@ -42,14 +42,14 @@ type ListedSpec = (typeof PART_SPECS)[number];
 export type SpecKind = ListedSpec['kind'];
 
 /** 論理ゲート */
-export type GateKind = Extract<ListedSpec, { shape: 'gate' }>['kind'];
+export type GateKind = Exclude<Extract<ListedSpec, { behavior: 'logic' }>['kind'], 'high'>;
 
 /**
  * 記憶素子。
  * rsLatch、rsEnLatch、dLatch は CLK のないラッチ (入力の ON/OFF の状態で動く)、
  * ほかはCLKの立ち上がりの瞬間だけ動くフリップフロップ
  */
-export type FlipFlopKind = Extract<ListedSpec, { shape: 'flipflop' }>['kind'];
+export type FlipFlopKind = Extract<ListedSpec, { behavior: 'flipFlop' }>['kind'];
 
 const BY_KIND = new Map<string, PartSpec>(PART_SPECS.map((p) => [p.kind, p]));
 

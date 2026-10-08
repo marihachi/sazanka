@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const not = definePart({
   kind: 'not',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: [''],
   delay: 1,
   output: ([a]) => !a,

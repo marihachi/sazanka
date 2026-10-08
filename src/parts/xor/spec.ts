@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const xor = definePart({
   kind: 'xor',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: ['', ''],
   delay: 3,
   output: ([a, b]) => a !== b,

@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const nand = definePart({
   kind: 'nand',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: ['', ''],
   delay: 1,
   output: ([a, b]) => !(a && b),

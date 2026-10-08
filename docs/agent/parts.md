@@ -6,7 +6,7 @@
 
 部品の種類は、`src/parts/<名前>/` に 1 種類ずつまとめる。
 
-- `spec.ts` … 仕様。種類の名前（`kind`）、形（`shape`）、入力ピン（`inputs`）、遅延（`delay`）、評価（ゲートは `output`、記憶素子は `next`）。型は `parts/spec.ts`。
+- `spec.ts` … 仕様。種類の名前（`kind`）、動作の分類（`behavior`）、入力ピン（`inputs`）、遅延（`delay`）、評価（`logic` は `output`、`flipFlop` は `next`）。動作だけを書き、見た目は書かない。型は `parts/spec.ts`。
 - `view.ts` … 見せ方。表示名（`label`）、本体の中に書く名前（`bodyLabel`）、アイコン、パレットのグループ、説明（パレットのツールチップ）、ヒント。型は `parts/view.ts`。
 - `layout.ts` … シート上の配置。既定と違う配置にする種類だけが持つ（下の「配置」）。型は `parts/layout.ts`。
 - `icon.svg` … アイコン（描き方は[アイコンとロゴ](icons.md)）。
@@ -26,11 +26,12 @@
 
 ## `spec.ts` で書ける部品と、書けない部品
 
-- `spec.ts` で書けるのは、入力ピンの値だけで出力が決まる部品（ゲート、端子の HIGH）と、記憶素子（ラッチとフリップフロップ）。
-- 形（`shape`）は、今ある 3 つから選ぶ。形ごとに既定の配置がある（下の「配置」）。
-  - `gate` … 入力は 1 本か 2 本、出力は 1 本。3 本以上の入力には、既定の配置（`parts/layout.ts` の `gateLayout`）の対応か、種類の `layout.ts` が要る。
-  - `flipflop` … 入力は 3 本まで、出力は Q と Q̄ の 2 本。
-  - `terminal` … 小さな正方形。入力ピンはなく、出力は 1 本。本体に `bodyLabel` を大きく書き、ON の色で塗る（今の HIGH が常に ON のため）。OFF を出すもの（LOW など）を足すなら、色の付け方を直す。
+- `spec.ts` で書けるのは、入力ピンの値だけで出力が決まる部品（ゲート、HIGH）と、記憶素子（ラッチとフリップフロップ）。
+- 動作の分類（`behavior`）は、今ある 2 つから選ぶ。分類ごとに既定の配置がある（下の「配置」）。見た目を変えるなら、種類の `layout.ts` を置く。
+  - `logic` … 入力から出力 1 本を求める（`output`）。既定の配置はゲート（`gateLayout`）。入力は 1 本か 2 本で、3 本以上の入力には、既定の配置の対応か、種類の `layout.ts` が要る。
+  - `flipFlop` … 状態（`{ q, clk }`）を持ち、次の状態を求める（`next`）。入力は 3 本まで、出力は Q と Q̄ の 2 本。既定の配置は記憶素子（`flipflopLayout`）。
+- HIGH は `logic` で、配置は小さな四角（`high/layout.ts` の `squareLayout`）。本体に `bodyLabel` を大きく書き、ON の色で塗る（HIGH は常に ON のため。`SheetPart.tsx` が種類の名前で分けて描く）。OFF を出すもの（LOW など）を足すなら、色の付け方を直す。
+- 前は仕様の形（`shape`: `gate` / `terminal` / `flipflop`）が、動作の分類と見た目の既定の両方を決めていた。分かりにくいので、動作の分類だけにした（[計画](../plans/part-behavior/plan.md)）。
 - エッジトリガ型のフリップフロップは、CLK を入力ピンの 1 番（`CLK_PIN`）に置き、`onRisingEdge` で次の状態を作る。JK も CLK を真ん中（J、>、K）に置いてそろえている。
   - 前回の結果がない（ページを開いた直後など）ときは、前の CLK を OFF とみなす。その時点で CLK が ON なら、立ち上がりとして 1 回動く。
 - 特別な部品（INPUT、OUTPUT、CLOCK、モジュール）は `spec.ts` を持たない。モジュールのピン、時間での切り替え、展開などの処理が、種類の名前を見て個別に扱っているため。
@@ -56,7 +57,7 @@
 - 配置は、部品のピンの割り当て（`circuit/module.ts` の `Pinout`。ピンの名前、モジュールのパッケージと外側のピン番号）を受け取って返す関数（`PartLayoutOf`）。モジュールは、パッケージとピンの数で形が変わるため。
 - モジュールの配置（`module/layout.ts`）は、パッケージで分かれる。`split` は今までの形（幅 4、ピンは 1 マスおき）、`dip` は幅 3 で左右に 2 マスおき（番号は左上から反時計回り）、`qfp` は正方形で 4 辺に 2 マスおき（角から 2 マスあける。名前は本体の中）。
 - 上下の辺のピン名は、90 度回して本体の内側に縦に書く（`SheetPart.tsx` の `PinName`）。
-- 種類の `layout.ts` がなければ、形の既定の配置（`gateLayout`、`flipflopLayout`、`terminalLayout`）になる。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は端子の配置の輪郭だけを円にしている）。
+- 種類の `layout.ts` がなければ、動作の分類の既定の配置（`gateLayout`、`flipflopLayout`）になる。INPUT、OUTPUT、CLOCK、HIGH は、種類の `layout.ts` で小さな四角（`squareLayout`）にしている。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は小さな四角の配置の輪郭だけを円にしている）。
 - 本体の中の描き込み（ランプ、矩形波の絵、文字）は、配置ではなく `sheet/SheetPart.tsx` が種類ごとに描いている。
 - モジュールごとに大きさやピンの位置を変えられるようにするなら、モジュールの定義から `module/layout.ts` の配置を上書きする形にする。保存データの形が変わるので、[保存データ](persistence.md)の決まりに従う。
 

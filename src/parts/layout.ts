@@ -79,8 +79,8 @@ export const flipflopLayout: PartLayoutOf = (pinout) => ({
   nameAbove: false,
 });
 
-/** 入出力の部品と、形を端子にした部品 (HIGH など)。2 マス四方の角の丸い四角で、ピンは中央 */
-export const terminalLayout: PartLayoutOf = (pinout) => ({
+/** 小さな四角 (INPUT、OUTPUT、CLOCK、HIGH)。2 マス四方の角の丸い四角で、ピンは中央 */
+export const squareLayout: PartLayoutOf = (pinout) => ({
   w: 2,
   h: 2,
   body: 'rounded',

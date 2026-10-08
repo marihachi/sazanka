@@ -4,7 +4,7 @@ import { definePart } from '../spec';
 
 export const xnor = definePart({
   kind: 'xnor',
-  shape: 'gate',
+  behavior: 'logic',
   inputs: ['', ''],
   delay: 3,
   output: ([a, b]) => a === b,

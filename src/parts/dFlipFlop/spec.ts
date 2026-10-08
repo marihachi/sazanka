@@ -4,7 +4,7 @@ import { definePart, onRisingEdge } from '../spec';
 
 export const dFlipFlop = definePart({
   kind: 'dFlipFlop',
-  shape: 'flipflop',
+  behavior: 'flipFlop',
   inputs: ['D', '>'],
   delay: 3,
   next: (ins, s) => onRisingEdge(ins, s, () => ins[0]),

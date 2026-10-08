@@ -1,3 +1,3 @@
-import { terminalLayout } from '../layout';
+import { squareLayout } from '../layout';
 
-export const clock = terminalLayout;
+export const clock = squareLayout;

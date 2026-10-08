@@ -86,8 +86,8 @@
   stroke: var(--chakra-colors-accent-solid);
 }
 
-/* 形が端子の部品の記号 (HIGH の「1」)。今ある HIGH は常に ON なので、ON の色で描く */
-.terminal-mark {
+/* HIGH の記号「1」。HIGH は常に ON なので、ON の色で描く */
+.high-mark {
   fill: var(--chakra-colors-sheet-on);
   font-size: 18px;
   font-weight: 600;

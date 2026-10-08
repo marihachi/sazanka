@@ -4,7 +4,7 @@ import { definePart, onRisingEdge } from '../spec';
 
 export const jkFlipFlop = definePart({
   kind: 'jkFlipFlop',
-  shape: 'flipflop',
+  behavior: 'flipFlop',
   inputs: ['J', '>', 'K'],
   delay: 3,
   next: (ins, s) =>

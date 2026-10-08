@@ -1,4 +1,4 @@
-import { type PartLayoutOf, terminalLayout } from '../layout';
+import { type PartLayoutOf, squareLayout } from '../layout';
 
-/** 本体を円にした端子 */
-export const output: PartLayoutOf = (pinout) => ({ ...terminalLayout(pinout), body: 'circle' });
+/** 小さな四角の配置の、本体を円にしたもの */
+export const output: PartLayoutOf = (pinout) => ({ ...squareLayout(pinout), body: 'circle' });

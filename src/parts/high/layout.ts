@@ -1,3 +1,3 @@
 import { squareLayout } from '../layout';
 
-export const input = squareLayout;
+export const high = squareLayout;

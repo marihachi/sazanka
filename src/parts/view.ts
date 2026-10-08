@@ -20,7 +20,7 @@ export interface PartView {
   label: string;
   /**
    * シート上の部品の中に書く名前。なければ label。
-   * 本体の幅に収まらないものだけ短くする。形が端子の部品では、本体の中に大きく書く記号
+   * 本体の幅に収まらないものだけ短くする。HIGH では、本体の中に大きく書く記号
    */
   bodyLabel?: string;
   /** アイコン (同じ種類のフォルダの icon.svg。描き方は docs/agent/icons.md) */
