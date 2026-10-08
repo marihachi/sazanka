@@ -7,6 +7,7 @@ import { high } from './high/layout';
 import { flipflopLayout, gateLayout, type PartLayout, type PartLayoutOf } from './layout';
 import { module } from './module/layout';
 import { output } from './output/layout';
+import { sevenSegment } from './sevenSegment/layout';
 import type { Pinout } from '../circuit/module';
 import { type SpecKind, partSpecOf, type SpecialKind } from './specs';
 
@@ -20,6 +21,7 @@ const PART_LAYOUTS: Partial<Record<SpecKind | SpecialKind, PartLayoutOf>> = {
   output: output,
   clock: clock,
   module: module,
+  sevenSegment: sevenSegment,
 };
 
 /** 種類の配置。pinout は部品のピンの割り当て (circuit/module.ts の getPinout) */

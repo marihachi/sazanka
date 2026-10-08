@@ -68,6 +68,11 @@ function isPlaceablePartKind(kind: string): kind is PlaceablePartKind {
   return partSpecOf(kind) !== undefined || isSpecialKind(kind);
 }
 
+/** 表示するだけの部品 (7 セグメントディスプレイなど) か。出力ピンがなく、シミュレーションでは何も求めない */
+export function isDisplayKind(kind: PartKind): boolean {
+  return partSpecOf(kind)?.behavior === 'display';
+}
+
 /** 記憶素子 (ラッチとフリップフロップ) か */
 export function isFlipFlopKind(kind: PartKind): boolean {
   return partSpecOf(kind)?.behavior === 'flipFlop';
@@ -106,7 +111,7 @@ export function outputPinNames(kind: PartKind): string[] {
 }
 
 export function outputCount(kind: PartKind): number {
-  if (kind === 'output' || kind === 'module') {
+  if (kind === 'output' || kind === 'module' || isDisplayKind(kind)) {
     return 0;
   }
   return isFlipFlopKind(kind) ? 2 : 1; // フリップフロップは Q, Q̄

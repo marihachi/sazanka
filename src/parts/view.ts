@@ -5,7 +5,7 @@
  * パレットのグループの ID。折り畳みの状態の保存に使うので、一度決めたら変えない。
  * 見出しの文字とグループの並びは Palette.tsx の GROUPS
  */
-export type PaletteGroupId = 'io' | 'source' | 'gate' | 'latch' | 'flipflop';
+export type PaletteGroupId = 'io' | 'source' | 'gate' | 'latch' | 'flipflop' | 'device';
 
 /** ヒントを部品の設定に合わせて作るときに渡すもの */
 export interface HintContext {

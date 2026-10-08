@@ -45,7 +45,15 @@ export interface FlipFlopPartSpec extends PartSpecBase {
   next: (ins: readonly boolean[], s: FlipFlopState) => FlipFlopState;
 }
 
-export type PartSpec = LogicPartSpec | FlipFlopPartSpec;
+/**
+ * 表示するだけの部品 (7 セグメントディスプレイなど)。入力ピンだけを持ち、出力ピンはない。
+ * シミュレーションでは何も求めず、シートの描画が入力ピンの値を見て描く。見た目は種類の layout.ts と描き込みで決める
+ */
+export interface DisplayPartSpec extends PartSpecBase {
+  behavior: 'display';
+}
+
+export type PartSpec = LogicPartSpec | FlipFlopPartSpec | DisplayPartSpec;
 
 /** 仕様を定義する。種類の名前と動作の分類を文字列の型のまま残し、PartKind を PART_SPECS から導けるようにする */
 export function definePart<const S extends PartSpec>(spec: S): S {

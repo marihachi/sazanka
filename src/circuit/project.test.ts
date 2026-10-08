@@ -38,6 +38,7 @@ describe('checkProject', () => {
   it('正しいプロジェクトは undefined', () => {
     expect(checkProject(emptyProject())).toBeUndefined();
     expect(checkProject({ ...emptyProject(), author: 'さざんか' })).toBeUndefined();
+    expect(checkProject(main([comp('s', 'sevenSegment')]))).toBeUndefined();
   });
 
   const 壊れたもの: [string, unknown][] = [

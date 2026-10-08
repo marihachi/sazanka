@@ -3,7 +3,14 @@
 // 部品の種類ごとの評価 (入力から出力、記憶素子の次の状態) は parts/ の仕様にある
 
 import { flattenProject } from './flatten';
-import { delayOf, type Part, inputCount, isFlipFlopKind, outputCount } from '../circuit/part';
+import {
+  delayOf,
+  type Part,
+  inputCount,
+  isDisplayKind,
+  isFlipFlopKind,
+  outputCount,
+} from '../circuit/part';
 import type { PinRef } from '../circuit/circuit';
 import { partSpecOf } from '../parts/specs';
 import type { FlipFlopState } from '../parts/spec';
@@ -137,7 +144,8 @@ export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
   };
 
   const delayed = circuit.parts.filter((c) => delayOf(c.kind) > 0);
-  const immediate = circuit.parts.filter((c) => delayOf(c.kind) === 0);
+  // 表示するだけの部品は、求めるものがないので計算に入れない (描画は入力ピンの値を見る)
+  const immediate = circuit.parts.filter((c) => delayOf(c.kind) === 0 && !isDisplayKind(c.kind));
 
   // 1. 待たせていた値を出す。前回の結果がなければ、落ち着いた状態から始める。
   //    出すのは、遅延の間ずっと同じ値だったときだけ。

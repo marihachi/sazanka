@@ -14,6 +14,7 @@ import { not } from './not/spec';
 import { or } from './or/spec';
 import { rsLatch } from './rsLatch/spec';
 import { rsEnLatch } from './rsEnLatch/spec';
+import { sevenSegment } from './sevenSegment/spec';
 import type { PartSpec } from './spec';
 import { tFlipFlop } from './tFlipFlop/spec';
 import { xnor } from './xnor/spec';
@@ -34,6 +35,7 @@ export const PART_SPECS = [
   dFlipFlop,
   tFlipFlop,
   jkFlipFlop,
+  sevenSegment,
 ];
 
 type ListedSpec = (typeof PART_SPECS)[number];

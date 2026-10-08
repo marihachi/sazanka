@@ -24,6 +24,7 @@ const GROUPS: { id: PaletteGroupId; title: string }[] = [
   { id: 'gate', title: '論理ゲート' },
   { id: 'latch', title: 'ラッチ' },
   { id: 'flipflop', title: 'フリップフロップ' },
+  { id: 'device', title: 'デバイス' },
 ];
 
 /** グループに並べる部品の種類 */

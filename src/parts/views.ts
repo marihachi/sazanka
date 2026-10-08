@@ -15,6 +15,7 @@ import { or } from './or/view';
 import { output } from './output/view';
 import { rsLatch } from './rsLatch/view';
 import { rsEnLatch } from './rsEnLatch/view';
+import { sevenSegment } from './sevenSegment/view';
 import type { SpecKind, SpecialKind } from './specs';
 import type { PartView } from './view';
 import { tFlipFlop } from './tFlipFlop/view';
@@ -45,6 +46,7 @@ export const PART_VIEWS: Record<SpecKind | SpecialKind, PartView> = {
   dFlipFlop: dFlipFlop,
   tFlipFlop: tFlipFlop,
   jkFlipFlop: jkFlipFlop,
+  sevenSegment: sevenSegment,
   module: module,
 };
 
