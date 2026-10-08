@@ -54,6 +54,20 @@ function twoInput(kind: GateKind, a: boolean, b: boolean): boolean {
 }
 
 describe('simulate', () => {
+  it('表示するだけの部品 (7 セグメント) は、出力ピンを持たず、ほかの値を変えない', () => {
+    const circuit: Netlist = {
+      parts: [
+        { id: 'a', kind: 'input', x: 0, y: 0, on: true },
+        { id: 's', kind: 'sevenSegment', x: 0, y: 0 },
+      ],
+      links: [{ from: { comp: 'a', pin: 0 }, to: { comp: 's', pin: 0 } }],
+    };
+    const result = settle(circuit);
+    expect(result.values.get('a:0')).toBe(true);
+    expect(result.values.get('s:0') ?? false).toBe(false);
+    expect(result.unstable).toBe(false);
+  });
+
   // biome-ignore format: 表形式を維持するため
   const table: [GateKind, boolean[]][] = [
     ['and', [false, false, false, true]],

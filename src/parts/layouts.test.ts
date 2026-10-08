@@ -12,20 +12,21 @@ describe('getLayout', () => {
     { inputs: ['', '', ''], outputs: ['', ''] },
   ];
 
-  it('大きさはマスの整数で、ピンは本体の高さの中の整数のマスにある', () => {
+  it('大きさはマスの整数で、ピンは辺の長さの中の整数のマスにある', () => {
     for (const kind of kinds) {
       for (const pins of pinsList) {
         const layout = getLayout(kind, pins);
         expect(Number.isInteger(layout.w) && Number.isInteger(layout.h), kind).toBe(true);
         for (const p of [...layout.inputs, ...layout.outputs]) {
-          expect(Number.isInteger(p.at) && p.at >= 0 && p.at <= layout.h, kind).toBe(true);
+          const length = p.side === 'left' || p.side === 'right' ? layout.h : layout.w;
+          expect(Number.isInteger(p.at) && p.at >= 0 && p.at <= length, kind).toBe(true);
         }
       }
     }
   });
 
-  it('ピンを、渡したピンの数だけ置く。入力は左、出力は右', () => {
-    for (const kind of kinds) {
+  it('ピンを、渡したピンの数だけ置く。入力は左、出力は右 (7 セグメントを除く)', () => {
+    for (const kind of kinds.filter((k) => k !== 'sevenSegment')) {
       const layout = getLayout(kind, { inputs: ['', ''], outputs: [''] });
       expect(
         layout.inputs.map((p) => p.side),
@@ -36,6 +37,16 @@ describe('getLayout', () => {
         kind,
       ).toEqual(['right']);
     }
+  });
+
+  it('7 セグメントは、入力ピンを下の辺に左から並べ、出力ピンを置かない', () => {
+    const layout = getLayout('sevenSegment', { inputs: ['a', 'b', 'c'], outputs: [''] });
+    expect(layout.inputs).toEqual([
+      { side: 'bottom', at: 1 },
+      { side: 'bottom', at: 2 },
+      { side: 'bottom', at: 3 },
+    ]);
+    expect(layout.outputs).toEqual([]);
   });
 
   it('既定と違う配置にした種類は、その配置になる', () => {
