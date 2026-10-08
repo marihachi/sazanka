@@ -340,6 +340,25 @@ describe('findDuplicateLabels', () => {
   });
 });
 
+describe('getPinout の 7 セグメント', () => {
+  it('モジュールの中の 7 セグメントは、モジュールのピンにならない', () => {
+    const project: Project = {
+      circuits: [
+        { ...emptyProject().circuits[0], parts: [comp('m', 'module', { module: 'mod' })] },
+        {
+          id: 'mod',
+          name: 'M',
+          package: { kind: 'split' },
+          parts: [comp('a', 'input', { label: 'A' }), comp('s', 'sevenSegment')],
+          wires: [],
+        },
+      ],
+    };
+    const pinout = getPinout(project.circuits[0].parts[0], project);
+    expect([pinout.inputs, pinout.outputs]).toEqual([['A'], []]);
+  });
+});
+
 describe('dependsOn', () => {
   // biome-ignore format: 表形式を維持するため
   const project: Project = {
