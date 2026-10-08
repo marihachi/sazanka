@@ -39,12 +39,18 @@ describe('getLayout', () => {
     }
   });
 
-  it('7 セグメントは、入力ピンを下の辺に左から並べ、出力ピンを置かない', () => {
-    const layout = getLayout('sevenSegment', { inputs: ['a', 'b', 'c'], outputs: [''] });
-    expect(layout.inputs).toEqual([
-      { side: 'bottom', at: 1 },
-      { side: 'bottom', at: 2 },
-      { side: 'bottom', at: 3 },
+  it('7 セグメントは、入力ピンを上の辺に a〜d、下の辺に e〜g と DP を左から並べ、出力ピンを置かない', () => {
+    const names = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'DP'];
+    const layout = getLayout('sevenSegment', { inputs: names, outputs: [''] });
+    expect(layout.inputs.map((p) => `${p.side}${p.at}`)).toEqual([
+      'top1',
+      'top2',
+      'top3',
+      'top4',
+      'bottom1',
+      'bottom2',
+      'bottom3',
+      'bottom4',
     ]);
     expect(layout.outputs).toEqual([]);
   });
