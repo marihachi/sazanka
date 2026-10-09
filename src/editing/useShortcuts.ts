@@ -15,6 +15,8 @@ export interface Shortcuts {
   onSelectTool: () => void;
   /** 配線モードにする (W) */
   onWireTool: () => void;
+  /** 分割モードにする (S) */
+  onSplitTool: () => void;
 }
 
 /** 編集操作のキーボードショートカット */
@@ -76,6 +78,8 @@ export function useShortcuts(shortcuts: Shortcuts) {
           s.onSelectTool();
         } else if (key === 'w') {
           s.onWireTool();
+        } else if (key === 's') {
+          s.onSplitTool();
         }
       }
     }

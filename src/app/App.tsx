@@ -255,7 +255,7 @@ export function App() {
     setSelection({ comps: [c.id], wires: [] });
   }
 
-  /** 選択モードか配線モードにする。モードが変わるときは、配線中の線を取り消す */
+  /** 選択モード・配線モード・分割モードにする。モードが変わるときは、配線中の線を取り消す */
   function changeTool(next: Tool) {
     if (next !== tool) {
       setPending(null);
@@ -293,6 +293,7 @@ export function App() {
     },
     onSelectTool: () => changeTool('select'),
     onWireTool: () => changeTool('wire'),
+    onSplitTool: () => changeTool('split'),
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
@@ -347,6 +348,11 @@ export function App() {
     setSelection((s) => edit.remapSelection(s, merged.replaced));
   }
 
+  /** 分割モードで、配線を点 at で 2 本に分ける。選択は変えない (元の配線を選んでいたら、元の ID を引き継いだ前の方が選ばれたまま) */
+  function splitWireAt(id: string, at: Point) {
+    setCircuit((cur) => edit.splitWire(cur, id, at, newId));
+  }
+
   function toggleInput(id: string) {
     // スイッチ操作は回路の編集ではないので、元に戻す対象にしない
     setCircuit((cur) => edit.toggleSwitch(cur, id), false);
@@ -377,6 +383,7 @@ export function App() {
     {
       dragMode,
       wireTool: tool === 'wire',
+      splitTool: tool === 'split',
       wiring: !!pending,
       placing: !!clipboard.placing,
       editing: !!editing,
@@ -493,6 +500,7 @@ export function App() {
             onMove={moveParts}
             onWireReshape={reshapeWire}
             onWireReshapeEnd={finishReshapeWire}
+            onSplitWire={splitWireAt}
             // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
             onDropOnTrash={(moved) => deleteSelection(!moved)}
             onToggle={toggleInput}

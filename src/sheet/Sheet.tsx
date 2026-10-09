@@ -16,7 +16,16 @@ import {
   wiresInRect,
   wireStepTo,
 } from '../geometry/layout';
-import { isConflict, isOnWire, type Net, netLinks, type Nets } from '../geometry/net';
+import {
+  findSplitTarget,
+  findWireJoints,
+  isConflict,
+  isOnWire,
+  type Net,
+  netLinks,
+  type Nets,
+  onSegment,
+} from '../geometry/net';
 import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 import { findDef, type CircuitDef, type Project } from '../circuit/project';
@@ -135,6 +144,23 @@ function isHorizontalEnd(points: readonly Point[], end: WireEnd): boolean {
   return anchor.x === next.x;
 }
 
+/** 分割モードの印 (線に直角の短い線) の長さ。分かれ目と、分ける点 (画面上の px。拡大縮小しても変えない) */
+const JOINT_MARK = 10;
+const SPLIT_MARK = 12;
+
+/** 点 at を通る、長さ len の短い線のパス。区間が横向きなら縦に、縦向きなら横に引く (区間と直角) */
+function tickPath(at: Point, horizontal: boolean, len: number): string {
+  return horizontal
+    ? `M${at.x},${at.y - len / 2} V${at.y + len / 2}`
+    : `M${at.x - len / 2},${at.y} H${at.x + len / 2}`;
+}
+
+/** 配線の、点 at を含む最初の区間が横向きか */
+function isHorizontalAt(points: readonly Point[], at: Point): boolean {
+  const i = points.findIndex((b, j) => j > 0 && onSegment(at, points[j - 1], b));
+  return i > 0 && points[i - 1].y === points[i].y;
+}
+
 /** 拡大・縮小ボタン1回で変える倍率 */
 const ZOOM_STEP = 1.25;
 
@@ -172,6 +198,8 @@ interface SheetProps {
   onWireReshape: (id: string, points: Point[]) => void;
   /** 配線の端のドラッグを終えた。points は最後の点の並び */
   onWireReshapeEnd: (id: string, end: WireEnd, points: Point[]) => void;
+  /** 分割モードで、配線を点 at で 2 本に分ける (at は分けてよい点) */
+  onSplitWire: (id: string, at: Point) => void;
   /** 選んでいるものを削除エリアで離した。moved はそれまでに位置を動かしたか */
   onDropOnTrash: (moved: boolean) => void;
   /** INPUT が (ドラッグせずに) クリックされた */
@@ -208,6 +236,7 @@ export function Sheet({
   onMove,
   onWireReshape,
   onWireReshapeEnd,
+  onSplitWire,
   onDropOnTrash,
   onToggle,
   onAddWire,
@@ -354,6 +383,15 @@ export function Sheet({
       // 配線モードでは、部品・ピン・配線の上も含めて、どこを押しても配線の点を置く
       e.stopPropagation();
       onWireClick(toLocal(e));
+    }
+    if (tool === 'split' && e.button === 0) {
+      // 分割モードでは、部品や配線の上を押しても選択やドラッグを始めない。分けられる点なら分ける
+      e.stopPropagation();
+      const p = wireGridPoint(toLocal(e));
+      const target = findSplitTarget(circuit.wires, pinTips, p);
+      if (target && !target.blocked) {
+        onSplitWire(target.wire.id, p);
+      }
     }
   }
 
@@ -664,6 +702,9 @@ export function Sheet({
   const sheetStart = toScreen(view, { x: 0, y: 0 });
   const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
   const cursor = tool === 'wire' && mouse && !placing ? wireCursor(mouse) : null;
+  // 分割モードで、ポインターの下の分ける点 (blocked なら分けられない点)
+  const splitPoint = tool === 'split' && mouse && !placing ? wireGridPoint(mouse) : null;
+  const splitTarget = splitPoint && findSplitTarget(circuit.wires, pinTips, splitPoint);
   // 端の印を出す配線。選択モードで、配線を 1 本だけ (部品も選ばずに) 選んでいるとき
   const handleWire =
     tool === 'select' && !placing && selection?.comps.length === 0 && selection.wires.length === 1
@@ -678,6 +719,7 @@ export function Sheet({
         className={classNames(
           styles.sheet,
           tool === 'wire' && styles.wireTool,
+          tool === 'split' && (splitTarget?.blocked ? styles.splitBlocked : styles.splitTool),
           (spaceHeld || panning) && styles.panning,
           activeEnd && (activeEnd.horizontal ? styles.resizingX : styles.resizingY),
         )}
@@ -835,6 +877,17 @@ export function Sheet({
               );
             })}
 
+          {/* 分割モードの印。分かれ目 (分けた所など) と、ポインターの下の分ける点 */}
+          {tool === 'split' && !placing && (
+            <SplitMarks
+              wires={circuit.wires}
+              pinTips={pinTips}
+              scale={view.scale}
+              point={splitPoint && splitTarget && !splitTarget.blocked ? splitPoint : null}
+              target={splitTarget?.wire.points}
+            />
+          )}
+
           {band && (
             <rect
               className={styles.band}
@@ -912,5 +965,46 @@ export function Sheet({
         />
       </Stack>
     </div>
+  );
+}
+
+/**
+ * 分割モードの印。分かれ目 (2 本の端だけが合わさっている点) と、ポインターの下の分ける点に、
+ * 線に直角の短い線を描く。分けた 2 本は 1 本に見えるので、どこで分けたかを確かめられるようにする
+ */
+function SplitMarks({
+  wires,
+  pinTips,
+  scale,
+  point,
+  target,
+}: {
+  wires: readonly Wire[];
+  pinTips: ReadonlySet<string>;
+  scale: number;
+  /** ポインターの下の分ける点。分けられないか、配線がなければ null */
+  point: Point | null;
+  /** 分ける配線の点の並び (印の向きに使う) */
+  target: readonly Point[] | undefined;
+}) {
+  const joints = useMemo(() => findWireJoints(wires, pinTips), [wires, pinTips]);
+  return (
+    <>
+      {joints.map(({ at, horizontal }) => (
+        <path
+          key={`${at.x},${at.y}`}
+          className={styles.splitJoint}
+          vectorEffect="non-scaling-stroke"
+          d={tickPath(at, horizontal, JOINT_MARK / scale)}
+        />
+      ))}
+      {point && target && (
+        <path
+          className={styles.splitCursor}
+          vectorEffect="non-scaling-stroke"
+          d={tickPath(point, isHorizontalAt(target, point), SPLIT_MARK / scale)}
+        />
+      )}
+    </>
   );
 }

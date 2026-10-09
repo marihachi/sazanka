@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Flex } from '@chakra-ui/react';
 import selectIcon from '../assets/icons/select.svg';
 import wireIcon from '../assets/icons/wire.svg';
+import splitIcon from '../assets/icons/split.svg';
 import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
@@ -11,8 +12,8 @@ import packageIcon from '../assets/icons/package.svg';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
 
-/** シートの操作のモード。配線モードでは、クリックで配線を引く */
-export type Tool = 'select' | 'wire';
+/** シートの操作のモード。配線モードでは、クリックで配線を引く。分割モードでは、クリックした点で配線を 2 本に分ける */
+export type Tool = 'select' | 'wire' | 'split';
 
 interface SheetToolbarProps {
   tool: Tool;
@@ -63,6 +64,13 @@ export const SheetToolbar = memo(function SheetToolbar({
         title={m.toolbar.wireTitle}
         onClick={() => onToolChange('wire')}
         active={tool === 'wire'}
+      />
+      <ToolButton
+        icon={splitIcon}
+        label={m.toolbar.split}
+        title={m.toolbar.splitTitle}
+        onClick={() => onToolChange('split')}
+        active={tool === 'split'}
       />
       <ToolDivider />
       <ToolButton

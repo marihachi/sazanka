@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from '../circuit/part';
 import type { Wire } from '../circuit/circuit';
 import type { Project } from '../circuit/project';
-import { computeNets, isConflict, isOnWire, mergeWiresAt, netLinks } from './net';
+import {
+  computeNets,
+  findSplitTarget,
+  findWireJoints,
+  isConflict,
+  isOnWire,
+  mergeWiresAt,
+  netLinks,
+} from './net';
 
 const project: Project = { circuits: [] };
 
@@ -325,5 +333,56 @@ describe('mergeWiresAt', () => {
     const after = computeNets(r.circuit, project).nets.map((n) => [n.outputs, n.inputs]);
     expect(r.circuit.wires).toHaveLength(1);
     expect(after).toEqual(before);
+  });
+});
+
+describe('findSplitTarget', () => {
+  const tips = new Set(['60,20']);
+  const at = (x: number, y: number) => ({ x, y });
+  const l = wire('l', [0, 100], [100, 100], [100, 200]);
+
+  it('途中か折れる点を通る配線を返す', () => {
+    expect(findSplitTarget([l], tips, at(40, 100))).toEqual({ wire: l, blocked: false });
+    expect(findSplitTarget([l], tips, at(100, 100))).toEqual({ wire: l, blocked: false });
+  });
+
+  it('配線の端や、配線のない点では何も返さない', () => {
+    expect(findSplitTarget([l], tips, at(0, 100))).toBeNull();
+    expect(findSplitTarget([l], tips, at(40, 140))).toBeNull();
+  });
+
+  it('交差とピンの先では分けられない', () => {
+    const cross = wire('c', [40, 0], [40, 200]);
+    expect(findSplitTarget([l, cross], tips, at(40, 100))?.blocked).toBe(true);
+    const onPin = wire('p', [0, 20], [200, 20]);
+    expect(findSplitTarget([onPin], tips, at(60, 20))?.blocked).toBe(true);
+  });
+
+  it('ほかの配線の端が乗っている点 (分岐の点) は分けてよい', () => {
+    const branch = wire('b', [40, 100], [40, 200]);
+    expect(findSplitTarget([l, branch], tips, at(40, 100))).toEqual({ wire: l, blocked: false });
+  });
+});
+
+describe('findWireJoints', () => {
+  const tips = new Set(['60,20']);
+
+  it('2 本の端だけが合わさっている点を返す (印の向きは 1 本目の端の区間)', () => {
+    const a = wire('a', [0, 100], [100, 100]);
+    const b = wire('b', [100, 100], [100, 200]);
+    expect(findWireJoints([a, b], tips)).toEqual([{ at: { x: 100, y: 100 }, horizontal: true }]);
+  });
+
+  it('分岐の点、3 本以上の端、ピンの先、同じ配線の両端は含めない', () => {
+    const a = wire('a', [0, 100], [100, 100]);
+    const b = wire('b', [100, 100], [200, 100]);
+    expect(findWireJoints([a, b, wire('c', [100, 0], [100, 200])], tips)).toEqual([]);
+    expect(findWireJoints([a, b, wire('c', [100, 100], [100, 200])], tips)).toEqual([]);
+    expect(
+      findWireJoints([wire('p', [0, 20], [60, 20]), wire('q', [60, 20], [60, 80])], tips),
+    ).toEqual([]);
+    expect(
+      findWireJoints([wire('o', [0, 0], [100, 0], [100, 100], [0, 100], [0, 0])], tips),
+    ).toEqual([]);
   });
 });

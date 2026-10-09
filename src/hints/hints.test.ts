@@ -5,6 +5,7 @@ import { statusHints, type HintContext } from './hints';
 const base: HintContext = {
   dragMode: 'none',
   wireTool: false,
+  splitTool: false,
   wiring: false,
   placing: false,
   editing: false,
@@ -35,6 +36,7 @@ describe('statusHints', () => {
       { dragMode: 'wireEnd' as const },
       { wiring: true },
       { wireTool: true },
+      { splitTool: true },
       { editing: true },
       { wireSelected: true },
     ]) {

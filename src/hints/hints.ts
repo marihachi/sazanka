@@ -11,6 +11,8 @@ export interface HintContext {
   dragMode: 'none' | 'moving' | 'trash' | 'wireEnd';
   /** 配線モードか */
   wireTool: boolean;
+  /** 分割モードか */
+  splitTool: boolean;
   /** 配線の途中 */
   wiring: boolean;
   /** 貼り付ける位置を選んでいる */
@@ -57,6 +59,9 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   }
   if (ctx.wireTool) {
     return [m.wireTool];
+  }
+  if (ctx.splitTool) {
+    return [m.splitTool];
   }
   if (ctx.editing) {
     return [m.editing];

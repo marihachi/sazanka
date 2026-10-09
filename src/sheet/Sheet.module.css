@@ -21,6 +21,19 @@
   cursor: crosshair !important;
 }
 
+/* 分割モード。分けられない点 (交差、ピンの先) の上では、押せないことを示す */
+.sheet.split-tool,
+.sheet.split-tool * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: crosshair !important;
+}
+
+.sheet.split-blocked,
+.sheet.split-blocked * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: not-allowed !important;
+}
+
 /* Space を押している間と、表示を移動している間 */
 .sheet.panning,
 .sheet.panning * {
@@ -109,6 +122,19 @@
 .sheet.resizing-y * {
   /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
   cursor: ns-resize !important;
+}
+
+/* 分割モードの印。分かれ目は配線と同じ色、分ける点はアクセントカラー */
+.split-joint {
+  stroke: var(--chakra-colors-sheet-line);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.split-cursor {
+  stroke: var(--chakra-colors-accent-solid);
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 .pending {
