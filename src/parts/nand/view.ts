@@ -5,5 +5,5 @@ export const nand: PartView = {
   label: 'NAND',
   icon,
   group: 'gate',
-  description: 'AND の反転。すべての入力が ON のときだけ OFF',
+  description: { ja: 'AND の反転。すべての入力が ON のときだけ OFF' },
 };

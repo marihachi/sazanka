@@ -16,6 +16,7 @@ import { output } from './output/view';
 import { rsLatch } from './rsLatch/view';
 import { rsEnLatch } from './rsEnLatch/view';
 import { sevenSegment } from './sevenSegment/view';
+import { type Language, getLocalText } from '../i18n/language';
 import type { SpecKind, SpecialKind } from './specs';
 import type { PartView } from './view';
 import { tFlipFlop } from './tFlipFlop/view';
@@ -56,6 +57,7 @@ export function partViewOf(kind: string): PartView | undefined {
 }
 
 /** 部品の表示名。見せ方のない種類 (BUF) は種類の名前のまま */
-export function labelOf(kind: string): string {
-  return partViewOf(kind)?.label ?? kind;
+export function labelOf(kind: string, lang: Language): string {
+  const label = partViewOf(kind)?.label;
+  return label === undefined ? kind : getLocalText(label, lang);
 }

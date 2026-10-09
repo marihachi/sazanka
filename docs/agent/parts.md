@@ -21,8 +21,9 @@
 
 - 種類の型（`PartKind`）は `PART_SPECS` から導いている。仕様の一覧にある種類だけの型は `SpecKind`。`PART_VIEWS` は置ける種類すべてをキーに持つ型なので、見せ方を書き忘れると型エラーになる。
 - 読み込みの検証、パレット、シートの描画、ヒントは一覧を見て動くので、ほかのファイルは直さなくてよい。
-- パレットのグループの中の並びは `PART_VIEWS` の順。グループの並びと見出しは `Palette.tsx` の `GROUPS`。
-- 部品の設定によって文が変わるヒント（CLOCK の周期など）は、`hints` を関数にする（受け取るものは `parts/view.ts` の `HintContext`）。ヒントの後ろには、移動と削除の案内が自動で付く。
+- パレットのグループの中の並びは `PART_VIEWS` の順。グループの並びは `Palette.tsx` の `GROUPS`、見出しは文言の表（`i18n/ja.ts` の `palette.groups`）。
+- `view.ts` の説明（`description`）とヒント（`hints`）は、言語ごとに書く（`{ ja: ... }`。型は `i18n/language.ts` の `Localized`）。表示名（`label`、`bodyLabel`）は、言語で変わらなければ文字列 1 つでよい（`LocalText`）。
+- 部品の設定によって文が変わるヒント（CLOCK の周期など）は、言語ごとの `hints` を関数にする（受け取るものは `parts/view.ts` の `HintContext`）。ヒントの後ろには、移動と削除の案内が自動で付く。
 
 ## `spec.ts` で書ける部品と、書けない部品
 

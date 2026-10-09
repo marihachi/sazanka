@@ -6,6 +6,7 @@ import { MAIN_ID, moveCircuit, type CircuitDef } from '../circuit/project';
 import { InlineInput } from '../ui/InlineInput';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
+import { useMessages } from '../i18n/useMessages';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -46,6 +47,7 @@ export const TabBar = memo(function TabBar({
   onAddModule,
   onReorder,
 }: TabBarProps) {
+  const m = useMessages();
   const [drag, setDrag] = useState<TabDrag | null>(null);
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
 
@@ -160,7 +162,7 @@ export const TabBar = memo(function TabBar({
       </Tabs.Root>
       {/* タブの末尾の「+」。タブの文字とそろう高さに置く */}
       <Box flexShrink={0} pb="1">
-        <ToolButton icon={plusIcon} label="モジュールを追加" onClick={onAddModule} iconOnly />
+        <ToolButton icon={plusIcon} label={m.tabs.addModule} onClick={onAddModule} iconOnly />
       </Box>
     </Flex>
   );
@@ -168,14 +170,11 @@ export const TabBar = memo(function TabBar({
 
 /** モジュールのタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
 function TabTooltip({ show, children }: { show: boolean; children: React.ReactElement }) {
+  const m = useMessages();
   if (!show) {
     return children;
   }
-  return (
-    <HintTooltip content="ダブルクリックで名前を変更、ドラッグで並べ替えできます。">
-      {children}
-    </HintTooltip>
-  );
+  return <HintTooltip content={m.tabs.moduleTabTooltip}>{children}</HintTooltip>;
 }
 
 /**

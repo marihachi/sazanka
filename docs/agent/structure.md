@@ -40,7 +40,7 @@
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
-  - `hints.ts` … 状況に応じたヒントの文の選び方。`StatusBar.tsx` … ステータスバー。
+  - `hints.ts` … 状況に応じたヒントの選び方（文は `i18n/` の表と、部品の種類の `view.ts` にある）。`StatusBar.tsx` … ステータスバー。
 - `editing/` … 回路の編集と元に戻す（[編集と元に戻す](editing.md)）。
   - `edit.ts` … 回路の編集（新しい回路を返すだけ）と、選択の型（`Selection`）。
   - `history.ts` … 履歴の計算。`useProjectHistory.ts` … 元に戻せるプロジェクトの状態。`switchStates.ts` … 元に戻すときに INPUT の ON/OFF を引き継ぐ。
@@ -66,6 +66,11 @@
   - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
+- `i18n/` … 画面の文言（表示言語）。
+  - `language.ts` … 言語の型（`Language`）と、言語ごとに書き分けた値の型（`Localized`、`LocalText`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。
+  - `useMessages.ts` … 画面の側に言語と文言の表を渡す（`LanguageContext`、`useLanguage`、`useMessages`）。
+  - 画面の文言は、ここの表から引く。部品の種類ごとの文言（表示名、説明、ヒント）とアクセントカラーの色の名前は、それぞれの定義に言語ごとに書く（`parts/<種類>/view.ts`、`preferences/preferences.ts`）。
+  - 計算の側（検証、共有用 JSON、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
 - `util.ts` … どの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない。
 - `assets/` … ロゴと、ボタンなどのアイコンの SVG（部品の種類のアイコンは `parts/`）。
 
@@ -73,9 +78,10 @@
 
 今のフォルダ同士の依存は、次の向きになっている（左が右を使う）。依存の向きについての方針は[コードの置き場所の決め方](code-placement.md)の「依存の向き」。
 
-`app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `util`
+`app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
 
-- この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。
+- この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
+- 逆向きに、`i18n/ja.ts` は、エラーを文にするために `circuit/` と `file/` のエラーの型を型だけ import する。
 - `circuit/` の中では、`module.ts` → `project.ts` → `circuit.ts` → `part.ts` → `parts/` の向きに使う。`part.ts` と `circuit.ts` はプロジェクトを知らず、`project.ts` と `module.ts` は知る。逆向きに、`parts/layout.ts` は配置の入力として `module.ts` の `Pinout` を型だけ import する。
 - `util.ts` は何も import しない。
 - 互いに import し合う形（循環）の落とし穴: 読み込みの途中では、相手のファイルの値がまだできていないことがある。読み込んだ時点で相手の値を使う処理（例: `parts/specs.ts` が読み込み時に `PART_SPECS` から `Map` を作る）が循環に入ると、`undefined` を読んで壊れる。相手の値を関数の中で使うだけのときや、型だけを import するときは問題ない。

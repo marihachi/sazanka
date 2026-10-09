@@ -5,6 +5,7 @@ import plusIcon from '../assets/icons/plus.svg';
 import { Button, HStack } from '@chakra-ui/react';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
+import { useMessages } from '../i18n/useMessages';
 
 interface ZoomControlsProps {
   scale: number;
@@ -24,6 +25,7 @@ export const ZoomControls = memo(function ZoomControls({
   onReset,
   onFit,
 }: ZoomControlsProps) {
+  const m = useMessages();
   return (
     <HStack
       gap="0.5"
@@ -37,8 +39,8 @@ export const ZoomControls = memo(function ZoomControls({
       // ボタンを押したときに、シートの範囲選択などが始まらないようにする
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <ToolButton icon={minusIcon} label="縮小" onClick={onZoomOut} iconOnly />
-      <HintTooltip content="等倍に戻す">
+      <ToolButton icon={minusIcon} label={m.sheet.zoomOut} onClick={onZoomOut} iconOnly />
+      <HintTooltip content={m.sheet.zoomReset}>
         <Button
           variant="ghost"
           size="sm"
@@ -53,8 +55,8 @@ export const ZoomControls = memo(function ZoomControls({
           {Math.round(scale * 100)}%
         </Button>
       </HintTooltip>
-      <ToolButton icon={plusIcon} label="拡大" onClick={onZoomIn} iconOnly />
-      <ToolButton icon={fitIcon} label="回路全体を表示" onClick={onFit} iconOnly />
+      <ToolButton icon={plusIcon} label={m.sheet.zoomIn} onClick={onZoomIn} iconOnly />
+      <ToolButton icon={fitIcon} label={m.sheet.fit} onClick={onFit} iconOnly />
     </HStack>
   );
 });

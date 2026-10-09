@@ -5,9 +5,11 @@ import type { PartView } from '../view';
 export const module: PartView = {
   label: 'CUSTOM',
   icon,
-  description: '回路をまとめた部品。中の INPUT / OUTPUT がピンになる',
-  hints: [
-    'ダブルクリックでモジュールの回路を開く',
-    '「モジュール設定」で、ピンの割り当てを確かめられる',
-  ],
+  description: { ja: '回路をまとめた部品。中の INPUT / OUTPUT がピンになる' },
+  hints: {
+    ja: [
+      'ダブルクリックでモジュールの回路を開く',
+      '「モジュール設定」で、ピンの割り当てを確かめられる',
+    ],
+  },
 };

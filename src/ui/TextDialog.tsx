@@ -8,6 +8,7 @@ import {
   Textarea,
 } from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
+import { useMessages } from '../i18n/useMessages';
 import { DialogFrame } from './DialogFrame';
 
 export interface TextRequest {
@@ -33,6 +34,7 @@ export interface TextRequest {
 
 /** 複数行の文字列を見せる・入力してもらう画面内のダイアログ */
 export function TextDialog({ request, onClose }: { request: TextRequest; onClose: () => void }) {
+  const m = useMessages();
   const { field } = request;
   const [value, setValue] = useState(request.initial);
   const [fieldValue, setFieldValue] = useState(field?.initial ?? '');
@@ -110,7 +112,7 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button variant="outline" onClick={onClose}>
-          {request.readOnly ? '閉じる' : 'キャンセル'}
+          {request.readOnly ? m.common.close : m.common.cancel}
         </Button>
         <Button type="submit">{request.confirmLabel}</Button>
       </ChakraDialog.Footer>

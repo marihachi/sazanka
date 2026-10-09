@@ -19,7 +19,7 @@ const base: HintContext = {
 };
 
 function hints(ctx: Partial<HintContext>): string[] {
-  return statusHints({ ...base, ...ctx });
+  return statusHints({ ...base, ...ctx }, 'ja');
 }
 
 function comp(kind: Part['kind']): Part {

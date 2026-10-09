@@ -1,4 +1,5 @@
 // 利用者ごとの環境設定 (環境設定のウィンドウで変える)。プロジェクトには含めない。保存は file/storage.ts にある
+import type { Localized } from '../i18n/language';
 
 export interface Preferences {
   /**
@@ -22,14 +23,14 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 /** すぐに選べるアクセントカラー。先頭が既定 */
-export const ACCENT_PRESETS: { value: string; label: string }[] = [
+export const ACCENT_PRESETS: { value: string; label: Localized<string> }[] = [
   // ロゴの色 (テーマの brand) と同じ
-  { value: '#20b2aa', label: '青緑' },
-  { value: '#60a5fa', label: '青' },
-  { value: '#a78bfa', label: '紫' },
-  { value: '#f472b6', label: 'ピンク' },
-  { value: '#fb923c', label: 'オレンジ' },
-  { value: '#a3e635', label: '黄緑' },
+  { value: '#20b2aa', label: { ja: '青緑' } },
+  { value: '#60a5fa', label: { ja: '青' } },
+  { value: '#a78bfa', label: { ja: '紫' } },
+  { value: '#f472b6', label: { ja: 'ピンク' } },
+  { value: '#fb923c', label: { ja: 'オレンジ' } },
+  { value: '#a3e635', label: { ja: '黄緑' } },
 ];
 
 /** アクセントカラーとして使える値か (#rrggbb) */

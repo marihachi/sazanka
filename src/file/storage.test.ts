@@ -97,7 +97,7 @@ describe('readStored', () => {
   it('新しい版のデータは読み込まず、理由を返す', () => {
     const result = readStored(JSON.stringify({ version: 99, project }));
     expect(result.project).toEqual(emptyProject());
-    expect(result.error).toContain('新しい版');
+    expect(result.error).toEqual({ code: 'NEWER_VERSION' });
   });
 
   it('壊れたデータは読み込まず、理由を返す', () => {
@@ -111,7 +111,7 @@ describe('readStored', () => {
     for (const raw of source) {
       const result = readStored(raw);
       expect(result.project).toEqual(emptyProject());
-      expect(result.error).toContain('壊れていた');
+      expect(result.error).toEqual({ code: 'BROKEN' });
     }
   });
 });

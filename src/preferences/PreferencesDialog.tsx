@@ -20,6 +20,7 @@ import {
   type Preferences,
 } from './preferences';
 import { DialogFrame } from '../ui/DialogFrame';
+import { useLanguage, useMessages } from '../i18n/useMessages';
 
 /** 環境設定のウィンドウ。利用者ごとの設定で、プロジェクトには含めない。変えた値はすぐに反映する (保存は呼び出し側) */
 export function PreferencesDialog({
@@ -31,6 +32,8 @@ export function PreferencesDialog({
   onChange: (preferences: Preferences) => void;
   onClose: () => void;
 }) {
+  const lang = useLanguage();
+  const m = useMessages();
   const closeRef = useRef<HTMLButtonElement>(null);
   // 入力の途中 (空欄や範囲外) は反映せず、使える値になったときだけ反映する
   const [tickText, setTickText] = useState(String(preferences.tickMs));
@@ -39,12 +42,12 @@ export function PreferencesDialog({
   return (
     <DialogFrame onClose={onClose} initialFocus={closeRef}>
       <ChakraDialog.Header>
-        <ChakraDialog.Title>環境設定</ChakraDialog.Title>
+        <ChakraDialog.Title>{m.preferences.title}</ChakraDialog.Title>
       </ChakraDialog.Header>
       <ChakraDialog.Body>
         <Stack gap="5">
           <Field.Root invalid={!tickValid}>
-            <Field.Label>シミュレーションで 1 tick を進める間隔 (ms)</Field.Label>
+            <Field.Label>{m.preferences.tickMs}</Field.Label>
             <Input
               type="number"
               inputMode="numeric"
@@ -64,12 +67,10 @@ export function PreferencesDialog({
             />
             {tickValid ? (
               <Field.HelperText>
-                {`大きくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${DEFAULT_PREFERENCES.tickMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`}
+                {m.preferences.tickMsHelp(DEFAULT_PREFERENCES.tickMs)}
               </Field.HelperText>
             ) : (
-              <Field.ErrorText>
-                {`${MIN_TICK_MS}〜${MAX_TICK_MS} の整数で入力してください`}
-              </Field.ErrorText>
+              <Field.ErrorText>{m.common.integerRange(MIN_TICK_MS, MAX_TICK_MS)}</Field.ErrorText>
             )}
           </Field.Root>
           <Stack gap="3">
@@ -79,7 +80,7 @@ export function PreferencesDialog({
             >
               <Checkbox.HiddenInput />
               <Checkbox.Control />
-              <Checkbox.Label>シートに方眼を表示する</Checkbox.Label>
+              <Checkbox.Label>{m.preferences.showGrid}</Checkbox.Label>
             </Checkbox.Root>
             <Checkbox.Root
               checked={preferences.roundWires}
@@ -87,16 +88,16 @@ export function PreferencesDialog({
             >
               <Checkbox.HiddenInput />
               <Checkbox.Control />
-              <Checkbox.Label>配線の角を丸める</Checkbox.Label>
+              <Checkbox.Label>{m.preferences.roundWires}</Checkbox.Label>
             </Checkbox.Root>
           </Stack>
           <Stack gap="1.5">
             <Text id="accent-label" textStyle="sm" fontWeight="medium">
-              アクセントカラー
+              {m.preferences.accent}
             </Text>
             <HStack gap="2" role="group" aria-labelledby="accent-label">
               {ACCENT_PRESETS.map((p) => (
-                <HintTooltip key={p.value} content={p.label}>
+                <HintTooltip key={p.value} content={p.label[lang]}>
                   <chakra.button
                     type="button"
                     boxSize="6"
@@ -108,14 +109,14 @@ export function PreferencesDialog({
                     outlineColor="fg"
                     outlineOffset="2px"
                     _focusVisible={{ outline: '2px solid', outlineColor: 'fg' }}
-                    aria-label={p.label}
+                    aria-label={p.label[lang]}
                     aria-pressed={preferences.accent === p.value}
                     onClick={() => onChange({ ...preferences, accent: p.value })}
                   />
                 </HintTooltip>
               ))}
               {/* 用意した色以外も選べる */}
-              <HintTooltip content="ほかの色を選ぶ">
+              <HintTooltip content={m.preferences.otherColor}>
                 <chakra.input
                   type="color"
                   w="8"
@@ -126,7 +127,7 @@ export function PreferencesDialog({
                   rounded="l2"
                   cursor="pointer"
                   value={preferences.accent}
-                  aria-label="ほかの色を選ぶ"
+                  aria-label={m.preferences.otherColor}
                   onChange={(e) => onChange({ ...preferences, accent: e.target.value })}
                 />
               </HintTooltip>
@@ -136,7 +137,7 @@ export function PreferencesDialog({
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button ref={closeRef} onClick={onClose}>
-          閉じる
+          {m.common.close}
         </Button>
       </ChakraDialog.Footer>
     </DialogFrame>

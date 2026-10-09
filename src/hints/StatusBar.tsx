@@ -1,5 +1,6 @@
 import { Badge, Box, Flex } from '@chakra-ui/react';
 import { memo, useEffect, useState } from 'react';
+import { useMessages } from '../i18n/useMessages';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -26,6 +27,7 @@ export const StatusBar = memo(function StatusBar({
   conflict,
   unexposedPorts,
 }: StatusBarProps) {
+  const m = useMessages();
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
   /** マウスが載っている間は切り替えを止める */
@@ -66,17 +68,17 @@ export const StatusBar = memo(function StatusBar({
       </Box>
       {unexposedPorts && (
         <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
-          ピンに出ていない INPUT / OUTPUT があります
+          {m.status.unexposedPorts}
         </Badge>
       )}
       {conflict && (
         <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          出力がぶつかっています
+          {m.status.conflict}
         </Badge>
       )}
       {unstable && (
         <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          発振しています
+          {m.status.unstable}
         </Badge>
       )}
     </Flex>

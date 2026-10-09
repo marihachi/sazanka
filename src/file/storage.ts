@@ -20,10 +20,13 @@ interface StoredData {
   project: Project;
 }
 
+/** 保存データを読み込めなかった理由。BROKEN は形が壊れている、NEWER_VERSION は今より新しい版で保存された */
+export type StoredError = { code: 'BROKEN' } | { code: 'NEWER_VERSION' };
+
 export interface LoadResult {
   project: Project;
-  /** 保存データを読み込めなかったときの理由。利用者に知らせる */
-  error?: string;
+  /** 保存データを読み込めなかったときの理由。利用者に知らせる (文にするのは画面の側) */
+  error?: StoredError;
 }
 
 /**
@@ -51,19 +54,19 @@ export function readStored(raw: string | null): LoadResult {
   } catch {
     return {
       project: emptyProject(),
-      error: '保存データが壊れていたため読み込めませんでした。',
+      error: { code: 'BROKEN' },
     };
   }
   if (!isObject(data) || typeof data.version !== 'number') {
     return {
       project: emptyProject(),
-      error: '保存データが壊れていたため読み込めませんでした。',
+      error: { code: 'BROKEN' },
     };
   }
   if (data.version > STORAGE_VERSION) {
     return {
       project: emptyProject(),
-      error: '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
+      error: { code: 'NEWER_VERSION' },
     };
   }
   // 古い版は、今の版の形に変えてから確かめる
@@ -71,7 +74,7 @@ export function readStored(raw: string | null): LoadResult {
   if (checkProject(project) !== undefined) {
     return {
       project: emptyProject(),
-      error: '保存データが壊れていたため読み込めませんでした。',
+      error: { code: 'BROKEN' },
     };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない

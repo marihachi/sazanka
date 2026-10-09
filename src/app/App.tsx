@@ -42,6 +42,8 @@ import { useSimulation } from '../simulation/useSimulation';
 import { useProjectHistory } from '../editing/useProjectHistory';
 import { useShortcuts } from '../editing/useShortcuts';
 import { useStableCallbacks } from './useStableCallbacks';
+import { describeStoredError } from '../i18n/messages';
+import { useLanguage, useMessages } from '../i18n/useMessages';
 
 /** その場で編集中の名前 (タブのモジュール名) */
 type Editing = { type: 'tab'; id: string } | null;
@@ -52,6 +54,8 @@ type Editing = { type: 'tab'; id: string } | null;
  * 新規作成・書き出し・読み込み: useProjectFile、モジュールの管理: useModules)。ここには回路の編集と、画面の組み立てを置く
  */
 export function App() {
+  const lang = useLanguage();
+  const m = useMessages();
   const [loaded] = useState(loadProject);
   const history = useProjectHistory(() => loaded.project);
   const project = history.project;
@@ -78,7 +82,9 @@ export function App() {
   const view = views[circuit.id] ?? overview(circuit, project, sheetSize.width, sheetSize.height);
 
   const dialogs = useDialogs({
-    initialMessage: loaded.error ? `${loaded.error}空のプロジェクトで開きます。` : undefined,
+    initialMessage: loaded.error
+      ? m.file.openedEmpty(describeStoredError(m, loaded.error))
+      : undefined,
     preferences,
     onPreferencesChange: setPreferences,
     project,
@@ -307,23 +313,26 @@ export function App() {
   // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
   const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
 
-  const hints = statusHints({
-    dragMode,
-    wireTool: tool === 'wire',
-    wiring: !!pending,
-    placing: !!clipboard.placing,
-    editing: !!editing,
-    wireSelected: selection?.comps.length === 0 && selection.wires.length === 1,
-    selectedPart,
-    multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
-    unstable,
-    conflict,
-    inModule: circuit.id !== MAIN_ID,
-    numberedModule: usesPinNumbers(circuit.package),
-    selectedPortProblem: selectedPart && problems.get(selectedPart.id),
-    unexposedPorts: problems.size > 0,
-    tickMs: preferences.tickMs,
-  });
+  const hints = statusHints(
+    {
+      dragMode,
+      wireTool: tool === 'wire',
+      wiring: !!pending,
+      placing: !!clipboard.placing,
+      editing: !!editing,
+      wireSelected: selection?.comps.length === 0 && selection.wires.length === 1,
+      selectedPart,
+      multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
+      unstable,
+      conflict,
+      inModule: circuit.id !== MAIN_ID,
+      numberedModule: usesPinNumbers(circuit.package),
+      selectedPortProblem: selectedPart && problems.get(selectedPart.id),
+      unexposedPorts: problems.size > 0,
+      tickMs: preferences.tickMs,
+    },
+    lang,
+  );
 
   // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける

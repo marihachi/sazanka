@@ -6,6 +6,7 @@ import * as edit from './edit';
 import type { Point } from '../geometry/layout';
 import { assignPinNumbers, assignPortNumbers, dependsOn } from '../circuit/module';
 import { type CircuitDef, findDef, type Project } from '../circuit/project';
+import { useMessages } from '../i18n/useMessages';
 
 /** 部品と配線のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
 export function useClipboard({
@@ -29,6 +30,7 @@ export function useClipboard({
   deleteSelection: () => void;
   showConfirm: (request: ConfirmRequest) => void;
 }) {
+  const m = useMessages();
   /** コピーした部品と配線 */
   const [clipboard, setClipboard] = useState<Circuit | null>(null);
   /** 貼り付ける位置を選んでいる部品と配線。クリックした位置で確定する */
@@ -64,7 +66,7 @@ export function useClipboard({
     if (blocked) {
       const name = findDef(project, blocked.module)?.name ?? '';
       showConfirm({
-        message: `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
+        message: m.modules.cannotPaste(name),
       });
       return;
     }

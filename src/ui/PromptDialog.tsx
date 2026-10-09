@@ -1,5 +1,6 @@
 import { Button, Dialog as ChakraDialog, Field, Input } from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
+import { useMessages } from '../i18n/useMessages';
 import { DialogFrame } from './DialogFrame';
 
 export interface PromptRequest {
@@ -20,6 +21,7 @@ export function PromptDialog({
   request: PromptRequest;
   onClose: () => void;
 }) {
+  const m = useMessages();
   const [value, setValue] = useState(request.initial);
   const [touched, setTouched] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ export function PromptDialog({
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button variant="outline" onClick={onClose}>
-          キャンセル
+          {m.common.cancel}
         </Button>
         <Button type="submit" disabled={touched && !!error}>
           {request.confirmLabel}

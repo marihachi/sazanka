@@ -3,6 +3,7 @@
 import {
   type CircuitDef,
   type Project,
+  type ProjectError,
   checkProject,
   withoutSwitchStates,
 } from '../circuit/project';
@@ -60,7 +61,14 @@ export function serializeProject(project: Project): string {
   return JSON.stringify(data);
 }
 
-export type ParseResult = { ok: true; project: Project } | { ok: false; error: string };
+/** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、検証で見つかった問題 */
+export type ShareError =
+  | { code: 'NOT_JSON' }
+  | { code: 'NOT_SAZANKA' }
+  | { code: 'NEWER_VERSION' }
+  | { code: 'BROKEN'; detail: ProjectError };
+
+export type ParseResult = { ok: true; project: Project } | { ok: false; error: ShareError };
 
 /**
  * 共有用の JSON を読み込む。部品と配線の ID は newId で付け直す。
@@ -71,22 +79,19 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   try {
     data = JSON.parse(text);
   } catch {
-    return { ok: false, error: 'JSON として読み取れません' };
+    return { ok: false, error: { code: 'NOT_JSON' } };
   }
   if (!isObject(data) || data.app !== 'sazanka') {
-    return { ok: false, error: 'sazanka の回路データではありません' };
+    return { ok: false, error: { code: 'NOT_SAZANKA' } };
   }
   if (typeof data.version !== 'number' || data.version > SHARE_VERSION) {
-    return {
-      ok: false,
-      error: '新しい版の sazanka で作られたデータのため読み込めません',
-    };
+    return { ok: false, error: { code: 'NEWER_VERSION' } };
   }
   // 古い版は、今の版の形に変えてから確かめる
   const raw = upgradeProject(data.project, data.version);
   const error = checkProject(raw);
   if (error) {
-    return { ok: false, error: `回路データが壊れています (${error})` };
+    return { ok: false, error: { code: 'BROKEN', detail: error } };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す
   const project = withoutSwitchStates(raw as Project);

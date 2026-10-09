@@ -101,53 +101,71 @@ export function withoutSwitchStates(project: Project): Project {
   };
 }
 
+/**
+ * プロジェクトの形の問題。circuit は問題のある回路の名前、id は重複している ID。
+ * 利用者に見せる文は、言語ごとの文言の表 (i18n/) が作る
+ */
+export type ProjectError =
+  | { code: 'NO_CIRCUITS' }
+  | { code: 'AUTHOR_NOT_STRING' }
+  | { code: 'NO_MAIN' }
+  | { code: 'NO_CIRCUIT_ID_OR_NAME' }
+  | { code: 'NO_PACKAGE'; circuit: string }
+  | { code: 'BAD_PACKAGE'; circuit: string }
+  | { code: 'NO_PARTS_OR_WIRES'; circuit: string }
+  | { code: 'BAD_PART'; circuit: string }
+  | { code: 'DUPLICATE_PART_ID'; circuit: string; id: string }
+  | { code: 'BAD_WIRE'; circuit: string }
+  | { code: 'DUPLICATE_CIRCUIT_ID'; id: string }
+  | { code: 'MISSING_MODULE'; circuit: string };
+
 /** isModule は、モジュールの回路 (回路の一覧の 2 つ目以降) か */
-function checkCircuit(def: unknown, isModule: boolean): string | undefined {
+function checkCircuit(def: unknown, isModule: boolean): ProjectError | undefined {
   if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string') {
-    return '回路の ID か名前がありません';
+    return { code: 'NO_CIRCUIT_ID_OR_NAME' };
   }
   // 省略は許さない。既定値で補うと、あとで既定値を変えたときに、古いデータのモジュールのピンの位置が変わって配線が外れるため
   if (isModule && def.package === undefined) {
-    return `「${def.name}」にパッケージがありません`;
+    return { code: 'NO_PACKAGE', circuit: def.name };
   }
   if (isModule && !isPackage(def.package)) {
-    return `「${def.name}」に不正なパッケージがあります`;
+    return { code: 'BAD_PACKAGE', circuit: def.name };
   }
   if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
-    return `「${def.name}」の部品か配線がありません`;
+    return { code: 'NO_PARTS_OR_WIRES', circuit: def.name };
   }
   const compIds = new Set<string>();
   for (const c of def.parts as unknown[]) {
     if (!isPart(c)) {
-      return `「${def.name}」に不正な部品があります`;
+      return { code: 'BAD_PART', circuit: def.name };
     }
     if (compIds.has(c.id)) {
-      return `「${def.name}」で部品の ID が重複しています: ${c.id}`;
+      return { code: 'DUPLICATE_PART_ID', circuit: def.name, id: c.id };
     }
     compIds.add(c.id);
   }
   for (const w of def.wires as unknown[]) {
     if (!isWire(w)) {
-      return `「${def.name}」に不正な配線があります`;
+      return { code: 'BAD_WIRE', circuit: def.name };
     }
   }
   return undefined;
 }
 
 /**
- * プロジェクトとして正しい形かを確かめ、問題があればその内容を返す。
+ * プロジェクトとして正しい形かを確かめ、問題があればその内容を返す (文にするのは画面の側)。
  * 共有された JSON のほか、localStorage の保存データを読み込むときにも使う
  */
-export function checkProject(project: unknown): string | undefined {
+export function checkProject(project: unknown): ProjectError | undefined {
   if (!isObject(project) || !Array.isArray(project.circuits)) {
-    return '回路の一覧がありません';
+    return { code: 'NO_CIRCUITS' };
   }
   if (project.author !== undefined && typeof project.author !== 'string') {
-    return '作者名が文字列ではありません';
+    return { code: 'AUTHOR_NOT_STRING' };
   }
   const circuits = project.circuits as unknown[];
   if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) {
-    return 'メイン回路がありません';
+    return { code: 'NO_MAIN' };
   }
   const ids = new Set<string>();
   for (const [i, def] of circuits.entries()) {
@@ -157,14 +175,14 @@ export function checkProject(project: unknown): string | undefined {
     }
     const { id } = def as CircuitDef;
     if (ids.has(id)) {
-      return `回路の ID が重複しています: ${id}`;
+      return { code: 'DUPLICATE_CIRCUIT_ID', id };
     }
     ids.add(id);
   }
   for (const def of circuits as CircuitDef[]) {
     for (const c of def.parts) {
       if (c.kind === 'module' && !ids.has(c.module ?? '')) {
-        return `「${def.name}」が存在しないモジュールを参照しています`;
+        return { code: 'MISSING_MODULE', circuit: def.name };
       }
     }
   }
