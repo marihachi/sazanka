@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 import trashIcon from '../assets/icons/trash.svg';
 import { MaskIcon } from '../ui/Icons';
+import { useMessages } from '../i18n/useMessages';
 
 interface TrashZoneProps {
   /** 部品をドラッグ中か。'trash' は削除エリアの上 */
@@ -16,6 +17,7 @@ interface TrashZoneProps {
  * 丸の位置と大きさは、ドラッグの前後で変えない (開発者の方針)
  */
 export const TrashZone = memo(function TrashZone({ dragMode, ref }: TrashZoneProps) {
+  const m = useMessages();
   const dragging = dragMode !== 'none';
   const over = dragMode === 'trash';
   return (
@@ -35,7 +37,7 @@ export const TrashZone = memo(function TrashZone({ dragMode, ref }: TrashZonePro
         transition="all 0.15s ease-out"
         // 入れ物 (Sheet.tsx) と文字の場所は素通しなので、丸だけ受ける
         pointerEvents="auto"
-        aria-label="ここへドラッグで削除"
+        aria-label={m.sheet.trash}
         // シートの範囲選択などが始まらないようにする
         onPointerDown={(e) => e.stopPropagation()}
       >
@@ -50,7 +52,7 @@ export const TrashZone = memo(function TrashZone({ dragMode, ref }: TrashZonePro
         visibility={dragging ? 'visible' : 'hidden'}
         aria-hidden={!dragging}
       >
-        削除
+        {m.sheet.trashLabel}
       </Box>
     </Flex>
   );

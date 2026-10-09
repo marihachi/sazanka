@@ -10,9 +10,11 @@ import { useRef } from 'react';
 import logo from '../assets/logo.svg';
 import { MaskIcon } from '../ui/Icons';
 import { DialogFrame } from '../ui/DialogFrame';
+import { useMessages } from '../i18n/useMessages';
 
 /** このアプリについての画面内ダイアログ */
 export function AboutDialog({ onClose }: { onClose: () => void }) {
+  const m = useMessages();
   const closeRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -20,12 +22,12 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
       <ChakraDialog.Header justifyContent="center" pt="8">
         <ChakraDialog.Title display="flex">
           <MaskIcon src={logo} w="153px" h="42px" bg="brand" />
-          <VisuallyHidden>sazanka について</VisuallyHidden>
+          <VisuallyHidden>{m.about.title}</VisuallyHidden>
         </ChakraDialog.Title>
       </ChakraDialog.Header>
       <ChakraDialog.Body>
         <Stack gap="4" align="center" textAlign="center">
-          <Text>ブラウザで動く論理回路シミュレータです。</Text>
+          <Text>{m.about.summary}</Text>
           <Stack as="ul" gap="1" listStyleType="none">
             <li>
               <Link
@@ -35,7 +37,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
                 colorPalette="accent"
                 variant="underline"
               >
-                GitHub リポジトリ
+                {m.about.repository}
               </Link>
             </li>
             <li>
@@ -47,19 +49,18 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
                 colorPalette="accent"
                 variant="underline"
               >
-                使用しているライブラリのライセンス
+                {m.about.licenses}
               </Link>
             </li>
           </Stack>
           <Text textStyle="xs" color="fg.muted">
-            MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL)
-            というフォントを使っています。
+            {m.about.license}
           </Text>
         </Stack>
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button ref={closeRef} onClick={onClose}>
-          閉じる
+          {m.common.close}
         </Button>
       </ChakraDialog.Footer>
     </DialogFrame>

@@ -22,17 +22,15 @@ import {
 import type { Part } from '../circuit/part';
 import { type CircuitDef, isPackage, type Package, type Project } from '../circuit/project';
 import { partBounds } from '../geometry/layout';
+import type { Messages } from '../i18n/messages';
+import { useMessages } from '../i18n/useMessages';
 import { SheetPart } from '../sheet/SheetPart';
 import { DialogFrame } from '../ui/DialogFrame';
 
 type PackageKind = Package['kind'];
 
-/** 形の種類の選択肢。並び順が選択肢の順 */
-const PACKAGE_KINDS: { value: PackageKind; label: string }[] = [
-  { value: 'dip', label: 'DIP (左右の 2 辺にピン)' },
-  { value: 'qfp', label: 'QFP (4 辺にピン)' },
-  { value: 'split', label: 'ロジック (入力は左、出力は右)' },
-];
+/** 形の種類の選択肢の並び。選択肢の文言は、言語ごとの文言の表 (i18n/) にある */
+const PACKAGE_KINDS: PackageKind[] = ['dip', 'qfp', 'split'];
 
 /**
  * モジュール設定のダイアログ。開いているモジュールのパッケージ (形の種類とピン数) と、ポートの名前と、ピンの割り当てを編集する。
@@ -51,6 +49,7 @@ export function ModuleSettingsDialog({
   onApply: (pkg: Package, numbers: Map<string, number>, labels: Map<string, string>) => void;
   onClose: () => void;
 }) {
+  const m = useMessages();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const ports = useMemo(() => listPortsInPositionOrder(def), [def]);
   const initial = def.package ?? { kind: 'split' };
@@ -107,8 +106,8 @@ export function ModuleSettingsDialog({
   }, []);
   // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す
   const names = useMemo(
-    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredLabels.get(c.id) ?? '')])),
-    [ports, deferredLabels],
+    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredLabels.get(c.id) ?? '', m)])),
+    [ports, deferredLabels, m],
   );
   const options = useMemo(
     () => [
@@ -147,7 +146,7 @@ export function ModuleSettingsDialog({
       }}
     >
       <ChakraDialog.Header>
-        <ChakraDialog.Title>モジュール設定: {def.name}</ChakraDialog.Title>
+        <ChakraDialog.Title>{m.moduleSettings.title(def.name)}</ChakraDialog.Title>
       </ChakraDialog.Header>
       {/* 種類やピン数、出ている注意で高さが変わらないよう、本文の高さは決めておき、中でスクロールする */}
       <ChakraDialog.Body h="min(36rem, 70vh)" flex="none" overflowY="auto">
@@ -155,15 +154,15 @@ export function ModuleSettingsDialog({
           <Stack gap="5" flex="1" minW="0" minH="0">
             <HStack gap="3" align="start">
               <Field.Root flex="1">
-                <Field.Label>パッケージ</Field.Label>
+                <Field.Label>{m.moduleSettings.package}</Field.Label>
                 <NativeSelect.Root>
                   <NativeSelect.Field
                     value={kind}
                     onChange={(e) => changeKind(e.target.value as PackageKind)}
                   >
                     {PACKAGE_KINDS.map((k) => (
-                      <option key={k.value} value={k.value}>
-                        {k.label}
+                      <option key={k} value={k}>
+                        {m.moduleSettings.packages[k]}
                       </option>
                     ))}
                   </NativeSelect.Field>
@@ -172,7 +171,7 @@ export function ModuleSettingsDialog({
               </Field.Root>
               {kind !== 'split' && (
                 <Field.Root invalid={!valid} w="28">
-                  <Field.Label>ピン数</Field.Label>
+                  <Field.Label>{m.moduleSettings.pins}</Field.Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -187,20 +186,17 @@ export function ModuleSettingsDialog({
             </HStack>
             {!valid && (
               <Text textStyle="sm" color="fg.error">
-                {kind === 'dip'
-                  ? 'DIP のピン数は、4〜256 の偶数で入力してください'
-                  : 'QFP のピン数は、8〜256 の 4 の倍数で入力してください'}
+                {kind === 'dip' ? m.moduleSettings.dipPinsError : m.moduleSettings.qfpPinsError}
               </Text>
             )}
             {kind === 'split' && (
               <Text textStyle="sm" color="fg.muted">
-                入力は左、出力は右に、中の位置の順 (上から、同じ高さなら左から)
-                に並びます。ピン番号は使いません。
+                {m.moduleSettings.splitHelp}
               </Text>
             )}
             <Stack gap="2" flex={{ md: '1' }} minH="0">
               <Text textStyle="sm" fontWeight="medium">
-                ポート
+                {m.moduleSettings.ports}
               </Text>
               <Stack
                 gap="1"
@@ -214,7 +210,7 @@ export function ModuleSettingsDialog({
                   <PortRow
                     key={c.id}
                     id={c.id}
-                    heading={`${c.kind === 'input' ? '入力' : '出力'} ${c.portNumber ?? ''}`}
+                    heading={m.common.portName(c.kind, c.portNumber ?? '')}
                     value={labels.get(c.id) ?? ''}
                     duplicate={duplicates.has(c.id)}
                     onChange={changeLabel}
@@ -223,7 +219,7 @@ export function ModuleSettingsDialog({
               </Stack>
               {duplicates.size > 0 && (
                 <Text textStyle="sm" color="fg.error">
-                  ほかのポートと同じ名前は付けられません
+                  {m.moduleSettings.duplicateLabel}
                 </Text>
               )}
             </Stack>
@@ -231,7 +227,7 @@ export function ModuleSettingsDialog({
               <Stack gap="2" flex={{ md: '1' }} minH="0">
                 <HStack justify="space-between">
                   <Text textStyle="sm" fontWeight="medium">
-                    ピンの割り当て
+                    {m.moduleSettings.assignment}
                   </Text>
                   <Button
                     size="xs"
@@ -239,7 +235,7 @@ export function ModuleSettingsDialog({
                     colorPalette="gray"
                     onClick={() => setNumbers(assignInOrder(ports, pins))}
                   >
-                    上から順に割り当て直す
+                    {m.moduleSettings.assignInOrder}
                   </Button>
                 </HStack>
                 <Stack
@@ -262,21 +258,21 @@ export function ModuleSettingsDialog({
                 </Stack>
                 {unassigned.length > 0 && (
                   <Text textStyle="sm" color="fg.warning">
-                    割り当てのないポート (外側のピンに出ない):{' '}
-                    {unassigned.map((c) => names.get(c.id)).join('、')}
+                    {m.moduleSettings.unassigned}{' '}
+                    {unassigned.map((c) => names.get(c.id)).join(m.moduleSettings.listSeparator)}
                   </Text>
                 )}
               </Stack>
             )}
             {pinsChanged && (
               <Text textStyle="sm" color="fg.warning">
-                パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。
+                {m.moduleSettings.wiringWarning}
               </Text>
             )}
           </Stack>
           <Stack gap="2" w={{ base: 'full', md: '72' }} flexShrink={0}>
             <Text textStyle="sm" fontWeight="medium">
-              プレビュー
+              {m.moduleSettings.preview}
             </Text>
             <Preview def={preview} project={project} />
           </Stack>
@@ -284,10 +280,10 @@ export function ModuleSettingsDialog({
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button ref={cancelRef} variant="outline" colorPalette="gray" onClick={onClose}>
-          キャンセル
+          {m.common.cancel}
         </Button>
         <Button type="submit" disabled={!changed || duplicates.size > 0}>
-          適用
+          {m.moduleSettings.apply}
         </Button>
       </ChakraDialog.Footer>
     </DialogFrame>
@@ -310,6 +306,7 @@ const PinRow = memo(function PinRow({
   options: React.ReactNode;
   onAssign: (n: number, id: string) => void;
 }) {
+  const m = useMessages();
   return (
     <HStack gap="2">
       <Text textStyle="sm" w="8" textAlign="end" color="fg.muted">
@@ -317,7 +314,7 @@ const PinRow = memo(function PinRow({
       </Text>
       <NativeSelect.Root size="sm">
         <NativeSelect.Field
-          aria-label={`${n} 番のピン`}
+          aria-label={m.moduleSettings.pinLabel(n)}
           value={value}
           onChange={(e) => onAssign(n, e.target.value)}
         >
@@ -349,6 +346,7 @@ const PortRow = memo(function PortRow({
   duplicate: boolean;
   onChange: (id: string, text: string) => void;
 }) {
+  const m = useMessages();
   return (
     <HStack gap="2">
       <Text textStyle="sm" w="14" flexShrink={0} color="fg.muted">
@@ -357,8 +355,8 @@ const PortRow = memo(function PortRow({
       <Field.Root invalid={duplicate}>
         <Input
           size="sm"
-          aria-label={`${heading} の名前`}
-          placeholder="名前未設定"
+          aria-label={m.moduleSettings.portLabelOf(heading)}
+          placeholder={m.moduleSettings.noName}
           value={value}
           onChange={(e) => onChange(id, e.target.value)}
         />
@@ -372,6 +370,7 @@ const PortRow = memo(function PortRow({
  * 部品の占める範囲 (ピンの先と名前を含む) が収まるよう、SVG の viewBox を合わせる
  */
 function Preview({ def, project }: { def: CircuitDef; project: Project }) {
+  const m = useMessages();
   const part: Part = { id: 'preview', kind: 'module', module: def.id, x: 0, y: 0 };
   // 下書きの回路で、ピンの割り当てを求める
   const draftProject: Project = {
@@ -390,7 +389,7 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
         width="100%"
         height="100%"
         role="img"
-        aria-label="モジュールのプレビュー"
+        aria-label={m.moduleSettings.previewLabel}
       >
         <SheetPart
           comp={part}
@@ -425,9 +424,8 @@ function initialNumbers(ports: readonly Part[]): Map<string, number> {
  * 一覧に出すポートの名前。「入力 1 A」「出力 2 S」のように、入力か出力かと、ポート番号と、名前 (text) で示す。
  * 名前が空白だけなら「入力 1 (名前未設定)」とする
  */
-function getPortName(c: Part, text: string): string {
-  const side = c.kind === 'input' ? '入力' : '出力';
-  return `${side} ${c.portNumber ?? ''} ${text.trim() || '(名前未設定)'}`;
+function getPortName(c: Part, text: string, m: Messages): string {
+  return m.moduleSettings.portOption(m.common.portName(c.kind, c.portNumber ?? ''), text.trim());
 }
 
 /** パッケージとポートのピン番号が同じか (外の配線に響く変更がないか) */

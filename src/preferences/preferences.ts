@@ -1,4 +1,5 @@
 // 利用者ごとの環境設定 (環境設定のウィンドウで変える)。プロジェクトには含めない。保存は file/storage.ts にある
+import type { LanguageSetting, Localized } from '../i18n/language';
 
 export interface Preferences {
   /**
@@ -12,6 +13,8 @@ export interface Preferences {
   roundWires: boolean;
   /** アクセントカラー (#rrggbb)。テーマ (theme.ts) の --accent を差し替える */
   accent: string;
+  /** 画面に出す言語。auto はブラウザの言語に合わせる (i18n/language.ts の resolveLanguage) */
+  language: LanguageSetting;
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -19,17 +22,18 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showGrid: true,
   roundWires: true,
   accent: '#20b2aa',
+  language: 'auto',
 };
 
 /** すぐに選べるアクセントカラー。先頭が既定 */
-export const ACCENT_PRESETS: { value: string; label: string }[] = [
+export const ACCENT_PRESETS: { value: string; label: Localized<string> }[] = [
   // ロゴの色 (テーマの brand) と同じ
-  { value: '#20b2aa', label: '青緑' },
-  { value: '#60a5fa', label: '青' },
-  { value: '#a78bfa', label: '紫' },
-  { value: '#f472b6', label: 'ピンク' },
-  { value: '#fb923c', label: 'オレンジ' },
-  { value: '#a3e635', label: '黄緑' },
+  { value: '#20b2aa', label: { ja: '青緑', en: 'Teal' } },
+  { value: '#60a5fa', label: { ja: '青', en: 'Blue' } },
+  { value: '#a78bfa', label: { ja: '紫', en: 'Purple' } },
+  { value: '#f472b6', label: { ja: 'ピンク', en: 'Pink' } },
+  { value: '#fb923c', label: { ja: 'オレンジ', en: 'Orange' } },
+  { value: '#a3e635', label: { ja: '黄緑', en: 'Lime' } },
 ];
 
 /** アクセントカラーとして使える値か (#rrggbb) */

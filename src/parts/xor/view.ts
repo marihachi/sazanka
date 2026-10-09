@@ -5,5 +5,8 @@ export const xor: PartView = {
   label: 'XOR',
   icon,
   group: 'gate',
-  description: '2つの入力が異なるとき ON',
+  description: {
+    ja: '2つの入力が異なるとき ON',
+    en: 'ON when the 2 inputs differ',
+  },
 };

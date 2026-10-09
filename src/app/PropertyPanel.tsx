@@ -9,6 +9,7 @@ import {
 } from '../circuit/part';
 import { shallowEqual } from '../util';
 import { labelOf } from '../parts/views';
+import { useLanguage, useMessages } from '../i18n/useMessages';
 
 interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
@@ -45,10 +46,12 @@ export const PropertyPanel = memo(function PropertyPanel({
   onClockPeriodChange,
   onLabelChange,
 }: PropertyPanelProps) {
+  const lang = useLanguage();
+  const m = useMessages();
   return (
     <Stack
       as="aside"
-      aria-label="部品のプロパティ"
+      aria-label={m.property.panel}
       // 狭い画面では、部品を選んでいない間は出さない
       display={{ base: part ? 'flex' : 'none', md: 'flex' }}
       w={{ base: '160px', md: '200px' }}
@@ -61,11 +64,11 @@ export const PropertyPanel = memo(function PropertyPanel({
       overflowY="auto"
     >
       <Text as="h3" textStyle="xs" color="fg.muted">
-        プロパティ
+        {m.property.heading}
       </Text>
       {part ? (
         <>
-          <Text fontWeight="semibold">{moduleName ?? labelOf(part.kind)}</Text>
+          <Text fontWeight="semibold">{moduleName ?? labelOf(part.kind, lang)}</Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {part.kind === 'clock' ? (
             <ClockPeriodField
@@ -81,14 +84,14 @@ export const PropertyPanel = memo(function PropertyPanel({
                   パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
               {part.portNumber !== undefined && (
                 <ReadOnlyRow
-                  label="ポート番号"
-                  value={`${part.kind === 'input' ? '入力' : '出力'} ${part.portNumber}`}
+                  label={m.property.portNumber}
+                  value={m.common.portName(part.kind, part.portNumber)}
                 />
               )}
               <LabelField
                 key={part.id}
                 part={part}
-                title={inModule ? 'ポート名' : 'ラベル'}
+                inModule={inModule}
                 otherLabels={otherLabels}
                 onEditStart={onEditStart}
                 onChange={onLabelChange}
@@ -96,13 +99,13 @@ export const PropertyPanel = memo(function PropertyPanel({
             </>
           ) : (
             <Text textStyle="xs" color="fg.subtle">
-              この部品に設定できる項目はありません
+              {m.property.noItems}
             </Text>
           )}
         </>
       ) : (
         <Text textStyle="xs" color="fg.subtle">
-          部品を1つ選ぶと、その部品の項目を編集できます
+          {m.property.selectOne}
         </Text>
       )}
     </Stack>
@@ -147,18 +150,19 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
 
 function LabelField({
   part,
-  title,
+  inModule,
   otherLabels,
   onEditStart,
   onChange,
 }: {
   part: Part;
-  /** 欄の名前。モジュールの中では「ポート名」、メイン回路では「ラベル」 */
-  title: string;
+  /** モジュールの回路を開いているか。欄の名前は、モジュールの中では「ポート名」、メイン回路では「ラベル」 */
+  inModule: boolean;
   otherLabels: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
 }) {
+  const m = useMessages();
   const [text, setText] = useState(part.label ?? '');
   const session = useEditSession(onEditStart);
   const taken = (value: string) =>
@@ -166,11 +170,11 @@ function LabelField({
 
   return (
     <Field.Root invalid={taken(text)}>
-      <Field.Label>{title}</Field.Label>
+      <Field.Label>{inModule ? m.property.portLabel : m.property.label}</Field.Label>
       <Input
         size="sm"
         value={text}
-        placeholder={title === 'ポート名' ? '名前未設定' : 'ラベルなし'}
+        placeholder={inModule ? m.property.noPortLabel : m.property.noLabel}
         onChange={(e) => {
           setText(e.target.value);
           // ほかのポートと同じ名前は反映しない (欄の文字は残し、エラーを出す)
@@ -188,8 +192,8 @@ function LabelField({
           }
         }}
       />
-      <Field.ErrorText>ほかのポートと同じ名前は付けられません</Field.ErrorText>
-      <Field.HelperText>モジュールの中では、ピンの名前になります</Field.HelperText>
+      <Field.ErrorText>{m.property.duplicateLabel}</Field.ErrorText>
+      <Field.HelperText>{m.property.labelHelp}</Field.HelperText>
     </Field.Root>
   );
 }
@@ -210,6 +214,7 @@ function ClockPeriodField({
   onEditStart: () => void;
   onChange: (id: string, period: number) => void;
 }) {
+  const m = useMessages();
   const period = clockPeriodOf(clock);
   const [text, setText] = useState(String(period));
   const value = Number(text);
@@ -236,7 +241,7 @@ function ClockPeriodField({
 
   return (
     <Field.Root invalid={!valid}>
-      <Field.Label>周期 (tick)</Field.Label>
+      <Field.Label>{m.property.clockPeriod}</Field.Label>
       <Input
         size="sm"
         type="number"
@@ -256,11 +261,11 @@ function ClockPeriodField({
       />
       {valid ? (
         <Field.HelperText>
-          {`ON と OFF を一往復する tick 数。今の間隔 (${tickMs} ms) では ${(value * tickMs) / 1000} 秒`}
+          {m.property.clockPeriodHelp(tickMs, (value * tickMs) / 1000)}
         </Field.HelperText>
       ) : (
         <Field.ErrorText>
-          {`${MIN_CLOCK_PERIOD}〜${MAX_CLOCK_PERIOD} の整数で入力してください`}
+          {m.common.integerRange(MIN_CLOCK_PERIOD, MAX_CLOCK_PERIOD)}
         </Field.ErrorText>
       )}
     </Field.Root>

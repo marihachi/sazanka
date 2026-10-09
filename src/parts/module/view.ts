@@ -5,9 +5,18 @@ import type { PartView } from '../view';
 export const module: PartView = {
   label: 'CUSTOM',
   icon,
-  description: '回路をまとめた部品。中の INPUT / OUTPUT がピンになる',
-  hints: [
-    'ダブルクリックでモジュールの回路を開く',
-    '「モジュール設定」で、ピンの割り当てを確かめられる',
-  ],
+  description: {
+    ja: '回路をまとめた部品。中の INPUT / OUTPUT がピンになる',
+    en: 'A part made from a circuit. Its INPUT / OUTPUT become pins',
+  },
+  hints: {
+    ja: [
+      'ダブルクリックでモジュールの回路を開く',
+      '「モジュール設定」で、ピンの割り当てを確かめられる',
+    ],
+    en: [
+      "Double-click to open the module's circuit",
+      'Check the pin assignment in "Module settings"',
+    ],
+  },
 };

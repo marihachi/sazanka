@@ -5,6 +5,7 @@ import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
+import { getCircuitName, type Messages } from '../i18n/messages';
 
 /** モジュールの追加・改名・削除と、パレットに並べるモジュールの一覧 */
 export function useModules({
@@ -15,7 +16,10 @@ export function useModules({
   onDeleted,
   showConfirm,
   showPrompt,
+  m,
 }: {
+  /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
+  m: Messages;
   project: Project;
   /** 開いている回路 */
   circuit: CircuitDef;
@@ -51,33 +55,30 @@ export function useModules({
           def: d,
           blocked:
             d.id === circuit.id
-              ? 'モジュールの中に自分自身は置けません'
+              ? m.palette.selfModule
               : dependsOn(project, d.id, circuit.id)
-                ? `「${d.name}」はこの回路を含んでいるため置けません`
+                ? m.palette.containsThis(d.name)
                 : undefined,
         })),
-    [modulesKey],
+    [modulesKey, m],
   );
 
   /** 名前を入力するウィンドウを開き、確定したらモジュールを作成して開く */
   function createModule() {
-    const names = new Set(project.circuits.map((d) => d.name));
+    // メイン回路は表示言語の名前で出すので、その名前も使えないようにする (タブで見分けられなくなるため)
+    const names = new Set([...project.circuits.map((d) => d.name), m.common.mainCircuit]);
     // 既定の名前の番号は、モジュールの数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
     let n = project.circuits.length;
-    while (names.has(`モジュール${n}`)) {
+    while (names.has(m.modules.defaultName(n))) {
       n++;
     }
     showPrompt({
-      title: 'モジュールを追加',
-      label: '名前',
-      initial: `モジュール${n}`,
-      confirmLabel: '追加',
+      title: m.modules.addTitle,
+      label: m.modules.name,
+      initial: m.modules.defaultName(n),
+      confirmLabel: m.modules.add,
       validate: (name) =>
-        !name
-          ? '名前を入力してください'
-          : names.has(name)
-            ? '同じ名前の回路がすでにあります'
-            : undefined,
+        !name ? m.modules.nameRequired : names.has(name) ? m.modules.nameTaken : undefined,
       onSubmit: (name) => {
         const def: CircuitDef = {
           id: newId(),
@@ -108,14 +109,17 @@ export function useModules({
     const users = circuitsUsing(project, circuit.id);
     if (users.length > 0) {
       showConfirm({
-        message: `「${circuit.name}」は次の回路で使われているため削除できません: ${users.map((d) => d.name).join(', ')}`,
+        message: m.modules.inUse(
+          circuit.name,
+          users.map((d) => getCircuitName(d, m)),
+        ),
       });
       return;
     }
     const id = circuit.id;
     showConfirm({
-      message: `モジュール「${circuit.name}」を削除しますか？`,
-      confirmLabel: '削除',
+      message: m.modules.confirmDelete(circuit.name),
+      confirmLabel: m.modules.delete,
       danger: true,
       onConfirm: () => {
         setProject((p) => ({

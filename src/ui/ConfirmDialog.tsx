@@ -1,5 +1,6 @@
 import { Button, Dialog as ChakraDialog, Text } from '@chakra-ui/react';
 import { useRef } from 'react';
+import { useMessages } from '../i18n/useMessages';
 import { DialogFrame } from './DialogFrame';
 
 export interface ConfirmRequest {
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   request: ConfirmRequest;
   onClose: () => void;
 }) {
+  const m = useMessages();
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -33,7 +35,7 @@ export function ConfirmDialog({
       <ChakraDialog.Footer>
         {request.onConfirm && (
           <Button variant="outline" onClick={onClose}>
-            キャンセル
+            {m.common.cancel}
           </Button>
         )}
         <Button
@@ -44,7 +46,7 @@ export function ConfirmDialog({
             request.onConfirm?.();
           }}
         >
-          {request.onConfirm ? (request.confirmLabel ?? 'OK') : 'OK'}
+          {request.onConfirm ? (request.confirmLabel ?? m.common.ok) : m.common.ok}
         </Button>
       </ChakraDialog.Footer>
     </DialogFrame>

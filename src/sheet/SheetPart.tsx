@@ -8,10 +8,13 @@ import { getLayout } from '../parts/layouts';
 import { classNames } from '../ui/classNames';
 import styles from './SheetPart.module.css';
 import { labelOf, partViewOf } from '../parts/views';
+import { type Language, getLocalText } from '../i18n/language';
+import { useLanguage, useMessages } from '../i18n/useMessages';
 
 /** シート上の部品の中に書く名前 */
-function bodyLabelOf(kind: PartKind): string {
-  return partViewOf(kind)?.bodyLabel ?? labelOf(kind);
+function bodyLabelOf(kind: PartKind, lang: Language): string {
+  const bodyLabel = partViewOf(kind)?.bodyLabel;
+  return bodyLabel === undefined ? labelOf(kind, lang) : getLocalText(bodyLabel, lang);
 }
 
 /**
@@ -325,6 +328,8 @@ export function SheetPart({
   onBodyDown,
   onBodyDoubleClick,
 }: SheetPartProps) {
+  const lang = useLanguage();
+  const m = useMessages();
   const { w, h } = bodySize(c, pinout);
   const outline = (
     <BodyOutline
@@ -344,7 +349,7 @@ export function SheetPart({
       x={c.x + w / 2}
       y={c.y - 6}
     >
-      {c.kind === 'input' ? '入力' : '出力'} {c.portNumber}
+      {m.common.portName(c.kind, c.portNumber)}
       {portProblem && ' ?'}
     </text>
   );
@@ -395,7 +400,7 @@ export function SheetPart({
       <>
         {outline}
         <text className={styles.highMark} x={c.x + w / 2} y={c.y + h / 2 + 6}>
-          {bodyLabelOf(c.kind)}
+          {bodyLabelOf(c.kind, lang)}
         </text>
       </>
     );
@@ -429,7 +434,7 @@ export function SheetPart({
           </g>
         ) : (
           <text className={styles.label} x={c.x + w / 2} y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}>
-            {isModule ? (name ?? '(不明)') : bodyLabelOf(c.kind)}
+            {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
           </text>
         )}
         <g transform={`translate(${c.x} ${c.y})`}>

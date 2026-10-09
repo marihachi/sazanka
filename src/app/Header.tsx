@@ -10,6 +10,7 @@ import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
 import { MaskIcon } from '../ui/Icons';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
+import { useMessages } from '../i18n/useMessages';
 
 interface HeaderProps {
   onNew: () => void;
@@ -38,6 +39,7 @@ export const Header = memo(function Header({
   onPreferences,
   onAbout,
 }: HeaderProps) {
+  const m = useMessages();
   return (
     <Flex as="header" align="center" gap="1.5" h="12" px="3" flexShrink={0} borderBottomWidth="1px">
       <Heading as="h1" display="flex" flexShrink={0}>
@@ -51,45 +53,50 @@ export const Header = memo(function Header({
         gap="0.5"
         minW="0"
         overflowX="auto"
-        aria-label="プロジェクトの操作"
+        aria-label={m.header.toolbar}
       >
         <ToolButton
           icon={newIcon}
-          label="新規作成"
-          title="空のプロジェクトを新しく作る"
+          label={m.header.newProject}
+          title={m.header.newProjectTitle}
           onClick={onNew}
         />
         <ToolButton
           icon={importIcon}
-          label="読み込み"
-          title="共有された JSON からプロジェクトを読み込む"
+          label={m.header.importProject}
+          title={m.header.importProjectTitle}
           onClick={onImport}
         />
         <ToolButton
           icon={exportIcon}
-          label="書き出し"
-          title="プロジェクト全体を JSON にして共有する"
+          label={m.header.exportProject}
+          title={m.header.exportProjectTitle}
           onClick={onExport}
         />
         <ToolDivider />
         <ToolButton
           icon={undoIcon}
-          label="元に戻す"
-          title="元に戻す (Ctrl+Z)"
+          label={m.header.undo}
+          title={m.header.undoTitle}
           onClick={onUndo}
           disabled={!canUndo}
         />
         <ToolButton
           icon={redoIcon}
-          label="やり直し"
-          title="やり直し (Ctrl+Shift+Z / Ctrl+Y)"
+          label={m.header.redo}
+          title={m.header.redoTitle}
           onClick={onRedo}
           disabled={!canRedo}
         />
       </Flex>
       <Flex gap="1" ms="auto" flexShrink={0}>
-        <ToolButton icon={preferencesIcon} label="環境設定" onClick={onPreferences} iconOnly />
-        <ToolButton icon={infoIcon} label="このアプリについて" onClick={onAbout} iconOnly />
+        <ToolButton
+          icon={preferencesIcon}
+          label={m.header.preferences}
+          onClick={onPreferences}
+          iconOnly
+        />
+        <ToolButton icon={infoIcon} label={m.header.about} onClick={onAbout} iconOnly />
       </Flex>
     </Flex>
   );

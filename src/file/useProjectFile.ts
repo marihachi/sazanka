@@ -3,6 +3,7 @@ import type { TextRequest } from '../ui/TextDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
+import { describeShareError, type Messages } from '../i18n/messages';
 
 /** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */
 export function useProjectFile({
@@ -11,7 +12,10 @@ export function useProjectFile({
   setProjectWithoutHistory,
   showConfirm,
   showText,
+  m,
 }: {
+  /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
+  m: Messages;
   project: Project;
   /** プロジェクト全体を置き換える (元に戻すで戻せる)。開いている回路や表示も初めからにする */
   replaceProject: (next: Project) => void;
@@ -22,9 +26,8 @@ export function useProjectFile({
 }) {
   function newProject() {
     showConfirm({
-      message:
-        '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
-      confirmLabel: '新規作成',
+      message: m.file.confirmNew,
+      confirmLabel: m.file.newProject,
       danger: true,
       onConfirm: () => replaceProject(emptyProject()),
     });
@@ -32,13 +35,12 @@ export function useProjectFile({
 
   function exportProject() {
     showText({
-      title: '書き出し',
-      message:
-        'プロジェクト全体の書き出しができます。書き出したデータは「読み込み」画面に貼り付けてください。',
+      title: m.file.exportTitle,
+      message: m.file.exportMessage,
       initial: serializeProject(project),
       readOnly: true,
       field: {
-        label: '作者名 (省略可)',
+        label: m.file.author,
         initial: project.author ?? '',
         onChange: (value) => {
           // 作者名は回路の編集ではないので、元に戻す対象にしない
@@ -47,15 +49,15 @@ export function useProjectFile({
           return serializeProject(next);
         },
       },
-      confirmLabel: 'コピー',
-      doneMessage: 'コピーしました',
+      confirmLabel: m.file.copy,
+      doneMessage: m.file.copied,
       onSubmit: async (text) => {
         try {
           await navigator.clipboard.writeText(text);
           return undefined;
         } catch {
           // 安全でない接続 (http) などでは、クリップボードに書き込めない
-          return 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください';
+          return m.file.copyFailed;
         }
       },
     });
@@ -63,20 +65,19 @@ export function useProjectFile({
 
   function importProject() {
     showText({
-      title: '読み込み',
-      message:
-        '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
+      title: m.file.importTitle,
+      message: m.file.importMessage,
       initial: '',
-      confirmLabel: '読み込む',
+      confirmLabel: m.file.importConfirm,
       onSubmit: (text) => {
         const result = parseProject(text.trim(), newId);
         if (!result.ok) {
-          return result.error;
+          return describeShareError(m, result.error);
         }
         replaceProject(result.project);
         if (result.project.author) {
           showConfirm({
-            message: `「${result.project.author}」さんの回路を読み込みました。`,
+            message: m.file.importedFrom(result.project.author),
           });
         }
         return undefined;

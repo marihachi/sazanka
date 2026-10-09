@@ -9,6 +9,7 @@ import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
 import packageIcon from '../assets/icons/package.svg';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
+import { useMessages } from '../i18n/useMessages';
 
 /** シートの操作のモード。配線モードでは、クリックで配線を引く */
 export type Tool = 'select' | 'wire';
@@ -45,41 +46,42 @@ export const SheetToolbar = memo(function SheetToolbar({
   onModuleSettings,
   onDeleteModule,
 }: SheetToolbarProps) {
+  const m = useMessages();
   return (
     // 選択中のタブと同じ色にして、タブの中の操作だと見せる (TabBar.tsx)
     <Flex align="center" gap="0.5" px="2" py="1" bg="bg.panel" borderBottomWidth="1px">
       <ToolButton
         icon={selectIcon}
-        label="選択"
-        title="選択モード (V): 部品や配線を選んで動かす"
+        label={m.toolbar.select}
+        title={m.toolbar.selectTitle}
         onClick={() => onToolChange('select')}
         active={tool === 'select'}
       />
       <ToolButton
         icon={wireIcon}
-        label="配線"
-        title="配線モード (W): クリックした点から点へ配線を引く"
+        label={m.toolbar.wire}
+        title={m.toolbar.wireTitle}
         onClick={() => onToolChange('wire')}
         active={tool === 'wire'}
       />
       <ToolDivider />
       <ToolButton
         icon={running ? pauseIcon : playIcon}
-        label={running ? '一時停止' : '再開'}
-        title={running ? 'シミュレーションを一時停止' : 'シミュレーションを再開'}
+        label={running ? m.toolbar.pause : m.toolbar.resume}
+        title={running ? m.toolbar.pauseTitle : m.toolbar.resumeTitle}
         onClick={onToggleRunning}
       />
       <ToolButton
         icon={stepBackIcon}
-        label="1 tick 戻す"
-        title="1 tick だけ時間を戻す"
+        label={m.toolbar.stepBack}
+        title={m.toolbar.stepBackTitle}
         onClick={onStepBack}
         disabled={running || !canStepBack}
       />
       <ToolButton
         icon={stepIcon}
-        label="1 tick 進める"
-        title="1 tick だけ時間を進める"
+        label={m.toolbar.stepForward}
+        title={m.toolbar.stepForwardTitle}
         onClick={onStep}
         disabled={running}
       />
@@ -88,13 +90,18 @@ export const SheetToolbar = memo(function SheetToolbar({
           {onModuleSettings && (
             <ToolButton
               icon={packageIcon}
-              label="モジュール設定"
-              title="モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える"
+              label={m.toolbar.moduleSettings}
+              title={m.toolbar.moduleSettingsTitle}
               onClick={onModuleSettings}
             />
           )}
           {onDeleteModule && (
-            <ToolButton icon={trashIcon} label="モジュールを削除" onClick={onDeleteModule} danger />
+            <ToolButton
+              icon={trashIcon}
+              label={m.toolbar.deleteModule}
+              onClick={onDeleteModule}
+              danger
+            />
           )}
         </Flex>
       )}

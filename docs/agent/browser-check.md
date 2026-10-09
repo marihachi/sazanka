@@ -45,6 +45,12 @@
 - INPUT の ON/OFF は保存データから読まない。ON にしたいときは、開いてからクリックする。
 - 保存データが空のときは、メイン回路だけの空のプロジェクトで開く。
 
+## 表示言語
+
+- 保存した環境設定がなければ、ブラウザの言語で表示言語が決まる（日本語なら日本語、それ以外は英語）。ヘッドレスの Chrome は、たいてい英語になる。
+- 言語を決めて開くときは、`sazanka.preferences` の `language`（`'ja'` / `'en'`）を書くか、読み込む前に `navigator.languages` を差し替える（Puppeteer なら `page.evaluateOnNewDocument(() => Object.defineProperty(navigator, 'languages', { get: () => ['ja'] }))`）。
+- ボタンを `aria-label` で探すときは、その言語の文言で探す（例: 日本語は `環境設定`、英語は `Preferences`）。
+
 ## 要素の探し方
 
 - シート（配線や部品）は CSS Modules なので、クラス名にハッシュが付く。部分一致で探す（例: 配線は `wire` を含み、`wire-hit` を含まないクラス。分岐の印は `junction`、出力のぶつかりは `conflict` を含む）。

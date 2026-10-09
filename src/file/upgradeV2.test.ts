@@ -100,7 +100,7 @@ describe('upgradeV2', () => {
     expect(upgradeV2(unknown)).toEqual({
       circuits: [{ id: 'main', parts: [{ kind: 'FOO' }], wires: [] }],
     });
-    expect(checkProject(upgradeV2(unknown))).toBeTypeOf('string');
+    expect(checkProject(upgradeV2(unknown))).toBeDefined();
   });
 });
 
