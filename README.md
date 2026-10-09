@@ -1,17 +1,19 @@
 # sazanka
 
-ブラウザで動作する論理回路シミュレータです。
+English | [日本語](README.ja.md)
+
+A logic circuit simulator that runs in your browser.
 
 ![image](screenshot.png)
 
-以下のページで最新版を公開しています:  
+The latest version is available at:  
 https://marihachi.logical-flower.net/sazanka/
 
 ## License
 
-MITライセンスの基で利用できます。
+Available under the MIT License.
 
-### 使用フォントに関するライセンス
+### Font license
 
-ロゴには`Inter SemiBold`というフォントを使用しています。  
-このフォントはSIL OFLの基でライセンスされています。
+The logo uses the `Inter SemiBold` font.  
+This font is licensed under the SIL OFL.

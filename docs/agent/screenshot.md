@@ -1,6 +1,6 @@
 # README のスクリーンショット
 
-README の `screenshot.png` を撮り直すときの手順と、写す回路。画面の見た目を大きく変えたら撮り直す。ヘッドレスブラウザの動かし方は Skill の `browser-check` と[ブラウザでの動作確認](browser-check.md)にある。
+README の `screenshot.png` を撮り直すときの手順と、写す回路。画像は英語版（`README.md`）と日本語版（`README.ja.md`）で共通。画面の見た目を大きく変えたら撮り直す。ヘッドレスブラウザの動かし方は Skill の `browser-check` と[ブラウザでの動作確認](browser-check.md)にある。
 
 ## 撮り方
 
