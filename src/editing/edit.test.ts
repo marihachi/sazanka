@@ -10,6 +10,7 @@ import {
   removeParts,
   selectionOf,
   setClockPeriod,
+  setWirePoints,
   setLabel,
   toggleSwitch,
 } from './edit';
@@ -183,6 +184,27 @@ describe('remapSelection', () => {
       wires: ['a'],
     });
     expect(remapSelection(null, replaced)).toBeNull();
+  });
+});
+
+describe('setWirePoints', () => {
+  /** (0, y) から (x, y) までの横線 */
+  const line = (x: number, y: number) => [
+    { x: 0, y },
+    { x, y },
+  ];
+
+  it('指定した配線の点の並びだけを変え、元の回路は書き換えない', () => {
+    const circuit: Circuit = {
+      parts: [],
+      wires: [
+        { id: 'a', points: line(100, 0) },
+        { id: 'b', points: line(100, 40) },
+      ],
+    };
+    const next = setWirePoints(circuit, 'a', line(60, 0));
+    expect(next.wires).toEqual([{ id: 'a', points: line(60, 0) }, circuit.wires[1]]);
+    expect(circuit.wires[0].points).toEqual(line(100, 0));
   });
 });
 

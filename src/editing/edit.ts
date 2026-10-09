@@ -82,6 +82,14 @@ export function moveParts<T extends Circuit>(
   };
 }
 
+/** 配線の点の並びを変える (端のドラッグで長さを変えたときなど) */
+export function setWirePoints<T extends Circuit>(circuit: T, id: string, points: Point[]): T {
+  return {
+    ...circuit,
+    wires: circuit.wires.map((w) => (w.id === id ? { ...w, points } : w)),
+  };
+}
+
 export function toggleSwitch<T extends Circuit>(circuit: T, id: string): T {
   return updatePart(circuit, id, (c) => ({ ...c, on: !c.on }));
 }
