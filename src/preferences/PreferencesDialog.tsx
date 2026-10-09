@@ -6,6 +6,7 @@ import {
   Field,
   HStack,
   Input,
+  NativeSelect,
   Stack,
   Text,
 } from '@chakra-ui/react';
@@ -21,6 +22,7 @@ import {
 } from './preferences';
 import { DialogFrame } from '../ui/DialogFrame';
 import { useLanguage, useMessages } from '../i18n/useMessages';
+import { isLanguageSetting, LANGUAGE_SETTINGS } from '../i18n/language';
 
 /** 環境設定のウィンドウ。利用者ごとの設定で、プロジェクトには含めない。変えた値はすぐに反映する (保存は呼び出し側) */
 export function PreferencesDialog({
@@ -46,6 +48,28 @@ export function PreferencesDialog({
       </ChakraDialog.Header>
       <ChakraDialog.Body>
         <Stack gap="5">
+          {/* 言語は、今の言語が読めない人も見つけられるよう、いちばん上に置く */}
+          <Field.Root>
+            <Field.Label>{m.preferences.language}</Field.Label>
+            <NativeSelect.Root>
+              <NativeSelect.Field
+                value={preferences.language}
+                onChange={(e) => {
+                  const language = e.target.value;
+                  if (isLanguageSetting(language)) {
+                    onChange({ ...preferences, language });
+                  }
+                }}
+              >
+                {LANGUAGE_SETTINGS.map((l) => (
+                  <option key={l} value={l}>
+                    {m.preferences.languages[l]}
+                  </option>
+                ))}
+              </NativeSelect.Field>
+              <NativeSelect.Indicator />
+            </NativeSelect.Root>
+          </Field.Root>
           <Field.Root invalid={!tickValid}>
             <Field.Label>{m.preferences.tickMs}</Field.Label>
             <Input

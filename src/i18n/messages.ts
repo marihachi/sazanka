@@ -1,15 +1,16 @@
 // 言語ごとの文言の表の一覧と、その形。表の中身は言語ごとのファイル (ja.ts) に置く。
 // 計算の側が返すエラーを、表の文にする処理もここに置く (言語によらない)
-import type { ProjectError } from '../circuit/project';
+import { type CircuitDef, MAIN_ID, type ProjectError } from '../circuit/project';
 import type { ShareError } from '../file/share';
 import type { StoredError } from '../file/storage';
+import { en } from './en';
 import { ja } from './ja';
 import type { Language, Localized } from './language';
 
 /** 文言の表の形。日本語の表を元にする */
 export type Messages = typeof ja;
 
-export const MESSAGES: Localized<Messages> = { ja };
+export const MESSAGES: Localized<Messages> = { ja, en };
 
 /** 言語の文言の表 */
 export function getMessages(lang: Language): Messages {
@@ -44,4 +45,12 @@ export function describeShareError(m: Messages, e: ShareError): string {
 /** 保存データを読み込めなかった理由を文にする */
 export function describeStoredError(m: Messages, e: StoredError): string {
   return describeError(m.errors.stored, e);
+}
+
+/**
+ * 画面に出す回路の名前。メイン回路は、保存した名前 (作ったときの「メイン」) ではなく、表示言語の名前にする。
+ * モジュールは、利用者が付けた名前のまま
+ */
+export function getCircuitName(def: Pick<CircuitDef, 'id' | 'name'>, m: Messages): string {
+  return def.id === MAIN_ID ? m.common.mainCircuit : def.name;
 }

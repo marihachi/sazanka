@@ -7,6 +7,7 @@ import {
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
 import { isObject } from '../util';
+import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
 import { upgradeProject } from './upgrade';
 
@@ -155,6 +156,7 @@ export function loadPreferences(): Preferences {
       roundWires:
         typeof value.roundWires === 'boolean' ? value.roundWires : DEFAULT_PREFERENCES.roundWires,
       accent: isAccent(value.accent) ? value.accent : DEFAULT_PREFERENCES.accent,
+      language: isLanguageSetting(value.language) ? value.language : DEFAULT_PREFERENCES.language,
     };
   } catch {
     return DEFAULT_PREFERENCES;

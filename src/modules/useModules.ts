@@ -5,7 +5,7 @@ import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
-import { useMessages } from '../i18n/useMessages';
+import { getCircuitName, type Messages } from '../i18n/messages';
 
 /** モジュールの追加・改名・削除と、パレットに並べるモジュールの一覧 */
 export function useModules({
@@ -16,7 +16,10 @@ export function useModules({
   onDeleted,
   showConfirm,
   showPrompt,
+  m,
 }: {
+  /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
+  m: Messages;
   project: Project;
   /** 開いている回路 */
   circuit: CircuitDef;
@@ -28,7 +31,6 @@ export function useModules({
   showConfirm: (request: ConfirmRequest) => void;
   showPrompt: (request: PromptRequest) => void;
 }) {
-  const m = useMessages();
   /**
    * パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き。
    * 部品を動かしただけでは変わらないので、回路の名前と、どの回路にどのモジュールを置いているかが変わったときだけ作り直す
@@ -63,7 +65,8 @@ export function useModules({
 
   /** 名前を入力するウィンドウを開き、確定したらモジュールを作成して開く */
   function createModule() {
-    const names = new Set(project.circuits.map((d) => d.name));
+    // メイン回路は表示言語の名前で出すので、その名前も使えないようにする (タブで見分けられなくなるため)
+    const names = new Set([...project.circuits.map((d) => d.name), m.common.mainCircuit]);
     // 既定の名前の番号は、モジュールの数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
     let n = project.circuits.length;
     while (names.has(m.modules.defaultName(n))) {
@@ -108,7 +111,7 @@ export function useModules({
       showConfirm({
         message: m.modules.inUse(
           circuit.name,
-          users.map((d) => d.name),
+          users.map((d) => getCircuitName(d, m)),
         ),
       });
       return;

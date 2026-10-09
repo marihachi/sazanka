@@ -7,6 +7,7 @@ import { InlineInput } from '../ui/InlineInput';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
 import { useMessages } from '../i18n/useMessages';
+import { getCircuitName } from '../i18n/messages';
 
 interface TabBarProps {
   circuits: CircuitDef[];
@@ -152,7 +153,7 @@ export const TabBar = memo(function TabBar({
                   onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
                 >
                   <Box as="span" truncate>
-                    {d.name}
+                    {getCircuitName(d, m)}
                   </Box>
                 </Tabs.Trigger>
               </TabTooltip>

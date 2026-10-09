@@ -4,6 +4,7 @@ import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
 import type { ShareError } from '../file/share';
 import type { StoredError } from '../file/storage';
+import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';
 
 export const ja = {
@@ -11,6 +12,8 @@ export const ja = {
     ok: 'OK',
     cancel: 'キャンセル',
     close: '閉じる',
+    /** メイン回路の名前。保存した名前ではなく、これを出す (messages.ts の getCircuitName) */
+    mainCircuit: 'メイン',
     /** 「入力 1」「出力 2」のような、入力か出力か (kind が input か) とポート番号 */
     portName: (kind: string, portNumber: number | string) =>
       `${kind === 'input' ? '入力' : '出力'} ${portNumber}`,
@@ -116,6 +119,13 @@ export const ja = {
     roundWires: '配線の角を丸める',
     accent: 'アクセントカラー',
     otherColor: 'ほかの色を選ぶ',
+    /** 言語の欄の名前。今の言語が読めない人にも見つけられるよう、英語も添える */
+    language: '言語 / Language',
+    languages: {
+      auto: '自動 (ブラウザの言語)',
+      ja: '日本語',
+      en: 'English',
+    } satisfies Record<LanguageSetting, string>,
   },
   moduleSettings: {
     title: (name: string) => `モジュール設定: ${name}`,
@@ -213,6 +223,8 @@ export const ja = {
     } satisfies ErrorTexts<StoredError>,
   },
   hints: {
+    /** ヒントの 1 文字を読む時間 (ms)。ヒントを出し続ける時間に使う (StatusBar.tsx) */
+    msPerChar: 250,
     /** 何も操作していないときに順に表示するヒント */
     idle: [
       '左のパネルからクリックかドラッグで部品を追加',

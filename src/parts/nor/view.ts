@@ -5,5 +5,8 @@ export const nor: PartView = {
   label: 'NOR',
   icon,
   group: 'gate',
-  description: { ja: 'OR の反転。すべての入力が OFF のときだけ ON' },
+  description: {
+    ja: 'OR の反転。すべての入力が OFF のときだけ ON',
+    en: 'Inverted OR. ON only when all inputs are OFF',
+  },
 };

@@ -3,8 +3,7 @@ import type { TextRequest } from '../ui/TextDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
-import { describeShareError } from '../i18n/messages';
-import { useMessages } from '../i18n/useMessages';
+import { describeShareError, type Messages } from '../i18n/messages';
 
 /** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */
 export function useProjectFile({
@@ -13,7 +12,10 @@ export function useProjectFile({
   setProjectWithoutHistory,
   showConfirm,
   showText,
+  m,
 }: {
+  /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
+  m: Messages;
   project: Project;
   /** プロジェクト全体を置き換える (元に戻すで戻せる)。開いている回路や表示も初めからにする */
   replaceProject: (next: Project) => void;
@@ -22,7 +24,6 @@ export function useProjectFile({
   showConfirm: (request: ConfirmRequest) => void;
   showText: (request: TextRequest) => void;
 }) {
-  const m = useMessages();
   function newProject() {
     showConfirm({
       message: m.file.confirmNew,

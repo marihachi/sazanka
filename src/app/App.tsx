@@ -42,8 +42,9 @@ import { useSimulation } from '../simulation/useSimulation';
 import { useProjectHistory } from '../editing/useProjectHistory';
 import { useShortcuts } from '../editing/useShortcuts';
 import { useStableCallbacks } from './useStableCallbacks';
-import { describeStoredError } from '../i18n/messages';
-import { useLanguage, useMessages } from '../i18n/useMessages';
+import { describeStoredError, getMessages } from '../i18n/messages';
+import { LanguageContext } from '../i18n/useMessages';
+import { resolveLanguage } from '../i18n/language';
 
 /** その場で編集中の名前 (タブのモジュール名) */
 type Editing = { type: 'tab'; id: string } | null;
@@ -54,8 +55,10 @@ type Editing = { type: 'tab'; id: string } | null;
  * 新規作成・書き出し・読み込み: useProjectFile、モジュールの管理: useModules)。ここには回路の編集と、画面の組み立てを置く
  */
 export function App() {
-  const lang = useLanguage();
-  const m = useMessages();
+  const [preferences, setPreferences] = useState(loadPreferences);
+  // 言語は Context で子へ渡す。App 自身と、App で呼ぶフックは Provider の外なので、表を直接引く
+  const lang = resolveLanguage(preferences.language, navigator.languages);
+  const m = getMessages(lang);
   const [loaded] = useState(loadProject);
   const history = useProjectHistory(() => loaded.project);
   const project = history.project;
@@ -75,7 +78,6 @@ export function App() {
   /** 回路ごとの表示位置と倍率。元に戻す対象にはしない */
   const [views, setViews] = useState(loadViews);
   const [editing, setEditing] = useState<Editing>(null);
-  const [preferences, setPreferences] = useState(loadPreferences);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
   const circuit = findDef(project, currentId) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
@@ -116,6 +118,10 @@ export function App() {
     () => document.documentElement.style.setProperty('--accent', preferences.accent),
     [preferences.accent],
   );
+  // ページの言語 (読み上げや翻訳に使われる) を、画面に出す言語に合わせる
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   // 表示を保存していない回路は、開いた時点の表示をすぐに保存して固定する。
   // 固定しないと、部品を置くたびに「回路全体が見える表示」が計算し直され、画面が勝手に動いてしまう
   const viewSaved = circuit.id in views;
@@ -137,6 +143,7 @@ export function App() {
   }
 
   const clipboard = useClipboard({
+    m,
     project,
     circuit,
     selection,
@@ -155,6 +162,7 @@ export function App() {
   }
 
   const modules = useModules({
+    m,
     project,
     circuit,
     setProject,
@@ -168,6 +176,7 @@ export function App() {
   });
 
   const file = useProjectFile({
+    m,
     project,
     replaceProject: (next: Project) => {
       setProject(() => next);
@@ -369,105 +378,107 @@ export function App() {
   });
 
   return (
-    <Flex direction="column" h="full">
-      <Header
-        onNew={on.newProject}
-        onExport={on.exportProject}
-        onImport={on.importProject}
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        onUndo={on.undoEdit}
-        onRedo={on.redoEdit}
-        onPreferences={on.openPreferences}
-        onAbout={on.openAbout}
-      />
-      <TabBar
-        circuits={project.circuits}
-        currentId={circuit.id}
-        renamingId={editing?.type === 'tab' ? editing.id : undefined}
-        onOpen={on.openCircuit}
-        onStartRename={on.startRename}
-        onRename={on.renameCircuit}
-        onCancelRename={on.cancelRename}
-        onAddModule={on.createModule}
-        onReorder={on.reorder}
-      />
-      <SheetToolbar
-        tool={tool}
-        onToolChange={on.changeTool}
-        running={running}
-        onToggleRunning={on.toggleRunning}
-        onStep={on.stepOnce}
-        onStepBack={on.stepBack}
-        canStepBack={canStepBack}
-        onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
-        onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
-      />
-      <Flex flex="1" minH="0">
-        <Palette
-          modules={modules.paletteModules}
-          collapsed={collapsedGroups}
-          onCollapsedChange={setCollapsedGroups}
-          onAdd={on.addFromPalette}
+    <LanguageContext.Provider value={lang}>
+      <Flex direction="column" h="full">
+        <Header
+          onNew={on.newProject}
+          onExport={on.exportProject}
+          onImport={on.importProject}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
+          onUndo={on.undoEdit}
+          onRedo={on.redoEdit}
+          onPreferences={on.openPreferences}
+          onAbout={on.openAbout}
         />
-        <Sheet
-          project={project}
-          circuit={circuit}
-          nets={nets}
+        <TabBar
+          circuits={project.circuits}
+          currentId={circuit.id}
+          renamingId={editing?.type === 'tab' ? editing.id : undefined}
+          onOpen={on.openCircuit}
+          onStartRename={on.startRename}
+          onRename={on.renameCircuit}
+          onCancelRename={on.cancelRename}
+          onAddModule={on.createModule}
+          onReorder={on.reorder}
+        />
+        <SheetToolbar
           tool={tool}
-          simStore={simStore}
-          selection={selection}
-          onSelect={setSelection}
-          pending={pending}
-          onPendingChange={setPending}
-          dragMode={dragMode}
-          onDragModeChange={setDragMode}
-          onResize={setSheetSize}
-          view={view}
-          showGrid={preferences.showGrid}
-          roundWires={preferences.roundWires}
-          onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
-          onAdd={addPart}
-          onMoveStart={history.checkpoint}
-          onMove={moveParts}
-          // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
-          onDropOnTrash={(moved) => deleteSelection(!moved)}
-          onToggle={toggleInput}
-          onAddWire={addWire}
-          onPartDoubleClick={onCompDoubleClick}
-          placing={clipboard.placing}
-          onPlace={clipboard.paste}
+          onToolChange={on.changeTool}
+          running={running}
+          onToggleRunning={on.toggleRunning}
+          onStep={on.stepOnce}
+          onStepBack={on.stepBack}
+          canStepBack={canStepBack}
+          onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
+          onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
         />
-        <PropertyPanel
-          part={selectedPart}
-          moduleName={
-            selectedPart?.kind === 'module'
-              ? findDef(project, selectedPart.module)?.name
-              : undefined
-          }
-          inModule={circuit.id !== MAIN_ID}
-          otherLabels={circuit.parts
-            .filter(
-              (c) =>
-                (c.kind === 'input' || c.kind === 'output') &&
-                c.id !== selectedPart?.id &&
-                c.label !== undefined,
-            )
-            .map((c) => c.label)
-            .join('\n')}
-          tickMs={preferences.tickMs}
-          onEditStart={history.checkpoint}
-          onClockPeriodChange={on.setClockPeriod}
-          onLabelChange={on.setLabel}
+        <Flex flex="1" minH="0">
+          <Palette
+            modules={modules.paletteModules}
+            collapsed={collapsedGroups}
+            onCollapsedChange={setCollapsedGroups}
+            onAdd={on.addFromPalette}
+          />
+          <Sheet
+            project={project}
+            circuit={circuit}
+            nets={nets}
+            tool={tool}
+            simStore={simStore}
+            selection={selection}
+            onSelect={setSelection}
+            pending={pending}
+            onPendingChange={setPending}
+            dragMode={dragMode}
+            onDragModeChange={setDragMode}
+            onResize={setSheetSize}
+            view={view}
+            showGrid={preferences.showGrid}
+            roundWires={preferences.roundWires}
+            onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
+            onAdd={addPart}
+            onMoveStart={history.checkpoint}
+            onMove={moveParts}
+            // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
+            onDropOnTrash={(moved) => deleteSelection(!moved)}
+            onToggle={toggleInput}
+            onAddWire={addWire}
+            onPartDoubleClick={onCompDoubleClick}
+            placing={clipboard.placing}
+            onPlace={clipboard.paste}
+          />
+          <PropertyPanel
+            part={selectedPart}
+            moduleName={
+              selectedPart?.kind === 'module'
+                ? findDef(project, selectedPart.module)?.name
+                : undefined
+            }
+            inModule={circuit.id !== MAIN_ID}
+            otherLabels={circuit.parts
+              .filter(
+                (c) =>
+                  (c.kind === 'input' || c.kind === 'output') &&
+                  c.id !== selectedPart?.id &&
+                  c.label !== undefined,
+              )
+              .map((c) => c.label)
+              .join('\n')}
+            tickMs={preferences.tickMs}
+            onEditStart={history.checkpoint}
+            onClockPeriodChange={on.setClockPeriod}
+            onLabelChange={on.setLabel}
+          />
+        </Flex>
+        <StatusBar
+          hints={hints}
+          unstable={unstable}
+          conflict={conflict}
+          unexposedPorts={problems.size > 0}
         />
+        {dialogs.element}
       </Flex>
-      <StatusBar
-        hints={hints}
-        unstable={unstable}
-        conflict={conflict}
-        unexposedPorts={problems.size > 0}
-      />
-      {dialogs.element}
-    </Flex>
+    </LanguageContext.Provider>
   );
 }

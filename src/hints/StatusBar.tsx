@@ -4,10 +4,13 @@ import { useMessages } from '../i18n/useMessages';
 
 const HINT_MIN_DURATION = 6000;
 
-/** ヒントを表示し続ける時間 (ms)。長い文ほど長く、最短でも HINT_MIN_DURATION */
-function hintDuration(hint: string): number {
-  // 3 秒に、1 文字あたり 0.25 秒 (1 秒に 4 文字ほど読む前提) を足す
-  return Math.max(HINT_MIN_DURATION, 3000 + hint.length * 250);
+/**
+ * ヒントを表示し続ける時間 (ms)。長い文ほど長く、最短でも HINT_MIN_DURATION。
+ * msPerChar は 1 文字を読む時間で、言語ごとに違う (文言の表の hints.msPerChar)
+ */
+function hintDuration(hint: string, msPerChar: number): number {
+  // 3 秒に、1 文字あたりの時間を足す (日本語は 0.25 秒で、1 秒に 4 文字ほど読む前提)
+  return Math.max(HINT_MIN_DURATION, 3000 + hint.length * msPerChar);
 }
 
 interface StatusBarProps {
@@ -42,9 +45,9 @@ export const StatusBar = memo(function StatusBar({
     if (hints.length < 2 || paused) {
       return;
     }
-    const timer = setTimeout(() => setIndex((i) => i + 1), hintDuration(hint));
+    const timer = setTimeout(() => setIndex((i) => i + 1), hintDuration(hint, m.hints.msPerChar));
     return () => clearTimeout(timer);
-  }, [hint, index, hints.length, paused]);
+  }, [hint, index, hints.length, paused, m]);
 
   return (
     <Flex

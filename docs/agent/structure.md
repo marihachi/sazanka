@@ -67,7 +67,7 @@
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
 - `i18n/` … 画面の文言（表示言語）。
-  - `language.ts` … 言語の型（`Language`）と、言語ごとに書き分けた値の型（`Localized`、`LocalText`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。
+  - `language.ts` … 言語の型（`Language`）、言語ごとに書き分けた値の型（`Localized`、`LocalText`）、環境設定の言語から画面に出す言語を決めること（`resolveLanguage`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。`en.ts` … 英語の表。
   - `useMessages.ts` … 画面の側に言語と文言の表を渡す（`LanguageContext`、`useLanguage`、`useMessages`）。
   - 画面の文言は、ここの表から引く。部品の種類ごとの文言（表示名、説明、ヒント）とアクセントカラーの色の名前は、それぞれの定義に言語ごとに書く（`parts/<種類>/view.ts`、`preferences/preferences.ts`）。
   - 計算の側（検証、共有用 JSON、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
