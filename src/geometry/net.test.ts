@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from '../circuit/part';
 import type { Wire } from '../circuit/circuit';
 import type { Project } from '../circuit/project';
-import { computeNets, isConflict, isOnWire, netLinks } from './net';
+import { computeNets, isConflict, isOnWire, mergeWiresAt, netLinks } from './net';
 
 const project: Project = { circuits: [] };
 
@@ -206,5 +206,124 @@ describe('上下の辺のピン', () => {
     expect(result.nets.find((n) => n.wires.includes('bottom'))?.outputs).toEqual([
       { comp: 'u', pin: 0 },
     ]);
+  });
+});
+
+describe('mergeWiresAt', () => {
+  function merge(points: [number, number][], ...wires: Wire[]) {
+    const at = points.map(([x, y]) => ({ x, y }));
+    return mergeWiresAt({ parts: comps, wires }, project, at);
+  }
+
+  /** 配線ごとに「ID: x,y x,y ...」の文字列にする (点の並びを 1 行で比べるため) */
+  function shapes(result: ReturnType<typeof merge>): string[] {
+    return result.circuit.wires.map(
+      (w) => `${w.id}: ${w.points.map((p) => `${p.x},${p.y}`).join(' ')}`,
+    );
+  }
+
+  it('まっすぐ続く 2 本は、途中の点を省いた 1 本にする', () => {
+    const r = merge(
+      [[100, 100]],
+      wire('a', [0, 100], [100, 100]),
+      wire('b', [100, 100], [200, 100]),
+    );
+    expect(shapes(r)).toEqual(['a: 0,100 200,100']);
+    expect(r.replaced).toEqual(new Map([['b', 'a']]));
+  });
+
+  it('直角につながる 2 本は、折れる点のある 1 本にする', () => {
+    const r = merge(
+      [[100, 100]],
+      wire('a', [0, 100], [100, 100]),
+      wire('b', [100, 100], [100, 200]),
+    );
+    expect(shapes(r)).toEqual(['a: 0,100 100,100 100,200']);
+  });
+
+  it('先にある配線の ID と向きを引き継ぐ (向きが逆の配線もつなぐ)', () => {
+    // a は (100,100) から始まる。a の向きを保つので、b → a の順になる
+    const r = merge(
+      [[100, 100]],
+      wire('a', [100, 100], [200, 100]),
+      wire('b', [0, 100], [100, 100]),
+    );
+    expect(shapes(r)).toEqual(['a: 0,100 200,100']);
+    const r2 = merge(
+      [[100, 100]],
+      wire('a', [100, 100], [200, 100]),
+      wire('b', [100, 100], [0, 100]),
+    );
+    expect(shapes(r2)).toEqual(['a: 0,100 200,100']);
+  });
+
+  it('渡した点でなければ結合しない', () => {
+    const r = merge([[0, 100]], wire('a', [0, 100], [100, 100]), wire('b', [100, 100], [200, 100]));
+    expect(r.circuit.wires).toHaveLength(2);
+    expect(r.replaced.size).toBe(0);
+  });
+
+  it('分岐の点 (3 本以上の端、途中を通る配線) では結合しない', () => {
+    const a = wire('a', [0, 100], [100, 100]);
+    const b = wire('b', [100, 100], [200, 100]);
+    const three = merge([[100, 100]], a, b, wire('c', [100, 100], [100, 200]));
+    expect(three.circuit.wires).toHaveLength(3);
+    // c の途中を通る点に、a と b の端がある
+    const through = merge([[100, 100]], a, b, wire('c', [100, 0], [100, 200]));
+    expect(through.circuit.wires).toHaveLength(3);
+  });
+
+  it('ピンの先では結合しない', () => {
+    // (60, 20) は INPUT a の出力ピンの先
+    const r = merge(
+      [[60, 20]],
+      wire('a', [0, 60], [60, 60], [60, 20]),
+      wire('b', [60, 20], [200, 20]),
+    );
+    expect(r.circuit.wires).toHaveLength(2);
+  });
+
+  it('同じ配線の両端の点や、同じ向きに出て重なる 2 本は結合しない', () => {
+    const loop = merge([[0, 0]], wire('a', [0, 0], [100, 0], [100, 100], [0, 100], [0, 0]));
+    expect(loop.circuit.wires).toHaveLength(1);
+    const overlap = merge(
+      [[100, 100]],
+      wire('a', [0, 100], [100, 100]),
+      wire('b', [100, 100], [40, 100]),
+    );
+    expect(overlap.circuit.wires).toHaveLength(2);
+  });
+
+  it('続けて結合したときは、最後に残った配線を指す', () => {
+    // b を a に結合し、そのあと a を c に結合する (c が先にあるので c が残る)
+    const c = wire('c', [-100, 100], [0, 100]);
+    const a = wire('a', [0, 100], [100, 100]);
+    const b = wire('b', [100, 100], [200, 100]);
+    const r = merge(
+      [
+        [100, 100],
+        [0, 100],
+      ],
+      c,
+      a,
+      b,
+    );
+    expect(shapes(r)).toEqual(['c: -100,100 200,100']);
+    expect(r.replaced).toEqual(
+      new Map([
+        ['b', 'c'],
+        ['a', 'c'],
+      ]),
+    );
+  });
+
+  it('結合の前後でネットは変わらない', () => {
+    // INPUT a の出力 (60, 20) から OUTPUT o の入力 (380, 20) へ、2 本をつないで引いた配線
+    const wires = [wire('w1', [60, 20], [200, 20]), wire('w2', [200, 20], [380, 20])];
+    const r = merge([[200, 20]], ...wires);
+    const before = nets(...wires).nets.map((n) => [n.outputs, n.inputs]);
+    const after = computeNets(r.circuit, project).nets.map((n) => [n.outputs, n.inputs]);
+    expect(r.circuit.wires).toHaveLength(1);
+    expect(after).toEqual(before);
   });
 });

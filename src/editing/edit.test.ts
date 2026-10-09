@@ -6,6 +6,7 @@ import {
   cloneParts,
   extractParts,
   moveParts,
+  remapSelection,
   removeParts,
   selectionOf,
   setClockPeriod,
@@ -167,6 +168,21 @@ describe('selectionOf', () => {
     expect(selectionOf([], [])).toBeNull();
     expect(selectionOf(['a'], [])).toEqual({ comps: ['a'], wires: [] });
     expect(selectionOf([], ['w'])).toEqual({ comps: [], wires: ['w'] });
+  });
+});
+
+describe('remapSelection', () => {
+  it('結合で消えた配線を、結合後の配線に置き換える (重なれば 1 つにする)', () => {
+    const replaced = new Map([['b', 'a']]);
+    expect(remapSelection({ comps: ['c'], wires: ['b'] }, replaced)).toEqual({
+      comps: ['c'],
+      wires: ['a'],
+    });
+    expect(remapSelection({ comps: [], wires: ['a', 'b'] }, replaced)).toEqual({
+      comps: [],
+      wires: ['a'],
+    });
+    expect(remapSelection(null, replaced)).toBeNull();
   });
 });
 

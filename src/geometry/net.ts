@@ -5,7 +5,9 @@
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
 import { getPinout } from '../circuit/module';
 import type { Project } from '../circuit/project';
-import { calcSheetPins, type Point } from './layout';
+import type { Part } from '../circuit/part';
+import { calcSheetPins, type Point, simplifyWire } from './layout';
+import { mustGet } from '../util';
 
 /** 配線でつながったピンと配線のまとまり */
 export interface Net {
@@ -189,4 +191,94 @@ export function netLinks(nets: readonly Net[]): { from: PinRef; to: PinRef }[] {
   return nets.flatMap((net) =>
     net.outputs.length === 1 ? net.inputs.map((to) => ({ from: net.outputs[0], to })) : [],
   );
+}
+
+/** 部品の入力ピンと出力ピンの先の位置 (つながりに使うピン。NC のピンは含めない) */
+export function pinTipsOf(parts: readonly Part[], project: Project): Point[] {
+  return parts.flatMap((c) => {
+    const pins = calcSheetPins(c, getPinout(c, project));
+    return [...pins.inputs, ...pins.outputs].map((p) => p.tip);
+  });
+}
+
+/** 配線の両端 */
+export function wireEndsOf(wires: readonly Wire[]): Point[] {
+  return wires.flatMap((w) => [w.points[0], w.points[w.points.length - 1]]);
+}
+
+/**
+ * 点 points のうち、2 本の配線が 1 本に見えている点で、その 2 本を 1 本に結合する。
+ * 結合するのは、2 本の配線の端だけがあり、ピンの先もほかの配線の途中もない点 (分岐の点では結合しない)。
+ * 端どうしが同じ点にある 2 本はもともと同じネットなので、結合してもつながりは変わらない。
+ * 結合した配線は、回路の中で先にある方の ID と向きを引き継ぐ。
+ * replaced は、結合で消えた配線の ID → 結合後の配線の ID (選択を引き継ぐのに使う)
+ */
+export function mergeWiresAt<T extends Circuit>(
+  circuit: T,
+  project: Project,
+  points: readonly Point[],
+): { circuit: T; replaced: Map<string, string> } {
+  const tips = new Set(pinTipsOf(circuit.parts, project).map(pointKey));
+  let wires = circuit.wires;
+  const replaced = new Map<string, string>();
+  const done = new Set<string>();
+  for (const p of points) {
+    const k = pointKey(p);
+    if (done.has(k) || tips.has(k)) {
+      continue;
+    }
+    done.add(k);
+    const through = wires.filter((w) => isOnWire(p, w));
+    // 点を通る配線が 2 本で、どちらもその点が端であること。途中を通る配線があれば分岐か交差
+    if (through.length !== 2 || !through.every((w) => isWireEnd(p, w))) {
+      continue;
+    }
+    const [a, b] = through;
+    const joined = joinAt(a.points, b.points, p);
+    if (!joined) {
+      continue;
+    }
+    // through は wires の並び順なので、a が先にある方
+    wires = wires.flatMap((w) => (w === a ? [{ ...a, points: joined }] : w === b ? [] : [w]));
+    replaced.set(b.id, a.id);
+  }
+  // 結合が続いたとき (b → a、a → c) は、最後に残った配線を指すようにたどる
+  for (const [from, to] of replaced) {
+    let last = to;
+    while (replaced.has(last)) {
+      last = mustGet(replaced, last);
+    }
+    replaced.set(from, last);
+  }
+  return { circuit: { ...circuit, wires }, replaced };
+}
+
+/**
+ * 点 p に端がある 2 本の点の並びを、p でつないだ 1 本にする。a の向きを保つ。
+ * つなげない (同じ向きに出ていて重なる、どちらかの両端が p にある) ときは null
+ */
+function joinAt(a: readonly Point[], b: readonly Point[], p: Point): Point[] | null {
+  const at = (q: Point) => q.x === p.x && q.y === p.y;
+  const aEnd = at(a[a.length - 1]);
+  const aStart = at(a[0]);
+  const bStart = at(b[0]);
+  const bEnd = at(b[b.length - 1]);
+  // 両端が p にある配線 (輪) は、どちらの端でつなぐかが決まらないので結合しない
+  if ((aStart && aEnd) || (bStart && bEnd)) {
+    return null;
+  }
+  // a を「p で終わる向き」、b を「p から始まる向き」にそろえてつなぐ。a が p で始まるときは、
+  // b → a の順につなげば a の向きのまま (b を「p で終わる向き」にして前に置く)
+  const head = aEnd ? [...a] : bEnd ? [...b] : [...b].reverse();
+  const tail = aEnd ? (bStart ? [...b] : [...b].reverse()) : [...a];
+  // p の手前の点と、p の次の点が同じ側にあれば、2 本は p から同じ向きに出ていて重なる
+  const before = head[head.length - 2];
+  const after = tail[1];
+  if (
+    Math.sign(before.x - p.x) === Math.sign(after.x - p.x) &&
+    Math.sign(before.y - p.y) === Math.sign(after.y - p.y)
+  ) {
+    return null;
+  }
+  return simplifyWire([...head, ...tail.slice(1)]);
 }

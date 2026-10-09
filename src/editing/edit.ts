@@ -14,6 +14,22 @@ export function selectionOf(comps: readonly string[], wires: readonly string[]):
   return comps.length > 0 || wires.length > 0 ? { comps: [...comps], wires: [...wires] } : null;
 }
 
+/**
+ * 配線の結合で消えた配線を選んでいたら、結合後の配線を選ぶ。
+ * replaced は、結合で消えた配線の ID → 結合後の配線の ID (geometry/net.ts の mergeWiresAt)
+ */
+export function remapSelection(
+  selection: Selection,
+  replaced: ReadonlyMap<string, string>,
+): Selection {
+  if (!selection || replaced.size === 0) {
+    return selection;
+  }
+  // 結合した 2 本を両方選んでいたときに、同じ ID が 2 つ並ばないようにする
+  const wires = [...new Set(selection.wires.map((id) => replaced.get(id) ?? id))];
+  return selectionOf(selection.comps, wires);
+}
+
 function updatePart<T extends Circuit>(circuit: T, id: string, update: (c: Part) => Part): T {
   return {
     ...circuit,

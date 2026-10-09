@@ -1,5 +1,5 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode } from '../sheet/Sheet';
 import type { Selection } from '../editing/edit';
 import { Header } from './Header';
@@ -23,7 +23,7 @@ import {
   usesPinNumbers,
 } from '../circuit/module';
 import { statusHints } from '../hints/hints';
-import { computeNets, isConflict } from '../geometry/net';
+import { computeNets, isConflict, mergeWiresAt, pinTipsOf, wireEndsOf } from '../geometry/net';
 import {
   loadCollapsedGroups,
   loadProject,
@@ -132,13 +132,36 @@ export function App() {
     }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
-  /** 選んでいる部品と配線を削除する */
+  /** 部品と配線を動かし始めたときの回路。動かしてから削除エリアで消したときに、元の位置を知るために使う */
+  const moveOriginRef = useRef<CircuitDef | null>(null);
+
+  function startMove() {
+    moveOriginRef.current = circuit;
+    history.checkpoint();
+  }
+
+  /** 選んでいる部品と配線を削除する。record が false なのは、動かしてから削除エリアで離したとき */
   function deleteSelection(record = true) {
     if (!selection) {
       return;
     }
     const { comps, wires } = selection;
-    setCircuit((cur) => edit.removeParts(cur, comps, wires), record);
+    // 動かしてから消したときは、動かす前の位置で結合を調べる (今の位置は、削除エリアへ運ぶ途中の位置のため)
+    const origin = record ? null : moveOriginRef.current;
+    setCircuit((cur) => {
+      // 消した配線の端と、消した部品のピンの先があった点で、1 本に見えるようになった配線を結合する
+      const before = origin ?? cur;
+      const wireSet = new Set(wires);
+      const compSet = new Set(comps);
+      const points = [
+        ...wireEndsOf(before.wires.filter((w) => wireSet.has(w.id))),
+        ...pinTipsOf(
+          before.parts.filter((c) => compSet.has(c.id)),
+          project,
+        ),
+      ];
+      return mergeWiresAt(edit.removeParts(cur, comps, wires), project, points).circuit;
+    }, record);
     setSelection(null);
   }
 
@@ -307,7 +330,11 @@ export function App() {
 
   function addWire(points: Point[]) {
     const wire: Wire = { id: newId(), points };
-    setCircuit((cur) => edit.addWire(cur, wire));
+    // 描いた配線の両端で、ほかの配線と 1 本に見える所を結合する。
+    // 結合で消えた配線を選んでいたら、選択を結合後の配線に移すので、結果をここで求めてから渡す
+    const merged = mergeWiresAt(edit.addWire(circuit, wire), project, wireEndsOf([wire]));
+    setCircuit(() => merged.circuit);
+    setSelection((s) => edit.remapSelection(s, merged.replaced));
   }
 
   /** 1つだけ選んでいる部品 (配線は選んでいない)。プロパティ欄とヒントに使う */
@@ -438,7 +465,7 @@ export function App() {
             roundWires={preferences.roundWires}
             onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
             onAdd={addPart}
-            onMoveStart={history.checkpoint}
+            onMoveStart={startMove}
             onMove={moveParts}
             // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
             onDropOnTrash={(moved) => deleteSelection(!moved)}
