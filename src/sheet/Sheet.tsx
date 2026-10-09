@@ -2,6 +2,7 @@ import { Stack } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clampMove,
+  dragWireEnd,
   partsInRect,
   GRID,
   calcSheetPins,
@@ -11,6 +12,7 @@ import {
   SHEET_WIDTH,
   simplifyWire,
   snap,
+  type WireEnd,
   wiresInRect,
   wireStepTo,
 } from '../geometry/layout';
@@ -33,8 +35,8 @@ import { wirePath } from './wirePath';
 import { TrashZone } from './TrashZone';
 import { ZoomControls } from './ZoomControls';
 
-/** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除) */
-export type DragMode = 'none' | 'moving' | 'trash';
+/** 部品をドラッグ中か。'trash' は削除エリアの上 (離すと削除)。'wireEnd' は配線の端のドラッグ中 */
+export type DragMode = 'none' | 'moving' | 'trash' | 'wireEnd';
 
 export interface SheetSize {
   width: number;
@@ -58,6 +60,21 @@ interface Drag {
   /** 最後に動かした量 (ドラッグ開始時から)。同じ量なら動かし直さない */
   delta: Point;
   moved: boolean;
+  /** このドラッグで onMoveStart を呼んだか */
+  started: boolean;
+  pointerId: number;
+  /** 押した位置 (クライアント座標) */
+  start: Point;
+}
+
+/** 配線の端のドラッグ (長さを変える) */
+interface EndDrag {
+  wire: string;
+  end: WireEnd;
+  /** ドラッグを始めたときの点の並び。端の位置は、毎回これから求める (dragWireEnd) */
+  origin: Point[];
+  /** 最後に知らせた点の並び。同じなら知らせ直さない */
+  points: Point[];
   /** このドラッグで onMoveStart を呼んだか */
   started: boolean;
   pointerId: number;
@@ -98,6 +115,26 @@ function wireGridPoint(at: Point): Point {
 /** 押した位置からこれ以上動いたらドラッグとみなす (px) */
 const DRAG_THRESHOLD = 4;
 
+/** 配線の端の印 (つまみ) の一辺と、押せる範囲の一辺 (画面上の px。拡大縮小しても変えない) */
+const HANDLE_SIZE = 6;
+const HANDLE_HIT = 20;
+
+/**
+ * 配線の端の区間が横向きか。端の区間が長さ 0 (端のドラッグで折れる点まで縮めた途中) なら、
+ * その先の区間と直角の向きにする (縮める前の端の区間の向き)
+ */
+function isHorizontalEnd(points: readonly Point[], end: WireEnd): boolean {
+  const n = points.length;
+  const [tip, anchor, next] =
+    end === 'start'
+      ? [points[0], points[1], points[2]]
+      : [points[n - 1], points[n - 2], points[n - 3]];
+  if (tip.x !== anchor.x || tip.y !== anchor.y || !next) {
+    return tip.y === anchor.y;
+  }
+  return anchor.x === next.x;
+}
+
 /** 拡大・縮小ボタン1回で変える倍率 */
 const ZOOM_STEP = 1.25;
 
@@ -131,6 +168,10 @@ interface SheetProps {
   onMoveStart: () => void;
   /** 選んでいる部品と配線を動かした。comps は部品の新しい位置、wires は配線の新しい点の並び */
   onMove: (comps: Map<string, Point>, wires: Map<string, Point[]>) => void;
+  /** 配線の端をドラッグして、点の並びが変わった (ドラッグの途中。長さ 0 の区間が残ることがある) */
+  onWireReshape: (id: string, points: Point[]) => void;
+  /** 配線の端のドラッグを終えた。points は最後の点の並び */
+  onWireReshapeEnd: (id: string, end: WireEnd, points: Point[]) => void;
   /** 選んでいるものを削除エリアで離した。moved はそれまでに位置を動かしたか */
   onDropOnTrash: (moved: boolean) => void;
   /** INPUT が (ドラッグせずに) クリックされた */
@@ -165,6 +206,8 @@ export function Sheet({
   onAdd,
   onMoveStart,
   onMove,
+  onWireReshape,
+  onWireReshapeEnd,
   onDropOnTrash,
   onToggle,
   onAddWire,
@@ -185,6 +228,9 @@ export function Sheet({
     return svg;
   }
   const dragRef = useRef<Drag | null>(null);
+  const endDragRef = useRef<EndDrag | null>(null);
+  /** ドラッグしている配線の端と、その向き。印を強調し、ポインターの形を保つのに使う */
+  const [activeEnd, setActiveEnd] = useState<{ end: WireEnd; horizontal: boolean } | null>(null);
   const [band, setBand] = useState<Band | null>(null);
   const [{ width, height }, setSize] = useState<SheetSize>({
     width: 0,
@@ -280,6 +326,11 @@ export function Sheet({
 
   /** 部品のドラッグや範囲選択を、途中で打ち切る (2本目の指が触れたときなど) */
   function cancelGesture() {
+    // 配線の端のドラッグは、途中までの長さで終える (長さ 0 の区間を残したままにしないため)
+    const endDrag = endDragRef.current;
+    if (endDrag) {
+      finishWireEnd(endDrag);
+    }
     dragRef.current = null;
     placeDownRef.current = null;
     setBand(null);
@@ -405,6 +456,52 @@ export function Sheet({
     startDrag(e, { type: 'wire', id: w.id });
   }
 
+  /** 配線の端の印を押したら、端のドラッグを始める (動かし始めるまでは何もしない) */
+  function onWireEndPointerDown(e: React.PointerEvent, w: Wire, end: WireEnd) {
+    e.stopPropagation();
+    endDragRef.current = {
+      wire: w.id,
+      end,
+      origin: w.points,
+      points: w.points,
+      started: false,
+      pointerId: e.pointerId,
+      start: { x: e.clientX, y: e.clientY },
+    };
+  }
+
+  function moveWireEnd(e: React.PointerEvent, endDrag: EndDrag) {
+    const svg = sheetSvg();
+    if (!svg.hasPointerCapture(endDrag.pointerId)) {
+      // 押しただけ・わずかに動いただけなら、何もしない (選択はそのまま)
+      if (Math.hypot(e.clientX - endDrag.start.x, e.clientY - endDrag.start.y) < DRAG_THRESHOLD) {
+        return;
+      }
+      svg.setPointerCapture(endDrag.pointerId);
+    }
+    const next = dragWireEnd(endDrag.origin, endDrag.end, toLocal(e));
+    if (next.every((p, i) => p.x === endDrag.points[i].x && p.y === endDrag.points[i].y)) {
+      return;
+    }
+    if (!endDrag.started) {
+      onMoveStart();
+      endDrag.started = true;
+      onDragModeChange('wireEnd');
+      setActiveEnd({ end: endDrag.end, horizontal: isHorizontalEnd(endDrag.origin, endDrag.end) });
+    }
+    endDrag.points = next;
+    onWireReshape(endDrag.wire, next);
+  }
+
+  function finishWireEnd(endDrag: EndDrag) {
+    endDragRef.current = null;
+    setActiveEnd(null);
+    if (endDrag.started) {
+      onDragModeChange('none');
+      onWireReshapeEnd(endDrag.wire, endDrag.end, endDrag.points);
+    }
+  }
+
   /** 何もないところを押したら、範囲選択を始める */
   function onBackgroundPointerDown(e: React.PointerEvent) {
     const base = e.shiftKey ? selection : null;
@@ -431,6 +528,11 @@ export function Sheet({
         ...wiresInRect(circuit.wires, band.start, p),
       ]);
       onSelect(selectionOf([...comps], [...wires]));
+      return;
+    }
+    const endDrag = endDragRef.current;
+    if (endDrag) {
+      moveWireEnd(e, endDrag);
       return;
     }
     const drag = dragRef.current;
@@ -509,6 +611,11 @@ export function Sheet({
       return;
     }
     setBand(null);
+    const endDrag = endDragRef.current;
+    if (endDrag) {
+      finishWireEnd(endDrag);
+      return;
+    }
     const drag = dragRef.current;
     dragRef.current = null;
     onDragModeChange('none');
@@ -557,6 +664,11 @@ export function Sheet({
   const sheetStart = toScreen(view, { x: 0, y: 0 });
   const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
   const cursor = tool === 'wire' && mouse && !placing ? wireCursor(mouse) : null;
+  // 端の印を出す配線。選択モードで、配線を 1 本だけ (部品も選ばずに) 選んでいるとき
+  const handleWire =
+    tool === 'select' && !placing && selection?.comps.length === 0 && selection.wires.length === 1
+      ? wireMap.get(selection.wires[0])
+      : undefined;
 
   return (
     <div className={styles.sheetWrap}>
@@ -567,6 +679,7 @@ export function Sheet({
           styles.sheet,
           tool === 'wire' && styles.wireTool,
           (spaceHeld || panning) && styles.panning,
+          activeEnd && (activeEnd.horizontal ? styles.resizingX : styles.resizingY),
         )}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
@@ -686,6 +799,42 @@ export function Sheet({
             );
           })}
 
+          {/* 選んだ配線の端の印。押せる範囲は見た目より広くする。どちらも拡大縮小しても画面上の大きさを変えない */}
+          {handleWire &&
+            (['start', 'end'] as const).map((end) => {
+              const pts = handleWire.points;
+              const p = end === 'start' ? pts[0] : pts[pts.length - 1];
+              const size = HANDLE_SIZE / view.scale;
+              const hit = HANDLE_HIT / view.scale;
+              return (
+                <g
+                  key={end}
+                  className={classNames(
+                    styles.wireHandle,
+                    isHorizontalEnd(pts, end) ? styles.resizeX : styles.resizeY,
+                    activeEnd?.end === end && styles.active,
+                  )}
+                  onPointerDown={(e) => onWireEndPointerDown(e, handleWire, end)}
+                >
+                  <rect
+                    className={styles.wireHandleHit}
+                    x={p.x - hit / 2}
+                    y={p.y - hit / 2}
+                    width={hit}
+                    height={hit}
+                  />
+                  <rect
+                    className={styles.wireHandleMark}
+                    vectorEffect="non-scaling-stroke"
+                    x={p.x - size / 2}
+                    y={p.y - size / 2}
+                    width={size}
+                    height={size}
+                  />
+                </g>
+              );
+            })}
+
           {band && (
             <rect
               className={styles.band}
@@ -752,7 +901,8 @@ export function Sheet({
         // 入れ物の空いている所は、シートの操作を素通しにする (丸とズームのパネルだけが受ける)
         pointerEvents="none"
       >
-        <TrashZone dragMode={dragMode} ref={trashRef} />
+        {/* 配線の端のドラッグでは削除しないので、削除エリアは反応させない */}
+        <TrashZone dragMode={dragMode === 'wireEnd' ? 'none' : dragMode} ref={trashRef} />
         <ZoomControls
           scale={view.scale}
           onZoomIn={zoom.in}

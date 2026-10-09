@@ -32,6 +32,7 @@ describe('statusHints', () => {
     for (const ctx of [
       { dragMode: 'trash' as const },
       { dragMode: 'moving' as const },
+      { dragMode: 'wireEnd' as const },
       { wiring: true },
       { wireTool: true },
       { editing: true },
@@ -39,6 +40,12 @@ describe('statusHints', () => {
     ]) {
       expect(hints(ctx)).toHaveLength(1);
     }
+  });
+
+  it('配線の端のドラッグ中は、選んでいる配線の説明ではなく、端のドラッグの説明を出す', () => {
+    expect(hints({ dragMode: 'wireEnd', wireSelected: true })).toEqual([
+      '配線の端をドラッグして長さを変更 ・ 離すと確定',
+    ]);
   });
 
   it('配線中は、配線モードの説明より配線中の説明を出す', () => {

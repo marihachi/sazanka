@@ -278,7 +278,8 @@ export const ja = {
     wireTool:
       '配線モード: 何もないところ・ピン・配線の上をクリックして配線を開始 ・ V か Esc で選択モードに戻る',
     editing: 'Enter で確定 ・ Esc で取り消し',
-    wireSelected: 'Delete で配線を削除 ・ ドラッグで移動',
+    wireSelected: 'Delete で配線を削除 ・ ドラッグで移動 ・ 配線の端をドラッグで長さを変更',
+    wireEndDragging: '配線の端をドラッグして長さを変更 ・ 離すと確定',
     multipleSelected: [
       'ドラッグでまとめて移動',
       'Delete か、右下の削除エリアへドラッグでまとめて削除',

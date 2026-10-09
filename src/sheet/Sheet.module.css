@@ -68,6 +68,49 @@
   cursor: pointer;
 }
 
+/* 選んだ配線の端の印 (つまみ)。ドラッグで端の区間の長さを変える。乗ったときとドラッグ中は、
+   一辺 6 → 8 に大きくし (8 / 6 ≒ 1.333 倍)、縁を付ける */
+.wire-handle-mark {
+  fill: var(--chakra-colors-accent-solid);
+  stroke: none;
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.wire-handle:hover .wire-handle-mark,
+.wire-handle.active .wire-handle-mark {
+  transform: scale(1.333);
+  stroke: var(--chakra-colors-fg);
+}
+
+.wire-handle-hit {
+  fill: transparent;
+}
+
+/* 端の区間の向き。押す前に、どちらに動くかが分かるように */
+.resize-x {
+  cursor: ew-resize;
+}
+
+.resize-y {
+  cursor: ns-resize;
+}
+
+/* 配線の端をドラッグしている間 (ポインターが印から外れても形を保つ) */
+.sheet.resizing-x,
+.sheet.resizing-x * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: ew-resize !important;
+}
+
+.sheet.resizing-y,
+.sheet.resizing-y * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: ns-resize !important;
+}
+
 .pending {
   stroke: var(--chakra-colors-accent-solid);
   stroke-dasharray: 4 4;

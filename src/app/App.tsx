@@ -10,7 +10,14 @@ import { TabBar } from '../modules/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
-import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
+import {
+  clampPosition,
+  GRID,
+  type Point,
+  simplifyWire,
+  snap,
+  type WireEnd,
+} from '../geometry/layout';
 import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
@@ -323,6 +330,23 @@ export function App() {
     setCircuit((cur) => edit.moveParts(cur, comps, wires), false);
   }
 
+  function reshapeWire(id: string, points: Point[]) {
+    // ドラッグ中の変更は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
+    setCircuit((cur) => edit.setWirePoints(cur, id, points), false);
+  }
+
+  /**
+   * 配線の端のドラッグを終えた。折れる点まで縮めて長さ 0 になった区間を除き、
+   * 動かした端で、ほかの配線と 1 本に見える所を結合する (どちらもドラッグと同じ 1 回の操作に含める)
+   */
+  function finishReshapeWire(id: string, end: WireEnd, points: Point[]) {
+    const simplified = simplifyWire(points);
+    const tip = end === 'start' ? simplified[0] : simplified[simplified.length - 1];
+    const merged = mergeWiresAt(edit.setWirePoints(circuit, id, simplified), project, [tip]);
+    setCircuit(() => merged.circuit, false);
+    setSelection((s) => edit.remapSelection(s, merged.replaced));
+  }
+
   function toggleInput(id: string) {
     // スイッチ操作は回路の編集ではないので、元に戻す対象にしない
     setCircuit((cur) => edit.toggleSwitch(cur, id), false);
@@ -467,6 +491,8 @@ export function App() {
             onAdd={addPart}
             onMoveStart={startMove}
             onMove={moveParts}
+            onWireReshape={reshapeWire}
+            onWireReshapeEnd={finishReshapeWire}
             // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
             onDropOnTrash={(moved) => deleteSelection(!moved)}
             onToggle={toggleInput}
