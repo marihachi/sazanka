@@ -24,7 +24,8 @@
 | シートの操作の割り当て（選択、配線、削除など） | [画面操作](docs/agent/interaction.md)                    |
 | シートの大きさ、スクロール、拡大縮小           | [シートの表示](docs/agent/view.md)                       |
 | 保存データ、共有用 JSON                        | [保存データ](docs/agent/persistence.md)                  |
-| 画面の配置、ボタン、ダイアログ、ヒント、文言 | [UI](docs/agent/ui.md)                                   |
+| 画面の配置、ボタン、ダイアログ、ヒント         | [UI](docs/agent/ui.md)                                   |
+| 画面の文言、表示言語（日本語と英語）           | [文言と表示言語](docs/agent/i18n.md)                     |
 | 見た目（Chakra UI、CSS Modules、色）           | [見た目](docs/agent/styling.md)                          |
 | アイコン、ロゴ                                 | [アイコンとロゴ](docs/agent/icons.md)                    |
 | 描画の重さ（描き直し）                         | [描画の重さ](docs/agent/performance.md)                  |
