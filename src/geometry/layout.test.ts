@@ -3,6 +3,7 @@ import {
   bodySize,
   clampMove,
   clampPosition,
+  dragWireEnd,
   partBounds,
   partsInRect,
   GRID,
@@ -353,5 +354,71 @@ describe('simplifyWire', () => {
 
   it('折り返す点は残す', () => {
     expect(simplifyWire(pts([0, 0], [80, 0], [40, 0]))).toEqual(pts([0, 0], [80, 0], [40, 0]));
+  });
+});
+
+describe('dragWireEnd', () => {
+  const pts = (...xy: [number, number][]) => xy.map(([x, y]) => ({ x, y }));
+  // (100,100) から右へ 200 進み、下へ 100 進む L 字の配線
+  const l = pts([100, 100], [300, 100], [300, 200]);
+
+  it('端の区間の向きにまっすぐ縮める・伸ばす (グリッドに合わせる)', () => {
+    expect(dragWireEnd(l, 'start', { x: 162, y: 100 })).toEqual(
+      pts([160, 100], [300, 100], [300, 200]),
+    );
+    expect(dragWireEnd(l, 'start', { x: 40, y: 100 })).toEqual(
+      pts([40, 100], [300, 100], [300, 200]),
+    );
+    expect(dragWireEnd(l, 'end', { x: 300, y: 260 })).toEqual(
+      pts([100, 100], [300, 100], [300, 260]),
+    );
+  });
+
+  it('区間と直角の向きに動かしても、端は区間の向きにしか動かない', () => {
+    expect(dragWireEnd(l, 'start', { x: 160, y: 40 })).toEqual(
+      pts([160, 100], [300, 100], [300, 200]),
+    );
+    expect(dragWireEnd(l, 'end', { x: 500, y: 200 })).toEqual(l);
+  });
+
+  it('隣の折れる点で止まり、長さ 0 の区間を残す (点の数は変えない)', () => {
+    expect(dragWireEnd(l, 'start', { x: 400, y: 100 })).toEqual(
+      pts([300, 100], [300, 100], [300, 200]),
+    );
+    expect(dragWireEnd(l, 'end', { x: 300, y: 0 })).toEqual(
+      pts([100, 100], [300, 100], [300, 100]),
+    );
+  });
+
+  it('折れる点まで縮めてから戻すと、また伸びる (始めたときの並びから求めるため)', () => {
+    dragWireEnd(l, 'start', { x: 400, y: 100 });
+    expect(dragWireEnd(l, 'start', { x: 200, y: 100 })).toEqual(
+      pts([200, 100], [300, 100], [300, 200]),
+    );
+  });
+
+  it('区間が 1 つだけの配線は、1 マスより短くしない', () => {
+    const line = pts([100, 100], [300, 100]);
+    expect(dragWireEnd(line, 'end', { x: 100, y: 100 })).toEqual(
+      pts([100, 100], [100 + GRID, 100]),
+    );
+    expect(dragWireEnd(line, 'end', { x: 0, y: 100 })).toEqual(pts([100, 100], [100 + GRID, 100]));
+    expect(dragWireEnd(line, 'start', { x: 400, y: 100 })).toEqual(
+      pts([300 - GRID, 100], [300, 100]),
+    );
+  });
+
+  it('伸ばす先はシートの範囲で止める', () => {
+    expect(dragWireEnd(l, 'start', { x: -500, y: 100 })).toEqual(
+      pts([0, 100], [300, 100], [300, 200]),
+    );
+    expect(dragWireEnd(l, 'end', { x: 300, y: SHEET_HEIGHT + 500 })).toEqual(
+      pts([100, 100], [300, 100], [300, SHEET_HEIGHT]),
+    );
+  });
+
+  it('離したときに simplifyWire をかけると、長さ 0 の区間がなくなる', () => {
+    const shrunk = dragWireEnd(l, 'start', { x: 400, y: 100 });
+    expect(simplifyWire(shrunk)).toEqual(pts([300, 100], [300, 200]));
   });
 });

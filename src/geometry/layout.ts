@@ -1,4 +1,4 @@
-// シート上の配置: グリッド、部品の大きさとピンの座標 (種類ごとの配置をマスから px に直す)、シートからはみ出さない位置、範囲選択。
+// シート上の配置: グリッド、部品の大きさとピンの座標 (種類ごとの配置をマスから px に直す)、シートからはみ出さない位置、範囲選択、配線中の点の置き方と配線の端のドラッグ。
 // 部品の種類ごとの配置 (大きさ、輪郭、ピンの置き方) は parts/layouts.ts
 
 import type { Part } from '../circuit/part';
@@ -264,4 +264,35 @@ export function wireStepTo(from: Point, at: Point): Point {
   return Math.abs(at.x - from.x) >= Math.abs(at.y - from.y)
     ? { x: at.x, y: from.y }
     : { x: from.x, y: at.y };
+}
+
+/** 配線のどちらの端か。'start' は points の先頭、'end' は末尾 */
+export type WireEnd = 'start' | 'end';
+
+/**
+ * 配線の端をドラッグしたときの、新しい点の並び。points はドラッグを始めたときの並び。
+ * 端は、端の区間の向き (縦か横) にだけ動き、位置はポインター at をその軸に写してグリッドに合わせる。
+ * 縮めるのは隣の点 (折れる点) まで。折れる点まで縮めたときも、長さ 0 の区間を残して点の数を変えない
+ * (ドラッグの途中で戻すと、また伸びるように。区間を除くのは離したとき、simplifyWire で)。
+ * 区間が 1 つだけの配線は、もう一方の端から 1 マスより短くしない。伸ばす先はシートの範囲で止める
+ */
+export function dragWireEnd(points: readonly Point[], end: WireEnd, at: Point): Point[] {
+  const i = end === 'start' ? 0 : points.length - 1;
+  const j = end === 'start' ? 1 : points.length - 2;
+  const tip = points[i];
+  // 隣の点 (区間が 1 つなら、もう一方の端)。端はこの点を越えて反対側へは行かない
+  const anchor = points[j];
+  const horizontal = tip.y === anchor.y;
+  const from = horizontal ? anchor.x : anchor.y;
+  // 端が隣の点から見てどちら向きにあるか (+1 か -1)。端の区間を伸ばす向き
+  const dir = Math.sign((horizontal ? tip.x : tip.y) - from);
+  const limit = horizontal ? SHEET_WIDTH : SHEET_HEIGHT;
+  // 隣の点からの長さ (伸ばす向きを正)。0 なら折れる点まで縮めた状態
+  const min = points.length === 2 ? GRID : 0;
+  const max = dir > 0 ? limit - from : from;
+  const length = Math.min(Math.max(snap((horizontal ? at.x : at.y) - from) * dir, min), max);
+  const v = from + length * dir;
+  const next = [...points];
+  next[i] = horizontal ? { x: v, y: tip.y } : { x: tip.x, y: v };
+  return next;
 }

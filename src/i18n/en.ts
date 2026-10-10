@@ -42,6 +42,8 @@ export const en: Messages = {
     selectTitle: 'Select mode (V): select and move parts and wires',
     wire: 'Wire',
     wireTitle: 'Wire mode (W): draw wires from point to point by clicking',
+    split: 'Split',
+    splitTitle: 'Split mode (S): split a wire in two at the clicked point',
     pause: 'Pause',
     pauseTitle: 'Pause the simulation',
     resume: 'Resume',
@@ -255,7 +257,9 @@ export const en: Messages = {
     wireTool:
       'Wire mode: click an empty spot, pin, or wire to start a wire · V or Esc returns to select mode',
     editing: 'Enter to confirm · Esc to cancel',
-    wireSelected: 'Delete to remove the wire · Drag to move',
+    wireSelected: 'Delete to remove the wire · Drag to move · Drag a wire end to resize',
+    splitTool: 'Click a wire to split it in two · Esc to return to Select mode',
+    wireEndDragging: 'Drag the wire end to resize · Release to apply',
     multipleSelected: [
       'Drag to move together',
       'Delete, or drag to the delete area at the bottom right, to delete together',

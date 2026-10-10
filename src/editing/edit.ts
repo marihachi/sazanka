@@ -2,7 +2,8 @@
 // どれも新しい回路を返し、元の回路は書き換えない。
 // 元に戻す対象にするかどうかは、使う側 (app/App.tsx) が useProjectHistory.ts で決める
 
-import type { Point } from '../geometry/layout';
+import { type Point, simplifyWire } from '../geometry/layout';
+import { onSegment } from '../geometry/net';
 import type { Part } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 
@@ -12,6 +13,22 @@ export type Selection = { comps: string[]; wires: string[] } | null;
 /** 部品と配線の ID から選択を作る。どちらも空なら null */
 export function selectionOf(comps: readonly string[], wires: readonly string[]): Selection {
   return comps.length > 0 || wires.length > 0 ? { comps: [...comps], wires: [...wires] } : null;
+}
+
+/**
+ * 配線の結合で消えた配線を選んでいたら、結合後の配線を選ぶ。
+ * replaced は、結合で消えた配線の ID → 結合後の配線の ID (geometry/net.ts の mergeWiresAt)
+ */
+export function remapSelection(
+  selection: Selection,
+  replaced: ReadonlyMap<string, string>,
+): Selection {
+  if (!selection || replaced.size === 0) {
+    return selection;
+  }
+  // 結合した 2 本を両方選んでいたときに、同じ ID が 2 つ並ばないようにする
+  const wires = [...new Set(selection.wires.map((id) => replaced.get(id) ?? id))];
+  return selectionOf(selection.comps, wires);
 }
 
 function updatePart<T extends Circuit>(circuit: T, id: string, update: (c: Part) => Part): T {
@@ -62,6 +79,47 @@ export function moveParts<T extends Circuit>(
     wires: circuit.wires.map((w) => {
       const points = wires.get(w.id);
       return points ? { ...w, points } : w;
+    }),
+  };
+}
+
+/** 配線の点の並びを変える (端のドラッグで長さを変えたときなど) */
+export function setWirePoints<T extends Circuit>(circuit: T, id: string, points: Point[]): T {
+  return {
+    ...circuit,
+    wires: circuit.wires.map((w) => (w.id === id ? { ...w, points } : w)),
+  };
+}
+
+/**
+ * 配線を点 at で 2 本に分ける。at は配線の途中か折れる点 (端ではない) で、分けてよい点の前提
+ * (geometry/net.ts の findSplitTarget で確かめてから呼ぶ)。
+ * 前の方が元の ID を引き継ぎ、後ろの方には newId で新しい ID を付けて、元の配線のすぐ後ろに置く
+ */
+export function splitWire<T extends Circuit>(
+  circuit: T,
+  id: string,
+  at: Point,
+  newId: () => string,
+): T {
+  return {
+    ...circuit,
+    wires: circuit.wires.flatMap((w) => {
+      if (w.id !== id) {
+        return [w];
+      }
+      // at を含む最初の区間 (points[i - 1] → points[i]) の間で分ける。at が折れる点なら、
+      // 前の区間の終わりで分けることになり、at が 2 回並ぶので simplifyWire で省く
+      const i = w.points.findIndex((b, j) => j > 0 && onSegment(at, w.points[j - 1], b));
+      if (i < 0) {
+        return [w];
+      }
+      const head = simplifyWire([...w.points.slice(0, i), at]);
+      const tail = simplifyWire([at, ...w.points.slice(i)]);
+      return [
+        { ...w, points: head },
+        { id: newId(), points: tail },
+      ];
     }),
   };
 }

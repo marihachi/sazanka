@@ -7,10 +7,12 @@ import type { Language } from '../i18n/language';
 import { getMessages } from '../i18n/messages';
 
 export interface HintContext {
-  /** 部品をドラッグ中か。'trash' は削除エリアの上 */
-  dragMode: 'none' | 'moving' | 'trash';
+  /** 部品をドラッグ中か。'trash' は削除エリアの上。'wireEnd' は配線の端のドラッグ中 */
+  dragMode: 'none' | 'moving' | 'trash' | 'wireEnd';
   /** 配線モードか */
   wireTool: boolean;
+  /** 分割モードか */
+  splitTool: boolean;
   /** 配線の途中 */
   wiring: boolean;
   /** 貼り付ける位置を選んでいる */
@@ -46,6 +48,9 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   if (ctx.dragMode === 'moving') {
     return [m.dragging];
   }
+  if (ctx.dragMode === 'wireEnd') {
+    return [m.wireEndDragging];
+  }
   if (ctx.placing) {
     return [m.placing];
   }
@@ -54,6 +59,9 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   }
   if (ctx.wireTool) {
     return [m.wireTool];
+  }
+  if (ctx.splitTool) {
+    return [m.splitTool];
   }
   if (ctx.editing) {
     return [m.editing];

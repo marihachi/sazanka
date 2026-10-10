@@ -21,6 +21,19 @@
   cursor: crosshair !important;
 }
 
+/* 分割モード。分けられない点 (交差、ピンの先) の上では、押せないことを示す */
+.sheet.split-tool,
+.sheet.split-tool * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: crosshair !important;
+}
+
+.sheet.split-blocked,
+.sheet.split-blocked * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: not-allowed !important;
+}
+
 /* Space を押している間と、表示を移動している間 */
 .sheet.panning,
 .sheet.panning * {
@@ -66,6 +79,62 @@
   stroke-width: 10;
   fill: none;
   cursor: pointer;
+}
+
+/* 選んだ配線の端の印 (つまみ)。ドラッグで端の区間の長さを変える。乗ったときとドラッグ中は、
+   一辺 6 → 8 に大きくし (8 / 6 ≒ 1.333 倍)、縁を付ける */
+.wire-handle-mark {
+  fill: var(--chakra-colors-accent-solid);
+  stroke: none;
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.wire-handle:hover .wire-handle-mark,
+.wire-handle.active .wire-handle-mark {
+  transform: scale(1.333);
+  stroke: var(--chakra-colors-fg);
+}
+
+.wire-handle-hit {
+  fill: transparent;
+}
+
+/* 端の区間の向き。押す前に、どちらに動くかが分かるように */
+.resize-x {
+  cursor: ew-resize;
+}
+
+.resize-y {
+  cursor: ns-resize;
+}
+
+/* 配線の端をドラッグしている間 (ポインターが印から外れても形を保つ) */
+.sheet.resizing-x,
+.sheet.resizing-x * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: ew-resize !important;
+}
+
+.sheet.resizing-y,
+.sheet.resizing-y * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: ns-resize !important;
+}
+
+/* 分割モードの印。分かれ目は配線と同じ色、分ける点はアクセントカラー */
+.split-joint {
+  stroke: var(--chakra-colors-sheet-line);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.split-cursor {
+  stroke: var(--chakra-colors-accent-solid);
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 .pending {

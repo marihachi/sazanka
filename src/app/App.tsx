@@ -1,5 +1,5 @@
 import { Flex } from '@chakra-ui/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sheet, type SheetSize, type DragMode } from '../sheet/Sheet';
 import type { Selection } from '../editing/edit';
 import { Header } from './Header';
@@ -10,7 +10,14 @@ import { TabBar } from '../modules/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
-import { clampPosition, GRID, type Point, snap } from '../geometry/layout';
+import {
+  clampPosition,
+  GRID,
+  type Point,
+  simplifyWire,
+  snap,
+  type WireEnd,
+} from '../geometry/layout';
 import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
 import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
@@ -23,7 +30,7 @@ import {
   usesPinNumbers,
 } from '../circuit/module';
 import { statusHints } from '../hints/hints';
-import { computeNets, isConflict } from '../geometry/net';
+import { computeNets, isConflict, mergeWiresAt, pinTipsOf, wireEndsOf } from '../geometry/net';
 import {
   loadCollapsedGroups,
   loadProject,
@@ -132,13 +139,36 @@ export function App() {
     }
   }, [viewSaved, sheetReady, circuit.id, view]);
 
-  /** 選んでいる部品と配線を削除する */
+  /** 部品と配線を動かし始めたときの回路。動かしてから削除エリアで消したときに、元の位置を知るために使う */
+  const moveOriginRef = useRef<CircuitDef | null>(null);
+
+  function startMove() {
+    moveOriginRef.current = circuit;
+    history.checkpoint();
+  }
+
+  /** 選んでいる部品と配線を削除する。record が false なのは、動かしてから削除エリアで離したとき */
   function deleteSelection(record = true) {
     if (!selection) {
       return;
     }
     const { comps, wires } = selection;
-    setCircuit((cur) => edit.removeParts(cur, comps, wires), record);
+    // 動かしてから消したときは、動かす前の位置で結合を調べる (今の位置は、削除エリアへ運ぶ途中の位置のため)
+    const origin = record ? null : moveOriginRef.current;
+    setCircuit((cur) => {
+      // 消した配線の端と、消した部品のピンの先があった点で、1 本に見えるようになった配線を結合する
+      const before = origin ?? cur;
+      const wireSet = new Set(wires);
+      const compSet = new Set(comps);
+      const points = [
+        ...wireEndsOf(before.wires.filter((w) => wireSet.has(w.id))),
+        ...pinTipsOf(
+          before.parts.filter((c) => compSet.has(c.id)),
+          project,
+        ),
+      ];
+      return mergeWiresAt(edit.removeParts(cur, comps, wires), project, points).circuit;
+    }, record);
     setSelection(null);
   }
 
@@ -225,7 +255,7 @@ export function App() {
     setSelection({ comps: [c.id], wires: [] });
   }
 
-  /** 選択モードか配線モードにする。モードが変わるときは、配線中の線を取り消す */
+  /** 選択モード・配線モード・分割モードにする。モードが変わるときは、配線中の線を取り消す */
   function changeTool(next: Tool) {
     if (next !== tool) {
       setPending(null);
@@ -263,6 +293,7 @@ export function App() {
     },
     onSelectTool: () => changeTool('select'),
     onWireTool: () => changeTool('wire'),
+    onSplitTool: () => changeTool('split'),
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
@@ -300,6 +331,24 @@ export function App() {
     setCircuit((cur) => edit.moveParts(cur, comps, wires), false);
   }
 
+  /**
+   * 配線の端のドラッグを終えた。ドラッグの途中は回路を変えていない (Sheet.tsx が仮の形で描くだけ) ので、
+   * ここで形を確定する。折れる点まで縮めて長さ 0 になった区間を除き、動かした端で、ほかの配線と 1 本に見える所を結合する。
+   * 形の確定と結合を、まとめて元に戻す 1 回の操作にする
+   */
+  function finishReshapeWire(id: string, end: WireEnd, points: Point[]) {
+    const simplified = simplifyWire(points);
+    const tip = end === 'start' ? simplified[0] : simplified[simplified.length - 1];
+    const merged = mergeWiresAt(edit.setWirePoints(circuit, id, simplified), project, [tip]);
+    setCircuit(() => merged.circuit);
+    setSelection((s) => edit.remapSelection(s, merged.replaced));
+  }
+
+  /** 分割モードで、配線を点 at で 2 本に分ける。選択は変えない (元の配線を選んでいたら、元の ID を引き継いだ前の方が選ばれたまま) */
+  function splitWireAt(id: string, at: Point) {
+    setCircuit((cur) => edit.splitWire(cur, id, at, newId));
+  }
+
   function toggleInput(id: string) {
     // スイッチ操作は回路の編集ではないので、元に戻す対象にしない
     setCircuit((cur) => edit.toggleSwitch(cur, id), false);
@@ -307,7 +356,11 @@ export function App() {
 
   function addWire(points: Point[]) {
     const wire: Wire = { id: newId(), points };
-    setCircuit((cur) => edit.addWire(cur, wire));
+    // 描いた配線の両端で、ほかの配線と 1 本に見える所を結合する。
+    // 結合で消えた配線を選んでいたら、選択を結合後の配線に移すので、結果をここで求めてから渡す
+    const merged = mergeWiresAt(edit.addWire(circuit, wire), project, wireEndsOf([wire]));
+    setCircuit(() => merged.circuit);
+    setSelection((s) => edit.remapSelection(s, merged.replaced));
   }
 
   /** 1つだけ選んでいる部品 (配線は選んでいない)。プロパティ欄とヒントに使う */
@@ -326,6 +379,7 @@ export function App() {
     {
       dragMode,
       wireTool: tool === 'wire',
+      splitTool: tool === 'split',
       wiring: !!pending,
       placing: !!clipboard.placing,
       editing: !!editing,
@@ -438,8 +492,10 @@ export function App() {
             roundWires={preferences.roundWires}
             onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
             onAdd={addPart}
-            onMoveStart={history.checkpoint}
+            onMoveStart={startMove}
             onMove={moveParts}
+            onWireReshapeEnd={finishReshapeWire}
+            onSplitWire={splitWireAt}
             // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
             onDropOnTrash={(moved) => deleteSelection(!moved)}
             onToggle={toggleInput}

@@ -6,13 +6,17 @@ import {
   cloneParts,
   extractParts,
   moveParts,
+  remapSelection,
   removeParts,
   selectionOf,
   setClockPeriod,
+  setWirePoints,
+  splitWire,
   setLabel,
   toggleSwitch,
 } from './edit';
 import type { Circuit } from '../circuit/circuit';
+import { computeNets } from '../geometry/net';
 import type { CircuitDef } from '../circuit/project';
 
 // 配線の点は、編集で点がどう変わるかを確かめるためのもの。つながりは geometry/net.test.ts で確かめる
@@ -167,6 +171,78 @@ describe('selectionOf', () => {
     expect(selectionOf([], [])).toBeNull();
     expect(selectionOf(['a'], [])).toEqual({ comps: ['a'], wires: [] });
     expect(selectionOf([], ['w'])).toEqual({ comps: [], wires: ['w'] });
+  });
+});
+
+describe('remapSelection', () => {
+  it('結合で消えた配線を、結合後の配線に置き換える (重なれば 1 つにする)', () => {
+    const replaced = new Map([['b', 'a']]);
+    expect(remapSelection({ comps: ['c'], wires: ['b'] }, replaced)).toEqual({
+      comps: ['c'],
+      wires: ['a'],
+    });
+    expect(remapSelection({ comps: [], wires: ['a', 'b'] }, replaced)).toEqual({
+      comps: [],
+      wires: ['a'],
+    });
+    expect(remapSelection(null, replaced)).toBeNull();
+  });
+});
+
+describe('setWirePoints', () => {
+  /** (0, y) から (x, y) までの横線 */
+  const line = (x: number, y: number) => [
+    { x: 0, y },
+    { x, y },
+  ];
+
+  it('指定した配線の点の並びだけを変え、元の回路は書き換えない', () => {
+    const circuit: Circuit = {
+      parts: [],
+      wires: [
+        { id: 'a', points: line(100, 0) },
+        { id: 'b', points: line(100, 40) },
+      ],
+    };
+    const next = setWirePoints(circuit, 'a', line(60, 0));
+    expect(next.wires).toEqual([{ id: 'a', points: line(60, 0) }, circuit.wires[1]]);
+    expect(circuit.wires[0].points).toEqual(line(100, 0));
+  });
+});
+
+describe('splitWire', () => {
+  /** 点を (x, y) の組で並べたもの */
+  const pts = (...xy: [number, number][]) => xy.map(([x, y]) => ({ x, y }));
+  const circuit: Circuit = {
+    parts: [],
+    wires: [
+      { id: 'w', points: pts([0, 100], [100, 100], [100, 200]) },
+      { id: 'x', points: pts([0, 0], [40, 0]) },
+    ],
+  };
+
+  it('途中で分けると、前が元の ID、後ろが新しい ID で、元の配線のすぐ後ろに入る', () => {
+    const next = splitWire(circuit, 'w', { x: 40, y: 100 }, () => 'n');
+    expect(next.wires).toEqual([
+      { id: 'w', points: pts([0, 100], [40, 100]) },
+      { id: 'n', points: pts([40, 100], [100, 100], [100, 200]) },
+      circuit.wires[1],
+    ]);
+  });
+
+  it('分けたあとの 2 本は、つながったまま (ネットは 1 つ)', () => {
+    const next = splitWire(circuit, 'w', { x: 40, y: 100 }, () => 'n');
+    const nets = computeNets(next, { circuits: [] }).nets.filter((n) => n.wires.includes('w'));
+    expect(nets).toHaveLength(1);
+    expect(nets[0].wires).toEqual(['w', 'n']);
+  });
+
+  it('折れる点で分けると、折れる点が両方の端になる', () => {
+    const next = splitWire(circuit, 'w', { x: 100, y: 100 }, () => 'n');
+    expect(next.wires.slice(0, 2)).toEqual([
+      { id: 'w', points: pts([0, 100], [100, 100]) },
+      { id: 'n', points: pts([100, 100], [100, 200]) },
+    ]);
   });
 });
 
