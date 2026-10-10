@@ -9,6 +9,8 @@
 以下のページで最新版を公開しています:  
 https://marihachi.logical-flower.net/sazanka/
 
+使い方は[操作マニュアル](docs/manual/README.md)を参照してください。
+
 ## License
 
 MITライセンスの基で利用できます。
