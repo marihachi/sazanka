@@ -39,17 +39,20 @@
 - ファイル: `sheet/SheetSettingsDialog.tsx`。
 - 向き: 左上（回路の座標の原点）を固定し、右と下で増やしたり減らしたりする。中身をずらす機能は作らない。
 
-決まっていないこと:
+- 単位: マス。グリッドに必ず乗るため。
+  - 採らなかった案: px（20 の倍数かどうかの検証が要る）。
+- エラーの文言: 「部品と配線が収まるのは {w} × {h} マス以上です。」/ "Parts and wires need at least {w} × {h} cells."
 
-- 単位: マス（推す。グリッドに必ず乗るため）か px か。
-- エラーの文言。案: 「部品と配線が収まるのは {w} × {h} マス以上です。」/ "Parts and wires need at least {w} × {h} cells."
+エージェントが決めたこと:
 
-エージェントが決めたこと（実装に入るときに書き足す）:
-
-- 回路の大きさを返す関数（例: `getSheetSize(def)`）を作り、定数を使っている関数は大きさを引数で受け取る形にする。`Sheet` には props で渡す。
-- 部品と配線が収まる最小の大きさを求める関数を `geometry/layout.ts` に置き、テストを書く。
+- 型は `project.ts` の `CircuitSheet`（`{ width, height }`、マス）。`CircuitDef.sheet` は型では省略できる（テストで回路を手短に作れるように。`package` と同じ）。回路の大きさは `getCircuitSheet(def)` で引き、ないときは `DEFAULT_SHEET`（300×200）。
+  - 採らなかった名前: `SheetSize`（`Sheet.tsx` に、画面の上のシートの要素の大きさ（px）を表す同じ名前の型がある）。
+- 必ず書くために、読み込み（`readStored`、`parseProject`）と保存・書き出し（`saveProject`、`serializeProject`）で `withCircuitSheet` を通し、ない回路に 300×200 を入れる。新しく作る回路（空のプロジェクト、モジュールの追加）にも書く。JSON で `parts` より前に来るよう、`name` / `package` のあとに置く。
+- 定数を使っていた関数（`clampPosition`、`clampMove`、`placeOffset`、`dragWireEnd`、`centerView`、`fitView`、`overview`）は、回路の大きさ（`CircuitSheet`）を引数で受け取る。px に直すのは各関数の中（× `GRID`）。`Sheet` には props で渡す。
+  - 採らなかった案: px の大きさを別の型にして渡す（型が 1 つ増える）。
+- 部品と配線が収まる最小の大きさ（マス）は、`geometry/view.ts` の `circuitBounds` を使って求める（`minCircuitSheet`）。`circuitBounds` が同じ範囲（部品と配線の点）を求めているため。
 - 適用は 1 回の `commit`（元に戻す 1 回で戻る）。
-- 検証（`checkProject`）に、`sheet` があるときの範囲の検証を足す。
+- 検証（`checkProject`）は、`sheet` があるときに範囲（1 辺 20〜1000 の整数）を確かめる。エラーの種類は `BAD_SHEET`。
 
 ## 段階
 
