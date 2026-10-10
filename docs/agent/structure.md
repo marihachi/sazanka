@@ -46,9 +46,9 @@
   - `history.ts` … 履歴の計算。`useProjectHistory.ts` … 元に戻せるプロジェクトの状態。`switchStates.ts` … 元に戻すときに INPUT の ON/OFF を引き継ぐ。
   - `useClipboard.ts` … コピー・切り取り・貼り付け。`useShortcuts.ts` … キーボードの操作。
 - `simulation/` … シミュレーション（[シミュレーション](simulation.md)）。
-  - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
+  - `sim.ts` … 回路の評価（番号で引く形にした回路を、1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
   - `testCircuits.ts` … テスト用の回路の作り方（つなぎたいピンから配線を引いた回路）。アプリからは使わない。
-  - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数。
+  - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数と、1 フレームの計算時間の上限。
   - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、シート設定、モジュール設定、モジュールの削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
   - `layout.ts` … グリッド、部品の大きさとピンの座標（種類ごとの配置をマスから px に直す）、シートの右下の角（`getSheetEnd`）、はみ出さない位置、範囲選択、配線中の点の置き方、配線の端のドラッグ（`dragWireEnd`）。

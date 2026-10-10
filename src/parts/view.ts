@@ -13,8 +13,8 @@ export type PaletteGroupId = 'io' | 'source' | 'gate' | 'latch' | 'flipflop' | '
 export interface HintContext {
   /** CLOCK の周期 (tick 数) */
   period: number;
-  /** 1 tick を進める間隔 (ms、環境設定) */
-  tickMs: number;
+  /** CLOCK の周期 (秒)。今のシミュレーションの速さ (環境設定) で求めたもの */
+  periodSeconds: number;
 }
 
 export interface PartView {

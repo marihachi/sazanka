@@ -8,7 +8,7 @@ import {
 import {
   DEFAULT_PREFERENCES,
   isAccent,
-  isTickMs,
+  isTicksPerSecond,
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
@@ -163,7 +163,7 @@ export function loadPreferences(): Preferences {
       return DEFAULT_PREFERENCES;
     }
     return {
-      tickMs: isTickMs(value.tickMs) ? value.tickMs : DEFAULT_PREFERENCES.tickMs,
+      ticksPerSecond: readTicksPerSecond(value),
       showGrid: typeof value.showGrid === 'boolean' ? value.showGrid : DEFAULT_PREFERENCES.showGrid,
       roundWires:
         typeof value.roundWires === 'boolean' ? value.roundWires : DEFAULT_PREFERENCES.roundWires,
@@ -173,6 +173,22 @@ export function loadPreferences(): Preferences {
   } catch {
     return DEFAULT_PREFERENCES;
   }
+}
+
+/**
+ * 環境設定の 1 秒に進める tick 数。読めなければ既定値。
+ * 古い版は、1 tick を進める間隔 (tickMs、1〜1000 の整数の ms) を保存していたので、1 秒あたりに直して読む
+ */
+export function readTicksPerSecond(value: Record<string, unknown>): number {
+  if (isTicksPerSecond(value.ticksPerSecond)) {
+    return value.ticksPerSecond;
+  }
+  const { tickMs } = value;
+  if (typeof tickMs === 'number' && Number.isInteger(tickMs) && tickMs >= 1 && tickMs <= 1000) {
+    // 1000 / 1〜1000 は 1〜1000 なので、丸めれば範囲に収まる (例: 3ms → 333)
+    return Math.round(1000 / tickMs);
+  }
+  return DEFAULT_PREFERENCES.ticksPerSecond;
 }
 
 export function savePreferences(preferences: Preferences) {

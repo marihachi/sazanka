@@ -13,11 +13,20 @@ export interface ModulePorts {
   outputs: string[];
 }
 
+/** 展開後の CLOCK と、展開前にどの回路のどの部品だったか。CLOCK の ON/OFF は展開前の部品ごとに持つため */
+export interface FlatClock {
+  /** 展開後の部品 ID */
+  id: string;
+  circuitId: string;
+  partId: string;
+}
+
 /**
  * 回路 def の部品と、配線のつながり (ネット) を、モジュールを展開しながら out に足していく。
  * 展開した部品の ID は prefix + 元の ID (例: モジュール m の中の部品 a は "m/a")。
  * モジュールの中の INPUT / OUTPUT は、外側の配線とつなぐための BUF に置き換える。
  * stack は展開中の回路の ID を外側から並べたもので、循環した参照を見つけるのに使う。
+ * clocks には、展開した CLOCK を足していく。
  * 戻り値は、def に直接置かれたモジュールごとの、ピンに対応する展開後の部品 ID
  */
 function flattenInto(
@@ -25,6 +34,7 @@ function flattenInto(
   def: CircuitDef,
   prefix: string,
   out: Netlist,
+  clocks: FlatClock[],
   stack: string[],
 ): Map<string, ModulePorts> {
   // 最上位の回路の INPUT / OUTPUT は、利用者が操作・表示する端子なのでそのまま残す
@@ -38,7 +48,7 @@ function flattenInto(
         continue;
       }
       const childPrefix = `${prefix}${c.id}/`;
-      flattenInto(project, child, childPrefix, out, [...stack, child.id]);
+      flattenInto(project, child, childPrefix, out, clocks, [...stack, child.id]);
       const { inputs, outputs } = getPortsInPinOrder(child);
       modules.set(c.id, {
         inputs: inputs.map((k) => childPrefix + k.id),
@@ -47,6 +57,9 @@ function flattenInto(
     } else {
       const kind = inner && (c.kind === 'input' || c.kind === 'output') ? 'buf' : c.kind;
       out.parts.push({ ...c, id: prefix + c.id, kind });
+      if (c.kind === 'clock') {
+        clocks.push({ id: prefix + c.id, circuitId: def.id, partId: c.id });
+      }
     }
   }
 
@@ -70,18 +83,24 @@ function flattenInto(
   return modules;
 }
 
-/** 展開の結果。modules は、最上位に置かれたモジュールのピンに対応する展開後の部品 ID */
+/**
+ * 展開の結果。modules は、最上位に置かれたモジュールのピンに対応する展開後の部品 ID。
+ * clocks は、展開した回路の中のすべての CLOCK
+ */
 export interface Flattened {
   circuit: Netlist;
   modules: Map<string, ModulePorts>;
+  clocks: FlatClock[];
 }
 
 /** 回路定義 id を最上位として、モジュールを展開した1つの回路にする */
 export function flattenProject(project: Project, id: string): Flattened {
   const def = findDef(project, id);
   const circuit: Netlist = { parts: [], links: [] };
+  const clocks: FlatClock[] = [];
   if (!def) {
-    return { circuit, modules: new Map() };
+    return { circuit, modules: new Map(), clocks };
   }
-  return { circuit, modules: flattenInto(project, def, '', circuit, [def.id]) };
+  const modules = flattenInto(project, def, '', circuit, clocks, [def.id]);
+  return { circuit, modules, clocks };
 }

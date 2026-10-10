@@ -97,8 +97,8 @@ export const en: Messages = {
     noItems: 'This part has no settings',
     selectOne: 'Select a single part to edit its settings',
     clockPeriod: 'Period (ticks)',
-    clockPeriodHelp: (tickMs, seconds) =>
-      `Ticks for one ON-OFF cycle. At the current interval (${tickMs} ms), ${seconds} s`,
+    clockPeriodHelp: (ticksPerSecond, seconds) =>
+      `Ticks for one ON-OFF cycle. At the current speed (${ticksPerSecond} ticks/s), ${seconds} s`,
   },
   status: {
     unexposedPorts: 'Some INPUT / OUTPUT are not on any pin',
@@ -108,9 +108,9 @@ export const en: Messages = {
   },
   preferences: {
     title: 'Preferences',
-    tickMs: 'Interval of 1 simulation tick (ms)',
-    tickMsHelp: (defaultMs) =>
-      `Larger values slow the simulation down so you can watch signals travel 1 tick at a time. Default: ${defaultMs} ms. A CLOCK's period (s) is its tick count × this interval.`,
+    ticksPerSecond: 'Simulation speed (ticks/s)',
+    ticksPerSecondHelp: (defaultValue) =>
+      `Ticks per second. Smaller values slow the simulation down so you can watch signals travel 1 tick at a time. Default: ${defaultValue}. A CLOCK's period (s) is its tick count ÷ this value. Large circuits may run slower than this.`,
     showGrid: 'Show grid on the sheet',
     roundWires: 'Round wire corners',
     accent: 'Accent color',

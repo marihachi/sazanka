@@ -3,10 +3,11 @@ import type { LanguageSetting, Localized } from '../i18n/language';
 
 export interface Preferences {
   /**
-   * シミュレーションで 1 tick を進める間隔 (ms)。大きいほどゆっくり進む。
-   * CLOCK の周期も tick 数で決まるので、同じだけ伸びる
+   * シミュレーションで 1 秒に進める tick 数。小さいほどゆっくり進む。
+   * CLOCK の周期も tick 数で決まるので、同じだけ伸び縮みする。
+   * 計算が間に合わないと、これより遅く進む (simulation/useSimulation.ts)
    */
-  tickMs: number;
+  ticksPerSecond: number;
   /** シートに方眼を表示するか */
   showGrid: boolean;
   /** 配線の角を丸めるか */
@@ -18,7 +19,7 @@ export interface Preferences {
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
-  tickMs: 10,
+  ticksPerSecond: 100,
   showGrid: true,
   roundWires: true,
   accent: '#20b2aa',
@@ -41,11 +42,15 @@ export function isAccent(v: unknown): v is string {
   return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 }
 
-/** 入力できる間隔の範囲 (ms)。1 未満は、1 フレームで進める tick 数の上限に当たって、それ以上速くならない */
-export const MIN_TICK_MS = 1;
-export const MAX_TICK_MS = 1000;
+/** 入力できる、1 秒に進める tick 数の範囲 */
+export const MIN_TICKS_PER_SECOND = 1;
+export const MAX_TICKS_PER_SECOND = 100_000;
 
-/** 間隔として使える値か (範囲内の整数) */
-export function isTickMs(v: unknown): v is number {
-  return Number.isInteger(v) && (v as number) >= MIN_TICK_MS && (v as number) <= MAX_TICK_MS;
+/** 1 秒に進める tick 数として使える値か (範囲内の整数) */
+export function isTicksPerSecond(v: unknown): v is number {
+  return (
+    Number.isInteger(v) &&
+    (v as number) >= MIN_TICKS_PER_SECOND &&
+    (v as number) <= MAX_TICKS_PER_SECOND
+  );
 }

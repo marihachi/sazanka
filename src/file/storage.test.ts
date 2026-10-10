@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyProject } from '../circuit/project';
-import { readStored } from './storage';
+import { readStored, readTicksPerSecond } from './storage';
 
 const project = emptyProject();
 
@@ -114,6 +114,37 @@ describe('readStored', () => {
       const result = readStored(raw);
       expect(result.project).toEqual(emptyProject());
       expect(result.error).toEqual({ code: 'BROKEN' });
+    }
+  });
+});
+
+describe('readTicksPerSecond', () => {
+  it('保存した 1 秒の tick 数を読む', () => {
+    expect(readTicksPerSecond({ ticksPerSecond: 100_000 })).toBe(100_000);
+  });
+
+  it('古い版の間隔 (tickMs) は、1 秒あたりに直して読む', () => {
+    expect(readTicksPerSecond({ tickMs: 10 })).toBe(100);
+    expect(readTicksPerSecond({ tickMs: 1 })).toBe(1000);
+    expect(readTicksPerSecond({ tickMs: 1000 })).toBe(1);
+    expect(readTicksPerSecond({ tickMs: 3 })).toBe(333);
+  });
+
+  it('両方あれば、1 秒の tick 数を使う', () => {
+    expect(readTicksPerSecond({ ticksPerSecond: 50, tickMs: 10 })).toBe(50);
+  });
+
+  it('読めなければ既定値', () => {
+    for (const value of [
+      {},
+      { ticksPerSecond: 0 },
+      { ticksPerSecond: 100_001 },
+      { ticksPerSecond: '100' },
+      { tickMs: 0 },
+      { tickMs: 1.5 },
+      { tickMs: 1001 },
+    ]) {
+      expect(readTicksPerSecond(value)).toBe(100);
     }
   });
 });

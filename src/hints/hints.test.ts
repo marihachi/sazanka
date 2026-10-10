@@ -16,7 +16,7 @@ const base: HintContext = {
   inModule: false,
   numberedModule: false,
   unexposedPorts: false,
-  tickMs: 10,
+  ticksPerSecond: 100,
 };
 
 function hints(ctx: Partial<HintContext>): string[] {
