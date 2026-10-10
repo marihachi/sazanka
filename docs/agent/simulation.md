@@ -2,10 +2,6 @@
 
 回路の評価（`simulation/sim.ts`）と、時間を進めるループ（`simulation/useSimulation.ts`）の考え方。
 
-## 進めている計画
-
-- tick の速さを 1 秒あたりの tick 数で指定し、計算を速くする計画が [docs/plans/tick-rate/plan.md](../plans/tick-rate/plan.md) にある。評価や時間を進めるループを触るときは、先に読む。
-
 ## 評価のしかた
 
 - 時間を tick で刻んで進める。モジュールを展開（`flatten.ts`）し、番号で引く形（`CompiledCircuit`。`compileCircuit`）にしてから、配列の上で評価する（`stepState`）。
