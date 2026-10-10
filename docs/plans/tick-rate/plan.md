@@ -1,6 +1,6 @@
 # シミュレーションの速さの見直し（計画）
 
-状態: **進行中**（段階 3 まで終えた）
+状態: **進行中**（すべての段階を終え、開発者のレビュー待ち）
 
 - 段階ごとに、開発者の合図を受けてから実装する（[作業の進め方](../../agent/workflow.md)の「実装を始める合図」）。
 - 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../agent/documentation.md)の「計画の文書」）。
@@ -143,7 +143,15 @@
 - 古い `tickMs` の読み替えは、`storage.ts` の `readTicksPerSecond` に分けてテストした（localStorage に触らない部分）。
 - CLOCK の周期を秒に直す処理（`clockPeriodSeconds`）は `circuit/part.ts`（CLOCK の周期を持つ場所）に置き、ヒントには秒にした値（`periodSeconds`）を渡す。部品の種類の見せ方（`parts/`）から `circuit/part.ts` を使うと、依存が輪になるため。
 
-### 4. ドキュメント
+### 4. ドキュメント — 済み
 
 - [シミュレーション](../../agent/simulation.md)、[保存データ](../../agent/persistence.md)、[用語](../../agent/glossary.md)（環境設定の説明）、[描画の重さ](../../agent/performance.md)、[ソースの構成](../../agent/structure.md)（ファイルを足したり役目が変わったりしたとき）、利用者向けの[操作マニュアル](../../manual/README.md)を直す。
 - 各段階で触ったところは、その段階の中で直す。ここでは全体を見直す。
+
+結果:
+
+- [シミュレーション](../../agent/simulation.md): CLOCK の ON/OFF の渡し方の記述が、段階 1 の形（`withClockStates`）のまま残っていたので、段階 2 の形（`sources`）に直した。
+- [用語](../../agent/glossary.md): 「シミュレーションの速さ」（`ticksPerSecond`）と、英語の言い方（Simulation speed、ticks/s）を足した。
+- [描画の重さ](../../agent/performance.md): シートに渡す結果をフレームに 1 回だけ作ることと、その理由を足した。
+- [ブラウザでの動作確認](../../agent/browser-check.md): 評価やループを触ったときに、重い回路を最大の速さで動かして fps を測ることを足した。
+- [保存データ](../../agent/persistence.md)、[ソースの構成](../../agent/structure.md)、[操作マニュアル](../../manual/README.md) は、段階 1〜3 で直した内容のままで、今のコードと合っていた。

@@ -51,9 +51,9 @@
 ## CLOCK
 
 - 周期（一往復の tick 数）は CLOCK ごとに持つ（部品の `period`。既定 100、2〜10000）。すべての CLOCK は時刻 0 に OFF から始まり、半周期ごとに反転する（`part.ts` の `clockFlipsAt`）。周期が奇数なら、ON と OFF の長さが 1 tick 違う。
-- CLOCK の ON/OFF はプロジェクトに書かず、`useSimulation` の中（`clockOn`）で持ち、展開した回路の CLOCK に当てて計算する（`withClockStates`）。プロジェクトに書くと、反転のたびにプロジェクトが変わり、画面全体の描き直しと保存が起きるため。
+- CLOCK の ON/OFF はプロジェクトに書かず、`useSimulation` の中（`clockOn`）で持つ。計算には、INPUT と CLOCK の ON/OFF を部品番号の順に並べた配列（`sources`）で渡す（`stepState`）。プロジェクトに書くと、反転のたびにプロジェクトが変わり、画面全体の描き直しと保存が起きるため。
   - ON/OFF は展開前の部品（回路 ID と部品 ID）ごとに持つ。同じモジュールを何か所に置いても、中の CLOCK はそろって反転する。展開後の CLOCK がどの部品から来たかは、展開の結果の `clocks` にある。
-  - 反転したときは、展開し直さずに、ON/OFF だけを当て直す。反転する CLOCK を探すための一覧も、プロジェクトが変わったときだけ作る（`listClocks`）。
+  - 反転したときは、展開し直さずに、`sources` の値だけを書き換える。反転する CLOCK を探すための一覧も、プロジェクトが変わったときだけ作る（`listClocks`）。
 - CLOCK はプロジェクト全体で反転させている。見ていない回路の CLOCK も切り替わり続ける。
 
 ## 時間を進めるループ
