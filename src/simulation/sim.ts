@@ -2,7 +2,7 @@
 // モジュールは flatten.ts で展開してから評価する。
 // 部品の種類ごとの評価 (入力から出力、記憶素子の次の状態) は parts/ の仕様にある
 
-import { flattenProject } from './flatten';
+import { type Flattened, flattenProject } from './flatten';
 import {
   delayOf,
   type Part,
@@ -227,7 +227,14 @@ export function stepCircuit(circuit: Netlist, prev?: SimResult): SimResult {
  * 最上位に置かれたモジュールの出力ピンの値も values に含める。
  */
 export function step(project: Project, id: string, prev?: SimResult): SimResult {
-  const { circuit, modules } = flattenProject(project, id);
+  return stepFlattened(flattenProject(project, id), prev);
+}
+
+/**
+ * 展開済みの回路の時間を 1 tick 進める。
+ * 展開は回路を編集したときだけで済むので、tick を続けて進めるときは展開を使い回してこちらを呼ぶ
+ */
+export function stepFlattened({ circuit, modules }: Flattened, prev?: SimResult): SimResult {
   const result = stepCircuit(circuit, prev);
   for (const [compId, mod] of modules) {
     mod.outputs.forEach((id, pin) => {

@@ -2,9 +2,14 @@
 
 回路の評価（`simulation/sim.ts`）と、時間を進めるループ（`simulation/useSimulation.ts`）の考え方。
 
+## 進めている計画
+
+- tick の速さを 1 秒あたりの tick 数で指定し、計算を速くする計画が [docs/plans/tick-rate/plan.md](../plans/tick-rate/plan.md) にある。評価や時間を進めるループを触るときは、先に読む。
+
 ## 評価のしかた
 
 - 時間を tick で刻んで進める。入口は `step`（プロジェクトの 1 回路を 1 tick 進める）。モジュールを展開（`flatten.ts`）してから、`stepCircuit` で評価する。
+- 画面のループ（`useSimulation.ts`）は、展開を tick ごとにはやり直さない。回路を編集したとき（プロジェクトが変わったとき）とタブを切り替えたときだけ展開し、tick は展開済みの回路を `stepFlattened` で進める。展開は評価より重い（展開後 290 部品の回路で、展開 0.56ms、評価 0.23ms）ため。
 - `stepCircuit` の 1 tick の流れ:
   1. 遅延のある部品が、遅延の分だけ前に計算した値を出す。ただし、その間ずっと同じ値だったときだけ。
   2. 遅延のない部品（INPUT、CLOCK、HIGH、OUTPUT、BUF）を、値が変わらなくなるまで伝える。
@@ -40,7 +45,9 @@
 ## CLOCK
 
 - 周期（一往復の tick 数）は CLOCK ごとに持つ（部品の `period`。既定 100、2〜10000）。すべての CLOCK は時刻 0 に OFF から始まり、半周期ごとに反転する（`part.ts` の `clockFlipsAt`）。周期が奇数なら、ON と OFF の長さが 1 tick 違う。
-- CLOCK の ON/OFF はプロジェクトに書かず、`useSimulation` の中（`clockOn`）で持ち、計算のときだけプロジェクトに当てる（`withClockStates`）。プロジェクトに書くと、反転のたびにプロジェクトが変わり、画面全体の描き直しと保存が起きるため。
+- CLOCK の ON/OFF はプロジェクトに書かず、`useSimulation` の中（`clockOn`）で持ち、展開した回路の CLOCK に当てて計算する（`withClockStates`）。プロジェクトに書くと、反転のたびにプロジェクトが変わり、画面全体の描き直しと保存が起きるため。
+  - ON/OFF は展開前の部品（回路 ID と部品 ID）ごとに持つ。同じモジュールを何か所に置いても、中の CLOCK はそろって反転する。展開後の CLOCK がどの部品から来たかは、展開の結果の `clocks` にある。
+  - 反転したときは、展開し直さずに、ON/OFF だけを当て直す。反転する CLOCK を探すための一覧も、プロジェクトが変わったときだけ作る（`listClocks`）。
 - CLOCK はプロジェクト全体で反転させている。見ていない回路の CLOCK も切り替わり続ける。
 
 ## 時間を進めるループ
