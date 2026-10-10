@@ -2,8 +2,8 @@
 
 状態: **完了**
 
-- 段階ごとに、開発者の合図を受けてから実装する（[作業の進め方](../../agent/workflow.md)の「実装を始める合図」）。
-- 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../agent/documentation.md)の「計画の文書」）。
+- 段階ごとに、開発者の合図を受けてから実装する（[作業の進め方](../../docs/workflow.md)の「実装を始める合図」）。
+- 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../docs/documentation.md)の「計画の文書」）。
 
 ## 目的
 
@@ -12,9 +12,9 @@
 ## 前提
 
 - 画面の文言は、日本語でコードに直接書いている（テスト以外の約 45 ファイル、約 300 行）。多いのは `hints/hints.ts`、`modules/ModuleSettingsDialog.tsx`、`simulation/SheetToolbar.tsx`、`app/Header.tsx`、`circuit/project.ts`（検証エラー）、`modules/useModules.ts`、`file/useProjectFile.ts`。
-- 計算の側の `.ts` も文を返している（`checkProject`、`share.ts` と `storage.ts` のエラー、`hints.ts`、部品の種類の `view.ts` の `description` / `hints`）。これらは React を import できない（[コードの書き方](../../agent/coding-style.md)の「React を import できるファイル」）。
+- 計算の側の `.ts` も文を返している（`checkProject`、`share.ts` と `storage.ts` のエラー、`hints.ts`、部品の種類の `view.ts` の `description` / `hints`）。これらは React を import できない（[コードの書き方](../../docs/coding-style.md)の「React を import できるファイル」）。
 - メイン回路の名前は、保存データに `'メイン'` として入っている（`project.ts` の空のプロジェクト）。メイン回路は改名できない。
-- 環境設定は `sazanka.preferences` に保存し、版はない。読めない項目は既定値にする（[保存データ](../../agent/persistence.md)の「利用者ごとの設定」）。
+- 環境設定は `sazanka.preferences` に保存し、版はない。読めない項目は既定値にする（[保存データ](../../docs/persistence.md)の「利用者ごとの設定」）。
 - `index.html` は `lang="ja"` で、`meta description` も日本語。
 
 ## 決めたこと
@@ -40,7 +40,7 @@
 
 エージェントが決めたこと:
 
-- 計算の側は、文ではなくエラーの種類と値（例: `{ code: 'DUPLICATE_PART_ID', circuit, id }`）を返す。種類の名前は大文字のスネークケース（[コードの書き方](../../agent/coding-style.md)の「名前」）。保存データのエラーも、ほかと同じ `{ code }` の形にした。画面の側で、表示言語の文にする。計算の側を言語から切り離し、テストが言語の状態に左右されないようにするため。
+- 計算の側は、文ではなくエラーの種類と値（例: `{ code: 'DUPLICATE_PART_ID', circuit, id }`）を返す。種類の名前は大文字のスネークケース（[コードの書き方](../../docs/coding-style.md)の「名前」）。保存データのエラーも、ほかと同じ `{ code }` の形にした。画面の側で、表示言語の文にする。計算の側を言語から切り離し、テストが言語の状態に左右されないようにするため。
   - 採らなかった案: 言語をモジュールの変数に置き、計算の側から直接引く（テストが言語の状態に左右される。切り替えたときの描き直しも漏れやすい）。
 - `hints.ts` の `statusHints` は、言語（`Language`）を引数で受け取り、表を自分で引く。部品の種類のヒントも言語で選ぶため、表だけでは足りない（計画の初めは表を受け取る案だった）。
 - 画面の側は、React の Context で言語を渡し、`useMessages()` で表を、`useLanguage()` で言語を引く（`i18n/useMessages.ts`）。Context の既定値は `'ja'`。
@@ -96,4 +96,4 @@
 
 ## この計画に含めないもの
 
-- README のスクリーンショットの撮り直し（[README のスクリーンショット](../../agent/screenshot.md)）。
+- README のスクリーンショットの撮り直し（[README のスクリーンショット](../../docs/screenshot.md)）。

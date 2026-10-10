@@ -1,6 +1,6 @@
 // 古い版のプロジェクトを、今の版の形に順に変える入口。保存データ (storage.ts) と共有用 JSON (share.ts) の両方で使う。
 // 版を上げるときは、1 版分の変換 (upgradeV<N>: version N → N+1) を作って UPGRADES の末尾に足す。
-// 各変換は今のアプリのコードに頼らない (決まりは docs/agent/persistence.md の「形式を変えるとき」)
+// 各変換は今のアプリのコードに頼らない (決まりは agent/docs/persistence.md の「形式を変えるとき」)
 
 import { upgradeV1 } from './upgradeV1';
 import { upgradeV2 } from './upgradeV2';

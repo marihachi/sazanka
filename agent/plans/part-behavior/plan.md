@@ -2,8 +2,8 @@
 
 状態: **完了**。
 
-- 振る舞いを変えない組み替え。実装は Skill の `refactor` で進める。開発者の合図を受けてから始める（[作業の進め方](../../agent/workflow.md)の「実装を始める合図」）。
-- 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../agent/documentation.md)の「計画の文書」）。
+- 振る舞いを変えない組み替え。実装は Skill の `refactor` で進める。開発者の合図を受けてから始める（[作業の進め方](../../docs/workflow.md)の「実装を始める合図」）。
+- 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../docs/documentation.md)の「計画の文書」）。
 
 ## 目的
 
@@ -34,7 +34,7 @@
 - 仕様の `shape` をやめ、動作の分類だけを持たせる（案 A）。採らなかった案: 名前だけ直す（`terminal` を `square` などに。2 つのことを 1 つの項目で決めている点は残る）、今は直さない（7 セグメントで `display` の形を足し、整理は UART のときにまとめる）。
 - 動作の分類の値は `logic`（入力から出力を求める）と `flipFlop`（記憶素子。Q / Q̄ と `{ q, clk }` の状態）。今のコードの言葉（`FlipFlopKind`、`isFlipFlopKind`、`FlipFlopState`）とそろえるため。採らなかった案: `memory`（将来の記憶素子の配列と紛らわしい）、`combinational` / `sequential`（RAM も順序回路なので、分類と食い違う）、`gate` / `latch`、`stateless` / `stateful`。
 - HIGH の配置を、新しいファイル `parts/high/layout.ts` に置く。
-- 計画の文書は `docs/plans/part-behavior/plan.md` に置く。
+- 計画の文書は `agent/plans/part-behavior/plan.md` に置く。
 
 エージェントが決めたこと:
 
@@ -60,7 +60,7 @@
 
 `MemoryPartSpec` の型の名前は、値の名前とそろえて `FlipFlopPartSpec` に直した（エージェントが決めた）。
 
-ドキュメント: [部品の種類](../../agent/parts.md)（形の説明、配置の既定）、[ソースの構成](../../agent/structure.md)、[用語](../../agent/glossary.md)。
+ドキュメント: [部品の種類](../../docs/parts.md)（形の説明、配置の既定）、[ソースの構成](../../docs/structure.md)、[用語](../../docs/glossary.md)。
 
 ## 段階
 
