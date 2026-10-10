@@ -30,7 +30,7 @@
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
   - `SheetPart.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
   - `useViewGestures.ts` … 表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2 本指）。
-  - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。
+  - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。`SheetSettingsDialog.tsx` … シート設定のダイアログ（シートの大きさ）。
   - `Sheet.module.css`、`SheetPart.module.css` … シートのスタイル（[見た目](styling.md)）。
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
@@ -49,15 +49,15 @@
   - `sim.ts` … 回路の評価（1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
   - `testCircuits.ts` … テスト用の回路の作り方（つなぎたいピンから配線を引いた回路）。アプリからは使わない。
   - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数。
-  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、モジュールの削除）と、モードの型（`Tool`）。
+  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、シート設定、モジュール設定、モジュールの削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
-  - `layout.ts` … グリッド、部品の大きさとピンの座標（種類ごとの配置をマスから px に直す）、シートの大きさ、はみ出さない位置、範囲選択、配線中の点の置き方、配線の端のドラッグ（`dragWireEnd`）。
+  - `layout.ts` … グリッド、部品の大きさとピンの座標（種類ごとの配置をマスから px に直す）、シートの右下の角（`getSheetEnd`）、はみ出さない位置、範囲選択、配線中の点の置き方、配線の端のドラッグ（`dragWireEnd`）。
   - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。1 本に見える 2 本の結合（`mergeWiresAt`）、分割できる点と分かれ目の判定（`findSplitTarget`、`findWireJoints`）。
-  - `view.ts` … 表示（位置と倍率）と、回路の座標と画面の座標の変換。
+  - `view.ts` … 表示（位置と倍率）と、回路の座標と画面の座標の変換。回路全体の範囲と、シートに収まっているか（`fitsInSheet`）、収まるいちばん小さい大きさ（`minCircuitSheet`）。
 - `circuit/` … 回路のデータ。
   - `part.ts` … 部品のデータ、置ける種類、種類ごとのピンと遅延を引く入口。特別な部品のピン、CLOCK の周期もここ。
   - `circuit.ts` … 回路 1 つ分のデータ（部品と配線）と ID の作り方。配線は点の並びで、部品を指さない。
-  - `project.ts` … プロジェクトの構造と、外から来たデータの検証（`checkProject`）。
+  - `project.ts` … プロジェクトの構造と、外から来たデータの検証（`checkProject`）。回路のシートの大きさ（`CircuitSheet`、`getCircuitSheet`）。
   - `module.ts` … モジュールのピンの決め方（ピン番号の割り当てと、外側のピンに出せないポートの判定を含む）と、回路同士の依存（循環の判定）。
 - `parts/` … 部品の種類（[部品の種類](parts.md)）。
   - `<種類>/` … 1 種類 1 フォルダ。フォルダの名前は種類の名前（`kind`）と同じ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）、`Body.tsx`（本体の描き込み。デバイスなど、描き込みを種類のフォルダに置く種類だけ）。
