@@ -1,6 +1,6 @@
 # 保存データ
 
-プロジェクトの保存データと共有用 JSON、利用者ごとの設定の保存。形式の仕様は `docs/format/` にある（今は [version 3](../format/v3.md)）。
+プロジェクトの保存データと共有用 JSON、利用者ごとの設定の保存。形式の仕様は `docs/format/` にある（今は [version 3](../../docs/format/v3.md)）。
 
 ## 前提
 
@@ -15,10 +15,10 @@
   2. 1 版分の変換（`file/upgradeV<N>.ts` の `upgradeV<N>`: version N → N+1）を作り、`file/upgrade.ts` の `UPGRADES` の末尾に足す。
 - 古い版のデータは、`file/upgrade.ts` の `upgradeProject` が、`UPGRADES` の変換を版の順に通して今の版の形にする。保存データ（`readStored`）と共有用 JSON（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
 - 今の版は、どちらも 3。
-- version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../format/archive/v2.md) の「version 1 からの変更」にある。
+- version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/archive/v2.md) の「version 1 からの変更」にある。
   - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
   - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
-- version 2 → 3 は `file/upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../format/v3.md) の「version 2 からの変更」にある。
+- version 2 → 3 は `file/upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../../docs/format/v3.md) の「version 2 からの変更」にある。
   - 種類の名前の対応表（`KIND_NAMES_V3`）を中に持つ。今のアプリの種類の名前を変えても、ここは直さない。
   - モジュールの回路には `split`（version 2 までのモジュールの形）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
 - どちらも、今より新しい版のデータは読み込まずに断る。
@@ -38,10 +38,6 @@
   - 版を上げたら、新しい版の文書（例: `v2.md`）を作り、古い版の文書は `docs/format/archive/` に移す。移した文書は、古い版を読む処理を書くときに参照するので書き換えない。
   - 保存データと共有用 JSON の版は別々の番号。片方だけ上げることになったら、文書の分け方を開発者に相談する。
 - モジュールをファイルとして保存し、パスで参照する[計画](../plans/module-files/plan.md)がある（計画中）。まだ何も決まっていないので、実装しない。保存形式やモジュールの参照を変えるときは、この計画とぶつからないかだけ見て、進め方は開発者に聞く。
-
-## 進めている計画
-
-- version 3（モジュールのパッケージとピン番号、部品の種類の項目名と名前の変更）の計画が [docs/plans/format-v3/plan.md](../plans/format-v3/plan.md) にある。保存形式やモジュールのピンを触るときは、先に読む。
 
 ## 保存データ
 

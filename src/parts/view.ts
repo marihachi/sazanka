@@ -25,7 +25,7 @@ export interface PartView {
    * 本体の幅に収まらないものだけ短くする。HIGH では、本体の中に大きく書く記号
    */
   bodyLabel?: LocalText;
-  /** アイコン (同じ種類のフォルダの icon.svg。描き方は docs/agent/icons.md) */
+  /** アイコン (同じ種類のフォルダの icon.svg。描き方は agent/docs/icons.md) */
   icon: string;
   /**
    * パレットのどのグループに出すか。グループの中では PART_VIEWS の順に並ぶ。

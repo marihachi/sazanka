@@ -2,39 +2,41 @@
 
 このリポジトリで作業するエージェントが、最初に読むファイル。`CLAUDE.md`（Claude Code 用）は、このファイルを読み込むだけにしている。
 
+エージェント向けドキュメントは `agent/docs/`、計画の文書は `agent/plans/` にある。Skill は `.agents/skills/` と `.claude/skills/` にある（`agent/` とは別）。
+
 ## ドキュメントの読み方
 
 まず「作業前に必ず読むドキュメント」をすべて読む。次に、「触るときに読むドキュメント」のうち、作業で触る範囲に当てはまるものだけを読む。(開発者からの指示)
 
 ### 作業前に必ず読むドキュメント
 
-- [ドキュメントの書き方](docs/agent/documentation.md) — 何をどこに書くか、いつ見直すか、Skill にするもの
-- [用語](docs/agent/glossary.md) — このアプリで使う言葉と、コードでの名前の対応
-- [作業の進め方](docs/agent/workflow.md) — 言語、合意の取り方、実装を始める合図、確認、コミット
-- [コードの書き方](docs/agent/coding-style.md) — Biome、Biome が判断しない書き方、コメント、テスト
-- [ソースの構成](docs/agent/structure.md) — `src/` のフォルダと各ファイルの責務、画面と計算の分け方
+- [ドキュメントの書き方](agent/docs/documentation.md) — 何をどこに書くか、いつ見直すか、Skill にするもの
+- [用語](agent/docs/glossary.md) — このアプリで使う言葉と、コードでの名前の対応
+- [作業の進め方](agent/docs/workflow.md) — 言語、合意の取り方、実装を始める合図、確認、コミット
+- [コードの書き方](agent/docs/coding-style.md) — Biome、Biome が判断しない書き方、コメント、テスト
+- [ソースの構成](agent/docs/structure.md) — `src/` のフォルダと各ファイルの責務、画面と計算の分け方
 
 ### 触るときに読むドキュメント
 
 | 触る対象                                       | 読むファイル                                             |
 | ---------------------------------------------- | -------------------------------------------------------- |
-| 部品の種類の追加・変更                         | [部品の種類](docs/agent/parts.md)                        |
-| シミュレーション（評価、遅延、tick）           | [シミュレーション](docs/agent/simulation.md)             |
-| 回路の編集、元に戻す / やり直し                | [編集と元に戻す](docs/agent/editing.md)                  |
-| シートの操作の割り当て（選択、配線、削除など） | [画面操作](docs/agent/interaction.md)                    |
-| シートの大きさ、スクロール、拡大縮小           | [シートの表示](docs/agent/view.md)                       |
-| 保存データ、共有用 JSON                        | [保存データ](docs/agent/persistence.md)                  |
-| 画面の配置、ボタン、ダイアログ、ヒント         | [UI](docs/agent/ui.md)                                   |
-| 画面の文言、表示言語（日本語と英語）           | [文言と表示言語](docs/agent/i18n.md)                     |
-| 見た目（Chakra UI、CSS Modules、色）           | [見た目](docs/agent/styling.md)                          |
-| アイコン、ロゴ                                 | [アイコンとロゴ](docs/agent/icons.md)                    |
-| 描画の重さ（描き直し）                         | [描画の重さ](docs/agent/performance.md)                  |
-| ライブラリや素材の追加                         | [ライブラリとライセンス](docs/agent/licenses.md)         |
-| 公開（GitHub Pages）、ビルドの設定             | [公開](docs/agent/release.md)                            |
-| ファイルの分け方、構成の変更                   | [コードの置き場所の決め方](docs/agent/code-placement.md) |
-| Skill の追加・編集                             | [Skill の追加・編集](docs/agent/skills.md)               |
-| ブラウザでの動作確認                           | [ブラウザでの動作確認](docs/agent/browser-check.md)      |
-| README のスクリーンショットの撮り直し          | [README のスクリーンショット](docs/agent/screenshot.md)  |
+| 部品の種類の追加・変更                         | [部品の種類](agent/docs/parts.md)                        |
+| シミュレーション（評価、遅延、tick）           | [シミュレーション](agent/docs/simulation.md)             |
+| 回路の編集、元に戻す / やり直し                | [編集と元に戻す](agent/docs/editing.md)                  |
+| シートの操作の割り当て（選択、配線、削除など） | [画面操作](agent/docs/interaction.md)                    |
+| シートの大きさ、スクロール、拡大縮小           | [シートの表示](agent/docs/view.md)                       |
+| 保存データ、共有用 JSON                        | [保存データ](agent/docs/persistence.md)                  |
+| 画面の配置、ボタン、ダイアログ、ヒント         | [UI](agent/docs/ui.md)                                   |
+| 画面の文言、表示言語（日本語と英語）           | [文言と表示言語](agent/docs/i18n.md)                     |
+| 見た目（Chakra UI、CSS Modules、色）           | [見た目](agent/docs/styling.md)                          |
+| アイコン、ロゴ                                 | [アイコンとロゴ](agent/docs/icons.md)                    |
+| 描画の重さ（描き直し）                         | [描画の重さ](agent/docs/performance.md)                  |
+| ライブラリや素材の追加                         | [ライブラリとライセンス](agent/docs/licenses.md)         |
+| 公開（GitHub Pages）、ビルドの設定             | [公開](agent/docs/release.md)                            |
+| ファイルの分け方、構成の変更                   | [コードの置き場所の決め方](agent/docs/code-placement.md) |
+| Skill の追加・編集                             | [Skill の追加・編集](agent/docs/skills.md)               |
+| ブラウザでの動作確認                           | [ブラウザでの動作確認](agent/docs/browser-check.md)      |
+| README のスクリーンショットの撮り直し          | [README のスクリーンショット](agent/docs/screenshot.md)  |
 
 ## 規則の扱い
 

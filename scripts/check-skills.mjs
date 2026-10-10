@@ -1,5 +1,5 @@
 // .agents/skills/ と .claude/skills/ が同じ内容かを確かめる。違いがあれば失敗が挙がる。
-// Skill は .agents/skills/ を編集して .claude/skills/ へ写す決まり (docs/agent/skills.md)。写し忘れや、片方だけの編集に気付くためのもの。
+// Skill は .agents/skills/ を編集して .claude/skills/ へ写す決まり (agent/docs/skills.md)。写し忘れや、片方だけの編集に気付くためのもの。
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,7 +45,7 @@ if (problems.length > 0) {
     console.error(`  - ${problem}`);
   }
   console.error(
-    `${source}/ を編集して ${copy}/ へ写す。片方で上書きせず、差分を見て 1 つにまとめる (docs/agent/skills.md)。`,
+    `${source}/ を編集して ${copy}/ へ写す。片方で上書きせず、差分を見て 1 つにまとめる (agent/docs/skills.md)。`,
   );
   process.exit(1);
 }
