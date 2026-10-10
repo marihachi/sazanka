@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { clockFlipsAt, clockPeriodOf, type Part } from '../circuit/part';
 import type { Project } from '../circuit/project';
-import { type Flattened, flattenProject } from './flatten';
+import { flattenProject } from './flatten';
 import { frameTicks } from './frameTicks';
-import { OSCILLATION_TICKS, SETTLED_TICKS, stepFlattened, type SimResult } from './sim';
+import {
+  type CompiledCircuit,
+  compileFlattened,
+  OSCILLATION_TICKS,
+  SETTLED_TICKS,
+  type SimResult,
+  type SimState,
+  sourcesOf,
+  stepState,
+  toResult,
+  toState,
+} from './sim';
 
 /** 「1 tick 戻す」ために覚えておく tick 数 */
 const HISTORY_TICKS = 300;
@@ -41,33 +52,65 @@ function clocksFlippingAt(
   };
 }
 
-/**
- * 展開した回路の CLOCK に、ON/OFF を当てたもの (計算にだけ使う)。
- * CLOCK の ON/OFF はプロジェクト (画面の状態) には書かず、シミュレーションの中で持つ。
- * 書くと CLOCK が反転するたびにプロジェクトが変わり、画面全体の描き直しと保存が起きて重くなるため
- */
-function withClockStates(flat: Flattened, clockOn: ReadonlyMap<string, boolean>): Flattened {
-  // 展開後の部品 ID → ON か。同じモジュールを何か所に置いても、中の CLOCK は展開前の部品ごとに 1 つの状態を持つ
-  const on = new Map(
-    flat.clocks.map((c) => [c.id, !!clockOn.get(clockKey(c.circuitId, c.partId))] as const),
-  );
-  return {
-    ...flat,
-    circuit: {
-      ...flat.circuit,
-      parts: flat.circuit.parts.map((c) => {
-        const v = on.get(c.id);
-        return v === undefined ? c : { ...c, on: v };
-      }),
-    },
-  };
-}
-
 /** 指定した CLOCK を反転させる */
 function toggleClocks(clockOn: Map<string, boolean>, keys: readonly string[]) {
   for (const k of keys) {
     clockOn.set(k, !clockOn.get(k));
   }
+}
+
+/** ある時点の評価の状態と、それを求めた回路。回路を編集すると、回路 (部品番号の振り方) が変わる */
+interface Snapshot {
+  circuit: CompiledCircuit;
+  state: SimState;
+}
+
+/** 評価の状態を、回路 circuit の部品番号で引く形にする。編集で回路が変わっていたら、部品 ID で引き継ぐ */
+function stateFor(snapshot: Snapshot, circuit: CompiledCircuit): SimState {
+  return snapshot.circuit === circuit
+    ? snapshot.state
+    : toState(circuit, toResult(snapshot.circuit, snapshot.state));
+}
+
+/**
+ * 「1 tick 戻す」ための履歴。入れられるのは limit 個までで、超えたら古いものから捨てる。
+ * 毎 tick 入れるので、配列の先頭を消す (shift。中身をすべて詰め直す) のではなく、輪のように使い回す
+ */
+function createHistory<T>(limit: number) {
+  const items: (T | undefined)[] = Array(limit);
+  /** いちばん古いものの位置 */
+  let start = 0;
+  let size = 0;
+  return {
+    get size() {
+      return size;
+    },
+    push(item: T) {
+      items[(start + size) % limit] = item;
+      if (size < limit) {
+        size += 1;
+      } else {
+        // いっぱいなら、いちばん古いものの位置に書いたので、古いものの位置を 1 つ進める
+        start = (start + 1) % limit;
+      }
+    },
+    /** いちばん新しいものを取り出す */
+    pop(): T | undefined {
+      if (size === 0) {
+        return undefined;
+      }
+      size -= 1;
+      const i = (start + size) % limit;
+      const item = items[i];
+      items[i] = undefined;
+      return item;
+    },
+    clear() {
+      items.fill(undefined);
+      start = 0;
+      size = 0;
+    },
+  };
 }
 
 /** 値を読み、変わったら知らせてもらえる、シミュレーションの結果の入れ物。シートが購読する (sheet/Sheet.tsx) */
@@ -135,58 +178,78 @@ export function useSimulation(
     return clocks.current.value;
   }
   /**
-   * 開いている回路を展開したもの (base) と、それに CLOCK の状態を当てたもの (value)。
-   * 展開は重いので tick ごとにはせず、回路を編集するかタブを切り替えたときだけ行う。
-   * CLOCK が反転したときは、展開し直さずに状態だけを当て直す
+   * 開いている回路を評価するための準備。展開して番号で引く形にした回路と、INPUT と CLOCK の ON/OFF。
+   * 展開は重いので tick ごとにはせず、回路を編集するかタブを切り替えたときだけ行う
    */
-  const flat = useRef<{
+  const prepared = useRef<{
     project: Project;
     circuitId: string;
-    base: Flattened;
-    value: Flattened;
+    circuit: CompiledCircuit;
+    /** INPUT と CLOCK の ON/OFF (部品番号の順)。CLOCK の分は clockOn から当て、反転したら書き換える */
+    sources: Uint8Array;
+    /** CLOCK (clockKey) → 展開後のその CLOCK の部品番号。同じモジュールを何か所に置くと、何か所にもなる */
+    clockParts: Map<string, number[]>;
   } | null>(null);
-  function flattenedFor(p: Project, id: string): Flattened {
-    if (!flat.current || flat.current.project !== p || flat.current.circuitId !== id) {
-      const base = flattenProject(p, id);
-      flat.current = {
-        project: p,
-        circuitId: id,
-        base,
-        value: withClockStates(base, clockOn.current ?? new Map()),
-      };
+  function prepare(p: Project, id: string) {
+    if (!prepared.current || prepared.current.project !== p || prepared.current.circuitId !== id) {
+      const flat = flattenProject(p, id);
+      const circuit = compileFlattened(flat);
+      const sources = sourcesOf(circuit);
+      const indexOf = new Map(circuit.parts.map((c, i) => [c.id, i]));
+      const clockParts = new Map<string, number[]>();
+      for (const c of flat.clocks) {
+        const key = clockKey(c.circuitId, c.partId);
+        const i = indexOf.get(c.id);
+        if (i === undefined) {
+          throw new Error(`展開した回路に CLOCK がない: ${c.id}`);
+        }
+        clockParts.set(key, [...(clockParts.get(key) ?? []), i]);
+        // CLOCK の ON/OFF は、部品の on ではなくシミュレーションの中で持つ値を使う
+        sources[i] = clockOn.current?.get(key) ? 1 : 0;
+      }
+      prepared.current = { project: p, circuitId: id, circuit, sources, clockParts };
     }
-    return flat.current.value;
+    return prepared.current;
   }
   function flipClocks(keys: readonly string[]) {
     toggleClocks(clockOn.current ?? new Map(), keys);
-    if (flat.current) {
-      flat.current = {
-        ...flat.current,
-        value: withClockStates(flat.current.base, clockOn.current ?? new Map()),
-      };
+    // 準備した回路の ON/OFF も書き換える。展開し直さずに済ませるため
+    const p = prepared.current;
+    if (!p) {
+      return;
+    }
+    for (const key of keys) {
+      for (const i of p.clockParts.get(key) ?? []) {
+        p.sources[i] = clockOn.current?.get(key) ? 1 : 0;
+      }
     }
   }
+  /** 回路 id を、前回の結果なしで 1 tick 進めた状態 (開いた直後と、タブを初めて開いたとき) */
+  function startOf(p: Project, id: string): Snapshot {
+    const { circuit, sources } = prepare(p, id);
+    return { circuit, state: stepState(circuit, sources, toState(circuit)) };
+  }
 
-  const current = useRef<SimResult>(stepFlattened(flattenedFor(project, circuitId)));
+  const current = useRef<Snapshot>(startOf(project, circuitId));
   /** シートなどが購読する入れ物 (このフックの間ずっと同じもの) */
   const store = useRef<ReturnType<typeof createSimStore> | null>(null);
   if (!store.current) {
-    store.current = createSimStore(current.current);
+    store.current = createSimStore(toResult(current.current.circuit, current.current.state));
   }
-  const [unstable, setUnstable] = useState(current.current.unstable);
+  const [unstable, setUnstable] = useState(current.current.state.unstable);
   /** 一時停止中の 1 tick 送り・戻しのあとに、ボタンの押せる / 押せないを描き直すため */
   const [, setStepVersion] = useState(0);
   /** 結果を画面へ渡す。App へは、発振しているかが変わったときだけ知らせる */
-  function publish(result: SimResult) {
-    store.current?.set(result);
-    setUnstable(result.unstable);
+  function publish({ circuit, state }: Snapshot) {
+    store.current?.set(toResult(circuit, state));
+    setUnstable(state.unstable);
   }
   const [running, setRunning] = useState(true);
   /** 回路ごとの結果。タブを切り替えても、その回路の状態を保つ */
-  const results = useRef(new Map<string, SimResult>());
+  const results = useRef(new Map<string, Snapshot>());
   const ticks = useRef(0);
   /** 戻すために覚えておく、少し前までの結果。toggled はその tick で反転した CLOCK */
-  const past = useRef<{ sim: SimResult; toggled: string[] }[]>([]);
+  const past = useRef(createHistory<{ snapshot: Snapshot; toggled: string[] }>(HISTORY_TICKS));
   /** 前回の描画で見たプロジェクト。変わっていれば回路が編集された */
   const lastProject = useRef(project);
   /** 前回の描画で開いていた回路。変わっていればタブを切り替えた */
@@ -205,21 +268,21 @@ export function useSimulation(
     if (toggled.length > 0) {
       flipClocks(toggled);
     }
-    past.current.push({ sim: current.current, toggled });
-    if (past.current.length > HISTORY_TICKS) {
-      past.current.shift();
-    }
-    current.current = stepFlattened(flattenedFor(p, id), current.current);
+    past.current.push({ snapshot: current.current, toggled });
+    const { circuit, sources } = prepare(p, id);
+    const state = stepState(circuit, sources, stateFor(current.current, circuit));
     // 周期の短い CLOCK では、遅延のある回路は落ち着く前に次の反転が来る。
     // そのままでは「落ち着かないまま続いている」と数えられて発振と誤って判定されるので、反転するたびに数え直す。
     // その代わり、周期の短い CLOCK を置いた回路では、本当の発振も検出できない。
     // 半周期が判定の長さ以上ある CLOCK なら、反転の間に落ち着くので数え直さず、発振も検出できる
     if (short) {
-      current.current = { ...current.current, activeTicks: 0, unstable: false };
+      state.activeTicks = 0;
+      state.unstable = false;
     }
+    current.current = { circuit, state };
     results.current.set(id, current.current);
     // stableTicks が 0 なら、この tick で値が変わった
-    return current.current.stableTicks === 0;
+    return state.stableTicks === 0;
   }
 
   // 回路を編集したら、戻せる状態は捨てる。編集前の値に戻しても、今の回路とは噛み合わないため。
@@ -228,7 +291,7 @@ export function useSimulation(
   if (lastProject.current !== project || lastCircuitId.current !== circuitId) {
     lastProject.current = project;
     lastCircuitId.current = circuitId;
-    past.current = [];
+    past.current.clear();
   }
 
   const hasClock = project.circuits.some((d) => d.parts.some((c) => c.kind === 'clock'));
@@ -262,7 +325,7 @@ export function useSimulation(
         publish(current.current);
       }
       // CLOCK がなく、値も落ち着いたら止める。回路を触れば (project が変わるので) また動き出す
-      if (stepped && !hasClock && current.current.stableTicks > SETTLED_TICKS) {
+      if (stepped && !hasClock && current.current.state.stableTicks > SETTLED_TICKS) {
         return;
       }
       frame = requestAnimationFrame(onFrame);
@@ -274,8 +337,7 @@ export function useSimulation(
   // タブを切り替えたら、その回路の前回の結果から続ける
   // biome-ignore lint/correctness/useExhaustiveDependencies: 開いている回路が変わったときだけ入れ替える (project の変更では入れ替えない)
   useEffect(() => {
-    current.current =
-      results.current.get(circuitId) ?? stepFlattened(flattenedFor(project, circuitId));
+    current.current = results.current.get(circuitId) ?? startOf(project, circuitId);
     publish(current.current);
   }, [circuitId]);
 
@@ -293,7 +355,7 @@ export function useSimulation(
       setStepVersion((v) => v + 1);
     },
     /** 戻せる状態が残っているか */
-    canStepBack: past.current.length > 0,
+    canStepBack: past.current.size > 0,
     /** 一時停止中に 1 tick 戻す */
     stepBack: () => {
       const last = past.current.pop();
@@ -305,14 +367,14 @@ export function useSimulation(
       if (last.toggled.length > 0) {
         flipClocks(last.toggled);
       }
-      current.current = last.sim;
-      results.current.set(latest.current.circuitId, last.sim);
-      publish(last.sim);
+      current.current = last.snapshot;
+      results.current.set(latest.current.circuitId, last.snapshot);
+      publish(last.snapshot);
       setStepVersion((v) => v + 1);
     },
     /** 回路を削除したときなど、覚えている結果を捨てる */
     forget: (id?: string) => {
-      past.current = [];
+      past.current.clear();
       if (id) {
         results.current.delete(id);
       } else {
