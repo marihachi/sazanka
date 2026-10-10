@@ -8,7 +8,7 @@ import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
 import { TabBar } from '../modules/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
-import { overview, toWorld } from '../geometry/view';
+import { fitsInSheet, overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
 import {
   clampPosition,
@@ -110,6 +110,11 @@ export function App() {
         circuits: p.circuits.map((d) =>
           d.id === id ? applyModuleSettings(d, pkg, numbers, labels) : d,
         ),
+      })),
+    onApplySheetSettings: (id, sheet) =>
+      history.commit((p) => ({
+        ...p,
+        circuits: p.circuits.map((d) => (d.id === id ? { ...d, sheet } : d)),
       })),
   });
 
@@ -381,6 +386,11 @@ export function App() {
   const conflict = nets.nets.some(isConflict);
   // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
   const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
+  // シートに収まっていない部品や配線 (座標が負のもの、大きさを変える前からはみ出しているものなど)
+  const outsideSheet = useMemo(
+    () => !fitsInSheet(circuit, project, getCircuitSheet(circuit)),
+    [circuit, project],
+  );
 
   const hints = statusHints(
     {
@@ -429,6 +439,7 @@ export function App() {
     stepBack,
     deleteCircuit: modules.deleteCircuit,
     openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
+    openSheetSettings: () => dialogs.openSheetSettings(circuit.id),
     changeTool,
     addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
@@ -471,6 +482,7 @@ export function App() {
           onStep={on.stepOnce}
           onStepBack={on.stepBack}
           canStepBack={canStepBack}
+          onSheetSettings={on.openSheetSettings}
           onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
           onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
         />
@@ -539,6 +551,7 @@ export function App() {
           unstable={unstable}
           conflict={conflict}
           unexposedPorts={problems.size > 0}
+          outsideSheet={outsideSheet}
         />
         {dialogs.element}
       </Flex>

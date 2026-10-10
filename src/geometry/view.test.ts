@@ -7,6 +7,7 @@ import {
   circuitBounds,
   clampScale,
   fitView,
+  fitsInSheet,
   isView,
   MAX_SCALE,
   minCircuitSheet,
@@ -132,6 +133,35 @@ describe('overview', () => {
     };
     const v = overview(p.circuits[0], p, 400, 300);
     expect(toScreen(v, { x: 20 * GRID, y: 15 * GRID })).toEqual({ x: 200, y: 150 });
+  });
+});
+
+describe('fitsInSheet', () => {
+  const project = (def: Partial<Project['circuits'][number]>): Project => ({
+    circuits: [{ id: MAIN_ID, name: 'メイン', parts: [], wires: [], ...def }],
+  });
+
+  it('部品も配線もなければ収まる', () => {
+    const p = project({});
+    expect(fitsInSheet(p.circuits[0], p, { width: 20, height: 20 })).toBe(true);
+  });
+
+  it('部品の右端と下端がシートの端までなら収まり、越えると収まらない', () => {
+    // AND の範囲は右端 280 (14 マス)、下端 180 (9 マス)
+    const p = project({ parts: [{ id: 'g', kind: 'and', x: 200, y: 100 }] });
+    expect(fitsInSheet(p.circuits[0], p, { width: 14, height: 9 })).toBe(true);
+    expect(fitsInSheet(p.circuits[0], p, { width: 13, height: 9 })).toBe(false);
+    expect(fitsInSheet(p.circuits[0], p, { width: 14, height: 8 })).toBe(false);
+  });
+
+  it('座標が負の配線の点があれば、どの大きさでも収まらない', () => {
+    // biome-ignore format: 表形式を維持するため
+    const points = [
+      { x: -20, y: 40 },
+      { x: 40, y: 40 },
+    ];
+    const p = project({ wires: [{ id: 'w', points }] });
+    expect(fitsInSheet(p.circuits[0], p, { width: 1000, height: 1000 })).toBe(false);
   });
 });
 

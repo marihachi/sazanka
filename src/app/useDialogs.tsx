@@ -6,7 +6,8 @@ import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
 import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
 import { ModuleSettingsDialog } from '../modules/ModuleSettingsDialog';
-import { findDef, type Package, type Project } from '../circuit/project';
+import { SheetSettingsDialog } from '../sheet/SheetSettingsDialog';
+import { findDef, type CircuitSheet, type Package, type Project } from '../circuit/project';
 
 /**
  * 画面内のダイアログの開閉と、描く部分。
@@ -18,6 +19,7 @@ export function useDialogs({
   onPreferencesChange,
   project,
   onApplyModuleSettings,
+  onApplySheetSettings,
 }: {
   /** 開いた直後に出すお知らせ (保存データが読めなかったときなど) */
   initialMessage?: string;
@@ -32,6 +34,8 @@ export function useDialogs({
     numbers: Map<string, number>,
     labels: Map<string, string>,
   ) => void;
+  /** 回路 id のシートの大きさを当てはめる (元に戻せる 1 回の編集にする) */
+  onApplySheetSettings: (id: string, sheet: CircuitSheet) => void;
 }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(() =>
     initialMessage ? { message: initialMessage } : null,
@@ -43,6 +47,9 @@ export function useDialogs({
   /** モジュール設定のダイアログで設定しているモジュールの ID */
   const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null);
   const moduleSettingsDef = moduleSettingsId ? findDef(project, moduleSettingsId) : undefined;
+  /** シート設定のダイアログで設定している回路の ID */
+  const [sheetSettingsId, setSheetSettingsId] = useState<string | null>(null);
+  const sheetSettingsDef = sheetSettingsId ? findDef(project, sheetSettingsId) : undefined;
 
   const element = (
     <>
@@ -71,6 +78,14 @@ export function useDialogs({
           onClose={() => setModuleSettingsId(null)}
         />
       )}
+      {sheetSettingsDef && (
+        <SheetSettingsDialog
+          def={sheetSettingsDef}
+          project={project}
+          onApply={(sheet) => onApplySheetSettings(sheetSettingsDef.id, sheet)}
+          onClose={() => setSheetSettingsId(null)}
+        />
+      )}
     </>
   );
 
@@ -85,8 +100,17 @@ export function useDialogs({
     openPreferences: () => setPreferencesOpen(true),
     /** モジュール id のモジュール設定を開く */
     openModuleSettings: (id: string) => setModuleSettingsId(id),
+    /** 回路 id のシート設定を開く */
+    openSheetSettings: (id: string) => setSheetSettingsId(id),
     /** どれかのダイアログが開いているか */
-    anyOpen: !!confirm || !!prompt || !!text || aboutOpen || preferencesOpen || !!moduleSettingsDef,
+    anyOpen:
+      !!confirm ||
+      !!prompt ||
+      !!text ||
+      aboutOpen ||
+      preferencesOpen ||
+      !!moduleSettingsDef ||
+      !!sheetSettingsDef,
     element,
   };
 }

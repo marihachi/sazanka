@@ -130,8 +130,22 @@ export function overview(
 }
 
 /**
+ * 回路の部品と配線がすべて、シート sheet に収まっているか。部品も配線もなければ収まっている。
+ * 部品はピンの先と上の名前まで (partBounds)、配線は点で見る。点がすべて収まれば、縦と横の区間も収まる
+ */
+export function fitsInSheet(circuit: CircuitDef, project: Project, sheet: CircuitSheet): boolean {
+  const bounds = circuitBounds(circuit, project);
+  if (!bounds) {
+    return true;
+  }
+  const end = getSheetEnd(sheet);
+  return bounds.left >= 0 && bounds.top >= 0 && bounds.right <= end.x && bounds.bottom <= end.y;
+}
+
+/**
  * 回路の部品と配線がすべて収まる、いちばん小さいシートの大きさ (マス)。部品も配線もなければ undefined。
- * 左上は原点に固定なので、右端と下端だけで決まる。部品の右端はグリッドに乗らないことがあるので、マスに切り上げる
+ * 左上は原点に固定なので、右端と下端だけで決まる。部品の右端はグリッドに乗らないことがあるので、マスに切り上げる。
+ * 座標が負のもの (シートの左か上の外) があると、この大きさでも収まらない (fitsInSheet は false のまま)
  */
 export function minCircuitSheet(circuit: CircuitDef, project: Project): CircuitSheet | undefined {
   const bounds = circuitBounds(circuit, project);

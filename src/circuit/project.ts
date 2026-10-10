@@ -38,11 +38,16 @@ export const DEFAULT_SHEET: CircuitSheet = { width: 300, height: 200 };
 export const MIN_SHEET_CELLS = 20;
 export const MAX_SHEET_CELLS = 1000;
 
-/** シートの大きさとして使える値か。1 辺が MIN_SHEET_CELLS〜MAX_SHEET_CELLS の整数 */
+/** シートの 1 辺のマスの数として使える値か。MIN_SHEET_CELLS〜MAX_SHEET_CELLS の整数 */
+export function isSheetCells(v: unknown): v is number {
+  return (
+    Number.isInteger(v) && (v as number) >= MIN_SHEET_CELLS && (v as number) <= MAX_SHEET_CELLS
+  );
+}
+
+/** シートの大きさとして使える値か。幅と高さのどちらも isSheetCells */
 export function isCircuitSheet(s: unknown): s is CircuitSheet {
-  const inRange = (v: unknown) =>
-    Number.isInteger(v) && (v as number) >= MIN_SHEET_CELLS && (v as number) <= MAX_SHEET_CELLS;
-  return isObject(s) && inRange(s.width) && inRange(s.height);
+  return isObject(s) && isSheetCells(s.width) && isSheetCells(s.height);
 }
 
 export function getCircuitSheet(def: CircuitDef): CircuitSheet {
