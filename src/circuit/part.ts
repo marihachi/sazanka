@@ -148,6 +148,14 @@ export function clockPeriodOf(c: Part): number {
 }
 
 /**
+ * CLOCK の周期 (tick 数) を、1 秒に進める tick 数から秒に直す。画面に出すので、有効数字 3 桁に丸める
+ * (例: 100 tick ÷ 7 tick/秒 = 14.285… → 14.3)
+ */
+export function clockPeriodSeconds(period: number, ticksPerSecond: number): number {
+  return Number((period / ticksPerSecond).toPrecision(3));
+}
+
+/**
  * CLOCK が、時刻 tick の時点で ON/OFF を切り替えるか。
  * 前半の半周期は OFF、後半は ON。周期が奇数なら、ON と OFF の長さは 1 tick 違う
  */

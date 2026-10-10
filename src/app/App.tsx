@@ -127,7 +127,7 @@ export function App() {
   }
 
   const { simStore, unstable, running, toggleRunning, stepOnce, stepBack, canStepBack, forget } =
-    useSimulation(project, circuit.id, preferences.tickMs);
+    useSimulation(project, circuit.id, preferences.ticksPerSecond);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
   useEffect(() => saveViews(views), [views]);
@@ -409,7 +409,7 @@ export function App() {
       numberedModule: usesPinNumbers(circuit.package),
       selectedPortProblem: selectedPart && problems.get(selectedPart.id),
       unexposedPorts: problems.size > 0,
-      tickMs: preferences.tickMs,
+      ticksPerSecond: preferences.ticksPerSecond,
     },
     lang,
   );
@@ -540,7 +540,7 @@ export function App() {
               )
               .map((c) => c.label)
               .join('\n')}
-            tickMs={preferences.tickMs}
+            ticksPerSecond={preferences.ticksPerSecond}
             onEditStart={history.checkpoint}
             onClockPeriodChange={on.setClockPeriod}
             onLabelChange={on.setLabel}

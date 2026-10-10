@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clockFlipsAt,
   clockPeriodOf,
+  clockPeriodSeconds,
   DEFAULT_CLOCK_PERIOD,
   isClockPeriod,
   type Part,
@@ -43,5 +44,19 @@ describe('CLOCK の周期', () => {
     expect(isClockPeriod(1)).toBe(false);
     expect(isClockPeriod(2.5)).toBe(false);
     expect(isClockPeriod('10')).toBe(false);
+  });
+});
+
+describe('clockPeriodSeconds', () => {
+  it('周期の tick 数を、1 秒に進める tick 数で割って秒にする', () => {
+    expect(clockPeriodSeconds(100, 100)).toBe(1);
+    expect(clockPeriodSeconds(10000, 1)).toBe(10000);
+    expect(clockPeriodSeconds(2, 100_000)).toBe(0.00002);
+  });
+
+  it('割り切れなければ、有効数字 3 桁に丸める', () => {
+    expect(clockPeriodSeconds(100, 7)).toBe(14.3);
+    expect(clockPeriodSeconds(100, 333)).toBe(0.3);
+    expect(clockPeriodSeconds(2, 3)).toBe(0.667);
   });
 });

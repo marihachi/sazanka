@@ -3,21 +3,25 @@ import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
   isAccent,
-  isTickMs,
-  MAX_TICK_MS,
-  MIN_TICK_MS,
+  isTicksPerSecond,
+  MAX_TICKS_PER_SECOND,
+  MIN_TICKS_PER_SECOND,
 } from './preferences';
 
-describe('isTickMs', () => {
-  it('範囲内の整数だけを間隔として認める', () => {
-    expect(isTickMs(MIN_TICK_MS)).toBe(true);
-    expect(isTickMs(MAX_TICK_MS)).toBe(true);
-    expect(isTickMs(DEFAULT_PREFERENCES.tickMs)).toBe(true);
+describe('isTicksPerSecond', () => {
+  it('範囲内の整数だけを 1 秒の tick 数として認める', () => {
+    expect(isTicksPerSecond(MIN_TICKS_PER_SECOND)).toBe(true);
+    expect(isTicksPerSecond(MAX_TICKS_PER_SECOND)).toBe(true);
+    expect(isTicksPerSecond(DEFAULT_PREFERENCES.ticksPerSecond)).toBe(true);
   });
 
   it('範囲の外、整数でない値、数でない値は認めない', () => {
-    for (const v of [MIN_TICK_MS - 1, MAX_TICK_MS + 1, 1.5, Number.NaN, Infinity, '10', null]) {
-      expect(isTickMs(v)).toBe(false);
+    // biome-ignore format: 表形式を維持するため
+    const values = [
+      MIN_TICKS_PER_SECOND - 1, MAX_TICKS_PER_SECOND + 1, 1.5, Number.NaN, Infinity, '10', null,
+    ];
+    for (const v of values) {
+      expect(isTicksPerSecond(v)).toBe(false);
     }
   });
 });

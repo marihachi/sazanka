@@ -33,7 +33,7 @@ describe('英語の文言', () => {
     for (const view of Object.values(PART_VIEWS)) {
       expect(view.description.en).not.toMatch(JAPANESE);
       const hints = view.hints?.en;
-      const lines = typeof hints === 'function' ? hints({ period: 100, tickMs: 10 }) : hints;
+      const lines = typeof hints === 'function' ? hints({ period: 100, periodSeconds: 1 }) : hints;
       for (const line of lines ?? []) {
         expect(line).not.toMatch(JAPANESE);
       }

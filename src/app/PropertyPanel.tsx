@@ -2,6 +2,7 @@ import { Field, Input, Stack, Text } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import {
   clockPeriodOf,
+  clockPeriodSeconds,
   isClockPeriod,
   MAX_CLOCK_PERIOD,
   MIN_CLOCK_PERIOD,
@@ -18,8 +19,8 @@ interface PropertyPanelProps {
   moduleName?: string;
   /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、名前の欄を「ポート名」と呼ぶ */
   inModule?: boolean;
-  /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期を秒でも示すのに使う */
-  tickMs: number;
+  /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒でも示すのに使う */
+  ticksPerSecond: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
   onEditStart: () => void;
   onClockPeriodChange: (id: string, period: number) => void;
@@ -41,7 +42,7 @@ export const PropertyPanel = memo(function PropertyPanel({
   moduleName,
   inModule = false,
   otherLabels = '',
-  tickMs,
+  ticksPerSecond,
   onEditStart,
   onClockPeriodChange,
   onLabelChange,
@@ -74,7 +75,7 @@ export const PropertyPanel = memo(function PropertyPanel({
             <ClockPeriodField
               key={part.id}
               clock={part}
-              tickMs={tickMs}
+              ticksPerSecond={ticksPerSecond}
               onEditStart={onEditStart}
               onChange={onClockPeriodChange}
             />
@@ -205,12 +206,12 @@ function LabelField({
  */
 function ClockPeriodField({
   clock,
-  tickMs,
+  ticksPerSecond,
   onEditStart,
   onChange,
 }: {
   clock: Part;
-  tickMs: number;
+  ticksPerSecond: number;
   onEditStart: () => void;
   onChange: (id: string, period: number) => void;
 }) {
@@ -261,7 +262,7 @@ function ClockPeriodField({
       />
       {valid ? (
         <Field.HelperText>
-          {m.property.clockPeriodHelp(tickMs, (value * tickMs) / 1000)}
+          {m.property.clockPeriodHelp(ticksPerSecond, clockPeriodSeconds(value, ticksPerSecond))}
         </Field.HelperText>
       ) : (
         <Field.ErrorText>

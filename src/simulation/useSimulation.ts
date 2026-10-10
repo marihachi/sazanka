@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { clockFlipsAt, clockPeriodOf, type Part } from '../circuit/part';
 import type { Project } from '../circuit/project';
 import { flattenProject } from './flatten';
-import { frameTicks } from './frameTicks';
+import { FRAME_BUDGET_MS, frameTicks } from './frameTicks';
 import {
   type CompiledCircuit,
   compileFlattened,
@@ -146,7 +146,8 @@ function createSimStore(initial: SimResult) {
  * 1 tick ごとに回路を進め、CLOCK をそれぞれの周期 (部品の period) で反転させる。
  *
  * 計算は ref の中で進め、画面へはフレームごとにそのときの値を渡す。
- * tick を短くしても画面の更新回数は増えないので、信号の伝わり方を細かくしつつ描画は軽いままにできる。
+ * 1 フレームの計算は FRAME_BUDGET_MS までで、間に合わない tick は進めず、遅れは取り戻さない (frameTicks.ts)。
+ * tick を速くしても画面の更新回数は増えないので、信号の伝わり方を細かくしつつ描画は軽いままにできる。
  * 値が変わらないフレームでは描き直さず、CLOCK がなく落ち着いたらループ自体を止める。
  *
  * 結果は React の状態にせず、store (購読できる入れ物) で渡す。値を使うシートだけが描き直され、
@@ -155,8 +156,8 @@ function createSimStore(initial: SimResult) {
 export function useSimulation(
   project: Project,
   circuitId: string,
-  /** 時間を 1 tick 進める間隔 (ms、環境設定)。画面の更新間隔とは別で、それより短くてよい */
-  tickMs: number,
+  /** 1 秒に進める tick 数 (環境設定)。画面の更新とは別で、1 フレームに何 tick 進めてもよい */
+  ticksPerSecond: number,
 ) {
   /** CLOCK の ON/OFF (回路 ID と部品 ID → ON か)。保存データに残っていた値から始める */
   const clockOn = useRef<Map<string, boolean> | null>(null);
@@ -257,8 +258,8 @@ export function useSimulation(
   // タイマーからは、常に最新のプロジェクトと開いている回路を見る
   const latest = useRef({ project, circuitId });
   latest.current = { project, circuitId };
-  const tickMsRef = useRef(tickMs);
-  tickMsRef.current = tickMs;
+  const ticksPerSecondRef = useRef(ticksPerSecond);
+  ticksPerSecondRef.current = ticksPerSecond;
 
   /** 計算だけを 1 tick 進める (画面には渡さない)。値が変わったかを返す */
   function advance(): boolean {
@@ -309,15 +310,24 @@ export function useSimulation(
     /** このループで 1 tick でも進めたか。進める前に「落ち着いている」と判断して止めないため */
     let stepped = false;
     const onFrame = (now: number) => {
-      carry += now - last;
+      // 速さを変えても、ループを作り直さずに次のフレームから効かせる
+      const due = frameTicks(carry, now - last, ticksPerSecondRef.current);
       last = now;
-      // 間隔を変えても、ループを作り直さずに次のフレームから効かせる
-      const due = frameTicks(carry, tickMsRef.current);
-      const count = due.count;
       carry = due.carry;
       let changed = false;
-      for (let i = 0; i < count; i++) {
+      let count = 0;
+      const start = performance.now();
+      // 計算に FRAME_BUDGET_MS より長くかかったら、ループを抜け、このフレームの残りの tick は進めない。
+      // 遅れは取り戻さない (残りの数を覚えておかない)。取り戻そうとすると、重い回路では
+      // 遅れが積み上がり続け、重さが引いたあとに早送りになるため。
+      // その分、シミュレーションは指定の速さより遅く進む
+      while (count < due.count && performance.now() - start < FRAME_BUDGET_MS) {
         changed = advance() || changed;
+        count += 1;
+        // CLOCK がなく落ち着いたら、残りの tick を進めても値は変わらない
+        if (!hasClock && current.current.state.stableTicks > SETTLED_TICKS) {
+          break;
+        }
       }
       stepped ||= count > 0;
       // 画面へ渡すのはフレームに1回だけ。値が変わっていなければ描き直さない

@@ -15,9 +15,9 @@ import { HintTooltip } from '../ui/HintTooltip';
 import {
   ACCENT_PRESETS,
   DEFAULT_PREFERENCES,
-  isTickMs,
-  MAX_TICK_MS,
-  MIN_TICK_MS,
+  isTicksPerSecond,
+  MAX_TICKS_PER_SECOND,
+  MIN_TICKS_PER_SECOND,
   type Preferences,
 } from './preferences';
 import { DialogFrame } from '../ui/DialogFrame';
@@ -38,8 +38,8 @@ export function PreferencesDialog({
   const m = useMessages();
   const closeRef = useRef<HTMLButtonElement>(null);
   // 入力の途中 (空欄や範囲外) は反映せず、使える値になったときだけ反映する
-  const [tickText, setTickText] = useState(String(preferences.tickMs));
-  const tickValid = isTickMs(Number(tickText)) && tickText.trim() !== '';
+  const [tickText, setTickText] = useState(String(preferences.ticksPerSecond));
+  const tickValid = isTicksPerSecond(Number(tickText)) && tickText.trim() !== '';
 
   return (
     <DialogFrame onClose={onClose} initialFocus={closeRef}>
@@ -71,30 +71,32 @@ export function PreferencesDialog({
             </NativeSelect.Root>
           </Field.Root>
           <Field.Root invalid={!tickValid}>
-            <Field.Label>{m.preferences.tickMs}</Field.Label>
+            <Field.Label>{m.preferences.ticksPerSecond}</Field.Label>
             <Input
               type="number"
               inputMode="numeric"
-              min={MIN_TICK_MS}
-              max={MAX_TICK_MS}
+              min={MIN_TICKS_PER_SECOND}
+              max={MAX_TICKS_PER_SECOND}
               step={1}
               value={tickText}
               onChange={(e) => {
                 setTickText(e.target.value);
                 const v = Number(e.target.value);
-                if (e.target.value.trim() !== '' && isTickMs(v)) {
-                  onChange({ ...preferences, tickMs: v });
+                if (e.target.value.trim() !== '' && isTicksPerSecond(v)) {
+                  onChange({ ...preferences, ticksPerSecond: v });
                 }
               }}
               // 使えない値のまま離れたら、今の値に戻す
-              onBlur={() => setTickText(String(preferences.tickMs))}
+              onBlur={() => setTickText(String(preferences.ticksPerSecond))}
             />
             {tickValid ? (
               <Field.HelperText>
-                {m.preferences.tickMsHelp(DEFAULT_PREFERENCES.tickMs)}
+                {m.preferences.ticksPerSecondHelp(DEFAULT_PREFERENCES.ticksPerSecond)}
               </Field.HelperText>
             ) : (
-              <Field.ErrorText>{m.common.integerRange(MIN_TICK_MS, MAX_TICK_MS)}</Field.ErrorText>
+              <Field.ErrorText>
+                {m.common.integerRange(MIN_TICKS_PER_SECOND, MAX_TICKS_PER_SECOND)}
+              </Field.ErrorText>
             )}
           </Field.Root>
           <Stack gap="3">

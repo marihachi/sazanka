@@ -106,8 +106,8 @@ export const ja = {
     noItems: 'この部品に設定できる項目はありません',
     selectOne: '部品を1つ選ぶと、その部品の項目を編集できます',
     clockPeriod: '周期 (tick)',
-    clockPeriodHelp: (tickMs: number, seconds: number) =>
-      `ON と OFF を一往復する tick 数。今の間隔 (${tickMs} ms) では ${seconds} 秒`,
+    clockPeriodHelp: (ticksPerSecond: number, seconds: number) =>
+      `ON と OFF を一往復する tick 数。今の速さ (${ticksPerSecond} tick/秒) では ${seconds} 秒`,
   },
   status: {
     unexposedPorts: 'ピンに出ていない INPUT / OUTPUT があります',
@@ -117,9 +117,9 @@ export const ja = {
   },
   preferences: {
     title: '環境設定',
-    tickMs: 'シミュレーションで 1 tick を進める間隔 (ms)',
-    tickMsHelp: (defaultMs: number) =>
-      `大きくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${defaultMs} ms。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 × この間隔です。`,
+    ticksPerSecond: 'シミュレーションの速さ (tick/秒)',
+    ticksPerSecondHelp: (defaultValue: number) =>
+      `1 秒に進める tick 数。小さくするとゆっくり進み、信号が 1 tick ずつ伝わる様子を目で追えます。既定は ${defaultValue}。CLOCK の周期 (秒) は、CLOCK ごとの tick 数 ÷ この値です。回路が大きいと、この速さより遅く進むことがあります。`,
     showGrid: 'シートに方眼を表示する',
     roundWires: '配線の角を丸める',
     accent: 'アクセントカラー',

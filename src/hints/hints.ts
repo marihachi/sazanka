@@ -1,6 +1,6 @@
 // ステータスバーに出すヒントを、今の操作から選ぶ。文は言語ごとの文言の表 (i18n/) と、部品の種類の view.ts にある
 import type { Part } from '../circuit/part';
-import { clockPeriodOf } from '../circuit/part';
+import { clockPeriodOf, clockPeriodSeconds } from '../circuit/part';
 import { partViewOf } from '../parts/views';
 import type { PortProblem } from '../circuit/module';
 import type { Language } from '../i18n/language';
@@ -35,8 +35,8 @@ export interface HintContext {
   selectedPortProblem?: PortProblem;
   /** 開いているモジュールに、外側のピンに出せないポートがある */
   unexposedPorts: boolean;
-  /** 1 tick を進める間隔 (ms、環境設定)。CLOCK の周期の表示に使う */
-  tickMs: number;
+  /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒で示すのに使う */
+  ticksPerSecond: number;
 }
 
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する。文は言語ごとの文言の表 (i18n/) にある */
@@ -77,7 +77,12 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
     // ヒントの文は、種類ごとの見せ方 (parts/) にある
     const own = partViewOf(c.kind)?.hints?.[lang] ?? [];
     const lines =
-      typeof own === 'function' ? own({ period: clockPeriodOf(c), tickMs: ctx.tickMs }) : own;
+      typeof own === 'function'
+        ? own({
+            period: clockPeriodOf(c),
+            periodSeconds: clockPeriodSeconds(clockPeriodOf(c), ctx.ticksPerSecond),
+          })
+        : own;
     const problem = ctx.selectedPortProblem ? [m.portProblems[ctx.selectedPortProblem]] : [];
     return [...problem, ...lines, ...m.partSelected];
   }

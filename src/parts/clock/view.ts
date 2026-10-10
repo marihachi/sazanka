@@ -10,11 +10,11 @@ export const clock: PartView = {
     en: 'Repeats ON/OFF at a fixed period',
   },
   hints: {
-    ja: ({ period, tickMs }) => [
-      `${period} tick (${(period * tickMs) / 1000} 秒) 周期で ON/OFF を繰り返す。周期は右のプロパティ欄で変えられる`,
+    ja: ({ period, periodSeconds }) => [
+      `${period} tick (${periodSeconds} 秒) 周期で ON/OFF を繰り返す。周期は右のプロパティ欄で変えられる`,
     ],
-    en: ({ period, tickMs }) => [
-      `Repeats ON/OFF every ${period} ticks (${(period * tickMs) / 1000} s). Change the period in the properties panel on the right`,
+    en: ({ period, periodSeconds }) => [
+      `Repeats ON/OFF every ${period} ticks (${periodSeconds} s). Change the period in the properties panel on the right`,
     ],
   },
 };
