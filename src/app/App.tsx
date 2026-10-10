@@ -20,7 +20,14 @@ import {
 } from '../geometry/layout';
 import type { Part, PartKind } from '../circuit/part';
 import { newId, type Wire } from '../circuit/circuit';
-import { findDef, MAIN_ID, moveCircuit, type CircuitDef, type Project } from '../circuit/project';
+import {
+  findDef,
+  getCircuitSheet,
+  MAIN_ID,
+  moveCircuit,
+  type CircuitDef,
+  type Project,
+} from '../circuit/project';
 import {
   applyModuleSettings,
   assignPinNumbers,
@@ -246,7 +253,7 @@ export function App() {
     if (module) {
       c.module = module;
     }
-    Object.assign(c, clampPosition(c, getPinout(c, project), c));
+    Object.assign(c, clampPosition(c, getPinout(c, project), c, getCircuitSheet(circuit)));
     // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
     setCircuit((cur) => {
       const added = new Set([c.id]);

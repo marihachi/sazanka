@@ -186,6 +186,7 @@ export const en: Messages = {
       NO_CIRCUIT_ID_OR_NAME: 'A circuit has no ID or name',
       NO_PACKAGE: (e) => `"${e.circuit}" has no package`,
       BAD_PACKAGE: (e) => `"${e.circuit}" has an invalid package`,
+      BAD_SHEET: (e) => `"${e.circuit}" has an invalid sheet size`,
       NO_PARTS_OR_WIRES: (e) => `"${e.circuit}" has no parts or wires`,
       BAD_PART: (e) => `"${e.circuit}" has an invalid part`,
       DUPLICATE_PART_ID: (e) => `"${e.circuit}" has a duplicate part ID: ${e.id}`,

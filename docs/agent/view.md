@@ -4,7 +4,8 @@
 
 ## シートの大きさと座標
 
-- シートの大きさは決まっていて、横 300 マス・縦 200 マス（1 マスは `GRID` = 20。`layout.ts` の `SHEET_WIDTH` = 6000 / `SHEET_HEIGHT` = 4000）。真ん中は (3000, 2000)。
+- シートの大きさは回路ごとに持つ（`CircuitDef.sheet`、単位はマス。1 マスは `GRID` = 20）。持たない回路は横 300 マス・縦 200 マス（`project.ts` の `DEFAULT_SHEET`）。大きさは `getCircuitSheet` で引き、px の右下の角は `layout.ts` の `getSheetEnd` で求める。
+- 位置の補正や表示の関数（`clampPosition`、`clampMove`、`placeOffset`、`dragWireEnd`、`centerView`、`fitView`）は、回路の大きさを引数で受け取る。
 - 左上が回路の座標の原点。部品は、本体とピンの先がシートに収まる位置にだけ置ける（`clampPosition`）。座標は負にならない。
 - シートより外にある部品（大きさを決める前に作った回路など）も、そのまま表示・計算する。動かしたときに初めてシートの中へ戻る。
 - 表示はシートの外まで自由に動かせる。シートの外は色（`sheet.outside`）を変え、境目に線を引いている。シートの大きさを変えるときは、この表示（`Sheet.tsx` の `sheetStart` / `sheetEnd` を使う部分）も確かめる。

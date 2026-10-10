@@ -1,8 +1,13 @@
 // シートの表示 (スクロールと拡大縮小): 回路の座標と画面の座標の変換。
 // 部品の大きさや配置は layout.ts、表示の保存は file/storage.ts にある
 
-import { partBounds, GRID, SHEET_HEIGHT, SHEET_WIDTH, type Point, type Rect } from './layout';
-import type { CircuitDef, Project } from '../circuit/project';
+import { getSheetEnd, partBounds, GRID, type Point, type Rect } from './layout';
+import {
+  getCircuitSheet,
+  type CircuitDef,
+  type CircuitSheet,
+  type Project,
+} from '../circuit/project';
 import { getPinout } from '../circuit/module';
 
 /** シートの表示位置と倍率。画面の座標 = 回路の座標 × scale + (x, y) */
@@ -38,11 +43,12 @@ export function zoomAt(v: View, at: Point, scale: number): View {
 }
 
 /** シートの中央を、幅 width・高さ height の画面の真ん中に置いた等倍の表示。部品のない回路はこの表示で開く (開発者の方針) */
-export function centerView(width: number, height: number): View {
-  // 等倍なので、シートの中央 (SHEET_WIDTH / 2) が画面の中央 (width / 2) に来るようにずらすだけ
+export function centerView(width: number, height: number, sheet: CircuitSheet): View {
+  // 等倍なので、シートの中央 (end.x / 2) が画面の中央 (width / 2) に来るようにずらすだけ
+  const end = getSheetEnd(sheet);
   return {
-    x: width / 2 - SHEET_WIDTH / 2,
-    y: height / 2 - SHEET_HEIGHT / 2,
+    x: width / 2 - end.x / 2,
+    y: height / 2 - end.y / 2,
     scale: 1,
   };
 }
@@ -51,17 +57,18 @@ export function centerView(width: number, height: number): View {
  * シートの外 (部品を置けない範囲) が画面に映らないよう、表示をずらす。
  * シートが画面より小さい向き (縮小したとき) は、どうずらしても映るのでそのままにする
  */
-function hideOutside(v: View, width: number, height: number): View {
+function hideOutside(v: View, width: number, height: number, sheet: CircuitSheet): View {
   // シートの左端は画面の左端より右に来てはいけない (pos <= 0)。
   // シートの右端 (pos + size) は画面の右端より左に来てはいけない (pos >= screen - size)
   const clamp = (pos: number, screen: number, sheet: number) => {
     const size = sheet * v.scale;
     return size >= screen ? Math.min(0, Math.max(screen - size, pos)) : pos;
   };
+  const end = getSheetEnd(sheet);
   return {
     ...v,
-    x: clamp(v.x, width, SHEET_WIDTH),
-    y: clamp(v.y, height, SHEET_HEIGHT),
+    x: clamp(v.x, width, end.x),
+    y: clamp(v.y, height, end.y),
   };
 }
 
@@ -70,7 +77,7 @@ function hideOutside(v: View, width: number, height: number): View {
  * 小さな回路を大きく映しすぎないよう、等倍より大きくはしない。
  * 真ん中に置くとシートの外が映るときは、シートの端を画面の端に合わせる。bounds はシートの中にあるので、合わせても回路は画面に収まったまま
  */
-export function fitView(bounds: Rect, width: number, height: number): View {
+export function fitView(bounds: Rect, width: number, height: number, sheet: CircuitSheet): View {
   const margin = GRID * 2;
   const w = bounds.right - bounds.left;
   const h = bounds.bottom - bounds.top;
@@ -82,7 +89,7 @@ export function fitView(bounds: Rect, width: number, height: number): View {
     y: height / 2 - ((bounds.top + bounds.bottom) / 2) * scale,
     scale,
   };
-  return hideOutside(centered, width, height);
+  return hideOutside(centered, width, height, sheet);
 }
 
 /** 回路全体 (部品と配線) が占める範囲。部品も配線もなければ undefined */
@@ -116,9 +123,25 @@ export function overview(
   height: number,
 ): View {
   const bounds = circuitBounds(circuit, project);
+  const sheet = getCircuitSheet(circuit);
   return bounds && width > 0 && height > 0
-    ? fitView(bounds, width, height)
-    : centerView(width, height);
+    ? fitView(bounds, width, height, sheet)
+    : centerView(width, height, sheet);
+}
+
+/**
+ * 回路の部品と配線がすべて収まる、いちばん小さいシートの大きさ (マス)。部品も配線もなければ undefined。
+ * 左上は原点に固定なので、右端と下端だけで決まる。部品の右端はグリッドに乗らないことがあるので、マスに切り上げる
+ */
+export function minCircuitSheet(circuit: CircuitDef, project: Project): CircuitSheet | undefined {
+  const bounds = circuitBounds(circuit, project);
+  if (!bounds) {
+    return undefined;
+  }
+  return {
+    width: Math.ceil(bounds.right / GRID),
+    height: Math.ceil(bounds.bottom / GRID),
+  };
 }
 
 /** 保存データから読んだ値が、表示として使えるか */

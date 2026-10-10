@@ -202,6 +202,7 @@ export const ja = {
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
+      BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
       NO_PARTS_OR_WIRES: (e) => `「${e.circuit}」の部品か配線がありません`,
       BAD_PART: (e) => `「${e.circuit}」に不正な部品があります`,
       DUPLICATE_PART_ID: (e) => `「${e.circuit}」で部品の ID が重複しています: ${e.id}`,

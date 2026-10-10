@@ -1,6 +1,6 @@
 # シートの大きさの変更（計画）
 
-状態: **計画中**
+状態: **進行中**
 
 - 段階ごとに、開発者の合図を受けてから実装する（[作業の進め方](../../agent/workflow.md)の「実装を始める合図」）。
 - 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../agent/documentation.md)の「計画の文書」）。
@@ -48,7 +48,7 @@
 - 型は `project.ts` の `CircuitSheet`（`{ width, height }`、マス）。`CircuitDef.sheet` は型では省略できる（テストで回路を手短に作れるように。`package` と同じ）。回路の大きさは `getCircuitSheet(def)` で引き、ないときは `DEFAULT_SHEET`（300×200）。
   - 採らなかった名前: `SheetSize`（`Sheet.tsx` に、画面の上のシートの要素の大きさ（px）を表す同じ名前の型がある）。
 - 必ず書くために、読み込み（`readStored`、`parseProject`）と保存・書き出し（`saveProject`、`serializeProject`）で `withCircuitSheet` を通し、ない回路に 300×200 を入れる。新しく作る回路（空のプロジェクト、モジュールの追加）にも書く。JSON で `parts` より前に来るよう、`name` / `package` のあとに置く。
-- 定数を使っていた関数（`clampPosition`、`clampMove`、`placeOffset`、`dragWireEnd`、`centerView`、`fitView`、`overview`）は、回路の大きさ（`CircuitSheet`）を引数で受け取る。px に直すのは各関数の中（× `GRID`）。`Sheet` には props で渡す。
+- 定数を使っていた関数（`clampPosition`、`clampMove`、`placeOffset`、`dragWireEnd`、`centerView`、`fitView`、`overview`）は、回路の大きさ（`CircuitSheet`）を引数で受け取る。px に直すのは各関数の中（`getSheetEnd`、× `GRID`）。`Sheet` は受け取っている `circuit` から引く（props は足さない）。
   - 採らなかった案: px の大きさを別の型にして渡す（型が 1 つ増える）。
 - 部品と配線が収まる最小の大きさ（マス）は、`geometry/view.ts` の `circuitBounds` を使って求める（`minCircuitSheet`）。`circuitBounds` が同じ範囲（部品と配線の点）を求めているため。
 - 適用は 1 回の `commit`（元に戻す 1 回で戻る）。
@@ -70,3 +70,7 @@
 ### 段階 3: ドキュメント
 
 - [シートの表示](../../agent/view.md)、[UI](../../agent/ui.md)、[version 3](../../format/v3.md)（「version 3 の中で変えたもの」と検証）、[用語](../../agent/glossary.md)（シート設定）、[操作マニュアル](../../manual/README.md)。
+
+## 進み具合
+
+- 段階 1: 終えた。整形、Lint、型、テスト（317 件）、ビルドが通る。シートの外の描画（`Sheet.tsx` の `sheetEnd`）も回路の大きさを使うようにした。ドキュメントは [シートの表示](../../agent/view.md) の大きさの記述だけ直した（残りは段階 3）。

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Part } from '../circuit/part';
-import { SHEET_HEIGHT, SHEET_WIDTH } from './layout';
-import { MAIN_ID, type Project } from '../circuit/project';
+import { GRID } from './layout';
+import { DEFAULT_SHEET, MAIN_ID, type Project } from '../circuit/project';
 import {
   centerView,
   circuitBounds,
@@ -9,12 +9,17 @@ import {
   fitView,
   isView,
   MAX_SCALE,
+  minCircuitSheet,
   MIN_SCALE,
   overview,
   toScreen,
   toWorld,
   zoomAt,
 } from './view';
+
+const sheet = DEFAULT_SHEET;
+const SHEET_WIDTH = sheet.width * GRID;
+const SHEET_HEIGHT = sheet.height * GRID;
 
 describe('座標の変換', () => {
   it('画面の座標と回路の座標は行き来できる', () => {
@@ -35,14 +40,14 @@ describe('zoomAt', () => {
   });
 
   it('倍率は上限と下限に収める', () => {
-    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 100).scale).toBe(MAX_SCALE);
-    expect(zoomAt(centerView(400, 300), { x: 0, y: 0 }, 0.001).scale).toBe(MIN_SCALE);
+    expect(zoomAt(centerView(400, 300, sheet), { x: 0, y: 0 }, 100).scale).toBe(MAX_SCALE);
+    expect(zoomAt(centerView(400, 300, sheet), { x: 0, y: 0 }, 0.001).scale).toBe(MIN_SCALE);
   });
 });
 
 describe('fitView', () => {
   it('左上から離れた範囲は、全体が画面の真ん中に入る', () => {
-    const v = fitView({ left: 400, top: 300, right: 1600, bottom: 900 }, 400, 300);
+    const v = fitView({ left: 400, top: 300, right: 1600, bottom: 900 }, 400, 300, sheet);
     const topLeft = toScreen(v, { x: 400, y: 300 });
     const bottomRight = toScreen(v, { x: 1600, y: 900 });
     expect(topLeft.x).toBeGreaterThanOrEqual(0);
@@ -62,6 +67,7 @@ describe('fitView', () => {
       },
       400,
       300,
+      sheet,
     );
     const end = toScreen(v, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
     expect(end.x).toBeGreaterThanOrEqual(400);
@@ -69,7 +75,7 @@ describe('fitView', () => {
   });
 
   it('左上の端に寄った回路でも、シートの外は映さない', () => {
-    const v = fitView({ left: 0, top: 0, right: 100, bottom: 80 }, 400, 300);
+    const v = fitView({ left: 0, top: 0, right: 100, bottom: 80 }, 400, 300, sheet);
     const origin = toScreen(v, { x: 0, y: 0 });
     expect(origin.x).toBeLessThanOrEqual(0);
     expect(origin.y).toBeLessThanOrEqual(0);
@@ -80,7 +86,7 @@ describe('fitView', () => {
   });
 
   it('小さな回路は等倍より大きくしない', () => {
-    expect(fitView({ left: 0, top: 0, right: 40, bottom: 40 }, 400, 300).scale).toBe(1);
+    expect(fitView({ left: 0, top: 0, right: 40, bottom: 40 }, 400, 300, sheet).scale).toBe(1);
   });
 });
 
@@ -116,6 +122,47 @@ describe('overview', () => {
     expect(at.y).toBeGreaterThanOrEqual(0);
     expect(at.x).toBeLessThan(400);
     expect(at.y).toBeLessThan(300);
+  });
+
+  it('回路のシートの大きさで、中央を決める', () => {
+    const p: Project = {
+      circuits: [
+        { id: MAIN_ID, name: 'メイン', sheet: { width: 40, height: 30 }, parts: [], wires: [] },
+      ],
+    };
+    const v = overview(p.circuits[0], p, 400, 300);
+    expect(toScreen(v, { x: 20 * GRID, y: 15 * GRID })).toEqual({ x: 200, y: 150 });
+  });
+});
+
+describe('minCircuitSheet', () => {
+  const project = (def: Partial<Project['circuits'][number]>): Project => ({
+    circuits: [{ id: MAIN_ID, name: 'メイン', parts: [], wires: [], ...def }],
+  });
+
+  it('部品も配線もなければ undefined', () => {
+    const p = project({});
+    expect(minCircuitSheet(p.circuits[0], p)).toBeUndefined();
+  });
+
+  it('部品は出力ピンの先まで含め、マスに切り上げる', () => {
+    // AND は幅 60 + 出力ピン 20、高さ 80。右端 200 + 80 = 280 (14 マス)、下端 100 + 80 = 180 (9 マス)
+    const p = project({ parts: [{ id: 'g', kind: 'and', x: 200, y: 100 }] });
+    expect(minCircuitSheet(p.circuits[0], p)).toEqual({ width: 14, height: 9 });
+  });
+
+  it('配線の点も含める', () => {
+    // biome-ignore format: 表形式を維持するため
+    const points = [
+      { x: 40, y: 40 },
+      { x: 40, y: 600 },
+      { x: 500, y: 600 },
+    ];
+    const p = project({
+      parts: [{ id: 'g', kind: 'and', x: 200, y: 100 }],
+      wires: [{ id: 'w', points }],
+    });
+    expect(minCircuitSheet(p.circuits[0], p)).toEqual({ width: 25, height: 30 });
   });
 });
 

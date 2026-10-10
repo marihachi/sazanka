@@ -7,6 +7,7 @@ import {
   MAIN_ID,
   moveCircuit,
   type Project,
+  withCircuitSheet,
   withoutSwitchStates,
 } from './project';
 
@@ -125,6 +126,57 @@ describe('checkProject', () => {
     it('メイン回路には求めない', () => {
       expect(checkProject(main([]))).toBeUndefined();
     });
+  });
+
+  describe('シートの大きさ', () => {
+    function withSheet(sheet: unknown) {
+      return { circuits: [{ id: MAIN_ID, name: 'メイン', sheet, parts: [], wires: [] }] };
+    }
+
+    it('ないか、1 辺が 20〜1000 の整数なら undefined', () => {
+      // biome-ignore format: 表形式を維持するため
+      for (const s of [
+        undefined,
+        { width: 20, height: 20 },
+        { width: 1000, height: 1000 },
+        { width: 300, height: 200 },
+      ]) {
+        expect(checkProject(withSheet(s))).toBeUndefined();
+      }
+    });
+
+    it('正しくない大きさを弾く', () => {
+      // biome-ignore format: 表形式を維持するため
+      for (const s of [
+        null,
+        { width: 300 },
+        { width: 19, height: 200 },
+        { width: 300, height: 1001 },
+        { width: 300.5, height: 200 },
+        { width: '300', height: 200 },
+      ]) {
+        expect(checkProject(withSheet(s))).toEqual({ code: 'BAD_SHEET', circuit: 'メイン' });
+      }
+    });
+  });
+});
+
+describe('withCircuitSheet', () => {
+  it('シートの大きさがない回路に、300×200 を parts の前に入れる', () => {
+    const def = withCircuitSheet({ id: MAIN_ID, name: 'メイン', parts: [], wires: [] });
+    expect(def.sheet).toEqual({ width: 300, height: 200 });
+    expect(Object.keys(def)).toEqual(['id', 'name', 'sheet', 'parts', 'wires']);
+  });
+
+  it('大きさがある回路はそのまま', () => {
+    const def = {
+      id: MAIN_ID,
+      name: 'メイン',
+      sheet: { width: 40, height: 30 },
+      parts: [],
+      wires: [],
+    };
+    expect(withCircuitSheet(def)).toBe(def);
   });
 });
 
