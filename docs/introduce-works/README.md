@@ -9,7 +9,7 @@
 書籍「CPUの創りかた」に登場するCPUのTD4を実装した例です。
 
 動作している様子の動画:  
-- https://mk.xiupos.net/notes/as5i6v5ns6
+https://mk.xiupos.net/notes/as5nkhaptd
 
-共有用データのリンクもあります:  
-- https://mk.xiupos.net/notes/as5i8bw8s8
+共有用データのリンク:  
+https://gist.github.com/xiupos/6f450ccc38301421717d8df1bbe78ec3
