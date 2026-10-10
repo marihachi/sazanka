@@ -331,20 +331,16 @@ export function App() {
     setCircuit((cur) => edit.moveParts(cur, comps, wires), false);
   }
 
-  function reshapeWire(id: string, points: Point[]) {
-    // ドラッグ中の変更は履歴に積まない。ドラッグの開始時に積んだ1回分で元に戻す
-    setCircuit((cur) => edit.setWirePoints(cur, id, points), false);
-  }
-
   /**
-   * 配線の端のドラッグを終えた。折れる点まで縮めて長さ 0 になった区間を除き、
-   * 動かした端で、ほかの配線と 1 本に見える所を結合する (どちらもドラッグと同じ 1 回の操作に含める)
+   * 配線の端のドラッグを終えた。ドラッグの途中は回路を変えていない (Sheet.tsx が仮の形で描くだけ) ので、
+   * ここで形を確定する。折れる点まで縮めて長さ 0 になった区間を除き、動かした端で、ほかの配線と 1 本に見える所を結合する。
+   * 形の確定と結合を、まとめて元に戻す 1 回の操作にする
    */
   function finishReshapeWire(id: string, end: WireEnd, points: Point[]) {
     const simplified = simplifyWire(points);
     const tip = end === 'start' ? simplified[0] : simplified[simplified.length - 1];
     const merged = mergeWiresAt(edit.setWirePoints(circuit, id, simplified), project, [tip]);
-    setCircuit(() => merged.circuit, false);
+    setCircuit(() => merged.circuit);
     setSelection((s) => edit.remapSelection(s, merged.replaced));
   }
 
@@ -498,7 +494,6 @@ export function App() {
             onAdd={addPart}
             onMoveStart={startMove}
             onMove={moveParts}
-            onWireReshape={reshapeWire}
             onWireReshapeEnd={finishReshapeWire}
             onSplitWire={splitWireAt}
             // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする

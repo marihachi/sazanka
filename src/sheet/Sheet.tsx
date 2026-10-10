@@ -82,9 +82,9 @@ interface EndDrag {
   end: WireEnd;
   /** ドラッグを始めたときの点の並び。端の位置は、毎回これから求める (dragWireEnd) */
   origin: Point[];
-  /** 最後に知らせた点の並び。同じなら知らせ直さない */
+  /** 今の点の並び (仮の形)。同じなら描き直さない */
   points: Point[];
-  /** このドラッグで onMoveStart を呼んだか */
+  /** 動かし始めたか (押しただけ・わずかに動いただけなら false) */
   started: boolean;
   pointerId: number;
   /** 押した位置 (クライアント座標) */
@@ -194,9 +194,10 @@ interface SheetProps {
   onMoveStart: () => void;
   /** 選んでいる部品と配線を動かした。comps は部品の新しい位置、wires は配線の新しい点の並び */
   onMove: (comps: Map<string, Point>, wires: Map<string, Point[]>) => void;
-  /** 配線の端をドラッグして、点の並びが変わった (ドラッグの途中。長さ 0 の区間が残ることがある) */
-  onWireReshape: (id: string, points: Point[]) => void;
-  /** 配線の端のドラッグを終えた。points は最後の点の並び */
+  /**
+   * 配線の端のドラッグを終えた。points は最後の点の並び (長さ 0 の区間が残ることがある)。
+   * ドラッグの途中は回路を変えず (つながりとシミュレーションを変えないため)、ここで初めて知らせる
+   */
   onWireReshapeEnd: (id: string, end: WireEnd, points: Point[]) => void;
   /** 分割モードで、配線を点 at で 2 本に分ける (at は分けてよい点) */
   onSplitWire: (id: string, at: Point) => void;
@@ -234,7 +235,6 @@ export function Sheet({
   onAdd,
   onMoveStart,
   onMove,
-  onWireReshape,
   onWireReshapeEnd,
   onSplitWire,
   onDropOnTrash,
@@ -260,6 +260,11 @@ export function Sheet({
   const endDragRef = useRef<EndDrag | null>(null);
   /** ドラッグしている配線の端と、その向き。印を強調し、ポインターの形を保つのに使う */
   const [activeEnd, setActiveEnd] = useState<{ end: WireEnd; horizontal: boolean } | null>(null);
+  /**
+   * 端のドラッグ中の配線の仮の形。回路はまだ変えず、この形で描くだけにする
+   * (ドラッグの途中でつながりとシミュレーションを変えないため。分岐の印も元の位置に残る)
+   */
+  const [preview, setPreview] = useState<{ wire: string; points: Point[] } | null>(null);
   const [band, setBand] = useState<Band | null>(null);
   const [{ width, height }, setSize] = useState<SheetSize>({
     width: 0,
@@ -522,20 +527,27 @@ export function Sheet({
       return;
     }
     if (!endDrag.started) {
-      onMoveStart();
       endDrag.started = true;
       onDragModeChange('wireEnd');
       setActiveEnd({ end: endDrag.end, horizontal: isHorizontalEnd(endDrag.origin, endDrag.end) });
     }
     endDrag.points = next;
-    onWireReshape(endDrag.wire, next);
+    setPreview({ wire: endDrag.wire, points: next });
   }
 
   function finishWireEnd(endDrag: EndDrag) {
     endDragRef.current = null;
     setActiveEnd(null);
-    if (endDrag.started) {
-      onDragModeChange('none');
+    setPreview(null);
+    if (!endDrag.started) {
+      return;
+    }
+    onDragModeChange('none');
+    // 動かしてから元の位置に戻して離したときは、何も変わっていないので履歴に積まない
+    const same = endDrag.points.every(
+      (p, i) => p.x === endDrag.origin[i].x && p.y === endDrag.origin[i].y,
+    );
+    if (!same) {
       onWireReshapeEnd(endDrag.wire, endDrag.end, endDrag.points);
     }
   }
@@ -705,6 +717,10 @@ export function Sheet({
   // 分割モードで、ポインターの下の分ける点 (blocked なら分けられない点)
   const splitPoint = tool === 'split' && mouse && !placing ? wireGridPoint(mouse) : null;
   const splitTarget = splitPoint && findSplitTarget(circuit.wires, pinTips, splitPoint);
+  /** 配線の描く形。端のドラッグ中の配線は仮の形 */
+  function pointsOf(w: Wire): Point[] {
+    return preview?.wire === w.id ? preview.points : w.points;
+  }
   // 端の印を出す配線。選択モードで、配線を 1 本だけ (部品も選ばずに) 選んでいるとき
   const handleWire =
     tool === 'select' && !placing && selection?.comps.length === 0 && selection.wires.length === 1
@@ -778,7 +794,7 @@ export function Sheet({
         <g transform={transform}>
           {circuit.wires.map((w) => {
             const net = nets.wireNet.get(w.id);
-            const d = wirePath(w.points, roundWires);
+            const d = wirePath(pointsOf(w), roundWires);
             return (
               <g key={w.id}>
                 <path
@@ -844,7 +860,7 @@ export function Sheet({
           {/* 選んだ配線の端の印。押せる範囲は見た目より広くする。どちらも拡大縮小しても画面上の大きさを変えない */}
           {handleWire &&
             (['start', 'end'] as const).map((end) => {
-              const pts = handleWire.points;
+              const pts = pointsOf(handleWire);
               const p = end === 'start' ? pts[0] : pts[pts.length - 1];
               const size = HANDLE_SIZE / view.scale;
               const hit = HANDLE_HIT / view.scale;
