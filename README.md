@@ -11,9 +11,9 @@ https://marihachi.logical-flower.net/sazanka/
 
 See the [user manual](docs/manual/README.md) (Japanese only) for how to use it.
 
-## Showcase
+## Community Creations
 
-Works made with sazanka are featured on the [Showcase](docs/introduce-works/README.md) page (Japanese only).  
+Check out the [Community Creations](docs/introduce-works/README.md) page (Japanese only) for works made by users.  
 If you make something interesting, feel free to send a pull request.
 
 ## License
