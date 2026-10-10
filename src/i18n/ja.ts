@@ -61,6 +61,8 @@ export const ja = {
     stepBackTitle: '1 tick だけ時間を戻す',
     stepForward: '1 tick 進める',
     stepForwardTitle: '1 tick だけ時間を進める',
+    sheetSettings: 'シート設定',
+    sheetSettingsTitle: 'シート設定: シートの大きさ (幅と高さ) を変える',
     moduleSettings: 'モジュール設定',
     moduleSettingsTitle:
       'モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える',
@@ -109,6 +111,7 @@ export const ja = {
   },
   status: {
     unexposedPorts: 'ピンに出ていない INPUT / OUTPUT があります',
+    outsideSheet: 'シートの外に部品か配線があります',
     conflict: '出力がぶつかっています',
     unstable: '発振しています',
   },
@@ -128,6 +131,15 @@ export const ja = {
       ja: '日本語',
       en: 'English',
     } satisfies Record<LanguageSetting, string>,
+  },
+  sheetSettings: {
+    title: (name: string) => `シート設定: ${name}`,
+    width: '幅 (マス)',
+    height: '高さ (マス)',
+    /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
+    tooSmall: (width: number, height: number) =>
+      `部品と配線が収まるのは ${width} × ${height} マス以上です`,
+    apply: '適用',
   },
   moduleSettings: {
     title: (name: string) => `モジュール設定: ${name}`,
@@ -202,6 +214,7 @@ export const ja = {
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
+      BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
       NO_PARTS_OR_WIRES: (e) => `「${e.circuit}」の部品か配線がありません`,
       BAD_PART: (e) => `「${e.circuit}」に不正な部品があります`,
       DUPLICATE_PART_ID: (e) => `「${e.circuit}」で部品の ID が重複しています: ${e.id}`,

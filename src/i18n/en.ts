@@ -52,6 +52,8 @@ export const en: Messages = {
     stepBackTitle: 'Move time back by 1 tick',
     stepForward: 'Forward 1 tick',
     stepForwardTitle: 'Move time forward by 1 tick',
+    sheetSettings: 'Sheet settings',
+    sheetSettingsTitle: 'Sheet settings: change the sheet size (width and height)',
     moduleSettings: 'Module settings',
     moduleSettingsTitle:
       'Module settings: change the package (shape and pin count), port names, and pin assignment',
@@ -100,6 +102,7 @@ export const en: Messages = {
   },
   status: {
     unexposedPorts: 'Some INPUT / OUTPUT are not on any pin',
+    outsideSheet: 'Parts or wires outside the sheet',
     conflict: 'Outputs are in conflict',
     unstable: 'Oscillating',
   },
@@ -118,6 +121,13 @@ export const en: Messages = {
       ja: '日本語',
       en: 'English',
     },
+  },
+  sheetSettings: {
+    title: (name) => `Sheet settings: ${name}`,
+    width: 'Width (cells)',
+    height: 'Height (cells)',
+    tooSmall: (width, height) => `Parts and wires need at least ${width} × ${height} cells`,
+    apply: 'Apply',
   },
   moduleSettings: {
     title: (name) => `Module settings: ${name}`,
@@ -186,6 +196,7 @@ export const en: Messages = {
       NO_CIRCUIT_ID_OR_NAME: 'A circuit has no ID or name',
       NO_PACKAGE: (e) => `"${e.circuit}" has no package`,
       BAD_PACKAGE: (e) => `"${e.circuit}" has an invalid package`,
+      BAD_SHEET: (e) => `"${e.circuit}" has an invalid sheet size`,
       NO_PARTS_OR_WIRES: (e) => `"${e.circuit}" has no parts or wires`,
       BAD_PART: (e) => `"${e.circuit}" has an invalid part`,
       DUPLICATE_PART_ID: (e) => `"${e.circuit}" has a duplicate part ID: ${e.id}`,

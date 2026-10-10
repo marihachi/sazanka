@@ -2,14 +2,14 @@ import { Stack } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clampMove,
+  clampToSheet,
   dragWireEnd,
+  getSheetEnd,
   partsInRect,
   GRID,
   calcSheetPins,
   placeOffset,
   type Point,
-  SHEET_HEIGHT,
-  SHEET_WIDTH,
   simplifyWire,
   snap,
   type WireEnd,
@@ -28,7 +28,13 @@ import {
 } from '../geometry/net';
 import type { Part, PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
-import { findDef, type CircuitDef, type Project } from '../circuit/project';
+import {
+  findDef,
+  getCircuitSheet,
+  type CircuitDef,
+  type CircuitSheet,
+  type Project,
+} from '../circuit/project';
 import { findUnexposedPorts, getPinout } from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
@@ -114,11 +120,8 @@ function netValue(net: Net | undefined, sim: SimResult): boolean {
  * 配線の点を置く位置。グリッドに合わせ、シートの範囲 (端を含む) に収める。
  * 範囲の外に点があると、まとめて動かすときのはみ出しの判定 (clampMove) の前提が崩れるため
  */
-function wireGridPoint(at: Point): Point {
-  return {
-    x: Math.min(Math.max(snap(at.x), 0), SHEET_WIDTH),
-    y: Math.min(Math.max(snap(at.y), 0), SHEET_HEIGHT),
-  };
+function wireGridPoint(at: Point, sheet: CircuitSheet): Point {
+  return clampToSheet({ x: snap(at.x), y: snap(at.y) }, sheet);
 }
 
 /** 押した位置からこれ以上動いたらドラッグとみなす (px) */
@@ -266,6 +269,7 @@ export function Sheet({
    */
   const [preview, setPreview] = useState<{ wire: string; points: Point[] } | null>(null);
   const [band, setBand] = useState<Band | null>(null);
+  const sheet = getCircuitSheet(circuit);
   const [{ width, height }, setSize] = useState<SheetSize>({
     width: 0,
     height: 0,
@@ -392,7 +396,7 @@ export function Sheet({
     if (tool === 'split' && e.button === 0) {
       // 分割モードでは、部品や配線の上を押しても選択やドラッグを始めない。分けられる点なら分ける
       e.stopPropagation();
-      const p = wireGridPoint(toLocal(e));
+      const p = wireGridPoint(toLocal(e), sheet);
       const target = findSplitTarget(circuit.wires, pinTips, p);
       if (target && !target.blocked) {
         onSplitWire(target.wire.id, p);
@@ -406,7 +410,7 @@ export function Sheet({
    * その点がピンの先か配線の上ならつないで終える。最後の点と同じ点なら、そこで終える
    */
   function onWireClick(at: Point) {
-    const p = wireGridPoint(at);
+    const p = wireGridPoint(at, sheet);
     if (!pending) {
       onPendingChange([p]);
       return;
@@ -522,7 +526,7 @@ export function Sheet({
       }
       svg.setPointerCapture(endDrag.pointerId);
     }
-    const next = dragWireEnd(endDrag.origin, endDrag.end, toLocal(e));
+    const next = dragWireEnd(endDrag.origin, endDrag.end, toLocal(e), sheet);
     if (next.every((p, i) => p.x === endDrag.points[i].x && p.y === endDrag.points[i].y)) {
       return;
     }
@@ -625,6 +629,7 @@ export function Sheet({
     const d = clampMove(
       items,
       { x: snap(p.x - drag.origin.x), y: snap(p.y - drag.origin.y) },
+      sheet,
       [...drag.wires.values()].flat(),
     );
     if (d.x === drag.delta.x && d.y === drag.delta.y) {
@@ -656,7 +661,9 @@ export function Sheet({
         Math.hypot(e.clientX - placeDown.start.x, e.clientY - placeDown.start.y) >=
         DRAG_THRESHOLD * 2;
       if (placing && !moved) {
-        onPlace(placeOffset(attachPinouts(placing.parts), wirePointsOf(placing), toLocal(e)));
+        onPlace(
+          placeOffset(attachPinouts(placing.parts), wirePointsOf(placing), toLocal(e), sheet),
+        );
       }
       return;
     }
@@ -705,17 +712,17 @@ export function Sheet({
    * クリックしたときと同じ計算 (onWireClick) にしないと、クリックした後に線が違う位置へ動いて見える
    */
   function wireCursor(at: Point): Point {
-    const p = wireGridPoint(at);
+    const p = wireGridPoint(at, sheet);
     return pending ? wireStepTo(pending[pending.length - 1], p) : p;
   }
 
   const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
   /** シートの画面上の範囲。この外には部品を置けない */
   const sheetStart = toScreen(view, { x: 0, y: 0 });
-  const sheetEnd = toScreen(view, { x: SHEET_WIDTH, y: SHEET_HEIGHT });
+  const sheetEnd = toScreen(view, getSheetEnd(sheet));
   const cursor = tool === 'wire' && mouse && !placing ? wireCursor(mouse) : null;
   // 分割モードで、ポインターの下の分ける点 (blocked なら分けられない点)
-  const splitPoint = tool === 'split' && mouse && !placing ? wireGridPoint(mouse) : null;
+  const splitPoint = tool === 'split' && mouse && !placing ? wireGridPoint(mouse, sheet) : null;
   const splitTarget = splitPoint && findSplitTarget(circuit.wires, pinTips, splitPoint);
   /** 配線の描く形。端のドラッグ中の配線は仮の形 */
   function pointsOf(w: Wire): Point[] {
@@ -922,6 +929,7 @@ export function Sheet({
                 attachPinouts(placing.parts),
                 wirePointsOf(placing),
                 mouse ?? toWorld(view, center()),
+                sheet,
               );
               return (
                 <g className={styles.ghost} transform={`translate(${d.x} ${d.y})`}>

@@ -5,6 +5,7 @@ import {
   type Project,
   type ProjectError,
   checkProject,
+  withCircuitSheet,
   withoutSwitchStates,
 } from '../circuit/project';
 import { fillPortNumbers } from '../circuit/module';
@@ -51,7 +52,7 @@ export function serializeProject(project: Project): string {
       ...(author && { author }),
       circuits: withoutSwitchStates(project).circuits.map((d) =>
         renameIds(
-          d,
+          withCircuitSheet(d),
           (i) => `part-${i + 1}`,
           (i) => `wire-${i + 1}`,
         ),
@@ -93,13 +94,16 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   if (error) {
     return { ok: false, error: { code: 'BROKEN', detail: error } };
   }
-  // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す
+  // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す。
+  // シートの大きさがない回路は 300×200 にする
   const project = withoutSwitchStates(raw as Project);
   return {
     ok: true,
     project: {
       ...project,
-      circuits: project.circuits.map((d) => fillPortNumbers(renameIds(d, newId, newId))),
+      circuits: project.circuits.map((d) =>
+        withCircuitSheet(fillPortNumbers(renameIds(d, newId, newId))),
+      ),
     },
   };
 }

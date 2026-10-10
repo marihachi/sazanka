@@ -4,7 +4,7 @@ import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import { circuitsUsing, dependsOn } from '../circuit/module';
-import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
+import { type CircuitDef, DEFAULT_SHEET, MAIN_ID, type Project } from '../circuit/project';
 import { getCircuitName, type Messages } from '../i18n/messages';
 
 /** モジュールの追加・改名・削除と、パレットに並べるモジュールの一覧 */
@@ -84,6 +84,7 @@ export function useModules({
           id: newId(),
           name,
           package: { kind: 'dip', pins: 8 },
+          sheet: DEFAULT_SHEET,
           parts: [],
           wires: [],
         };

@@ -15,6 +15,55 @@ export interface CircuitDef extends Circuit {
    * 読み込んだデータのモジュールには必ずある (checkProject で確かめる)。テストなどで作った、持たないモジュールは split として扱う
    */
   package?: Package;
+  /**
+   * シートの大きさ (マス)。読み込んだデータと、アプリで作った回路には必ずある (withCircuitSheet)。
+   * 型で省略できるのは、テストで回路を手短に作れるようにするため。持たない回路は DEFAULT_SHEET として扱う
+   */
+  sheet?: CircuitSheet;
+}
+
+/** シートの大きさ (マス)。左上が回路の座標の原点で、右と下へ広がる */
+export interface CircuitSheet {
+  width: number;
+  height: number;
+}
+
+/**
+ * sheet を持たない回路の大きさ (横 300 マス、縦 200 マス)。
+ * 形式の文書で、省略したときの大きさとして決めた値なので変えない。変えると、古いデータの回路の大きさが変わる
+ */
+export const DEFAULT_SHEET: CircuitSheet = { width: 300, height: 200 };
+
+/** シートの 1 辺のマスの数の下限と上限 */
+export const MIN_SHEET_CELLS = 20;
+export const MAX_SHEET_CELLS = 1000;
+
+/** シートの 1 辺のマスの数として使える値か。MIN_SHEET_CELLS〜MAX_SHEET_CELLS の整数 */
+export function isSheetCells(v: unknown): v is number {
+  return (
+    Number.isInteger(v) && (v as number) >= MIN_SHEET_CELLS && (v as number) <= MAX_SHEET_CELLS
+  );
+}
+
+/** シートの大きさとして使える値か。幅と高さのどちらも isSheetCells */
+export function isCircuitSheet(s: unknown): s is CircuitSheet {
+  return isObject(s) && isSheetCells(s.width) && isSheetCells(s.height);
+}
+
+export function getCircuitSheet(def: CircuitDef): CircuitSheet {
+  return def.sheet ?? DEFAULT_SHEET;
+}
+
+/**
+ * sheet を持たない回路に、DEFAULT_SHEET を書き込む。300×200 の回路も、保存データと共有用 JSON に必ず書くため (開発者の方針)。
+ * JSON で parts の前に来るよう、parts と wires を後ろに置き直す
+ */
+export function withCircuitSheet(def: CircuitDef): CircuitDef {
+  if (def.sheet) {
+    return def;
+  }
+  const { parts, wires, ...rest } = def;
+  return { ...rest, sheet: DEFAULT_SHEET, parts, wires };
 }
 
 /**
@@ -62,7 +111,7 @@ export interface Project {
 
 export function emptyProject(): Project {
   return {
-    circuits: [{ id: MAIN_ID, name: 'メイン', parts: [], wires: [] }],
+    circuits: [{ id: MAIN_ID, name: 'メイン', sheet: DEFAULT_SHEET, parts: [], wires: [] }],
   };
 }
 
@@ -112,6 +161,7 @@ export type ProjectError =
   | { code: 'NO_CIRCUIT_ID_OR_NAME' }
   | { code: 'NO_PACKAGE'; circuit: string }
   | { code: 'BAD_PACKAGE'; circuit: string }
+  | { code: 'BAD_SHEET'; circuit: string }
   | { code: 'NO_PARTS_OR_WIRES'; circuit: string }
   | { code: 'BAD_PART'; circuit: string }
   | { code: 'DUPLICATE_PART_ID'; circuit: string; id: string }
@@ -130,6 +180,10 @@ function checkCircuit(def: unknown, isModule: boolean): ProjectError | undefined
   }
   if (isModule && !isPackage(def.package)) {
     return { code: 'BAD_PACKAGE', circuit: def.name };
+  }
+  // 省略は許す。version 3 を公開したあとに足した項目で、それより前のデータにはないため
+  if (def.sheet !== undefined && !isCircuitSheet(def.sheet)) {
+    return { code: 'BAD_SHEET', circuit: def.name };
   }
   if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
     return { code: 'NO_PARTS_OR_WIRES', circuit: def.name };

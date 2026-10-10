@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { emptyProject, MAIN_ID, type Project, withoutSwitchStates } from '../circuit/project';
+import {
+  DEFAULT_SHEET,
+  emptyProject,
+  MAIN_ID,
+  type Project,
+  withCircuitSheet,
+  withoutSwitchStates,
+} from '../circuit/project';
 import { parseProject, serializeProject } from './share';
 
 const project: Project = {
@@ -7,6 +14,7 @@ const project: Project = {
     {
       id: MAIN_ID,
       name: 'メイン',
+      sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       parts: [
         { id: 'a', kind: 'input', x: 0, y: 0, on: true, portNumber: 1 },
@@ -76,7 +84,8 @@ describe('share', () => {
           ],
           wires: [{ ...main.wires[0], id: 'wire-1' }],
         },
-        { ...mod, parts: [{ ...mod.parts[0], id: 'part-1' }] },
+        // シートの大きさがない回路は、300×200 として書き出す
+        { ...mod, sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'part-1' }] },
       ],
     });
   });
@@ -96,7 +105,7 @@ describe('share', () => {
             ],
             wires: [{ ...main.wires[0], id: 'id3' }],
           },
-          { ...mod, parts: [{ ...mod.parts[0], id: 'id4' }] },
+          { ...mod, sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id4' }] },
         ],
       },
     });
@@ -249,8 +258,12 @@ describe('古い版のデータ', () => {
 
   it('version 2 のデータは、version 3 の形に変えて読み込む', () => {
     const result = parse(JSON.stringify({ app: 'sazanka', version: 2, project: projectV2 }));
+    // version 2 にはシートの大きさがないので、どの回路も 300×200 になる
+    const expected = withoutSwitchStates(project);
     expect(result.ok && withoutIds(result.project)).toEqual(
-      withoutIds(withoutSwitchStates(project)),
+      withoutIds({
+        circuits: expected.circuits.map(({ sheet: _, ...d }) => withCircuitSheet(d)),
+      }),
     );
   });
 

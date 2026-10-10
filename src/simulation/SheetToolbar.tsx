@@ -9,6 +9,7 @@ import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
 import trashIcon from '../assets/icons/trash.svg';
 import packageIcon from '../assets/icons/package.svg';
+import preferencesIcon from '../assets/icons/preferences.svg';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
 
@@ -26,6 +27,8 @@ interface SheetToolbarProps {
   /** 一時停止中に 1 tick だけ戻す */
   onStepBack: () => void;
   canStepBack: boolean;
+  /** 開いている回路のシート設定 (シートの大きさ) を開く。メイン回路でもモジュールでも出す */
+  onSheetSettings: () => void;
   /** 開いている回路がモジュールなら、そのモジュール設定 (パッケージとピンの割り当て) を開く。メイン回路では出さない */
   onModuleSettings?: () => void;
   /** 開いている回路がモジュールなら、それを削除する。メイン回路では出さない */
@@ -44,6 +47,7 @@ export const SheetToolbar = memo(function SheetToolbar({
   onStep,
   onStepBack,
   canStepBack,
+  onSheetSettings,
   onModuleSettings,
   onDeleteModule,
 }: SheetToolbarProps) {
@@ -93,26 +97,30 @@ export const SheetToolbar = memo(function SheetToolbar({
         onClick={onStep}
         disabled={running}
       />
-      {(onModuleSettings || onDeleteModule) && (
-        <Flex ms="auto" gap="0.5">
-          {onModuleSettings && (
-            <ToolButton
-              icon={packageIcon}
-              label={m.toolbar.moduleSettings}
-              title={m.toolbar.moduleSettingsTitle}
-              onClick={onModuleSettings}
-            />
-          )}
-          {onDeleteModule && (
-            <ToolButton
-              icon={trashIcon}
-              label={m.toolbar.deleteModule}
-              onClick={onDeleteModule}
-              danger
-            />
-          )}
-        </Flex>
-      )}
+      <Flex ms="auto" gap="0.5">
+        <ToolButton
+          icon={preferencesIcon}
+          label={m.toolbar.sheetSettings}
+          title={m.toolbar.sheetSettingsTitle}
+          onClick={onSheetSettings}
+        />
+        {onModuleSettings && (
+          <ToolButton
+            icon={packageIcon}
+            label={m.toolbar.moduleSettings}
+            title={m.toolbar.moduleSettingsTitle}
+            onClick={onModuleSettings}
+          />
+        )}
+        {onDeleteModule && (
+          <ToolButton
+            icon={trashIcon}
+            label={m.toolbar.deleteModule}
+            onClick={onDeleteModule}
+            danger
+          />
+        )}
+      </Flex>
     </Flex>
   );
 });

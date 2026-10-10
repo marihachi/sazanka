@@ -59,6 +59,8 @@
 | 表示               | `View`                 | シートの表示位置と倍率                                                                 |
 | 環境設定           | `Preferences`          | 利用者ごとの設定（tick の間隔、アクセントカラーなど）                                  |
 | モジュール設定     | `ModuleSettingsDialog` | モジュールのパッケージとピンの割り当てを編集するダイアログ。シートのツールバーから開く |
+| シート設定         | `SheetSettingsDialog`  | 回路のシートの大きさ（幅と高さ、マス）を変えるダイアログ。シートのツールバーから開く   |
+| シートの大きさ     | `CircuitSheet`         | 回路ごとのシートの幅と高さ（マス）。保存データの `sheet`                               |
 | 表示言語           | `Language`             | 画面に出す言語（日本語か英語）。環境設定の「自動」では、ブラウザの言語で決まる         |
 | 文言の表           | `Messages`             | 言語ごとの画面の文言をまとめたもの（`i18n/ja.ts`、`i18n/en.ts`）                       |
 
@@ -112,6 +114,8 @@
 | 削除エリア                | Delete area                    |
 | 環境設定                  | Preferences                    |
 | モジュール設定            | Module settings                |
+| シート設定                | Sheet settings                 |
+| マス（シートの大きさ）    | cells                          |
 | 選択モード / 配線モード / 分割モード | Select mode / Wire mode / Split mode |
 | 新規作成 / 読み込み / 書き出し | New / Import / Export     |
 | 元に戻す / やり直し       | Undo / Redo                    |

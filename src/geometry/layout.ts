@@ -3,6 +3,7 @@
 
 import type { Part } from '../circuit/part';
 import type { Pinout } from '../circuit/module';
+import type { CircuitSheet } from '../circuit/project';
 import type { PartLayout, PinPlacement, PinSide } from '../parts/layout';
 import { getLayout } from '../parts/layouts';
 
@@ -116,20 +117,31 @@ export function calcMarginAroundBody(layout: PartLayout): Rect {
   };
 }
 
-/** シートの幅と高さ (横 300 マス、縦 200 マス)。部品はこの中にだけ置ける */
-export const SHEET_WIDTH = GRID * 300;
-export const SHEET_HEIGHT = GRID * 200;
+/** シートの右下の角の座標 (px)。左上は (0, 0)。部品と配線の点は、この範囲の中にだけ置ける */
+export function getSheetEnd(sheet: CircuitSheet): Point {
+  return { x: sheet.width * GRID, y: sheet.height * GRID };
+}
+
+/** 点を、シートの範囲 (端を含む) に収める */
+export function clampToSheet(p: Point, sheet: CircuitSheet): Point {
+  const end = getSheetEnd(sheet);
+  return {
+    x: Math.min(Math.max(p.x, 0), end.x),
+    y: Math.min(Math.max(p.y, 0), end.y),
+  };
+}
 
 /** 部品の本体とピンが、シートからはみ出さないよう位置を補正する。補正後もグリッド上に乗るようにする */
-export function clampPosition(c: Part, pinout: Pinout, p: Point): Point {
+export function clampPosition(c: Part, pinout: Pinout, p: Point, sheet: CircuitSheet): Point {
+  const end = getSheetEnd(sheet);
   const { w, h } = bodySize(c, pinout);
   const m = calcMarginAroundBody(getLayout(c.kind, pinout));
   const minX = m.left;
   const minY = m.top;
   // 右端と下端は「本体 + 外の幅」がシートに収まる位置。グリッドに乗るよう切り捨てる。
   // Math.max は、シートより大きな部品でも minX / minY を下回らないようにするため
-  const maxX = Math.max(minX, Math.floor((SHEET_WIDTH - w - m.right) / GRID) * GRID);
-  const maxY = Math.max(minY, Math.floor((SHEET_HEIGHT - h - m.bottom) / GRID) * GRID);
+  const maxX = Math.max(minX, Math.floor((end.x - w - m.right) / GRID) * GRID);
+  const maxY = Math.max(minY, Math.floor((end.y - h - m.bottom) / GRID) * GRID);
   return {
     x: Math.min(Math.max(p.x, minX), maxX),
     y: Math.min(Math.max(p.y, minY), maxY),
@@ -144,19 +156,19 @@ export function clampPosition(c: Part, pinout: Pinout, p: Point): Point {
 export function clampMove(
   items: { c: Part; pinout: Pinout }[],
   delta: Point,
+  sheet: CircuitSheet,
   points: readonly Point[] = [],
 ): Point {
   // 部品を 1 つずつ、移動先がはみ出すなら delta を縮める (はみ出す向きの成分だけが 0 に近づく)
   let d = delta;
   for (const { c, pinout } of items) {
-    const p = clampPosition(c, pinout, { x: c.x + d.x, y: c.y + d.y });
+    const p = clampPosition(c, pinout, { x: c.x + d.x, y: c.y + d.y }, sheet);
     d = { x: p.x - c.x, y: p.y - c.y };
   }
   // 配線の点は、シートの範囲 (端を含む) に収める
   for (const p of points) {
-    const x = Math.min(Math.max(p.x + d.x, 0), SHEET_WIDTH);
-    const y = Math.min(Math.max(p.y + d.y, 0), SHEET_HEIGHT);
-    d = { x: x - p.x, y: y - p.y };
+    const q = clampToSheet({ x: p.x + d.x, y: p.y + d.y }, sheet);
+    d = { x: q.x - p.x, y: q.y - p.y };
   }
   return d;
 }
@@ -219,6 +231,7 @@ export function placeOffset(
   items: { c: Part; pinout: Pinout }[],
   points: readonly Point[],
   at: Point,
+  sheet: CircuitSheet,
 ): Point {
   // 全体の範囲 (各部品の範囲と配線の点を囲む長方形) の中心 cx, cy を求め、それが at に来る移動量にする
   const rects = [
@@ -227,7 +240,7 @@ export function placeOffset(
   ];
   const cx = (Math.min(...rects.map((r) => r.left)) + Math.max(...rects.map((r) => r.right))) / 2;
   const cy = (Math.min(...rects.map((r) => r.top)) + Math.max(...rects.map((r) => r.bottom))) / 2;
-  return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) }, points);
+  return clampMove(items, { x: snap(at.x - cx), y: snap(at.y - cy) }, sheet, points);
 }
 
 /**
@@ -276,7 +289,12 @@ export type WireEnd = 'start' | 'end';
  * (ドラッグの途中で戻すと、また伸びるように。区間を除くのは離したとき、simplifyWire で)。
  * 区間が 1 つだけの配線は、もう一方の端から 1 マスより短くしない。伸ばす先はシートの範囲で止める
  */
-export function dragWireEnd(points: readonly Point[], end: WireEnd, at: Point): Point[] {
+export function dragWireEnd(
+  points: readonly Point[],
+  end: WireEnd,
+  at: Point,
+  sheet: CircuitSheet,
+): Point[] {
   const i = end === 'start' ? 0 : points.length - 1;
   const j = end === 'start' ? 1 : points.length - 2;
   const tip = points[i];
@@ -286,7 +304,8 @@ export function dragWireEnd(points: readonly Point[], end: WireEnd, at: Point): 
   const from = horizontal ? anchor.x : anchor.y;
   // 端が隣の点から見てどちら向きにあるか (+1 か -1)。端の区間を伸ばす向き
   const dir = Math.sign((horizontal ? tip.x : tip.y) - from);
-  const limit = horizontal ? SHEET_WIDTH : SHEET_HEIGHT;
+  const sheetEnd = getSheetEnd(sheet);
+  const limit = horizontal ? sheetEnd.x : sheetEnd.y;
   // 隣の点からの長さ (伸ばす向きを正)。0 なら折れる点まで縮めた状態
   const min = points.length === 2 ? GRID : 0;
   const max = dir > 0 ? limit - from : from;

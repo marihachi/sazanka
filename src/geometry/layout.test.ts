@@ -7,8 +7,6 @@ import {
   partBounds,
   partsInRect,
   GRID,
-  SHEET_HEIGHT,
-  SHEET_WIDTH,
   inputPinPos,
   calcMarginAroundBody,
   outputPinPos,
@@ -20,23 +18,27 @@ import {
   wireStepTo,
 } from './layout';
 import type { Part, PartKind } from '../circuit/part';
-import type { Project } from '../circuit/project';
+import { DEFAULT_SHEET, type Project } from '../circuit/project';
 import { getPinout } from '../circuit/module';
 import type { PartLayout } from '../parts/layout';
+
+const sheet = DEFAULT_SHEET;
+const SHEET_WIDTH = sheet.width * GRID;
+const SHEET_HEIGHT = sheet.height * GRID;
 
 describe('clampPosition', () => {
   const and: Part = { id: 'g', kind: 'and', x: 0, y: 0 };
   const pinout = { inputs: ['', ''], outputs: [''] };
 
   it('シートの中ならそのまま', () => {
-    expect(clampPosition(and, pinout, { x: 100, y: 100 })).toEqual({
+    expect(clampPosition(and, pinout, { x: 100, y: 100 }, sheet)).toEqual({
       x: 100,
       y: 100,
     });
   });
 
   it('左上にはみ出すと、入力ピンの先端が収まる位置に戻す', () => {
-    expect(clampPosition(and, pinout, { x: -60, y: -40 })).toEqual({
+    expect(clampPosition(and, pinout, { x: -60, y: -40 }, sheet)).toEqual({
       x: 20,
       y: 0,
     });
@@ -44,15 +46,23 @@ describe('clampPosition', () => {
 
   it('右下にはみ出すと、出力ピンの先端と本体が収まるグリッド位置に戻す', () => {
     // 幅 60 + 出力ピン 20、高さ 80
-    expect(clampPosition(and, pinout, { x: 99999, y: 99999 })).toEqual({
+    expect(clampPosition(and, pinout, { x: 99999, y: 99999 }, sheet)).toEqual({
       x: SHEET_WIDTH - 80,
       y: SHEET_HEIGHT - 80,
     });
   });
 
+  it('回路のシートの大きさで、右下の限りが決まる', () => {
+    // 40×30 マスのシート (800×600)。幅 60 + 出力ピン 20、高さ 80
+    expect(clampPosition(and, pinout, { x: 99999, y: 99999 }, { width: 40, height: 30 })).toEqual({
+      x: 800 - 80,
+      y: 600 - 80,
+    });
+  });
+
   it('モジュールは本体の上の名前の分も空ける', () => {
     const mod: Part = { id: 'm', kind: 'module', x: 0, y: 0 };
-    expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }).y).toBe(20);
+    expect(clampPosition(mod, { inputs: [''], outputs: [''] }, { x: 0, y: 0 }, sheet).y).toBe(20);
   });
 });
 
@@ -191,12 +201,12 @@ describe('clampMove', () => {
   ];
 
   it('どれもはみ出さなければそのまま', () => {
-    expect(clampMove(items, { x: 20, y: 0 })).toEqual({ x: 20, y: 0 });
+    expect(clampMove(items, { x: 20, y: 0 }, sheet)).toEqual({ x: 20, y: 0 });
   });
 
   it('どれか1つでも左上にはみ出すなら、全体の移動を縮める', () => {
     // b は上に 20 までしか動けない。a は左に 80 までしか動けない
-    expect(clampMove(items, { x: -200, y: -100 })).toEqual({ x: -80, y: -20 });
+    expect(clampMove(items, { x: -200, y: -100 }, sheet)).toEqual({ x: -80, y: -20 });
   });
 });
 
@@ -284,12 +294,12 @@ describe('placeOffset', () => {
   it('全体の中心が指定した点に来るよう、グリッドに合わせて動かす', () => {
     // 範囲は左右のピンを含めて x: 80〜180、y: 100〜180 なので、中心は (130, 140)
     const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
-    expect(placeOffset(items, [], { x: 530, y: 345 })).toEqual({ x: 400, y: 200 });
+    expect(placeOffset(items, [], { x: 530, y: 345 }, sheet)).toEqual({ x: 400, y: 200 });
   });
 
   it('シートからはみ出す位置なら縮める', () => {
     const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
-    expect(placeOffset(items, [], { x: 0, y: 0 })).toEqual({ x: -80, y: -100 });
+    expect(placeOffset(items, [], { x: 0, y: 0 }, sheet)).toEqual({ x: -80, y: -100 });
   });
 });
 
@@ -301,18 +311,21 @@ describe('placeOffset と配線の点', () => {
       { x: 100, y: 100 },
       { x: 300, y: 100 },
     ];
-    expect(placeOffset([], points, { x: 500, y: 300 })).toEqual({ x: 300, y: 200 });
+    expect(placeOffset([], points, { x: 500, y: 300 }, sheet)).toEqual({ x: 300, y: 200 });
   });
 
   it('配線の点がシートからはみ出す位置なら縮める', () => {
-    expect(placeOffset([], [{ x: 100, y: 100 }], { x: -500, y: 50 })).toEqual({ x: -100, y: -40 });
+    expect(placeOffset([], [{ x: 100, y: 100 }], { x: -500, y: 50 }, sheet)).toEqual({
+      x: -100,
+      y: -40,
+    });
   });
 });
 
 describe('clampMove と配線の点', () => {
   it('点がシートの端を越えないように縮める', () => {
-    expect(clampMove([], { x: -60, y: 40 }, [{ x: 40, y: 0 }])).toEqual({ x: -40, y: 40 });
-    expect(clampMove([], { x: 100, y: 0 }, [{ x: SHEET_WIDTH - 20, y: 0 }])).toEqual({
+    expect(clampMove([], { x: -60, y: 40 }, sheet, [{ x: 40, y: 0 }])).toEqual({ x: -40, y: 40 });
+    expect(clampMove([], { x: 100, y: 0 }, sheet, [{ x: SHEET_WIDTH - 20, y: 0 }])).toEqual({
       x: 20,
       y: 0,
     });
@@ -363,62 +376,64 @@ describe('dragWireEnd', () => {
   const l = pts([100, 100], [300, 100], [300, 200]);
 
   it('端の区間の向きにまっすぐ縮める・伸ばす (グリッドに合わせる)', () => {
-    expect(dragWireEnd(l, 'start', { x: 162, y: 100 })).toEqual(
+    expect(dragWireEnd(l, 'start', { x: 162, y: 100 }, sheet)).toEqual(
       pts([160, 100], [300, 100], [300, 200]),
     );
-    expect(dragWireEnd(l, 'start', { x: 40, y: 100 })).toEqual(
+    expect(dragWireEnd(l, 'start', { x: 40, y: 100 }, sheet)).toEqual(
       pts([40, 100], [300, 100], [300, 200]),
     );
-    expect(dragWireEnd(l, 'end', { x: 300, y: 260 })).toEqual(
+    expect(dragWireEnd(l, 'end', { x: 300, y: 260 }, sheet)).toEqual(
       pts([100, 100], [300, 100], [300, 260]),
     );
   });
 
   it('区間と直角の向きに動かしても、端は区間の向きにしか動かない', () => {
-    expect(dragWireEnd(l, 'start', { x: 160, y: 40 })).toEqual(
+    expect(dragWireEnd(l, 'start', { x: 160, y: 40 }, sheet)).toEqual(
       pts([160, 100], [300, 100], [300, 200]),
     );
-    expect(dragWireEnd(l, 'end', { x: 500, y: 200 })).toEqual(l);
+    expect(dragWireEnd(l, 'end', { x: 500, y: 200 }, sheet)).toEqual(l);
   });
 
   it('隣の折れる点で止まり、長さ 0 の区間を残す (点の数は変えない)', () => {
-    expect(dragWireEnd(l, 'start', { x: 400, y: 100 })).toEqual(
+    expect(dragWireEnd(l, 'start', { x: 400, y: 100 }, sheet)).toEqual(
       pts([300, 100], [300, 100], [300, 200]),
     );
-    expect(dragWireEnd(l, 'end', { x: 300, y: 0 })).toEqual(
+    expect(dragWireEnd(l, 'end', { x: 300, y: 0 }, sheet)).toEqual(
       pts([100, 100], [300, 100], [300, 100]),
     );
   });
 
   it('折れる点まで縮めてから戻すと、また伸びる (始めたときの並びから求めるため)', () => {
-    dragWireEnd(l, 'start', { x: 400, y: 100 });
-    expect(dragWireEnd(l, 'start', { x: 200, y: 100 })).toEqual(
+    dragWireEnd(l, 'start', { x: 400, y: 100 }, sheet);
+    expect(dragWireEnd(l, 'start', { x: 200, y: 100 }, sheet)).toEqual(
       pts([200, 100], [300, 100], [300, 200]),
     );
   });
 
   it('区間が 1 つだけの配線は、1 マスより短くしない', () => {
     const line = pts([100, 100], [300, 100]);
-    expect(dragWireEnd(line, 'end', { x: 100, y: 100 })).toEqual(
+    expect(dragWireEnd(line, 'end', { x: 100, y: 100 }, sheet)).toEqual(
       pts([100, 100], [100 + GRID, 100]),
     );
-    expect(dragWireEnd(line, 'end', { x: 0, y: 100 })).toEqual(pts([100, 100], [100 + GRID, 100]));
-    expect(dragWireEnd(line, 'start', { x: 400, y: 100 })).toEqual(
+    expect(dragWireEnd(line, 'end', { x: 0, y: 100 }, sheet)).toEqual(
+      pts([100, 100], [100 + GRID, 100]),
+    );
+    expect(dragWireEnd(line, 'start', { x: 400, y: 100 }, sheet)).toEqual(
       pts([300 - GRID, 100], [300, 100]),
     );
   });
 
   it('伸ばす先はシートの範囲で止める', () => {
-    expect(dragWireEnd(l, 'start', { x: -500, y: 100 })).toEqual(
+    expect(dragWireEnd(l, 'start', { x: -500, y: 100 }, sheet)).toEqual(
       pts([0, 100], [300, 100], [300, 200]),
     );
-    expect(dragWireEnd(l, 'end', { x: 300, y: SHEET_HEIGHT + 500 })).toEqual(
+    expect(dragWireEnd(l, 'end', { x: 300, y: SHEET_HEIGHT + 500 }, sheet)).toEqual(
       pts([100, 100], [300, 100], [300, SHEET_HEIGHT]),
     );
   });
 
   it('離したときに simplifyWire をかけると、長さ 0 の区間がなくなる', () => {
-    const shrunk = dragWireEnd(l, 'start', { x: 400, y: 100 });
+    const shrunk = dragWireEnd(l, 'start', { x: 400, y: 100 }, sheet);
     expect(simplifyWire(shrunk)).toEqual(pts([300, 100], [300, 200]));
   });
 });

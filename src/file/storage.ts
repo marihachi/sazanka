@@ -1,4 +1,10 @@
-import { checkProject, emptyProject, withoutSwitchStates, type Project } from '../circuit/project';
+import {
+  checkProject,
+  emptyProject,
+  withCircuitSheet,
+  withoutSwitchStates,
+  type Project,
+} from '../circuit/project';
 import {
   DEFAULT_PREFERENCES,
   isAccent,
@@ -80,14 +86,20 @@ export function readStored(raw: string | null): LoadResult {
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
   const loaded = withoutSwitchStates(project as Project);
-  // version 3 を公開する前の保存データには、ポート番号がない
-  return { project: { ...loaded, circuits: loaded.circuits.map(fillPortNumbers) } };
+  // version 3 を公開する前の保存データには、ポート番号がない。シートの大きさを足す前のデータには、大きさがない
+  return {
+    project: {
+      ...loaded,
+      circuits: loaded.circuits.map((d) => withCircuitSheet(fillPortNumbers(d))),
+    },
+  };
 }
 
 export function saveProject(project: Project) {
+  const unswitched = withoutSwitchStates(project);
   const data: StoredData = {
     version: STORAGE_VERSION,
-    project: withoutSwitchStates(project),
+    project: { ...unswitched, circuits: unswitched.circuits.map(withCircuitSheet) },
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

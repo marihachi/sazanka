@@ -79,6 +79,7 @@ describe('readStored', () => {
           {
             id: 'main',
             name: 'メイン',
+            sheet: { width: 300, height: 200 },
             parts: [{ id: 'm', kind: 'module', x: 100, y: 0, module: 'mod' }],
             wires: [],
           },
@@ -86,6 +87,7 @@ describe('readStored', () => {
             id: 'mod',
             name: 'M',
             package: { kind: 'split' },
+            sheet: { width: 300, height: 200 },
             parts: [{ id: 'd', kind: 'dFlipFlop', x: 0, y: 0 }],
             wires: [],
           },
