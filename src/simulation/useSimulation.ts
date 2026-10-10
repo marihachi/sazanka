@@ -297,23 +297,40 @@ export function useSimulation(
 
   const hasClock = project.circuits.some((d) => d.parts.some((c) => c.kind === 'clock'));
 
+  /**
+   * 経過時間の数え方。last は前のフレームの時刻、carry は持ち越した 1 tick に満たない端数。
+   * ループは回路を編集するたびに作り直す (下の useEffect) ので、作り直しをまたいで持つ。
+   * ループの中に持つと、部品のドラッグのように編集が続くとき、作り直すたびに前のフレームからの時間が
+   * 数えられず、時間が遅れる。null はループが止まっていた (一時停止、または CLOCK がなく落ち着いた) とき。
+   * 止まっていた間の時間は数えないので、動かし直すときは、その時刻から数え始める
+   */
+  const frameTiming = useRef<{ last: number; carry: number } | null>(null);
+
   // advance は ref 越しに最新の状態を見るので、貼り直さなくてよい。
   // project と circuitId は中では使わないが、回路を触ったら止まったループを動かし直すために並べている
   // biome-ignore lint/correctness/useExhaustiveDependencies: 上の理由で依存を絞っている
   useEffect(() => {
     if (!running) {
+      frameTiming.current = null;
       return;
     }
     let frame = 0;
-    let last = performance.now();
-    let carry = 0;
+    if (!frameTiming.current) {
+      frameTiming.current = { last: performance.now(), carry: 0 };
+    }
+    const timing = frameTiming.current;
     /** このループで 1 tick でも進めたか。進める前に「落ち着いている」と判断して止めないため */
     let stepped = false;
     const onFrame = (now: number) => {
       // 速さを変えても、ループを作り直さずに次のフレームから効かせる
-      const due = frameTicks(carry, now - last, ticksPerSecondRef.current);
-      last = now;
-      carry = due.carry;
+      // フレームの時刻は、作り直したときに測った時刻より前のことがあるので、負にならないようにする
+      const due = frameTicks(
+        timing.carry,
+        Math.max(0, now - timing.last),
+        ticksPerSecondRef.current,
+      );
+      timing.last = now;
+      timing.carry = due.carry;
       let changed = false;
       let count = 0;
       const start = performance.now();
@@ -336,6 +353,7 @@ export function useSimulation(
       }
       // CLOCK がなく、値も落ち着いたら止める。回路を触れば (project が変わるので) また動き出す
       if (stepped && !hasClock && current.current.state.stableTicks > SETTLED_TICKS) {
+        frameTiming.current = null;
         return;
       }
       frame = requestAnimationFrame(onFrame);
