@@ -15,6 +15,7 @@
   2. 1 版分の変換（`file/upgradeV<N>.ts` の `upgradeV<N>`: version N → N+1）を作り、`file/upgrade.ts` の `UPGRADES` の末尾に足す。
 - 古い版のデータは、`file/upgrade.ts` の `upgradeProject` が、`UPGRADES` の変換を版の順に通して今の版の形にする。保存データ（`readStored`）と共有用 JSON（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
 - 今の版は、どちらも 3。
+- 部品の位置と配線の点をマス単位にする version 4 の[計画](../plans/format-v4/plan.md)がある（計画中）。ほかの形式の変更とまとめて版を上げる。形式を変えるときは、この計画に含められないかを開発者に聞く。
 - version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/archive/v2.md) の「version 1 からの変更」にある。
   - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
   - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
