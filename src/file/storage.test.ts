@@ -40,8 +40,17 @@ const withModule: Project = {
   ],
 };
 
+// 配線の ID は保存しないので、読み込むと新しい ID (counter の id1) が付く
+const loaded = {
+  ...withModule,
+  circuits: [
+    { ...withModule.circuits[0], wires: [{ ...withModule.circuits[0].wires[0], id: 'id1' }] },
+    withModule.circuits[1],
+  ],
+};
+
 describe('toStoredProject / fromStoredProject', () => {
-  it('保存するときは、位置をマスにし、メイン回路の名前を外す', () => {
+  it('保存するときは、位置をマスにし、メイン回路の名前と配線の ID を外し、配線に種類を書く', () => {
     const [main, mod] = withModule.circuits;
     const { name: _, ...mainWithoutName } = main;
     expect(toStoredProject(withModule)).toEqual({
@@ -54,21 +63,33 @@ describe('toStoredProject / fromStoredProject', () => {
             { ...main.parts[1], x: 5, y: 0 },
           ],
           // biome-ignore format: 表形式を維持するため
-          wires: [{ id: 'w', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
+          wires: [{ kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
         },
         { ...mod, parts: [{ ...mod.parts[0], x: 2, y: 3 }] },
       ],
     });
   });
 
-  it('読み込むと元に戻る。メイン回路の名前は、あっても空文字にする', () => {
-    expect(fromStoredProject(toStoredProject(withModule))).toEqual(withModule);
+  it('読み込むと元に戻り、配線に新しい ID が付く。メイン回路の名前は、あっても空文字にする', () => {
+    expect(fromStoredProject(toStoredProject(withModule), counter())).toEqual(loaded);
     const stored = toStoredProject(withModule);
     const named = {
       ...stored,
       circuits: [{ ...stored.circuits[0], name: 'メイン' }, stored.circuits[1]],
     };
-    expect(fromStoredProject(named)).toEqual(withModule);
+    expect(fromStoredProject(named, counter())).toEqual(loaded);
+  });
+
+  it('読み込むデータの配線に ID があっても使わない', () => {
+    const stored = toStoredProject(withModule);
+    const withWireId = {
+      ...stored,
+      circuits: [
+        { ...stored.circuits[0], wires: [{ ...stored.circuits[0].wires[0], id: 'old' }] },
+        stored.circuits[1],
+      ],
+    };
+    expect(read(JSON.stringify({ version: 4, project: withWireId }))).toEqual({ project: loaded });
   });
 });
 
@@ -77,12 +98,12 @@ describe('readStored', () => {
     expect(read(null)).toEqual({ project: emptyProject() });
   });
 
-  it('版付きの保存データを読み込む。ID は付け直さない', () => {
+  it('版付きの保存データを読み込む。回路と部品の ID は付け直さない', () => {
     expect(read(JSON.stringify({ version: 4, project: toStoredProject(project) }))).toEqual({
       project,
     });
     expect(read(JSON.stringify({ version: 4, project: toStoredProject(withModule) }))).toEqual({
-      project: withModule,
+      project: loaded,
     });
   });
 

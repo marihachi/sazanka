@@ -20,10 +20,15 @@ export interface Wire {
   points: { x: number; y: number }[];
 }
 
-export function isWire(w: unknown): w is Wire {
+/**
+ * 保存データの配線として正しい形か。種類 (kind) が普通の配線 (wire) で、点が 2 つ以上あり、どの区間も縦か横。
+ * 知らない種類は断る (あとで種類を足したとき、古いアプリが普通の配線として読み違えないため)。
+ * ID は保存しないので見ない (あっても読み込むときに捨てる)
+ */
+export function isWire(w: unknown): boolean {
   return (
     isObject(w) &&
-    typeof w.id === 'string' &&
+    w.kind === 'wire' &&
     Array.isArray(w.points) &&
     w.points.length >= 2 &&
     w.points.every(isPoint) &&

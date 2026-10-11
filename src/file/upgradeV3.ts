@@ -1,5 +1,6 @@
 // 形式 version 3 のプロジェクトを、version 4 の形に変える。保存データと共有用 JSON の両方で使い、upgrade.ts から呼ぶ。
-// version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路・部品・配線の ID をプロジェクトをまたいでも重ならないものにした。
+// version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路と部品の ID をプロジェクトをまたいでも重ならないものにした。
+// 配線は ID を持たなくなり、種類 (kind) を持つ。
 // INPUT / OUTPUT のポート名の項目名を label から portName に変え、メイン回路は name を持たなくなった。
 // 形式は docs/format/archive/v3.md と docs/format/v4.md。
 //
@@ -29,7 +30,7 @@ function withCells<T extends Record<string, unknown>>(o: T): T {
 
 /**
  * ID を新しくする。文字列でない ID は、そのまま残す (検証で断る)。
- * version 3 の ID は回路をまたいで重なりうる (共有用 JSON の part-1 など) ので、すべて付け直す
+ * version 3 の ID は回路をまたいで重なりうる (共有用 JSON の part-1 など) ので、回路と部品の ID はすべて付け直す
  */
 function renewId(id: unknown, newId: () => string): unknown {
   return typeof id === 'string' ? newId() : id;
@@ -51,13 +52,18 @@ function upgradePart(part: unknown, moduleIds: Map<string, string>, newId: () =>
   };
 }
 
-function upgradeWire(wire: unknown, newId: () => string): unknown {
+/**
+ * 配線 1 本を version 4 の形にする。ID を消し (version 4 は配線の ID を保存しない)、種類 wire を書く。
+ * version 3 の配線は、どれも普通の配線
+ */
+function upgradeWire(wire: unknown): unknown {
   if (!isObject(wire)) {
     return wire;
   }
+  const { id: _, ...rest } = wire;
   return {
-    ...wire,
-    id: renewId(wire.id, newId),
+    kind: 'wire',
+    ...rest,
     points: Array.isArray(wire.points)
       ? wire.points.map((p) => (isObject(p) ? withCells(p) : p))
       : wire.points,
@@ -87,9 +93,7 @@ function upgradeCircuit(
     parts: Array.isArray(circuit.parts)
       ? circuit.parts.map((p) => upgradePart(p, moduleIds, newId))
       : circuit.parts,
-    wires: Array.isArray(circuit.wires)
-      ? circuit.wires.map((w) => upgradeWire(w, newId))
-      : circuit.wires,
+    wires: Array.isArray(circuit.wires) ? circuit.wires.map(upgradeWire) : circuit.wires,
   };
 }
 

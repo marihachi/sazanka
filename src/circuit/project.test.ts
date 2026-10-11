@@ -64,11 +64,18 @@ describe('checkProject', () => {
   const 重なるもの: [string, unknown, string][] = [
     ['同じ回路の部品どうし', main([comp('a', 'and'), comp('a', 'or')]), 'a'],
     ['回路をまたいだ部品どうし', withModule([comp('a', 'and')], [comp('a', 'or')]), 'a'],
-    ['部品と配線', main([comp('a', 'and')], [{ id: 'a', points: [点(0, 0), 点(1, 0)] }]), 'a'],
-    ['配線どうし', main([], [{ id: 'w', points: [点(0, 0), 点(1, 0)] }, { id: 'w', points: [点(0, 0), 点(0, 1)] }]), 'w'],
     ['部品と回路', withModule([comp('m', 'and')], []), 'm'],
     ['モジュールの回路が main を使う', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }, { id: MAIN_ID, name: 'M', package: { kind: 'split' }, parts: [], wires: [] }] }, MAIN_ID],
   ];
+  it('配線の ID は見ない (保存しないので、重なっていても、なくてもよい)', () => {
+    const wire = (id?: string) => ({
+      ...(id ? { id } : {}),
+      kind: 'wire',
+      points: [点(0, 0), 点(1, 0)],
+    });
+    expect(checkProject(main([comp('a', 'and')], [wire('a'), wire('a'), wire()]))).toBeUndefined();
+  });
+
   for (const [name, value, id] of 重なるもの) {
     it(`ID の重なりを弾く: ${name}`, () => {
       expect(checkProject(value)).toEqual({ code: 'DUPLICATE_ID', id });
@@ -107,17 +114,46 @@ describe('checkProject', () => {
         ],
       ),
     ],
-    ['配線の点が 1 つ', main([], [{ id: 'w', points: [{ x: 0, y: 0 }] }])],
+    ['配線の点が 1 つ', main([], [{ kind: 'wire', points: [{ x: 0, y: 0 }] }])],
+    [
+      '配線の種類がない',
+      main(
+        [],
+        [
+          {
+            points: [
+              { x: 0, y: 0 },
+              { x: 1, y: 0 },
+            ],
+          },
+        ],
+      ),
+    ],
+    [
+      '配線の種類が知らない値',
+      main(
+        [],
+        [
+          {
+            kind: 'bus',
+            points: [
+              { x: 0, y: 0 },
+              { x: 1, y: 0 },
+            ],
+          },
+        ],
+      ),
+    ],
     [
       '配線に斜めの区間がある',
       main(
         [],
         [
           {
-            id: 'w',
+            kind: 'wire',
             points: [
               { x: 0, y: 0 },
-              { x: 20, y: 20 },
+              { x: 1, y: 1 },
             ],
           },
         ],

@@ -4,6 +4,7 @@ import { checkProject, type Project } from '../circuit/project';
 import { inputPinPos, outputPinPos } from '../geometry/layout';
 import { upgradeV1 } from './upgradeV1';
 import { upgradeV2 } from './upgradeV2';
+import { upgradeV3 } from './upgradeV3';
 
 describe('upgradeV2', () => {
   it('部品の一覧を parts に、モジュールの参照を module に移し、種類の名前を変える', () => {
@@ -137,7 +138,9 @@ describe('古い版から順に変えたときのつながり', () => {
 
   it('version 1 のデータを読むと、配線の端がピンの先に重なったまま version 3 の形になる', () => {
     const v3 = upgradeV2(upgradeV1(v1));
-    expect(checkProject(v3)).toBeUndefined();
+    // 検証は今の版 (version 4) の形で行うので、version 4 に変えてから確かめる
+    let n = 0;
+    expect(checkProject(upgradeV3(v3, () => `id${++n}`))).toBeUndefined();
     const project = v3 as Project;
     const [a, m, q] = project.circuits[0].parts;
     const pinout = (p: (typeof project.circuits)[0]['parts'][0]) => getPinout(p, project);

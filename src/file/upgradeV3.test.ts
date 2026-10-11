@@ -12,7 +12,7 @@ function counter(): () => string {
 }
 
 describe('upgradeV3', () => {
-  it('位置をマスにし、ID を付け直し、label を portName に移し、メイン回路の名前を消す', () => {
+  it('位置をマスにし、ID を付け直し、label を portName に移し、メイン回路の名前と配線の ID を消す', () => {
     const v3 = {
       author: 'さざんか',
       circuits: [
@@ -37,7 +37,7 @@ describe('upgradeV3', () => {
         },
       ],
     };
-    // 新しい ID は、モジュールの回路、メイン回路の部品と配線、モジュールの部品と配線の順に作る
+    // 新しい ID は、モジュールの回路、メイン回路の部品、モジュールの部品の順に作る。配線は ID を持たず、種類を持つ
     expect(upgradeV3(v3, counter())).toEqual({
       author: 'さざんか',
       circuits: [
@@ -50,13 +50,13 @@ describe('upgradeV3', () => {
             { id: 'id3', kind: 'module', x: 5, y: 0, module: 'id1' },
           ],
           // biome-ignore format: 表形式を維持するため
-          wires: [{ id: 'id4', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
+          wires: [{ kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
         },
         {
           id: 'id1',
           name: 'M',
           package: { kind: 'split' },
-          parts: [{ id: 'id5', kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
+          parts: [{ id: 'id4', kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
           wires: [],
         },
       ],
@@ -135,7 +135,7 @@ describe('upgradeV3', () => {
     }] };
     const v4 = upgradeV3(v3, counter());
     expect(checkProject(v4)).toBeUndefined();
-    const project = fromStoredProject(v4 as StoredProject);
+    const project = fromStoredProject(v4 as StoredProject, counter());
     const [a, q] = project.circuits[0].parts;
     const [w] = project.circuits[0].wires;
     expect(w.points[0]).toEqual(outputPinPos(a, getPinout(a, project), 0));

@@ -13,7 +13,7 @@ import {
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
-import { GRID } from '../geometry/layout';
+import { GRID, type Point } from '../geometry/layout';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
@@ -31,57 +31,63 @@ interface StoredData {
 }
 
 /**
- * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
- * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
- * - メイン回路は名前を持たない (アプリの中は空文字)。
+ * 保存データと共有用 JSON の中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
+ * 配線の ID はどこからも参照されないので保存せず、読み込むたびに付ける。種類は今は普通の配線 (wire) だけ
  */
-export interface StoredProject {
-  author?: string;
-  circuits: (Omit<CircuitDef, 'name'> & { name?: string })[];
-}
-
-/** 座標を持つもの (部品と配線の点) の x と y に scale を掛ける (px → マスは 1 / GRID、マス → px は GRID) */
-function scalePoint<T extends { x: number; y: number }>(p: T, scale: number): T {
-  return { ...p, x: p.x * scale, y: p.y * scale };
-}
-
-/** 回路の部品の位置と配線の点に scale を掛ける */
-function scaleCircuit<T extends Pick<CircuitDef, 'parts' | 'wires'>>(def: T, scale: number): T {
-  return {
-    ...def,
-    parts: def.parts.map((c) => scalePoint(c, scale)),
-    wires: def.wires.map((w) => ({ ...w, points: w.points.map((p) => scalePoint(p, scale)) })),
-  };
+export interface StoredWire {
+  kind: 'wire';
+  points: Point[];
 }
 
 /**
- * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。位置を px からマスに直し、メイン回路の名前を外す。
+ * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
+ * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
+ * - メイン回路は名前を持たない (アプリの中は空文字)。
+ * - 配線は ID を持たず、種類を持つ (StoredWire)。
+ */
+export interface StoredProject {
+  author?: string;
+  circuits: (Omit<CircuitDef, 'name' | 'wires'> & { name?: string; wires: StoredWire[] })[];
+}
+
+/** 座標を持つもの (部品と配線の点) の x と y に scale を掛ける (px → マスは 1 / GRID、マス → px は GRID) */
+function scalePoint<T extends Point>(p: T, scale: number): T {
+  return { ...p, x: p.x * scale, y: p.y * scale };
+}
+
+/**
+ * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
+ * 位置を px からマスに直し、メイン回路の名前と配線の ID を外し、配線に種類を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
  */
 export function toStoredProject(project: Project): StoredProject {
   return {
     ...project,
-    circuits: project.circuits.map((def, i) => {
-      const scaled = scaleCircuit(def, 1 / GRID);
-      if (i > 0) {
-        return scaled;
-      }
-      const { name: _, ...main } = scaled;
-      return main;
-    }),
+    circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
+      ...def,
+      ...(i > 0 ? { name } : {}),
+      parts: parts.map((c) => scalePoint(c, 1 / GRID)),
+      wires: wires.map((w) => ({
+        kind: 'wire',
+        points: w.points.map((p) => scalePoint(p, 1 / GRID)),
+      })),
+    })),
   };
 }
 
 /**
  * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。位置をマスから px に直す。
- * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)
+ * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
+ * 配線には newId で新しい ID を付ける。データに ID があっても使わない
  */
-export function fromStoredProject(project: StoredProject): Project {
+export function fromStoredProject(project: StoredProject, newId: () => string): Project {
   return {
     ...project,
-    circuits: project.circuits.map((def, i) => ({
-      ...scaleCircuit(def, GRID),
-      name: i > 0 ? (def.name ?? '') : '',
+    circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
+      ...def,
+      name: i > 0 ? (name ?? '') : '',
+      parts: parts.map((c) => scalePoint(c, GRID)),
+      wires: wires.map((w) => ({ id: newId(), points: w.points.map((p) => scalePoint(p, GRID)) })),
     })),
   };
 }
@@ -147,7 +153,7 @@ export function readStored(raw: string | null, newId: () => string): LoadResult 
     };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
-  const loaded = withoutSwitchStates(fromStoredProject(project as StoredProject));
+  const loaded = withoutSwitchStates(fromStoredProject(project as StoredProject, newId));
   // version 3 を公開する前の保存データには、ポート番号がない。シートの大きさを足す前のデータには、大きさがない
   return {
     project: {

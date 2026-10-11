@@ -47,7 +47,8 @@ export type ShareError =
 export type ParseResult = { ok: true; project: Project } | { ok: false; error: ShareError };
 
 /**
- * 共有用の JSON を読み込む。ID は付け直さない。newId は、古い版の ID を付け直す変換 (upgradeV3) が使う。
+ * 共有用の JSON を読み込む。回路と部品の ID は付け直さない。
+ * newId は、配線の ID (保存しない) を付けるのと、古い版の ID を付け直す変換 (upgradeV3) に使う。
  * 他人から受け取った文字列なので、形が正しいかをひととおり確かめ、問題があれば理由を返す
  */
 export function parseProject(text: string, newId: () => string): ParseResult {
@@ -71,7 +72,7 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す。
   // シートの大きさがない回路は 300×200 にする
-  const project = withoutSwitchStates(fromStoredProject(raw as StoredProject));
+  const project = withoutSwitchStates(fromStoredProject(raw as StoredProject, newId));
   return {
     ok: true,
     project: {
