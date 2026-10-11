@@ -59,7 +59,7 @@
    - 推す案: 取り出し点に「?」を書き、ステータスバーに警告を出す。
    - ほかの案: 何も出さない。
 6. 保存データの項目名（配線に、省略できる項目を 2 つ足す）
-   - バスかどうか: `bus: true`（推す案）、`kind: "bus"`。
+   - バスかどうか: version 4 で配線に `kind`（今は `"wire"` だけ）を足すことにしたので、`kind: "bus"` にする見込み（[保存データの version 4](../format-v4/plan.md)）。前の候補: `bus: true`。
    - 名前: `label`（推す案。部品の `label` とそろう）、`name`。
 7. 計画の文書の置き場所
    - 仮に `agent/plans/bus/plan.md` に置いた。ほかの候補: `agent/plans/bus-wiring/plan.md`。
