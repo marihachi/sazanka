@@ -400,7 +400,7 @@ function mainWith(
 }
 
 describe('モジュール', () => {
-  it('ピン名は INPUT / OUTPUT のラベルを上から順に並べたもの', () => {
+  it('ピン名は INPUT / OUTPUT のポート名を上から順に並べたもの', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };

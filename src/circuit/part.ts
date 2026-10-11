@@ -16,7 +16,7 @@ export interface Part {
   y: number;
   /** INPUT / CLOCK の出力状態 */
   on?: boolean;
-  /** INPUT / OUTPUT のラベル (モジュールのピン名になる) */
+  /** INPUT / OUTPUT のポート名 (モジュールのピン名になる) */
   label?: string;
   /** モジュールが参照する回路定義の ID */
   module?: string;

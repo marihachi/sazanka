@@ -530,7 +530,6 @@ export function App() {
                 ? findDef(project, selectedPart.module)?.name
                 : undefined
             }
-            inModule={circuit.id !== MAIN_ID}
             otherLabels={circuit.parts
               .filter(
                 (c) =>

@@ -197,7 +197,7 @@ describe('share', () => {
     expect(result.ok && result.project.circuits[0].parts[0].on).toBeUndefined();
   });
 
-  it('ラベルやモジュールの参照は保ったまま往復する', () => {
+  it('ポート名やモジュールの参照は保ったまま往復する', () => {
     const result = parse(serializeProject(project));
     expect(result.ok).toBe(true);
     if (!result.ok) {
