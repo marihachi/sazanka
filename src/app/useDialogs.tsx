@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { AboutDialog } from './AboutDialog';
 import { ConfirmDialog, type ConfirmRequest } from '../ui/ConfirmDialog';
 import { PreferencesDialog } from '../preferences/PreferencesDialog';
@@ -42,6 +43,23 @@ export function useDialogs({
   );
   const [prompt, setPrompt] = useState<PromptRequest | null>(null);
   const [text, setText] = useState<TextRequest | null>(null);
+  /**
+   * 入力のダイアログが閉じ終わったか。閉じた Chakra (zag) のダイアログは、開く前の要素へのフォーカスの返しを
+   * setTimeout(0) で遅らせて行い、ほかのダイアログの中にフォーカスがあっても返してしまう。
+   * そのあいだにお知らせを開くと、フォーカスを外へ取られて閉じてしまう (読み込みのあとのお知らせ)。
+   * そのため、閉じてから 1 回待ち、フォーカスを返し終えてからお知らせを出す。
+   * 出すときは flushSync で描き切る。描き切らないと、開発中の StrictMode が effect をやり直す (zag が
+   * ダイアログを一度閉じて開き直す) のが、フォーカスを閉じ込め始めたあとになり、同じように閉じてしまう
+   */
+  const [inputClosed, setInputClosed] = useState(true);
+  useEffect(() => {
+    if (text || prompt) {
+      setInputClosed(false);
+      return;
+    }
+    const timer = setTimeout(() => flushSync(() => setInputClosed(true)), 0);
+    return () => clearTimeout(timer);
+  }, [text, prompt]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   /** モジュール設定のダイアログで設定しているモジュールの ID */
@@ -53,9 +71,10 @@ export function useDialogs({
 
   const element = (
     <>
-      {/* お知らせは、ほかのダイアログが閉じてから出す。閉じるダイアログと入れ替わりに開くと、
-          Chakra (zag) が後から開いた方を入れ子とみなして一緒に閉じてしまう (読み込みのあとのお知らせなど) */}
-      {confirm && !text && !prompt && (
+      {/* お知らせは、ほかのダイアログが閉じ終わってから出す (上の inputClosed)。閉じるダイアログと
+          入れ替わりに開くと、閉じた方のフォーカスの返しで外へフォーカスを取られ、一緒に閉じてしまう
+          (読み込みのあとのお知らせなど) */}
+      {confirm && !text && !prompt && inputClosed && (
         <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
       )}
       {prompt && <PromptDialog request={prompt} onClose={() => setPrompt(null)} />}
