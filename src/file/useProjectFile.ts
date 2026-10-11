@@ -3,6 +3,7 @@ import type { TextRequest } from '../ui/TextDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
+import { getExportFileName, saveJsonFile } from './localFile';
 import { describeShareError, type Messages } from '../i18n/messages';
 
 /** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */
@@ -48,6 +49,10 @@ export function useProjectFile({
           setProjectWithoutHistory(next);
           return serializeProject(next);
         },
+      },
+      extraAction: {
+        label: m.file.saveFile,
+        onClick: (text) => saveJsonFile(getExportFileName(new Date()), text),
       },
       confirmLabel: m.file.copy,
       doneMessage: m.file.copied,

@@ -22,6 +22,8 @@ export interface TextRequest {
   onSubmit: (value: string) => string | undefined | Promise<string | undefined>;
   /** 成功しても閉じずに、このメッセージを表示する */
   doneMessage?: string;
+  /** 確定ボタンの左に並べるボタン (書き出しの「ファイルに保存」)。押すと今の文字列を渡す。閉じない */
+  extraAction?: { label: string; onClick: (value: string) => void };
   /** 文字列の上に置く1行の入力欄 (書き出すときの作者名など) */
   field?: {
     label: string;
@@ -114,6 +116,16 @@ export function TextDialog({ request, onClose }: { request: TextRequest; onClose
         <Button variant="outline" onClick={onClose}>
           {request.readOnly ? m.common.close : m.common.cancel}
         </Button>
+        {request.extraAction && (
+          <Button
+            onClick={() => {
+              setStatus(null);
+              request.extraAction?.onClick(value);
+            }}
+          >
+            {request.extraAction.label}
+          </Button>
+        )}
         <Button type="submit">{request.confirmLabel}</Button>
       </ChakraDialog.Footer>
     </DialogFrame>

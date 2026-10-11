@@ -176,8 +176,10 @@ export const en: Messages = {
       'Create a new project? The current project (the main circuit and all modules) will be cleared (you can undo this).',
     newProject: 'New',
     exportTitle: 'Export',
-    exportMessage: 'Export the whole project. Paste the exported data into the "Import" dialog.',
+    exportMessage:
+      'Export the whole project. Copy it or save it to a file, then load it with "Import".',
     author: 'Author (optional)',
+    saveFile: 'Save to file',
     copy: 'Copy',
     copied: 'Copied',
     copyFailed: 'Could not copy. Select the text above and copy it manually',
