@@ -42,15 +42,71 @@ describe('checkProject', () => {
     expect(checkProject(main([comp('s', 'sevenSegment')]))).toBeUndefined();
   });
 
+  it('メイン回路の名前は見ない (なくても、あっても通す)', () => {
+    expect(checkProject({ circuits: [{ id: MAIN_ID, parts: [], wires: [] }] })).toBeUndefined();
+    expect(
+      checkProject({ circuits: [{ id: MAIN_ID, name: 1, parts: [], wires: [] }] }),
+    ).toBeUndefined();
+  });
+
+  /** メイン回路と、名前が M のモジュール m。部品と配線は引数で渡す */
+  function withModule(mainParts: Part[], moduleParts: Part[], wires: unknown[] = []) {
+    return {
+      circuits: [
+        { id: MAIN_ID, parts: mainParts, wires },
+        { id: 'm', name: 'M', package: { kind: 'split' }, parts: moduleParts, wires: [] },
+      ],
+    };
+  }
+  const 点 = (x: number, y: number) => ({ x, y });
+
+  // biome-ignore format: 表形式を維持するため
+  const 重なるもの: [string, unknown, string][] = [
+    ['同じ回路の部品どうし', main([comp('a', 'and'), comp('a', 'or')]), 'a'],
+    ['回路をまたいだ部品どうし', withModule([comp('a', 'and')], [comp('a', 'or')]), 'a'],
+    ['部品と配線', main([comp('a', 'and')], [{ id: 'a', points: [点(0, 0), 点(1, 0)] }]), 'a'],
+    ['配線どうし', main([], [{ id: 'w', points: [点(0, 0), 点(1, 0)] }, { id: 'w', points: [点(0, 0), 点(0, 1)] }]), 'w'],
+    ['部品と回路', withModule([comp('m', 'and')], []), 'm'],
+    ['モジュールの回路が main を使う', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }, { id: MAIN_ID, name: 'M', package: { kind: 'split' }, parts: [], wires: [] }] }, MAIN_ID],
+  ];
+  for (const [name, value, id] of 重なるもの) {
+    it(`ID の重なりを弾く: ${name}`, () => {
+      expect(checkProject(value)).toEqual({ code: 'DUPLICATE_ID', id });
+    });
+  }
+
   const 壊れたもの: [string, unknown][] = [
     ['オブジェクトでない', [1, 2]],
     ['回路の一覧がない', {}],
     ['メイン回路がない', { circuits: [{ id: 'x', name: 'x', parts: [], wires: [] }] }],
-    ['回路に名前がない', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }] }],
+    [
+      'モジュールの回路に名前がない',
+      {
+        circuits: [
+          { id: MAIN_ID, parts: [], wires: [] },
+          { id: 'm', package: { kind: 'split' }, parts: [], wires: [] },
+        ],
+      },
+    ],
     ['部品の種類が不正', main([{ id: 'a', kind: 'FOO', x: 0, y: 0 } as unknown as Part])],
     ['内部用の BUF が入っている', main([comp('a', 'buf')])],
     ['座標が数値でない', main([{ id: 'a', kind: 'and', x: '0', y: 0 } as unknown as Part])],
-    ['部品の ID が重複', main([comp('a', 'and'), comp('a', 'or')])],
+    ['座標が整数でない (マスの途中)', main([comp('a', 'and', { x: 0.5 })])],
+    [
+      '配線の点が整数でない (マスの途中)',
+      main(
+        [],
+        [
+          {
+            id: 'w',
+            points: [
+              { x: 0, y: 0.5 },
+              { x: 1, y: 0.5 },
+            ],
+          },
+        ],
+      ),
+    ],
     ['配線の点が 1 つ', main([], [{ id: 'w', points: [{ x: 0, y: 0 }] }])],
     [
       '配線に斜めの区間がある',
@@ -155,7 +211,12 @@ describe('checkProject', () => {
         { width: 300.5, height: 200 },
         { width: '300', height: 200 },
       ]) {
-        expect(checkProject(withSheet(s))).toEqual({ code: 'BAD_SHEET', circuit: 'メイン' });
+        // メイン回路は名前を持たないので、回路の名前は空文字 (画面の側が表示言語の名前にする)
+        expect(checkProject(withSheet(s))).toEqual({
+          code: 'BAD_SHEET',
+          circuit: '',
+          circuitId: MAIN_ID,
+        });
       }
     });
   });
@@ -209,7 +270,7 @@ describe('withoutSwitchStates', () => {
         id: MAIN_ID,
         name: 'メイン',
         parts: [
-          comp('a', 'input', { on: true, label: 'A' }),
+          comp('a', 'input', { on: true, portName: 'A' }),
           comp('c', 'clock', { on: true, period: 20 }),
         ],
         wires: [],
@@ -227,7 +288,7 @@ describe('withoutSwitchStates', () => {
   it('ON/OFF 以外の項目は残し、元のプロジェクトは書き換えない', () => {
     const result = withoutSwitchStates(project);
     expect(result.circuits[0].parts).toEqual([
-      comp('a', 'input', { label: 'A' }),
+      comp('a', 'input', { portName: 'A' }),
       comp('c', 'clock', { period: 20 }),
     ]);
     expect(project.circuits[0].parts[0].on).toBe(true);

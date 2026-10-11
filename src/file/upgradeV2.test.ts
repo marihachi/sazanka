@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getPinout } from '../circuit/module';
 import { checkProject, type Project } from '../circuit/project';
 import { inputPinPos, outputPinPos } from '../geometry/layout';
-import { upgradeProject } from './upgrade';
+import { upgradeV1 } from './upgradeV1';
 import { upgradeV2 } from './upgradeV2';
 
 describe('upgradeV2', () => {
@@ -136,7 +136,7 @@ describe('古い版から順に変えたときのつながり', () => {
   };
 
   it('version 1 のデータを読むと、配線の端がピンの先に重なったまま version 3 の形になる', () => {
-    const v3 = upgradeProject(v1, 1);
+    const v3 = upgradeV2(upgradeV1(v1));
     expect(checkProject(v3)).toBeUndefined();
     const project = v3 as Project;
     const [a, m, q] = project.circuits[0].parts;

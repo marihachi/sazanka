@@ -26,9 +26,9 @@ interface PropertyPanelProps {
    * 選んでいる INPUT / OUTPUT 以外の、同じ回路のポートの名前を、改行でつないだもの。
    * 同じ名前を付けられないようにするために使う (memo で比べられるよう、集合ではなく文字列で渡す)
    */
-  otherLabels?: string;
+  otherPortNames?: string;
   /** INPUT / OUTPUT のポート名を変えた */
-  onLabelChange: (id: string, label: string) => void;
+  onPortNameChange: (id: string, label: string) => void;
 }
 
 /**
@@ -38,11 +38,11 @@ interface PropertyPanelProps {
 export const PropertyPanel = memo(function PropertyPanel({
   part,
   moduleName,
-  otherLabels = '',
+  otherPortNames = '',
   ticksPerSecond,
   onEditStart,
   onClockPeriodChange,
-  onLabelChange,
+  onPortNameChange,
 }: PropertyPanelProps) {
   const lang = useLanguage();
   const m = useMessages();
@@ -89,9 +89,9 @@ export const PropertyPanel = memo(function PropertyPanel({
               <PortNameField
                 key={part.id}
                 part={part}
-                otherLabels={otherLabels}
+                otherPortNames={otherPortNames}
                 onEditStart={onEditStart}
-                onChange={onLabelChange}
+                onChange={onPortNameChange}
               />
             </>
           ) : (
@@ -147,20 +147,20 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
  */
 function PortNameField({
   part,
-  otherLabels,
+  otherPortNames,
   onEditStart,
   onChange,
 }: {
   part: Part;
-  otherLabels: string;
+  otherPortNames: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
 }) {
   const m = useMessages();
-  const [text, setText] = useState(part.label ?? '');
+  const [text, setText] = useState(part.portName ?? '');
   const session = useEditSession(onEditStart);
   const taken = (value: string) =>
-    value.trim() !== '' && otherLabels.split('\n').includes(value.trim());
+    value.trim() !== '' && otherPortNames.split('\n').includes(value.trim());
 
   return (
     <Field.Root invalid={taken(text)}>
@@ -186,8 +186,8 @@ function PortNameField({
           }
         }}
       />
-      <Field.ErrorText>{m.property.duplicateLabel}</Field.ErrorText>
-      <Field.HelperText>{m.property.labelHelp}</Field.HelperText>
+      <Field.ErrorText>{m.property.duplicatePortName}</Field.ErrorText>
+      <Field.HelperText>{m.property.portNameHelp}</Field.HelperText>
     </Field.Root>
   );
 }

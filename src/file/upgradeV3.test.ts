@@ -1,0 +1,144 @@
+import { describe, expect, it } from 'vitest';
+import { getPinout } from '../circuit/module';
+import { checkProject } from '../circuit/project';
+import { inputPinPos, outputPinPos } from '../geometry/layout';
+import { fromStoredProject, type StoredProject } from './storage';
+import { upgradeV3 } from './upgradeV3';
+
+/** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
+function counter(): () => string {
+  let n = 0;
+  return () => `id${++n}`;
+}
+
+describe('upgradeV3', () => {
+  it('位置をマスにし、ID を付け直し、label を portName に移し、メイン回路の名前を消す', () => {
+    const v3 = {
+      author: 'さざんか',
+      circuits: [
+        {
+          id: 'main',
+          name: 'メイン',
+          sheet: { width: 40, height: 30 },
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            { id: 'part-1', kind: 'input', x: 0, y: 20, label: 'A', portNumber: 1 },
+            { id: 'part-2', kind: 'module', x: 100, y: 0, module: 'k3f9' },
+          ],
+          // biome-ignore format: 表形式を維持するため
+          wires: [{ id: 'wire-1', points: [{ x: 60, y: 40 }, { x: 80, y: 40 }] }],
+        },
+        {
+          id: 'k3f9',
+          name: 'M',
+          package: { kind: 'split' },
+          parts: [{ id: 'part-1', kind: 'output', x: 40, y: 60, label: 'Q', portNumber: 1 }],
+          wires: [],
+        },
+      ],
+    };
+    // 新しい ID は、モジュールの回路、メイン回路の部品と配線、モジュールの部品と配線の順に作る
+    expect(upgradeV3(v3, counter())).toEqual({
+      author: 'さざんか',
+      circuits: [
+        {
+          id: 'main',
+          sheet: { width: 40, height: 30 },
+          // biome-ignore format: 表形式を維持するため
+          parts: [
+            { id: 'id2', kind: 'input', x: 0, y: 1, portName: 'A', portNumber: 1 },
+            { id: 'id3', kind: 'module', x: 5, y: 0, module: 'id1' },
+          ],
+          // biome-ignore format: 表形式を維持するため
+          wires: [{ id: 'id4', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
+        },
+        {
+          id: 'id1',
+          name: 'M',
+          package: { kind: 'split' },
+          parts: [{ id: 'id5', kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
+          wires: [],
+        },
+      ],
+    });
+  });
+
+  it('version 3 の書き出しで回路をまたいで重なっていた ID も、重ならなくなる', () => {
+    const circuit = (id: string, name: string) => ({
+      id,
+      name,
+      package: { kind: 'split' },
+      parts: [{ id: 'part-1', kind: 'and', x: 0, y: 0 }],
+      wires: [
+        {
+          id: 'wire-1',
+          points: [
+            { x: 0, y: 0 },
+            { x: 20, y: 0 },
+          ],
+        },
+      ],
+    });
+    const v4 = upgradeV3({ circuits: [circuit('main', 'メイン'), circuit('m', 'M')] }, counter());
+    expect(checkProject(v4)).toBeUndefined();
+  });
+
+  it('20 の倍数でない位置は、いちばん近いマスに丸める (ちょうど中間なら大きい方)', () => {
+    // biome-ignore format: 表形式を維持するため
+    const v3 = { circuits: [{ id: 'main', name: 'メイン', wires: [], parts: [
+      { id: 'a', kind: 'and', x: 9, y: 10 },
+      { id: 'b', kind: 'and', x: 29, y: 31 },
+    ] }] };
+    const v4 = upgradeV3(v3, counter()) as StoredProject;
+    expect(v4.circuits[0].parts.map((c) => [c.x, c.y])).toEqual([
+      [0, 1],
+      [1, 2],
+    ]);
+  });
+
+  it('重なっていた回路の ID と、モジュールが使う main は、重なったまま残す (検証で断る)', () => {
+    const module = (id: string) => ({
+      id,
+      name: id,
+      package: { kind: 'split' },
+      parts: [],
+      wires: [],
+    });
+    const main = { id: 'main', name: 'メイン', parts: [], wires: [] };
+    for (const v3 of [
+      { circuits: [main, module('m'), module('m')] },
+      { circuits: [main, module('main')] },
+    ]) {
+      expect(checkProject(upgradeV3(v3, counter()))).toMatchObject({ code: 'DUPLICATE_ID' });
+    }
+  });
+
+  it('形の正しくないデータは、分かるところだけを変えて返す', () => {
+    expect(upgradeV3(null, counter())).toBeNull();
+    expect(upgradeV3({ circuits: 1 }, counter())).toEqual({ circuits: 1 });
+    // biome-ignore format: 表形式を維持するため
+    const broken = { circuits: [{ id: 'main', name: 'メイン', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }] };
+    expect(upgradeV3(broken, counter())).toEqual({
+      circuits: [{ id: 'main', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }],
+    });
+  });
+
+  it('配線の端は、px に戻しても部品のピンの先に重なったまま', () => {
+    // INPUT の出力ピンの先 (60, 20) から、OUTPUT の入力ピンの先 (180, 20) へ
+    // biome-ignore format: 表形式を維持するため
+    const v3 = { circuits: [{ id: 'main', name: 'メイン',
+      parts: [
+        { id: 'a', kind: 'input', x: 0, y: 0 },
+        { id: 'q', kind: 'output', x: 200, y: 0 },
+      ],
+      wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 180, y: 20 }] }],
+    }] };
+    const v4 = upgradeV3(v3, counter());
+    expect(checkProject(v4)).toBeUndefined();
+    const project = fromStoredProject(v4 as StoredProject);
+    const [a, q] = project.circuits[0].parts;
+    const [w] = project.circuits[0].wires;
+    expect(w.points[0]).toEqual(outputPinPos(a, getPinout(a, project), 0));
+    expect(w.points[1]).toEqual(inputPinPos(q, getPinout(q, project), 0));
+  });
+});

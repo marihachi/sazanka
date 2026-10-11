@@ -48,13 +48,26 @@ describe('describeShareError', () => {
   it('壊れたデータでは、検証で見つかった問題を添える', () => {
     const error = {
       code: 'BROKEN',
-      detail: { code: 'DUPLICATE_PART_ID', circuit: 'Main', id: 'a' },
+      detail: { code: 'BAD_PART', circuit: 'M', circuitId: 'm' },
     } as const;
     expect(describeShareError(getMessages('en'), error)).toBe(
-      'The circuit data is broken ("Main" has a duplicate part ID: a)',
+      'The circuit data is broken ("M" has an invalid part)',
     );
     expect(describeShareError(getMessages('ja'), error)).toBe(
-      '回路データが壊れています (「Main」で部品の ID が重複しています: a)',
+      '回路データが壊れています (「M」に不正な部品があります)',
+    );
+  });
+
+  it('問題のある回路がメイン回路なら、表示言語の名前で出す (保存データには名前がない)', () => {
+    const error = {
+      code: 'BROKEN',
+      detail: { code: 'BAD_PART', circuit: '', circuitId: 'main' },
+    } as const;
+    expect(describeShareError(getMessages('en'), error)).toBe(
+      'The circuit data is broken ("Main" has an invalid part)',
+    );
+    expect(describeShareError(getMessages('ja'), error)).toBe(
+      '回路データが壊れています (「メイン」に不正な部品があります)',
     );
   });
 });

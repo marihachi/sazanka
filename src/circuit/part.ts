@@ -17,7 +17,7 @@ export interface Part {
   /** INPUT / CLOCK の出力状態 */
   on?: boolean;
   /** INPUT / OUTPUT のポート名 (モジュールのピン名になる) */
-  label?: string;
+  portName?: string;
   /** モジュールが参照する回路定義の ID */
   module?: string;
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
@@ -40,8 +40,9 @@ export function isPart(c: unknown): c is Part {
     typeof c.id === 'string' &&
     typeof c.kind === 'string' &&
     isPlaceablePartKind(c.kind) &&
-    typeof c.x === 'number' &&
-    typeof c.y === 'number' &&
+    // 保存データの位置はマス単位なので、整数でなければならない
+    Number.isInteger(c.x) &&
+    Number.isInteger(c.y) &&
     (c.period === undefined || isClockPeriod(c.period)) &&
     (c.pinNumber === undefined || Number.isInteger(c.pinNumber)) &&
     (c.portNumber === undefined || isPortNumber(c.portNumber))

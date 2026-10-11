@@ -12,7 +12,7 @@ import {
   setClockPeriod,
   setWirePoints,
   splitWire,
-  setLabel,
+  setPortName,
   toggleSwitch,
 } from './edit';
 import type { Circuit } from '../circuit/circuit';
@@ -61,9 +61,9 @@ describe('edit', () => {
   });
 
   it('空白だけのポート名は名前未設定になる', () => {
-    const labeled = setLabel(base, 'a', ' x ');
-    expect(labeled.parts[0].label).toBe('x');
-    expect(setLabel(labeled, 'a', '  ').parts[0].label).toBeUndefined();
+    const named = setPortName(base, 'a', ' x ');
+    expect(named.parts[0].portName).toBe('x');
+    expect(setPortName(named, 'a', '  ').parts[0].portName).toBeUndefined();
   });
 
   it('部品を足すと末尾に並ぶ', () => {

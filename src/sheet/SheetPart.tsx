@@ -370,9 +370,9 @@ export function SheetPart({
           fill={lamp}
           pointerEvents="none"
         />
-        {c.label && (
+        {c.portName && (
           <text className={classNames(styles.pinLabel, styles.end)} x={c.x - 6} y={c.y + h / 2 + 4}>
-            {c.label}
+            {c.portName}
           </text>
         )}
         {numberBadge}
@@ -409,9 +409,9 @@ export function SheetPart({
       <>
         {outline}
         <circle cx={c.x + w / 2} cy={c.y + h / 2} r={w / 2 - 6} fill={lamp} pointerEvents="none" />
-        {c.label && (
+        {c.portName && (
           <text className={styles.pinLabel} x={c.x + w + 6} y={c.y + h / 2 + 4}>
-            {c.label}
+            {c.portName}
           </text>
         )}
         {numberBadge}

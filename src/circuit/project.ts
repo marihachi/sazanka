@@ -9,6 +9,10 @@ export const MAIN_ID = 'main';
 
 export interface CircuitDef extends Circuit {
   id: string;
+  /**
+   * 回路の名前 (モジュールの名前)。メイン回路は空文字。
+   * メイン回路の名前は表示言語の文言から引き (i18n/messages.ts の getCircuitName)、保存データにも書かない
+   */
   name: string;
   /**
    * モジュールの形 (パッケージ)。モジュールの回路だけが持ち、メイン回路は持たない。
@@ -111,7 +115,7 @@ export interface Project {
 
 export function emptyProject(): Project {
   return {
-    circuits: [{ id: MAIN_ID, name: 'メイン', sheet: DEFAULT_SHEET, parts: [], wires: [] }],
+    circuits: [{ id: MAIN_ID, name: '', sheet: DEFAULT_SHEET, parts: [], wires: [] }],
   };
 }
 
@@ -151,7 +155,8 @@ export function withoutSwitchStates(project: Project): Project {
 }
 
 /**
- * プロジェクトの形の問題。circuit は問題のある回路の名前、id は重複している ID。
+ * プロジェクトの形の問題。circuit は問題のある回路の名前、circuitId はその ID、id は重複している ID。
+ * メイン回路は保存データに名前を持たないので、circuit は空文字 (画面の側が表示言語の名前にする)。
  * 利用者に見せる文は、言語ごとの文言の表 (i18n/) が作る
  */
 export type ProjectError =
@@ -159,48 +164,59 @@ export type ProjectError =
   | { code: 'AUTHOR_NOT_STRING' }
   | { code: 'NO_MAIN' }
   | { code: 'NO_CIRCUIT_ID_OR_NAME' }
-  | { code: 'NO_PACKAGE'; circuit: string }
-  | { code: 'BAD_PACKAGE'; circuit: string }
-  | { code: 'BAD_SHEET'; circuit: string }
-  | { code: 'NO_PARTS_OR_WIRES'; circuit: string }
-  | { code: 'BAD_PART'; circuit: string }
-  | { code: 'DUPLICATE_PART_ID'; circuit: string; id: string }
-  | { code: 'BAD_WIRE'; circuit: string }
-  | { code: 'DUPLICATE_CIRCUIT_ID'; id: string }
-  | { code: 'MISSING_MODULE'; circuit: string };
+  | { code: 'NO_PACKAGE'; circuit: string; circuitId: string }
+  | { code: 'BAD_PACKAGE'; circuit: string; circuitId: string }
+  | { code: 'BAD_SHEET'; circuit: string; circuitId: string }
+  | { code: 'NO_PARTS_OR_WIRES'; circuit: string; circuitId: string }
+  | { code: 'BAD_PART'; circuit: string; circuitId: string }
+  | { code: 'BAD_WIRE'; circuit: string; circuitId: string }
+  | { code: 'DUPLICATE_ID'; id: string }
+  | { code: 'MISSING_MODULE'; circuit: string; circuitId: string };
 
-/** isModule は、モジュールの回路 (回路の一覧の 2 つ目以降) か */
+/**
+ * 回路 1 つの形を確かめる。isModule は、モジュールの回路 (回路の一覧の 2 つ目以降) か。
+ * 名前はモジュールの回路だけが持つ。メイン回路の名前は見ない (あっても読み込むときに捨てる)
+ */
 function checkCircuit(def: unknown, isModule: boolean): ProjectError | undefined {
-  if (!isObject(def) || typeof def.id !== 'string' || typeof def.name !== 'string') {
+  if (!isObject(def) || typeof def.id !== 'string' || (isModule && typeof def.name !== 'string')) {
     return { code: 'NO_CIRCUIT_ID_OR_NAME' };
   }
+  const at = { circuit: isModule ? (def.name as string) : '', circuitId: def.id };
   // 省略は許さない。既定値で補うと、あとで既定値を変えたときに、古いデータのモジュールのピンの位置が変わって配線が外れるため
   if (isModule && def.package === undefined) {
-    return { code: 'NO_PACKAGE', circuit: def.name };
+    return { code: 'NO_PACKAGE', ...at };
   }
   if (isModule && !isPackage(def.package)) {
-    return { code: 'BAD_PACKAGE', circuit: def.name };
+    return { code: 'BAD_PACKAGE', ...at };
   }
   // 省略は許す。version 3 を公開したあとに足した項目で、それより前のデータにはないため
   if (def.sheet !== undefined && !isCircuitSheet(def.sheet)) {
-    return { code: 'BAD_SHEET', circuit: def.name };
+    return { code: 'BAD_SHEET', ...at };
   }
   if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
-    return { code: 'NO_PARTS_OR_WIRES', circuit: def.name };
+    return { code: 'NO_PARTS_OR_WIRES', ...at };
   }
-  const compIds = new Set<string>();
-  for (const c of def.parts as unknown[]) {
-    if (!isPart(c)) {
-      return { code: 'BAD_PART', circuit: def.name };
-    }
-    if (compIds.has(c.id)) {
-      return { code: 'DUPLICATE_PART_ID', circuit: def.name, id: c.id };
-    }
-    compIds.add(c.id);
+  if (!(def.parts as unknown[]).every(isPart)) {
+    return { code: 'BAD_PART', ...at };
   }
-  for (const w of def.wires as unknown[]) {
-    if (!isWire(w)) {
-      return { code: 'BAD_WIRE', circuit: def.name };
+  if (!(def.wires as unknown[]).every(isWire)) {
+    return { code: 'BAD_WIRE', ...at };
+  }
+  return undefined;
+}
+
+/**
+ * 回路・部品・配線の ID で、ほかと重なるもの (最初に見つかったもの)。なければ undefined。
+ * ID は種類をまたいで、プロジェクトの中で重ならない (形式の文書の「ID の付け方」)
+ */
+function findDuplicateId(circuits: readonly CircuitDef[]): string | undefined {
+  const ids = new Set<string>();
+  for (const def of circuits) {
+    for (const id of [def.id, ...def.parts.map((c) => c.id), ...def.wires.map((w) => w.id)]) {
+      if (ids.has(id)) {
+        return id;
+      }
+      ids.add(id);
     }
   }
   return undefined;
@@ -221,23 +237,21 @@ export function checkProject(project: unknown): ProjectError | undefined {
   if (!isObject(circuits[0]) || circuits[0].id !== MAIN_ID) {
     return { code: 'NO_MAIN' };
   }
-  const ids = new Set<string>();
   for (const [i, def] of circuits.entries()) {
     const error = checkCircuit(def, i > 0);
     if (error) {
       return error;
     }
-    const { id } = def as CircuitDef;
-    if (ids.has(id)) {
-      return { code: 'DUPLICATE_CIRCUIT_ID', id };
-    }
-    ids.add(id);
   }
-  for (const def of circuits as CircuitDef[]) {
-    for (const c of def.parts) {
-      if (c.kind === 'module' && !ids.has(c.module ?? '')) {
-        return { code: 'MISSING_MODULE', circuit: def.name };
-      }
+  const defs = circuits as CircuitDef[];
+  const duplicate = findDuplicateId(defs);
+  if (duplicate !== undefined) {
+    return { code: 'DUPLICATE_ID', id: duplicate };
+  }
+  const circuitIds = new Set(defs.map((d) => d.id));
+  for (const [i, def] of defs.entries()) {
+    if (def.parts.some((c) => c.kind === 'module' && !circuitIds.has(c.module ?? ''))) {
+      return { code: 'MISSING_MODULE', circuit: i > 0 ? def.name : '', circuitId: def.id };
     }
   }
   return undefined;

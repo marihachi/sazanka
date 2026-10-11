@@ -325,12 +325,12 @@ const halfAdder = buildWiredCircuit({
   name: 'HalfAdder',
   // biome-ignore format: 表形式を維持するため
   parts: [
-    comp('a', 'input', { label: 'A' }),
-    comp('b', 'input', { label: 'B' }),
+    comp('a', 'input', { portName: 'A' }),
+    comp('b', 'input', { portName: 'B' }),
     comp('x', 'xor'),
     comp('n', 'and'),
-    comp('s', 'output', { label: 'S' }),
-    comp('c', 'output', { label: 'C' }),
+    comp('s', 'output', { portName: 'S' }),
+    comp('c', 'output', { portName: 'C' }),
   ],
   // biome-ignore format: 表形式を維持するため
   links: [

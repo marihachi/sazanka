@@ -1,4 +1,5 @@
 import {
+  type CircuitDef,
   checkProject,
   emptyProject,
   withCircuitSheet,
@@ -12,19 +13,77 @@ import {
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
+import { GRID } from '../geometry/layout';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
+import { newId } from '../circuit/circuit';
 import { upgradeProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
 
 /** 保存データの形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 4;
 
 interface StoredData {
   version: number;
-  project: Project;
+  project: StoredProject;
+}
+
+/**
+ * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
+ * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
+ * - メイン回路は名前を持たない (アプリの中は空文字)。
+ */
+export interface StoredProject {
+  author?: string;
+  circuits: (Omit<CircuitDef, 'name'> & { name?: string })[];
+}
+
+/** 座標を持つもの (部品と配線の点) の x と y に scale を掛ける (px → マスは 1 / GRID、マス → px は GRID) */
+function scalePoint<T extends { x: number; y: number }>(p: T, scale: number): T {
+  return { ...p, x: p.x * scale, y: p.y * scale };
+}
+
+/** 回路の部品の位置と配線の点に scale を掛ける */
+function scaleCircuit<T extends Pick<CircuitDef, 'parts' | 'wires'>>(def: T, scale: number): T {
+  return {
+    ...def,
+    parts: def.parts.map((c) => scalePoint(c, scale)),
+    wires: def.wires.map((w) => ({ ...w, points: w.points.map((p) => scalePoint(p, scale)) })),
+  };
+}
+
+/**
+ * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。位置を px からマスに直し、メイン回路の名前を外す。
+ * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
+ */
+export function toStoredProject(project: Project): StoredProject {
+  return {
+    ...project,
+    circuits: project.circuits.map((def, i) => {
+      const scaled = scaleCircuit(def, 1 / GRID);
+      if (i > 0) {
+        return scaled;
+      }
+      const { name: _, ...main } = scaled;
+      return main;
+    }),
+  };
+}
+
+/**
+ * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。位置をマスから px に直す。
+ * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)
+ */
+export function fromStoredProject(project: StoredProject): Project {
+  return {
+    ...project,
+    circuits: project.circuits.map((def, i) => ({
+      ...scaleCircuit(def, GRID),
+      name: i > 0 ? (def.name ?? '') : '',
+    })),
+  };
 }
 
 /** 保存データを読み込めなかった理由。BROKEN は形が壊れている、NEWER_VERSION は今より新しい版で保存された */
@@ -43,15 +102,18 @@ export interface LoadResult {
  */
 export function loadProject(): LoadResult {
   try {
-    return readStored(localStorage.getItem(STORAGE_KEY));
+    return readStored(localStorage.getItem(STORAGE_KEY), newId);
   } catch {
     // localStorage を使えない環境では、保存データなしとして扱う
     return { project: emptyProject() };
   }
 }
 
-/** 保存されていた文字列を読み込む (localStorage に触らない部分) */
-export function readStored(raw: string | null): LoadResult {
+/**
+ * 保存されていた文字列を読み込む (localStorage に触らない部分)。
+ * newId は、古い版の ID を付け直す変換 (upgradeV3) が使う
+ */
+export function readStored(raw: string | null, newId: () => string): LoadResult {
   if (!raw) {
     return { project: emptyProject() };
   }
@@ -77,7 +139,7 @@ export function readStored(raw: string | null): LoadResult {
     };
   }
   // 古い版は、今の版の形に変えてから確かめる
-  const project = upgradeProject(data.project, data.version);
+  const project = upgradeProject(data.project, data.version, newId);
   if (checkProject(project) !== undefined) {
     return {
       project: emptyProject(),
@@ -85,7 +147,7 @@ export function readStored(raw: string | null): LoadResult {
     };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
-  const loaded = withoutSwitchStates(project as Project);
+  const loaded = withoutSwitchStates(fromStoredProject(project as StoredProject));
   // version 3 を公開する前の保存データには、ポート番号がない。シートの大きさを足す前のデータには、大きさがない
   return {
     project: {
@@ -99,7 +161,10 @@ export function saveProject(project: Project) {
   const unswitched = withoutSwitchStates(project);
   const data: StoredData = {
     version: STORAGE_VERSION,
-    project: { ...unswitched, circuits: unswitched.circuits.map(withCircuitSheet) },
+    project: toStoredProject({
+      ...unswitched,
+      circuits: unswitched.circuits.map(withCircuitSheet),
+    }),
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

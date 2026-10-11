@@ -4,16 +4,17 @@ import {
   emptyProject,
   MAIN_ID,
   type Project,
-  withCircuitSheet,
   withoutSwitchStates,
 } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
+import { toStoredProject } from './storage';
 
+/** アプリの中の形のプロジェクト。位置は px で、メイン回路の名前は空文字 */
 const project: Project = {
   circuits: [
     {
       id: MAIN_ID,
-      name: 'メイン',
+      name: '',
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       parts: [
@@ -57,8 +58,9 @@ const projectV2 = {
   ],
 };
 
+/** 今の版 (version 4) の共有用 JSON。p は保存の形 (位置はマス) で渡す */
 function withProject(p: unknown): string {
-  return JSON.stringify({ app: 'sazanka', version: 3, project: p });
+  return JSON.stringify({ app: 'sazanka', version: 4, project: p });
 }
 
 /** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
@@ -72,25 +74,27 @@ function parse(text: string) {
 }
 
 describe('share', () => {
-  it('書き出すと、部品と配線の ID は回路ごとの連番 (part-1、wire-1、…) になる', () => {
+  it('書き出すと、位置はマスになり、メイン回路の名前は書かない。ID はそのまま', () => {
     const [main, mod] = project.circuits;
+    const { name: _, ...mainWithoutName } = main;
     expect(JSON.parse(serializeProject(project)).project).toEqual({
       circuits: [
         {
-          ...main,
+          ...mainWithoutName,
           parts: [
-            { id: 'part-1', kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
-            { ...main.parts[1], id: 'part-2' },
+            { id: 'a', kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
+            { ...main.parts[1], x: 5 },
           ],
-          wires: [{ ...main.wires[0], id: 'wire-1' }],
+          // biome-ignore format: 表形式を維持するため
+          wires: [{ id: 'w', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] }],
         },
         // シートの大きさがない回路は、300×200 として書き出す
-        { ...mod, sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'part-1' }] },
+        { ...mod, sheet: DEFAULT_SHEET },
       ],
     });
   });
 
-  it('読み込むと、部品と配線の ID を付け直す', () => {
+  it('読み込んでも、ID は付け直さない', () => {
     const [main, mod] = project.circuits;
     expect(parse(serializeProject(project))).toEqual({
       ok: true,
@@ -98,14 +102,9 @@ describe('share', () => {
         circuits: [
           {
             ...main,
-            // biome-ignore format: 表形式を維持するため
-            parts: [
-              { id: 'id1', kind: 'input', x: 0, y: 0, portNumber: 1 },
-              { ...main.parts[1], id: 'id2' },
-            ],
-            wires: [{ ...main.wires[0], id: 'id3' }],
+            parts: [{ id: 'a', kind: 'input', x: 0, y: 0, portNumber: 1 }, main.parts[1]],
           },
-          { ...mod, sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id4' }] },
+          { ...mod, sheet: DEFAULT_SHEET },
         ],
       },
     });
@@ -138,7 +137,7 @@ describe('share', () => {
   });
 
   it('壊れた回路データは読み込まない', () => {
-    const main = project.circuits[0];
+    const main = toStoredProject(project).circuits[0];
     const broken = [
       { circuits: [] },
       { circuits: [{ ...main, id: 'x' }] },
@@ -181,8 +180,12 @@ describe('share', () => {
           },
         ],
       },
+      // 部品と配線の ID の重複
+      { circuits: [{ ...main, wires: [{ ...main.wires[0], id: 'a' }] }, project.circuits[1]] },
       // 回路 ID の重複
       { circuits: [main, project.circuits[1], project.circuits[1]] },
+      // 位置がマスの途中
+      { circuits: [{ ...main, parts: [{ ...main.parts[0], x: 0.5 }] }, project.circuits[1]] },
     ];
     for (const p of broken) {
       expect(parse(withProject(p)).ok).toBe(false);
@@ -206,7 +209,6 @@ describe('share', () => {
     const [main] = result.project.circuits;
     expect(main.parts[0]).toMatchObject({ kind: 'input', x: 0, y: 0 });
     expect(main.parts[1]).toMatchObject({ kind: 'module', module: 'mod' });
-    // モジュールの参照先 (回路の ID) は付け直さない
     expect(result.project.circuits[1].id).toBe('mod');
   });
 });
@@ -227,7 +229,7 @@ describe('配線の点', () => {
     // biome-ignore format: 表形式を維持するため
     for (const bad of [
       [{ x: '1', y: 0 }, { x: 0, y: 0 }],
-      [{ x: 0, y: 0 }, { x: 20, y: 20 }],
+      [{ x: 0, y: 0 }, { x: 1, y: 1 }],
     ]) {
       const broken = {
         circuits: [{ ...project.circuits[0], wires: [{ id: 'w', points: bad }] }, project.circuits[1]],
@@ -240,7 +242,7 @@ describe('配線の点', () => {
 describe('古い版のデータ', () => {
   it('ポート番号がないものや重なるものは、読み込むときに付け直す', () => {
     // biome-ignore format: 表形式を維持するため
-    const main = { id: MAIN_ID, name: 'メイン', wires: [], parts: [
+    const main = { id: MAIN_ID, wires: [], parts: [
       { id: 'a', kind: 'input', x: 0, y: 100, portNumber: 1 },
       { id: 'b', kind: 'input', x: 0, y: 0, portNumber: 1 },
       { id: 'c', kind: 'input', x: 0, y: 200 },
@@ -256,15 +258,29 @@ describe('古い版のデータ', () => {
     ).toBe(false);
   });
 
-  it('version 2 のデータは、version 3 の形に変えて読み込む', () => {
+  it('version 2 のデータは、version 4 の形に変えて読み込む', () => {
     const result = parse(JSON.stringify({ app: 'sazanka', version: 2, project: projectV2 }));
+    const [main, mod] = withoutSwitchStates(project).circuits;
+    // ID は version 3 → 4 の変換で付け直す (モジュールの回路、メイン回路の部品と配線、モジュールの部品の順)。
     // version 2 にはシートの大きさがないので、どの回路も 300×200 になる
-    const expected = withoutSwitchStates(project);
-    expect(result.ok && withoutIds(result.project)).toEqual(
-      withoutIds({
-        circuits: expected.circuits.map(({ sheet: _, ...d }) => withCircuitSheet(d)),
-      }),
-    );
+    expect(result).toEqual({
+      ok: true,
+      project: {
+        circuits: [
+          {
+            ...main,
+            sheet: DEFAULT_SHEET,
+            // biome-ignore format: 表形式を維持するため
+            parts: [
+              { ...main.parts[0], id: 'id2' },
+              { ...main.parts[1], id: 'id3', module: 'id1' },
+            ],
+            wires: [{ ...main.wires[0], id: 'id4' }],
+          },
+          { ...mod, id: 'id1', sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id5' }] },
+        ],
+      },
+    });
   });
 
   it('version 1 のデータは、配線を version 1 で描いていた形の点の並びに変えて読み込む', () => {
@@ -281,15 +297,6 @@ describe('古い版のデータ', () => {
     );
   });
 });
-
-/** 部品と配線の ID を除いたプロジェクト。読み込むと ID は付け直されるので、比べるときに使う */
-function withoutIds(p: Project) {
-  return p.circuits.map(({ parts, wires, ...d }) => ({
-    ...d,
-    parts: parts.map(({ id: _, ...c }) => c),
-    wires: wires.map(({ id: _, ...w }) => w),
-  }));
-}
 
 describe('CLOCK の周期', () => {
   it('範囲外の周期を持つ部品は読み込まない', () => {

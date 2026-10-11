@@ -114,8 +114,8 @@ export function getPinout(c: Part, project: Project): Pinout {
     const numberOf = (k: Part) => k.pinNumber ?? 0;
 
     return {
-      inputs: inputs.map((k) => k.label ?? ''),
-      outputs: outputs.map((k) => k.label ?? ''),
+      inputs: inputs.map((k) => k.portName ?? ''),
+      outputs: outputs.map((k) => k.portName ?? ''),
       package: pkg,
       ...(usesPinNumbers(pkg)
         ? { pinNumbers: { inputs: inputs.map(numberOf), outputs: outputs.map(numberOf) } }
@@ -306,20 +306,20 @@ export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
 /**
  * モジュール設定を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
  * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す。
- * labels (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
+ * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
  */
 export function applyModuleSettings<T extends Circuit & { package?: Package }>(
   def: T,
   pkg: Package,
   numbers: ReadonlyMap<string, number>,
-  labels: ReadonlyMap<string, string> = new Map(),
+  portNames: ReadonlyMap<string, string> = new Map(),
 ): T {
   const parts = def.parts.map((c) => {
     if (!isPort(c)) {
       return c;
     }
-    const text = labels.get(c.id);
-    const named = text === undefined ? c : withLabel(c, text);
+    const text = portNames.get(c.id);
+    const named = text === undefined ? c : withPortName(c, text);
     const n = numbers.get(c.id);
     if (!usesPinNumbers(pkg) || n === undefined || n < 1 || n > pkg.pins) {
       return named.pinNumber === undefined ? named : withoutPinNumber(named);
@@ -330,25 +330,25 @@ export function applyModuleSettings<T extends Circuit & { package?: Package }>(
 }
 
 /** 名前を text にしたポート。空白だけなら名前なしにする。名前が変わらなければ c をそのまま返す */
-function withLabel(c: Part, text: string): Part {
-  const label = text.trim() || undefined;
-  if (label === c.label) {
+function withPortName(c: Part, text: string): Part {
+  const portName = text.trim() || undefined;
+  if (portName === c.portName) {
     return c;
   }
-  const { label: _, ...rest } = c;
-  return label === undefined ? rest : { ...rest, label };
+  const { portName: _, ...rest } = c;
+  return portName === undefined ? rest : { ...rest, portName };
 }
 
 /**
- * ポートの名前で、ほかのポートと重なるもの (部品 ID の集合)。labels は部品 ID → 名前 (前後の空白は除いて比べる)。
+ * ポートの名前で、ほかのポートと重なるもの (部品 ID の集合)。portNames は部品 ID → 名前 (前後の空白は除いて比べる)。
  * 名前のないポートは、いくつあっても重なりとしない。入力と出力をまたいで比べる (ポートの名前は、入力か出力かに関係しないため)
  */
-export function findDuplicateLabels(labels: ReadonlyMap<string, string>): Set<string> {
+export function findDuplicatePortNames(portNames: ReadonlyMap<string, string>): Set<string> {
   const ids = new Map<string, string[]>();
-  for (const [id, text] of labels) {
-    const label = text.trim();
-    if (label !== '') {
-      ids.set(label, [...(ids.get(label) ?? []), id]);
+  for (const [id, text] of portNames) {
+    const portName = text.trim();
+    if (portName !== '') {
+      ids.set(portName, [...(ids.get(portName) ?? []), id]);
     }
   }
   return new Set([...ids.values()].filter((list) => list.length > 1).flat());

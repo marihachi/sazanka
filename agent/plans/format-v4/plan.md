@@ -32,6 +32,7 @@
   - 新しいキーの名前は `portName`（開発者が決めた。用語の「ポート名」と対応する）。採らなかった案: `name`（短いが、回路の `name` と紛らわしい）。
   - version 3 からの変換では、`label` を新しいキーに移す。
   - コードの `Part.label` と、それに合わせた名前（`setLabel`、`findDuplicateLabels` など）も、新しいキーに合わせて改名する。
+    - 改名したもの（段階 2）: `Part.portName`、`setPortName`、`findDuplicatePortNames`、`applyModuleSettings` の `portNames`、`PropertyPanel` の `otherPortNames` / `onPortNameChange`、文言の表の `portNameHelp` / `duplicatePortName` など。
 - ID は、プロジェクトをまたいでも重ならないものにし、付け直さない（開発者が決めた）。
   - 理由: モジュールを別のプロジェクトへ持ち込むときに、ID を付け直さずに済ませるため。部品の ID だけで、どの回路のどの部品かも決まる。
   - 新しい ID を付けるのは、新しい物を作るときだけ（部品を置く、貼り付ける、配線を分ける、モジュールを足すなど）。書き出し、読み込み、持ち込みでは付け直さない。
@@ -46,7 +47,8 @@
   - version 3 からの変換では、メイン回路の `name` を消す。
   - 検証のエラーに入れる回路の名前（`circuit/project.ts` の `checkProject` が返す `circuit`）は、メイン回路なら表示言語の「メイン」/「Main」にする。version 3 では `def.name` を入れているので、表示言語に関係なく「メイン」と出る。
 - 次の 3 つは、エージェントの案を開発者が了承した。
-  - ID の作り方: `crypto.randomUUID()`（122 ビット）を使う。プロジェクトをまたぐと、今の 8 文字（約 41 ビット）では重なるおそれを無視しきれないため。
+  - ID の作り方: UUID version 4（122 ビットの乱数）を使う。プロジェクトをまたぐと、今の 8 文字（約 41 ビット）では重なるおそれを無視しきれないため。
+    - 作り方は `crypto.getRandomValues()` で UUID の形を組み立てる（開発者が決めた。段階 2 で変更）。`crypto.randomUUID()` は安全な接続（https か localhost）でしか使えず、開発サーバーに http で別の端末からつなぐと、部品を置いた時点で例外になるため。
   - version 4 の検証: ID が文字列で、プロジェクトの中で（回路・部品・配線のすべてで）重ならないことを確かめる。重なっていたら断る。UUID の形かどうかは見ない。
   - version 3 からの変換: メイン回路以外のすべての ID を新しい ID に振り直し、部品の `module` の参照も書き換える。version 3 の ID は回路をまたいで重なりうる（`part-1` など）ため。付け直すのは、この変換の 1 回だけ。
 
@@ -54,14 +56,20 @@
 
 - アプリの中は px のままにし、保存・書き出し・読み込みのときだけマスと px を変換する。
   - 描画、当たり判定、ネットの計算（`geometry/`、`sheet/`、`editing/edit.ts`）は px で書かれている。中までマスにすると影響が大きい。中をマスにするなら、版上げとは別のリファクタリングとして計画する。
-  - 変換は `circuit/project.ts` に置く。読み書きのたびに通す `withoutSwitchStates` と同じ並び。新しいファイルは作らない。
+  - 変換は `file/storage.ts` に置き（`toStoredProject`、`fromStoredProject`）、`file/share.ts` からも使う（開発者が決めた。段階 2 で変更）。置き場所は、あとでもう一度考える（開発者）。
+    - 計画では `circuit/project.ts` に置くつもりだったが、マスの大きさ `GRID` が `geometry/layout.ts` にあり、依存の向き（`geometry` → `circuit`）の都合で `project.ts` から使えなかった。
+    - 採らなかった案: `file/` に新しいファイルを作る（ファイルが増える）。`GRID` を `circuit/` に下ろす（描画の値を回路のデータの側に置くことになる）。
+    - 保存の形の型は `StoredProject`（位置がマス単位で、メイン回路は名前を持たない）。
   - 読み込み: 版の変換（`upgradeProject`）→ 検証（`checkProject`。マス単位の形で確かめる）→ px に直す。
   - 保存・書き出し: px をマスに直す（20 で割る）。
 - `file/upgradeV3.ts` の `upgradeV3`（version 3 → 4）は、マスの大きさ 20 を自分の中に持つ。今のコードの `GRID` には頼らない（[保存データ](../../docs/persistence.md)の「形式を変えるとき」）。
-- メイン回路の `name`: アプリの中の型（`CircuitDef.name` を省略できるようにするか、アプリの中では持ち続けて読み書きのときだけ外すか）は、実装のときに決めてここに書く。
+- メイン回路の `name`: アプリの中では `CircuitDef.name` を省略できない型のままにし、メイン回路は空文字で持つ。保存・書き出しで外し（`toStoredProject`）、読み込みで空文字にする（`fromStoredProject`）。新規作成（`emptyProject`）も空文字。
+  - 理由: 省略できる型にすると、モジュールだけを扱うところ（パレット、モジュール設定など）のすべてに `?? ''` が要る。
+- 検証のエラーの回路: `ProjectError` の回路を指すものに、名前（`circuit`。メイン回路は空文字）と ID（`circuitId`）を持たせる。文にするとき（`i18n/messages.ts` の `describeProjectError`）に、`getCircuitName` で画面に出す名前にする。
+- ID の重なりのエラー: `DUPLICATE_PART_ID` と `DUPLICATE_CIRCUIT_ID` をやめ、種類を問わない `DUPLICATE_ID` 1 つにした（回路・部品・配線の ID を、まとめて重ならないものにしたため）。文は「ID が重複しています: 〜」/「Duplicate ID: 〜」（開発者の確認待ち）。
 - ID:
-  - `newId` の中身を `crypto.randomUUID()` に変える。呼ぶ側は変えない。
-  - `upgradeV3` は、新しい ID を作る関数を引数で受け取る（`parseProject` の `newId` と同じ渡し方）。テストで決まった ID を渡せるようにするため。
+  - `newId` の中身を UUID version 4 の形にする（上の「ID の作り方」）。呼ぶ側は変えない。
+  - `upgradeV3` は、新しい ID を作る関数を引数で受け取る（`parseProject` の `newId` と同じ渡し方）。テストで決まった ID を渡せるようにするため。`upgradeProject` と `readStored` も `newId` を受け取って渡す。
   - `file/share.ts` の `renameIds` を消す。
   - localStorage の `sazanka.views`（回路 ID ごとの表示）は、変換でモジュールの ID が変わると引けなくなり、既定の表示に戻る。メイン回路の表示は残る。付け替えない（開発者が決めた。変換は一度きりで、戻るのは表示位置だけのため）。採らなかった案: `upgradeV3` が古い ID と新しい ID の対応を返し、表示にも当てはめる。
 
@@ -81,3 +89,4 @@
 
 - ブランチ `format-v4` で進める（開発者の指示）。
 - 段階 1: 終えた。`docs/format/v4.md` を書き、`v3.md` を `docs/format/archive/` に移した。移した `v3.md` は、切れたリンク（`persistence.md` への相対パス）だけ直した。v3 を指すリンクは、今の仕様を指すもの（`persistence.md`、`editing.md`、`view.md`、`browser-check.md`、計画中の `bus` と `module-files` の書き足し先）は v4 に、version 3 の記録として指すもの（完了した計画、`upgradeV2.ts` のコメント、`persistence.md` の version 2 → 3 の説明）は `archive/v3.md` に張り替えた。リンク切れがないことを確かめた。`browser-check.md` の例の JSON は、まだ version 3 の形（段階 3 で直す）。
+- 段階 2: 終えた。`upgradeV3` を足し、版を 4 にした。マスと px の変換、検証（整数、ID の重なり、メイン回路の名前を見ない）、ID の付け直しの廃止、`newId` の変更、`label` から `portName` への改名をした。整形、Lint、型、テスト（347 件）、ビルドが通る。ドキュメント（`persistence.md` など）は段階 3 で直す。

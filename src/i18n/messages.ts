@@ -29,9 +29,16 @@ function describeError<E extends { code: string }>(texts: ErrorTexts<E>, e: E): 
   return typeof text === 'string' ? text : text(e);
 }
 
-/** 検証で見つかった、プロジェクトの形の問題を文にする */
+/**
+ * 検証で見つかった、プロジェクトの形の問題を文にする。
+ * メイン回路は保存データに名前がないので、問題のある回路がメイン回路なら、表示言語の名前にしてから文にする
+ */
 function describeProjectError(m: Messages, e: ProjectError): string {
-  return describeError(m.errors.project, e);
+  const shown =
+    'circuitId' in e
+      ? { ...e, circuit: getCircuitName({ id: e.circuitId, name: e.circuit }, m) }
+      : e;
+  return describeError(m.errors.project, shown);
 }
 
 /** 共有用 JSON を読み込めなかった理由を文にする。壊れていたときは、検証で見つかった問題も添える */
