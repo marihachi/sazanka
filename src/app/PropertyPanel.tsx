@@ -17,8 +17,6 @@ interface PropertyPanelProps {
   part?: Part;
   /** モジュールの名前 (モジュールのとき) */
   moduleName?: string;
-  /** モジュールの回路を開いているか。モジュールの中の INPUT / OUTPUT は、名前の欄を「ポート名」と呼ぶ */
-  inModule?: boolean;
   /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒でも示すのに使う */
   ticksPerSecond: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
@@ -29,7 +27,7 @@ interface PropertyPanelProps {
    * 同じ名前を付けられないようにするために使う (memo で比べられるよう、集合ではなく文字列で渡す)
    */
   otherLabels?: string;
-  /** INPUT / OUTPUT のラベルを変えた */
+  /** INPUT / OUTPUT のポート名を変えた */
   onLabelChange: (id: string, label: string) => void;
 }
 
@@ -40,7 +38,6 @@ interface PropertyPanelProps {
 export const PropertyPanel = memo(function PropertyPanel({
   part,
   moduleName,
-  inModule = false,
   otherLabels = '',
   ticksPerSecond,
   onEditStart,
@@ -89,10 +86,9 @@ export const PropertyPanel = memo(function PropertyPanel({
                   value={m.common.portName(part.kind, part.portNumber)}
                 />
               )}
-              <LabelField
+              <PortNameField
                 key={part.id}
                 part={part}
-                inModule={inModule}
                 otherLabels={otherLabels}
                 onEditStart={onEditStart}
                 onChange={onLabelChange}
@@ -133,10 +129,6 @@ function useEditSession(onEditStart: () => void) {
   };
 }
 
-/**
- * INPUT / OUTPUT のラベルの入力欄。入力したらすぐに反映する。
- * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
- */
 /** 表示だけの項目 */
 function ReadOnlyRow({ label, value }: { label: string; value: string }) {
   return (
@@ -149,16 +141,17 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LabelField({
+/**
+ * INPUT / OUTPUT のポート名の入力欄。入力したらすぐに反映する。
+ * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
+ */
+function PortNameField({
   part,
-  inModule,
   otherLabels,
   onEditStart,
   onChange,
 }: {
   part: Part;
-  /** モジュールの回路を開いているか。欄の名前は、モジュールの中では「ポート名」、メイン回路では「ラベル」 */
-  inModule: boolean;
   otherLabels: string;
   onEditStart: () => void;
   onChange: (id: string, label: string) => void;
@@ -171,11 +164,11 @@ function LabelField({
 
   return (
     <Field.Root invalid={taken(text)}>
-      <Field.Label>{inModule ? m.property.portLabel : m.property.label}</Field.Label>
+      <Field.Label>{m.property.portLabel}</Field.Label>
       <Input
         size="sm"
         value={text}
-        placeholder={inModule ? m.property.noPortLabel : m.property.noLabel}
+        placeholder={m.property.noPortLabel}
         onChange={(e) => {
           setText(e.target.value);
           // ほかのポートと同じ名前は反映しない (欄の文字は残し、エラーを出す)

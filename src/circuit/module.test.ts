@@ -79,7 +79,7 @@ describe('モジュールのピン', () => {
     expect(getPinout(comp('g', 'and'), project).package).toBeUndefined();
   });
 
-  it('モジュールのピン名は中の INPUT / OUTPUT のラベル。ラベルなしは空文字', () => {
+  it('モジュールのピン名は中の INPUT / OUTPUT のポート名。名前未設定は空文字', () => {
     const project: Project = {
       circuits: [
         { id: MAIN_ID, name: 'メイン', parts: [], wires: [] },

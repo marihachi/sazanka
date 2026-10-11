@@ -60,7 +60,7 @@ describe('edit', () => {
     expect(c.wires.map((w) => w.id)).toEqual(['w1', 'w2', 'w3', 'w4']);
   });
 
-  it('空白だけのラベルはラベルなしになる', () => {
+  it('空白だけのポート名は名前未設定になる', () => {
     const labeled = setLabel(base, 'a', ' x ');
     expect(labeled.parts[0].label).toBe('x');
     expect(setLabel(labeled, 'a', '  ').parts[0].label).toBeUndefined();

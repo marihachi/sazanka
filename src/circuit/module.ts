@@ -100,7 +100,7 @@ export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
   };
 }
 
-/** 部品のピン名。モジュールは中の INPUT / OUTPUT のラベル、ほかは種類で決まる */
+/** 部品のピン名。モジュールは中の INPUT / OUTPUT のポート名、ほかは種類で決まる */
 export function getPinout(c: Part, project: Project): Pinout {
   if (c.kind === 'module') {
     const def = findDef(project, c.module);

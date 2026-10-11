@@ -1,4 +1,4 @@
-// 回路の編集 (部品・配線・ラベルの追加や変更や削除、コピーと貼り付け) と、編集の対象として選んでいるものの形。
+// 回路の編集 (部品・配線・ポート名の追加や変更や削除、コピーと貼り付け) と、編集の対象として選んでいるものの形。
 // どれも新しい回路を返し、元の回路は書き換えない。
 // 元に戻す対象にするかどうかは、使う側 (app/App.tsx) が useProjectHistory.ts で決める
 
@@ -133,7 +133,7 @@ export function setClockPeriod<T extends Circuit>(circuit: T, id: string, period
   return updatePart(circuit, id, (c) => ({ ...c, period }));
 }
 
-/** 空白だけのラベルは、ラベルなしにする */
+/** INPUT / OUTPUT のポート名を変える。空白だけなら名前未設定にする */
 export function setLabel<T extends Circuit>(circuit: T, id: string, value: string): T {
   return updatePart(circuit, id, (c) => ({
     ...c,
