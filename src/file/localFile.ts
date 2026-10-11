@@ -1,4 +1,4 @@
-// 手元のファイルへの保存 (ブラウザのダウンロードの仕組みを使う)
+// 手元のファイルへの保存 (ブラウザのダウンロードの仕組みを使う) と、選んだファイルの読み込み
 
 /** 書き出すファイルの名前。日付は端末の時刻で、例: sazanka-2026-10-11.json */
 export function getExportFileName(date: Date): string {
@@ -19,4 +19,10 @@ export function saveJsonFile(name: string, text: string) {
   // click の直後に URL を消すと、保存が始まる前に消えて失敗するブラウザがある (Safari など)。
   // 少し待ってから消す
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** 選んだファイルを文字列として読む。読めなければ例外を投げる (選んだあとにファイルが消されたときなど) */
+export function readTextFile(file: File): Promise<string> {
+  // UTF-8 として読む。先頭の BOM (メモ帳などが付ける) は File.text() が外す
+  return file.text();
 }

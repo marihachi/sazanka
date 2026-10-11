@@ -24,7 +24,7 @@ export const ja = {
     newProject: '新規作成',
     newProjectTitle: '空のプロジェクトを新しく作る',
     importProject: '読み込み',
-    importProjectTitle: '共有された JSON からプロジェクトを読み込む',
+    importProjectTitle: 'JSON の文字列かファイルからプロジェクトを読み込む',
     exportProject: '書き出し',
     exportProjectTitle: 'プロジェクト全体を JSON にして共有する',
     undo: '元に戻す',
@@ -199,7 +199,13 @@ export const ja = {
     copyFailed: 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください',
     importTitle: '読み込み',
     importMessage:
-      '書き出したデータを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
+      '書き出したファイルを選択するか、データを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
+    source: '読み込み元',
+    sourceFile: 'ファイル',
+    sourceText: 'テキスト',
+    chooseFile: 'ファイルを選択',
+    noFile: '選択されていません',
+    readFailed: 'ファイルを読み取れませんでした',
     importConfirm: '読み込む',
     importedFrom: (author: string) => `「${author}」さんの回路を読み込みました。`,
     /** 保存データを読み込めなかったときのお知らせ。reason は errors.stored の文 */

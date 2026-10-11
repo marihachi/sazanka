@@ -3,7 +3,7 @@ import type { TextRequest } from '../ui/TextDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
-import { getExportFileName, saveJsonFile } from './localFile';
+import { getExportFileName, readTextFile, saveJsonFile } from './localFile';
 import { describeShareError, type Messages } from '../i18n/messages';
 
 /** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */
@@ -69,23 +69,44 @@ export function useProjectFile({
   }
 
   function importProject() {
+    /** 読み込んだ文字列でプロジェクトを置き換える。読めなければエラーの文を返す */
+    function load(text: string) {
+      const result = parseProject(text.trim(), newId);
+      if (!result.ok) {
+        return describeShareError(m, result.error);
+      }
+      replaceProject(result.project);
+      if (result.project.author) {
+        showConfirm({
+          message: m.file.importedFrom(result.project.author),
+        });
+      }
+      return undefined;
+    }
+
     showText({
       title: m.file.importTitle,
       message: m.file.importMessage,
       initial: '',
       confirmLabel: m.file.importConfirm,
-      onSubmit: (text) => {
-        const result = parseProject(text.trim(), newId);
-        if (!result.ok) {
-          return describeShareError(m, result.error);
-        }
-        replaceProject(result.project);
-        if (result.project.author) {
-          showConfirm({
-            message: m.file.importedFrom(result.project.author),
-          });
-        }
-        return undefined;
+      onSubmit: load,
+      fileInput: {
+        accept: '.json,application/json',
+        sourceLabel: m.file.source,
+        fileLabel: m.file.sourceFile,
+        textLabel: m.file.sourceText,
+        chooseLabel: m.file.chooseFile,
+        noFileLabel: m.file.noFile,
+        onSubmit: async (file) => {
+          let text: string;
+          try {
+            text = await readTextFile(file);
+          } catch {
+            // 選んだあとにファイルが消された・動かされたときなど
+            return m.file.readFailed;
+          }
+          return load(text);
+        },
       },
     });
   }
