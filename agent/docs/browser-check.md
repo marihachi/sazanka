@@ -9,9 +9,9 @@
 
 ## 状態の用意
 
-- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v3.md` にある。
+- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v4.md` にある。
   - アプリはプロジェクトが変わるたびに自動で保存するので、書いた値が上書きされることがある。書き方は Skill の `browser-check` の「ハマりやすい点」に従う。
-  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v3.md` の「ピンの先の位置」）に合わせる:
+  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v4.md` の「ピンの先の位置」）に合わせる:
 
     ```js
     const project = {

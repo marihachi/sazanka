@@ -2,7 +2,7 @@
 // version 3 では、回路の部品の一覧を components から parts に、モジュールを指す項目を custom から module に移し、
 // 部品の種類の名前をキャメルケースにした。モジュールの回路は、モジュールの形 (package) を持つ。
 // INPUT / OUTPUT は、見分けるための番号 (portNumber) を持つ。
-// 形式は docs/format/archive/v2.md と docs/format/v3.md。
+// 形式は docs/format/archive/v2.md と docs/format/archive/v3.md。
 //
 // 今のアプリのコード (部品の型や検証、配置) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため。
 // 配線は書き換えない。古い版のモジュールは version 2 までの形 (split) にするので、ピンの位置は変わらない
