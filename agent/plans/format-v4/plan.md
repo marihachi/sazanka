@@ -55,7 +55,7 @@
   - `newId` の中身を `crypto.randomUUID()` に変える。呼ぶ側は変えない。
   - `upgradeV3` は、新しい ID を作る関数を引数で受け取る（`parseProject` の `newId` と同じ渡し方）。テストで決まった ID を渡せるようにするため。
   - `file/share.ts` の `renameIds` を消す。
-  - localStorage の `sazanka.views`（回路 ID ごとの表示）は、変換でモジュールの ID が変わると引けなくなり、既定の表示に戻る。メイン回路の表示は残る。付け替えるかは実装のときに決める（付け替えるなら、`upgradeV3` が古い ID と新しい ID の対応を返す）。
+  - localStorage の `sazanka.views`（回路 ID ごとの表示）は、変換でモジュールの ID が変わると引けなくなり、既定の表示に戻る。メイン回路の表示は残る。付け替えない（開発者が決めた。変換は一度きりで、戻るのは表示位置だけのため）。採らなかった案: `upgradeV3` が古い ID と新しい ID の対応を返し、表示にも当てはめる。
 
 ## 段階
 
