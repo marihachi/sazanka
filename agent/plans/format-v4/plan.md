@@ -66,7 +66,7 @@
 - メイン回路の `name`: アプリの中では `CircuitDef.name` を省略できない型のままにし、メイン回路は空文字で持つ。保存・書き出しで外し（`toStoredProject`）、読み込みで空文字にする（`fromStoredProject`）。新規作成（`emptyProject`）も空文字。
   - 理由: 省略できる型にすると、モジュールだけを扱うところ（パレット、モジュール設定など）のすべてに `?? ''` が要る。
 - 検証のエラーの回路: `ProjectError` の回路を指すものに、名前（`circuit`。メイン回路は空文字）と ID（`circuitId`）を持たせる。文にするとき（`i18n/messages.ts` の `describeProjectError`）に、`getCircuitName` で画面に出す名前にする。
-- ID の重なりのエラー: `DUPLICATE_PART_ID` と `DUPLICATE_CIRCUIT_ID` をやめ、種類を問わない `DUPLICATE_ID` 1 つにした（回路・部品・配線の ID を、まとめて重ならないものにしたため）。文は「ID が重複しています: 〜」/「Duplicate ID: 〜」（開発者の確認待ち）。
+- ID の重なりのエラー: `DUPLICATE_PART_ID` と `DUPLICATE_CIRCUIT_ID` をやめ、種類を問わない `DUPLICATE_ID` 1 つにした（回路・部品・配線の ID を、まとめて重ならないものにしたため）。文は「ID が重複しています: 〜」/「Duplicate ID: 〜」（開発者が了承した）。
 - ID:
   - `newId` の中身を UUID version 4 の形にする（上の「ID の作り方」）。呼ぶ側は変えない。
   - `upgradeV3` は、新しい ID を作る関数を引数で受け取る（`parseProject` の `newId` と同じ渡し方）。テストで決まった ID を渡せるようにするため。`upgradeProject` と `readStored` も `newId` を受け取って渡す。
