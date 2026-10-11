@@ -55,7 +55,7 @@ export function describeStoredError(m: Messages, e: StoredError): string {
 }
 
 /**
- * 画面に出す回路の名前。メイン回路は、保存した名前 (作ったときの「メイン」) ではなく、表示言語の名前にする。
+ * 画面に出す回路の名前。メイン回路は名前を持たない (アプリの中では空文字) ので、表示言語の名前にする。
  * モジュールは、利用者が付けた名前のまま
  */
 export function getCircuitName(def: Pick<CircuitDef, 'id' | 'name'>, m: Messages): string {

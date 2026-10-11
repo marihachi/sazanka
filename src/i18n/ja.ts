@@ -12,7 +12,7 @@ export const ja = {
     ok: 'OK',
     cancel: 'キャンセル',
     close: '閉じる',
-    /** メイン回路の名前。保存した名前ではなく、これを出す (messages.ts の getCircuitName) */
+    /** メイン回路の名前。メイン回路は名前を持たないので、これを出す (messages.ts の getCircuitName) */
     mainCircuit: 'メイン',
     /** 「入力 1」「出力 2」のような、入力か出力か (kind が input か) とポート番号 */
     portName: (kind: string, portNumber: number | string) =>

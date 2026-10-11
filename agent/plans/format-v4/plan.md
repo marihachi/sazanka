@@ -90,3 +90,11 @@
 - ブランチ `format-v4` で進める（開発者の指示）。
 - 段階 1: 終えた。`docs/format/v4.md` を書き、`v3.md` を `docs/format/archive/` に移した。移した `v3.md` は、切れたリンク（`persistence.md` への相対パス）だけ直した。v3 を指すリンクは、今の仕様を指すもの（`persistence.md`、`editing.md`、`view.md`、`browser-check.md`、計画中の `bus` と `module-files` の書き足し先）は v4 に、version 3 の記録として指すもの（完了した計画、`upgradeV2.ts` のコメント、`persistence.md` の version 2 → 3 の説明）は `archive/v3.md` に張り替えた。リンク切れがないことを確かめた。`browser-check.md` の例の JSON は、まだ version 3 の形（段階 3 で直す）。
 - 段階 2: 終えた。`upgradeV3` を足し、版を 4 にした。マスと px の変換、検証（整数、ID の重なり、メイン回路の名前を見ない）、ID の付け直しの廃止、`newId` の変更、`label` から `portName` への改名をした。整形、Lint、型、テスト（347 件）、ビルドが通る。ドキュメント（`persistence.md` など）は段階 3 で直す。
+- 段階 3: 終えた。`persistence.md`（今の版、version 3 → 4、保存の形とアプリの中の形、ID）、`browser-check.md`（例の JSON をマス単位と読める ID に、座標の説明）、`screenshot.md`（写す回路を version 4 に）、`glossary.md`（`Part.portName`）、`parts.md`、`structure.md` を直した。ブラウザ（開発用のサーバー）で次を確かめ、エラーはなかった。
+  - version 3 の保存データ: version 4 で保存し直し、モジュール・部品・配線の ID が UUID になり、位置がマス、`portName`、メイン回路の名前なしになる。再読み込みしても ID と位置が変わらない。
+  - モジュールを含む回路のシミュレーション（INPUT を ON にすると、モジュールを通って OUTPUT が点く）。ポート名の変更（プロパティ欄とモジュール設定）、パレットから置いた部品の ID。
+  - 書き出しと読み込み（テキストとファイル、version 3 と 4）: 書き出しの ID は保存データと同じで、version 4 を読み込むと ID も位置も同じになる。
+  - 読み込みのエラー（ID の重なり、メイン回路のシートの大きさ、マスの途中の位置）。メイン回路の名前は日本語で「メイン」、英語で「Main」と出る。ID の重なった保存データは、空のプロジェクトで開いて知らせる。
+  - 荒い操作: 読み込むボタンと Enter の連打で 1 回だけ読み込む。元に戻すで読み込む前に戻り、再読み込みしても同じ状態。
+  - フレームレート（ビルドしたもの、CPU 4 倍遅く、CLOCK 14 個）: 変更前（`main`）と差がない。何もしないとき 60 fps、ドラッグ中 58.7〜59.2 fps。
+- 開発者のレビューを待つ（状態は進行中のまま）。

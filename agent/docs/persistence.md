@@ -14,14 +14,17 @@
   1. 保存データの `STORAGE_VERSION`（`file/storage.ts`）と、共有用 JSON の `SHARE_VERSION`（`file/share.ts`）を上げる。
   2. 1 版分の変換（`file/upgradeV<N>.ts` の `upgradeV<N>`: version N → N+1）を作り、`file/upgrade.ts` の `UPGRADES` の末尾に足す。
 - 古い版のデータは、`file/upgrade.ts` の `upgradeProject` が、`UPGRADES` の変換を版の順に通して今の版の形にする。保存データ（`readStored`）と共有用 JSON（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
-- 今の版は、どちらも 3。
-- version 4 に上げる[計画](../plans/format-v4/plan.md)を進めている（進行中）。形式の仕様は [version 4](../../docs/format/v4.md) に書いたが、コードはまだ version 3 のまま。
+- 今の版は、どちらも 4。
 - version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/archive/v2.md) の「version 1 からの変更」にある。
   - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
   - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
 - version 2 → 3 は `file/upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../../docs/format/archive/v3.md) の「version 2 からの変更」にある。
   - 種類の名前の対応表（`KIND_NAMES_V3`）を中に持つ。今のアプリの種類の名前を変えても、ここは直さない。
   - モジュールの回路には `split`（version 2 までのモジュールの形）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
+- version 3 → 4 は `file/upgradeV3.ts` の `upgradeV3`。変え方は [version 4](../../docs/format/v4.md) の「version 3 からの変更」にある。
+  - 1 マスの大きさ（20px）を中に持つ。今のアプリの `GRID` を変えても、ここは直さない。
+  - ID を付け直すので、新しい ID を作る関数（`newId`）を引数で受け取る。`upgradeProject` と、それを呼ぶ `readStored` と `parseProject` も受け取って渡す。テストでは決まった ID を渡す。
+  - モジュールの ID が変わるので、そのモジュールの表示（`sazanka.views`）は引けなくなり、既定の表示に戻る。付け替えない（開発者が決めた）。
 - どちらも、今より新しい版のデータは読み込まずに断る。
 - 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`）も合わせる。置ける種類の判定（`part.ts` の `isPlaceablePartKind`）は `PART_SPECS` と `SPECIAL_KINDS` を見るので、`PART_SPECS` に足した種類はそのまま検証を通る。
 - モジュールの回路のパッケージ（`project.ts` の `CircuitDef.package`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。型で省略できるのは、メイン回路が持たないためと、テストでモジュールを手短に作れるようにするため。持たないモジュールは `split` として扱う（`module.ts` の `getPinout`）。
@@ -40,6 +43,22 @@
   - 保存データと共有用 JSON の版は別々の番号。片方だけ上げることになったら、文書の分け方を開発者に相談する。
 - モジュールをファイルとして保存し、パスで参照する[計画](../plans/module-files/plan.md)がある（計画中）。まだ何も決まっていないので、実装しない。保存形式やモジュールの参照を変えるときは、この計画とぶつからないかだけ見て、進め方は開発者に聞く。
 
+## 保存の形とアプリの中の形
+
+保存データと共有用 JSON の中のプロジェクト（`file/storage.ts` の `StoredProject`）は、アプリの中の形（`Project`）と次のところが違う。読み書きのときに `storage.ts` の `toStoredProject` / `fromStoredProject` で変える。共有用 JSON（`share.ts`）も同じ関数を使う。
+
+- 部品の位置と配線の点は、保存の形ではマス単位の整数、アプリの中では px（`geometry/layout.ts` の `GRID` 倍）。描画、当たり判定、ネットの計算が px で書かれているので、アプリの中は px のままにしている。
+  - 検証（`checkProject`）は、保存の形（マス単位）で行う。位置が整数でなければ断る。
+- メイン回路は、保存の形では名前を持たず、アプリの中では空文字を持つ。画面に出す名前は表示言語の文言から引く（`i18n/messages.ts` の `getCircuitName`）。読み込むときは、名前があっても捨てる。
+- 置き場所は、あとで考え直す（開発者）。`project.ts` には置けない（`GRID` は `geometry/` にあり、`circuit/` からは使えない。[ソースの構成](structure.md)の「依存の向き」）。
+
+## ID
+
+- 回路・部品・配線の ID は、プロジェクトをまたいでも重ならないものにし、一度付けたら付け直さない（形式の文書の「ID の付け方」）。モジュールを別のプロジェクトへ持ち込んでも、付け直さずに済ませるため。
+- 新しい ID は `circuit/circuit.ts` の `newId` で作る。UUID version 4 の形。`crypto.randomUUID()` は安全な接続（https か localhost）でしか使えないので、`crypto.getRandomValues()` で組み立てる。
+- メイン回路の ID は、どのプロジェクトでも `"main"`（`MAIN_ID`）。
+- 検証は、ID が回路・部品・配線のすべてをまとめて重ならないことを確かめる（`project.ts` の `findDuplicateId`）。
+
 ## 保存データ
 
 - プロジェクトは、変わるたびに localStorage の `sazanka.project` に自動で保存する（`App.tsx` の `useEffect` から `storage.ts` の `saveProject` を呼ぶ）。形は `{ version, project }`。
@@ -55,7 +74,7 @@
   - 書き出しの「ファイルに保存」は、`sazanka-YYYY-MM-DD.json`（端末の日付）で保存させる。読み込みでは、読み込み元に「ファイル」を選び、ファイルを選んでから読み込む。
   - 手元のファイルとのやりとりは `file/localFile.ts` にまとめている（保存の `saveJsonFile`、読む `readTextFile`）。保存は `<a download>` で行う。`showSaveFilePicker` は Chromium でしか動かないので使わない。
   - ファイルは UTF-8 として読む。先頭の BOM は `File.text()` が外す。
-- 書き出すときは、部品と配線の ID を回路ごとに `part-1`、`wire-1` からの連番に付け直す（読みやすくするため）。配線は部品を指さないので、ID を付け直しても配線の中身は変わらない。読み込むときは、アプリの中と同じランダムな ID に付け直す。回路の ID はモジュールの参照に使うので、どちらでも変えない。
+- 書き出しでも読み込みでも、ID は付け直さない（上の「ID」）。
 - 他人から受け取る文字列なので、読み込むときは形を検証してから使う（`checkProject`）。
 - 書き出すときに作者名を付けられる（`Project.author`。空なら含めない）。作者名の入ったものを読み込むと、お知らせを出す。
 

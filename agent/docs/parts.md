@@ -17,7 +17,7 @@
 
 1. `src/parts/<名前>/` に `spec.ts`、`view.ts`、`icon.svg` を作る。
 2. `parts/specs.ts` の `PART_SPECS` と、`parts/views.ts` の `PART_VIEWS` に 1 行ずつ足す。既定と違う配置にするなら、`layout.ts` も作って `parts/layouts.ts` の `PART_LAYOUTS` に足す。
-3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表と、「version 3 の中で変えたもの」に書き足す。種類を足すだけなら版は上げない。
+3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表と、「version 4 の中で変えたもの」（なければ節を作る）に書き足す。種類を足すだけなら版は上げない。
 
 - 種類の型（`PartKind`）は `PART_SPECS` から導いている。仕様の一覧にある種類だけの型は `SpecKind`。`PART_VIEWS` は置ける種類すべてをキーに持つ型なので、見せ方を書き忘れると型エラーになる。
 - 読み込みの検証、パレット、シートの描画、ヒントは一覧を見て動くので、ほかのファイルは直さなくてよい。
