@@ -74,7 +74,7 @@ function parse(text: string) {
 }
 
 describe('share', () => {
-  it('書き出すと、位置はマスになり、メイン回路の名前と配線の ID は書かず、配線に種類を書く', () => {
+  it('書き出すと、位置はマスになり、メイン回路の名前と部品と配線の ID は書かず、配線に種類を書く', () => {
     const [main, mod] = project.circuits;
     const { name: _, ...mainWithoutName } = main;
     expect(JSON.parse(serializeProject(project)).project).toEqual({
@@ -82,30 +82,34 @@ describe('share', () => {
         {
           ...mainWithoutName,
           parts: [
-            { id: 'a', kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
-            { ...main.parts[1], x: 5 },
+            { kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
+            { kind: 'module', x: 5, y: 0, module: 'mod' },
           ],
           // biome-ignore format: 表形式を維持するため
           wires: [{ kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] }],
         },
         // シートの大きさがない回路は、300×200 として書き出す
-        { ...mod, sheet: DEFAULT_SHEET },
+        { ...mod, sheet: DEFAULT_SHEET, parts: [{ kind: 'input', x: 0, y: 0, portNumber: 1 }] },
       ],
     });
   });
 
-  it('読み込んでも、回路と部品の ID は付け直さない。配線には新しい ID を付ける', () => {
+  it('読み込んでも、回路の ID は付け直さない。部品と配線には新しい ID を付ける', () => {
     const [main, mod] = project.circuits;
+    // 新しい ID は、回路ごとに部品、配線の順に付ける
     expect(parse(serializeProject(project))).toEqual({
       ok: true,
       project: {
         circuits: [
           {
             ...main,
-            parts: [{ id: 'a', kind: 'input', x: 0, y: 0, portNumber: 1 }, main.parts[1]],
-            wires: [{ ...main.wires[0], id: 'id1' }],
+            parts: [
+              { id: 'id1', kind: 'input', x: 0, y: 0, portNumber: 1 },
+              { ...main.parts[1], id: 'id2' },
+            ],
+            wires: [{ ...main.wires[0], id: 'id3' }],
           },
-          { ...mod, sheet: DEFAULT_SHEET },
+          { ...mod, sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id4' }] },
         ],
       },
     });
@@ -171,16 +175,6 @@ describe('share', () => {
       },
       // 存在しないモジュールへの参照
       { circuits: [main] },
-      // 部品 ID の重複
-      {
-        circuits: [
-          {
-            ...main,
-            parts: [main.parts[0], main.parts[0]],
-            wires: [],
-          },
-        ],
-      },
       // 知らない種類の配線
       { circuits: [{ ...main, wires: [{ ...main.wires[0], kind: 'bus' }] }, project.circuits[1]] },
       // 回路 ID の重複
@@ -262,8 +256,8 @@ describe('古い版のデータ', () => {
   it('version 2 のデータは、version 4 の形に変えて読み込む', () => {
     const result = parse(JSON.stringify({ app: 'sazanka', version: 2, project: projectV2 }));
     const [main, mod] = withoutSwitchStates(project).circuits;
-    // ID は version 3 → 4 の変換で付け直す (モジュールの回路、メイン回路の部品、モジュールの部品の順)。
-    // 配線の ID は、そのあとの読み込みで付ける。
+    // モジュールの回路の ID は version 3 → 4 の変換で付け直す (id1)。
+    // 部品と配線の ID は、そのあとの読み込みで、回路ごとに部品、配線の順に付ける。
     // version 2 にはシートの大きさがないので、どの回路も 300×200 になる
     expect(result).toEqual({
       ok: true,
@@ -277,9 +271,9 @@ describe('古い版のデータ', () => {
               { ...main.parts[0], id: 'id2' },
               { ...main.parts[1], id: 'id3', module: 'id1' },
             ],
-            wires: [{ ...main.wires[0], id: 'id5' }],
+            wires: [{ ...main.wires[0], id: 'id4' }],
           },
-          { ...mod, id: 'id1', sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id4' }] },
+          { ...mod, id: 'id1', sheet: DEFAULT_SHEET, parts: [{ ...mod.parts[0], id: 'id5' }] },
         ],
       },
     });

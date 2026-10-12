@@ -62,11 +62,19 @@ describe('checkProject', () => {
 
   // biome-ignore format: 表形式を維持するため
   const 重なるもの: [string, unknown, string][] = [
-    ['同じ回路の部品どうし', main([comp('a', 'and'), comp('a', 'or')]), 'a'],
-    ['回路をまたいだ部品どうし', withModule([comp('a', 'and')], [comp('a', 'or')]), 'a'],
-    ['部品と回路', withModule([comp('m', 'and')], []), 'm'],
+    ['モジュールの回路どうし', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }, { id: 'm', name: 'M', package: { kind: 'split' }, parts: [], wires: [] }, { id: 'm', name: 'N', package: { kind: 'split' }, parts: [], wires: [] }] }, 'm'],
     ['モジュールの回路が main を使う', { circuits: [{ id: MAIN_ID, parts: [], wires: [] }, { id: MAIN_ID, name: 'M', package: { kind: 'split' }, parts: [], wires: [] }] }, MAIN_ID],
   ];
+  it('部品の ID は見ない (保存しないので、重なっていても、なくてもよい)', () => {
+    const { id: _, ...noId } = comp('x', 'or');
+    expect(
+      checkProject(
+        withModule([comp('a', 'and'), comp('a', 'or')], [comp('a', 'or'), comp('m', 'or')]),
+      ),
+    ).toBeUndefined();
+    expect(checkProject(main([noId as Part]))).toBeUndefined();
+  });
+
   it('配線の ID は見ない (保存しないので、重なっていても、なくてもよい)', () => {
     const wire = (id?: string) => ({
       ...(id ? { id } : {}),

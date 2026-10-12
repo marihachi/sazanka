@@ -206,21 +206,16 @@ function checkCircuit(def: unknown, isModule: boolean): ProjectError | undefined
 }
 
 /**
- * 回路と部品の ID で、ほかと重なるもの (最初に見つかったもの)。なければ undefined。
- * ID は回路と部品をまたいで、プロジェクトの中で重ならない (形式の文書の「ID の付け方」)。
- * 配線の ID は保存しない (読み込むときに付ける) ので見ない
+ * 回路の ID で、ほかと重なるもの (最初に見つかったもの)。なければ undefined。
+ * 保存する ID は回路の ID だけ (部品と配線の ID は読み込むときに付ける。形式の文書の「ID の付け方」)
  */
-function findDuplicateId(
-  circuits: readonly Pick<CircuitDef, 'id' | 'parts'>[],
-): string | undefined {
+function findDuplicateId(circuits: readonly Pick<CircuitDef, 'id'>[]): string | undefined {
   const ids = new Set<string>();
-  for (const def of circuits) {
-    for (const id of [def.id, ...def.parts.map((c) => c.id)]) {
-      if (ids.has(id)) {
-        return id;
-      }
-      ids.add(id);
+  for (const { id } of circuits) {
+    if (ids.has(id)) {
+      return id;
     }
+    ids.add(id);
   }
   return undefined;
 }

@@ -12,7 +12,7 @@ function counter(): () => string {
 }
 
 describe('upgradeV3', () => {
-  it('位置をマスにし、ID を付け直し、label を portName に移し、メイン回路の名前と配線の ID を消す', () => {
+  it('位置をマスにし、回路の ID を付け直し、label を portName に移し、メイン回路の名前と部品と配線の ID を消す', () => {
     const v3 = {
       author: 'さざんか',
       circuits: [
@@ -37,7 +37,7 @@ describe('upgradeV3', () => {
         },
       ],
     };
-    // 新しい ID は、モジュールの回路、メイン回路の部品、モジュールの部品の順に作る。配線は ID を持たず、種類を持つ
+    // 新しい ID を作るのは、モジュールの回路だけ。部品と配線は ID を持たず、配線は種類を持つ
     expect(upgradeV3(v3, counter())).toEqual({
       author: 'さざんか',
       circuits: [
@@ -46,8 +46,8 @@ describe('upgradeV3', () => {
           sheet: { width: 40, height: 30 },
           // biome-ignore format: 表形式を維持するため
           parts: [
-            { id: 'id2', kind: 'input', x: 0, y: 1, portName: 'A', portNumber: 1 },
-            { id: 'id3', kind: 'module', x: 5, y: 0, module: 'id1' },
+            { kind: 'input', x: 0, y: 1, portName: 'A', portNumber: 1 },
+            { kind: 'module', x: 5, y: 0, module: 'id1' },
           ],
           // biome-ignore format: 表形式を維持するため
           wires: [{ kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
@@ -56,7 +56,7 @@ describe('upgradeV3', () => {
           id: 'id1',
           name: 'M',
           package: { kind: 'split' },
-          parts: [{ id: 'id4', kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
+          parts: [{ kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
           wires: [],
         },
       ],
@@ -119,7 +119,7 @@ describe('upgradeV3', () => {
     // biome-ignore format: 表形式を維持するため
     const broken = { circuits: [{ id: 'main', name: 'メイン', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }] };
     expect(upgradeV3(broken, counter())).toEqual({
-      circuits: [{ id: 'main', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }],
+      circuits: [{ id: 'main', parts: [1, { kind: 'and', x: '0', y: 0 }], wires: 'w' }],
     });
   });
 

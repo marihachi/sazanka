@@ -1,6 +1,6 @@
 // 形式 version 3 のプロジェクトを、version 4 の形に変える。保存データと共有用 JSON の両方で使い、upgrade.ts から呼ぶ。
-// version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路と部品の ID をプロジェクトをまたいでも重ならないものにした。
-// 配線は ID を持たなくなり、種類 (kind) を持つ。
+// version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路の ID をプロジェクトをまたいでも重ならないものにした。
+// 部品と配線は ID を持たなくなり、配線は種類 (kind) を持つ。
 // INPUT / OUTPUT のポート名の項目名を label から portName に変え、メイン回路は name を持たなくなった。
 // 形式は docs/format/archive/v3.md と docs/format/v4.md。
 //
@@ -29,24 +29,18 @@ function withCells<T extends Record<string, unknown>>(o: T): T {
 }
 
 /**
- * ID を新しくする。文字列でない ID は、そのまま残す (検証で断る)。
- * version 3 の ID は回路をまたいで重なりうる (共有用 JSON の part-1 など) ので、回路と部品の ID はすべて付け直す
+ * 部品 1 つを version 4 の形にする。ID を消す (version 4 は部品の ID を保存しない)。
+ * moduleIds は、モジュールの回路の古い ID から新しい ID への対応
  */
-function renewId(id: unknown, newId: () => string): unknown {
-  return typeof id === 'string' ? newId() : id;
-}
-
-/** 部品 1 つを version 4 の形にする。moduleIds は、モジュールの回路の古い ID から新しい ID への対応 */
-function upgradePart(part: unknown, moduleIds: Map<string, string>, newId: () => string): unknown {
+function upgradePart(part: unknown, moduleIds: Map<string, string>): unknown {
   if (!isObject(part)) {
     return part;
   }
-  const { label, ...rest } = part;
+  const { id: _, label, ...rest } = part;
   const module =
     typeof part.module === 'string' ? (moduleIds.get(part.module) ?? part.module) : part.module;
   return {
     ...withCells(rest),
-    id: renewId(part.id, newId),
     ...(label === undefined ? {} : { portName: label }),
     ...(module === undefined ? {} : { module }),
   };
@@ -78,7 +72,6 @@ function upgradeCircuit(
   circuit: unknown,
   isModule: boolean,
   moduleIds: Map<string, string>,
-  newId: () => string,
 ): unknown {
   if (!isObject(circuit)) {
     return circuit;
@@ -91,7 +84,7 @@ function upgradeCircuit(
     id,
     ...(isModule ? { name } : {}),
     parts: Array.isArray(circuit.parts)
-      ? circuit.parts.map((p) => upgradePart(p, moduleIds, newId))
+      ? circuit.parts.map((p) => upgradePart(p, moduleIds))
       : circuit.parts,
     wires: Array.isArray(circuit.wires) ? circuit.wires.map(upgradeWire) : circuit.wires,
   };
@@ -113,7 +106,8 @@ function renewModuleIds(circuits: unknown[], newId: () => string): Map<string, s
 }
 
 /**
- * version 3 のプロジェクトを、version 4 の形にする。新しい ID は newId で作る。
+ * version 3 のプロジェクトを、version 4 の形にする。モジュールの回路の新しい ID は newId で作る。
+ * version 3 の ID は回路をまたいで重なりうる (共有用 JSON の part-1 など) ので、回路の ID は付け直し、部品と配線の ID は消す。
  * 形の正しくないデータは、分かるところだけを変えて返す (検証で断る)
  */
 export function upgradeV3(project: unknown, newId: () => string): unknown {
@@ -123,6 +117,6 @@ export function upgradeV3(project: unknown, newId: () => string): unknown {
   const moduleIds = renewModuleIds(project.circuits, newId);
   return {
     ...project,
-    circuits: project.circuits.map((c, i) => upgradeCircuit(c, i > 0, moduleIds, newId)),
+    circuits: project.circuits.map((c, i) => upgradeCircuit(c, i > 0, moduleIds)),
   };
 }

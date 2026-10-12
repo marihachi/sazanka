@@ -14,6 +14,7 @@ import {
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
 import { GRID, type Point } from '../geometry/layout';
+import type { Part } from '../circuit/part';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
@@ -32,7 +33,7 @@ interface StoredData {
 
 /**
  * 保存データと共有用 JSON の中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
- * 配線の ID はどこからも参照されないので保存せず、読み込むたびに付ける。種類は今は普通の配線 (wire) だけ
+ * 種類は今は普通の配線 (wire) だけ
  */
 export interface StoredWire {
   kind: 'wire';
@@ -43,11 +44,16 @@ export interface StoredWire {
  * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
  * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
  * - メイン回路は名前を持たない (アプリの中は空文字)。
- * - 配線は ID を持たず、種類を持つ (StoredWire)。
+ * - 部品と配線は ID を持たない。どこからも参照されないので保存せず、読み込むたびに付ける。保存する ID は回路の ID だけ。
+ * - 配線は種類を持つ (StoredWire)。
  */
 export interface StoredProject {
   author?: string;
-  circuits: (Omit<CircuitDef, 'name' | 'wires'> & { name?: string; wires: StoredWire[] })[];
+  circuits: (Omit<CircuitDef, 'name' | 'parts' | 'wires'> & {
+    name?: string;
+    parts: Omit<Part, 'id'>[];
+    wires: StoredWire[];
+  })[];
 }
 
 /** 座標を持つもの (部品と配線の点) の x と y に scale を掛ける (px → マスは 1 / GRID、マス → px は GRID) */
@@ -57,7 +63,7 @@ function scalePoint<T extends Point>(p: T, scale: number): T {
 
 /**
  * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
- * 位置を px からマスに直し、メイン回路の名前と配線の ID を外し、配線に種類を書く。
+ * 位置を px からマスに直し、メイン回路の名前と部品と配線の ID を外し、配線に種類を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
  */
 export function toStoredProject(project: Project): StoredProject {
@@ -66,7 +72,7 @@ export function toStoredProject(project: Project): StoredProject {
     circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
       ...def,
       ...(i > 0 ? { name } : {}),
-      parts: parts.map((c) => scalePoint(c, 1 / GRID)),
+      parts: parts.map(({ id: _, ...c }) => scalePoint(c, 1 / GRID)),
       wires: wires.map((w) => ({
         kind: 'wire',
         points: w.points.map((p) => scalePoint(p, 1 / GRID)),
@@ -78,7 +84,7 @@ export function toStoredProject(project: Project): StoredProject {
 /**
  * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
- * 配線には newId で新しい ID を付ける。データに ID があっても使わない
+ * 部品と配線には newId で新しい ID を付ける。データに ID があっても使わない
  */
 export function fromStoredProject(project: StoredProject, newId: () => string): Project {
   return {
@@ -86,7 +92,11 @@ export function fromStoredProject(project: StoredProject, newId: () => string): 
     circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
       ...def,
       name: i > 0 ? (name ?? '') : '',
-      parts: parts.map((c) => scalePoint(c, GRID)),
+      // データにある ID (id) は捨てて、新しい ID を付ける
+      parts: parts.map(({ id: _, ...c }: Omit<Part, 'id'> & { id?: unknown }) => ({
+        id: newId(),
+        ...scalePoint(c, GRID),
+      })),
       wires: wires.map((w) => ({ id: newId(), points: w.points.map((p) => scalePoint(p, GRID)) })),
     })),
   };

@@ -34,10 +34,13 @@ export interface Part {
   portNumber?: number;
 }
 
-export function isPart(c: unknown): c is Part {
+/**
+ * 保存データの部品として正しい形か。
+ * ID は保存しないので見ない (あっても読み込むときに捨てる)。位置はマス単位なので整数
+ */
+export function isPart(c: unknown): boolean {
   return (
     isObject(c) &&
-    typeof c.id === 'string' &&
     typeof c.kind === 'string' &&
     isPlaceablePartKind(c.kind) &&
     // 保存データの位置はマス単位なので、整数でなければならない
