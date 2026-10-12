@@ -53,7 +53,7 @@
 - `parts/spec.ts` に動作の分類 `display` を足し、`parts/layouts.ts`（既定の配置。`display` は種類の `layout.ts` を必ず持つ）、`circuit/part.ts`（出力ピンの数）と `simulation/sim.ts`（評価を飛ばす）を合わせる。
 - `src/parts/sevenSegment/` に `spec.ts`、`view.ts`、`icon.svg`、`layout.ts` を作り、`PART_SPECS`、`PART_VIEWS`、`PART_LAYOUTS` に足す。
 - パレットに「デバイス」のグループを足す（`PaletteGroupId`、`Palette.tsx` の `GROUPS`）。
-- 形式の文書（`docs/format/v3.md`）の「部品の種類とピン」の表と、「version 3 の中で変えたもの」に書き足す。
+- 形式の文書（`docs/format/archive/v3.md`）の「部品の種類とピン」の表と、「version 3 の中で変えたもの」に書き足す。
 - 確かめること: テスト（読み込みの検証、シミュレーションで落ちないこと）、置ける・つなげる・保存して読み直せること。
 
 - 結果:

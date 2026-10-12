@@ -134,10 +134,10 @@ export function setClockPeriod<T extends Circuit>(circuit: T, id: string, period
 }
 
 /** INPUT / OUTPUT のポート名を変える。空白だけなら名前未設定にする */
-export function setLabel<T extends Circuit>(circuit: T, id: string, value: string): T {
+export function setPortName<T extends Circuit>(circuit: T, id: string, value: string): T {
   return updatePart(circuit, id, (c) => ({
     ...c,
-    label: value.trim() || undefined,
+    portName: value.trim() || undefined,
   }));
 }
 

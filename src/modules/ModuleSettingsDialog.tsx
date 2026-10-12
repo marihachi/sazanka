@@ -15,7 +15,7 @@ import {
   applyModuleSettings,
   assignInOrder,
   calcFittingPins,
-  findDuplicateLabels,
+  findDuplicatePortNames,
   getPinout,
   listPortsInPositionOrder,
 } from '../circuit/module';
@@ -45,8 +45,8 @@ export function ModuleSettingsDialog({
   /** 設定するモジュールの回路 */
   def: CircuitDef;
   project: Project;
-  /** 設定を当てはめる。numbers はポートの部品 ID → ピン番号、labels はポートの部品 ID → 名前 */
-  onApply: (pkg: Package, numbers: Map<string, number>, labels: Map<string, string>) => void;
+  /** 設定を当てはめる。numbers はポートの部品 ID → ピン番号、portNames はポートの部品 ID → 名前 */
+  onApply: (pkg: Package, numbers: Map<string, number>, portNames: Map<string, string>) => void;
   onClose: () => void;
 }) {
   const m = useMessages();
@@ -60,21 +60,23 @@ export function ModuleSettingsDialog({
   // ピンの割り当ての下書き。開いたときの番号から、重なり (2 つめ以降) を除いて始める
   const [numbers, setNumbers] = useState(() => initialNumbers(ports));
   // ポートの名前の下書き (部品 ID → 入力中の文字)
-  const [labels, setLabels] = useState(() => new Map(ports.map((c) => [c.id, c.label ?? ''])));
+  const [portNames, setPortNames] = useState(
+    () => new Map(ports.map((c) => [c.id, c.portName ?? ''])),
+  );
   // 名前の一覧とプレビューは、打つたびに 128 行の選択肢を作り直すと重いので、入力より遅れて描き直してよい
-  const deferredLabels = useDeferredValue(labels);
-  const duplicates = useMemo(() => findDuplicateLabels(labels), [labels]);
+  const deferredPortNames = useDeferredValue(portNames);
+  const duplicates = useMemo(() => findDuplicatePortNames(portNames), [portNames]);
 
   const pins = Number(pinsText);
   const draft: Package = kind === 'split' ? { kind } : { kind, pins };
   const valid = isPackage(draft);
-  const applied = valid ? applyModuleSettings(def, draft, numbers, labels) : undefined;
+  const applied = valid ? applyModuleSettings(def, draft, numbers, portNames) : undefined;
   const pinsChanged = applied !== undefined && !samePins(def, applied);
-  const changed = applied !== undefined && (pinsChanged || !sameLabels(def, applied));
-  const preview = valid ? applyModuleSettings(def, draft, numbers, deferredLabels) : def;
+  const changed = applied !== undefined && (pinsChanged || !samePortNames(def, applied));
+  const preview = valid ? applyModuleSettings(def, draft, numbers, deferredPortNames) : def;
 
-  const changeLabel = useCallback((id: string, text: string) => {
-    setLabels((cur) => new Map(cur).set(id, text));
+  const changePortName = useCallback((id: string, text: string) => {
+    setPortNames((cur) => new Map(cur).set(id, text));
   }, []);
 
   /** 形の種類を変える。ピン数は、新しい種類で使える数に直す。split から変えるときは、上から順に番号を割り当てる */
@@ -106,8 +108,8 @@ export function ModuleSettingsDialog({
   }, []);
   // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す
   const names = useMemo(
-    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredLabels.get(c.id) ?? '', m)])),
-    [ports, deferredLabels, m],
+    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredPortNames.get(c.id) ?? '', m)])),
+    [ports, deferredPortNames, m],
   );
   const options = useMemo(
     () => [
@@ -140,7 +142,7 @@ export function ModuleSettingsDialog({
       onSubmit={(e) => {
         e.preventDefault();
         if (applied && changed && duplicates.size === 0) {
-          onApply(draft, numbers, labels);
+          onApply(draft, numbers, portNames);
           onClose();
         }
       }}
@@ -211,15 +213,15 @@ export function ModuleSettingsDialog({
                     key={c.id}
                     id={c.id}
                     heading={m.common.portName(c.kind, c.portNumber ?? '')}
-                    value={labels.get(c.id) ?? ''}
+                    value={portNames.get(c.id) ?? ''}
                     duplicate={duplicates.has(c.id)}
-                    onChange={changeLabel}
+                    onChange={changePortName}
                   />
                 ))}
               </Stack>
               {duplicates.size > 0 && (
                 <Text textStyle="sm" color="fg.error">
-                  {m.moduleSettings.duplicateLabel}
+                  {m.moduleSettings.duplicatePortName}
                 </Text>
               )}
             </Stack>
@@ -437,6 +439,6 @@ function samePins(a: CircuitDef, b: CircuitDef): boolean {
 }
 
 /** ポートの名前が同じか */
-function sameLabels(a: CircuitDef, b: CircuitDef): boolean {
-  return a.parts.every((c, i) => c.label === b.parts[i].label);
+function samePortNames(a: CircuitDef, b: CircuitDef): boolean {
+  return a.parts.every((c, i) => c.portName === b.parts[i].portName);
 }

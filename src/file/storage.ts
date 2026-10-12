@@ -1,4 +1,5 @@
 import {
+  type CircuitDef,
   checkProject,
   emptyProject,
   withCircuitSheet,
@@ -12,19 +13,151 @@ import {
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
+import { GRID, type Point } from '../geometry/layout';
+import type { Part, PlaceablePartKind } from '../circuit/part';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
+import { newId } from '../circuit/circuit';
 import { upgradeProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
 
 /** 保存データの形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const STORAGE_VERSION = 3;
+const STORAGE_VERSION = 4;
 
 interface StoredData {
   version: number;
-  project: Project;
+  project: StoredProject;
+}
+
+/**
+ * 保存データと共有用 JSON の中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
+ * 種類は今は普通の配線 (wire) だけ
+ */
+export interface StoredWire {
+  kind: 'wire';
+  points: Point[];
+}
+
+/** 保存データと共有用 JSON の中の部品。ID を持たない */
+export type StoredPart = Omit<Part, 'id'>;
+
+/**
+ * 回路に置いた要素 (部品と配線)。種類 (kind) で見分ける。配線の種類は wire、それ以外は部品の種類。
+ * 部品か配線かという分け方は種類の性質として持ち、一覧は分けない (形式の文書の「要素」)
+ */
+export type StoredElement = StoredPart | StoredWire;
+
+/**
+ * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
+ * - 部品と配線を、1 つの一覧 (elements) に並べる (アプリの中は parts と wires に分ける)。
+ * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
+ * - メイン回路は名前を持たない (アプリの中は空文字)。
+ * - 部品と配線は ID を持たない。どこからも参照されないので保存せず、読み込むたびに付ける。保存する ID は回路の ID だけ。
+ * - 配線は種類を持つ (StoredWire)。
+ */
+export interface StoredProject {
+  author?: string;
+  circuits: (Omit<CircuitDef, 'name' | 'parts' | 'wires'> & {
+    name?: string;
+    elements: StoredElement[];
+  })[];
+}
+
+/**
+ * 保存するときの要素の並び順 (種類 → 何番目か)。開発者が決めた順。
+ * 読み込むときは並び順に意味を持たせないが、書くときはこの順にそろえて、データを読みやすくする。
+ * どの種類も載せる (型で漏れを防ぐ)。種類を足したら、ここにも足す
+ */
+const ELEMENT_ORDER: Record<PlaceablePartKind | StoredWire['kind'], number> = {
+  input: 0,
+  output: 1,
+  clock: 2,
+  high: 3,
+  and: 4,
+  or: 5,
+  not: 6,
+  nand: 7,
+  nor: 8,
+  xor: 9,
+  xnor: 10,
+  rsLatch: 11,
+  rsEnLatch: 12,
+  dLatch: 13,
+  dFlipFlop: 14,
+  tFlipFlop: 15,
+  jkFlipFlop: 16,
+  sevenSegment: 17,
+  module: 18,
+  wire: 19,
+};
+
+/** 並び順の表にない種類 (アプリの中だけの BUF など。保存データには現れない) は最後に置く */
+function elementOrderOf(kind: string): number {
+  return (ELEMENT_ORDER as Record<string, number>)[kind] ?? Number.MAX_SAFE_INTEGER;
+}
+
+/** 要素が配線か (配線の種類は wire だけ) */
+function isStoredWire(e: StoredElement): e is StoredWire {
+  return e.kind === 'wire';
+}
+
+/** 座標を持つもの (部品と配線の点) の x と y に scale を掛ける (px → マスは 1 / GRID、マス → px は GRID) */
+function scalePoint<T extends Point>(p: T, scale: number): T {
+  return { ...p, x: p.x * scale, y: p.y * scale };
+}
+
+/**
+ * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
+ * 部品と配線を 1 つの一覧にまとめ (種類の順 ELEMENT_ORDER。同じ種類の中はアプリの中の順)、位置を px からマスに直し、
+ * メイン回路の名前と部品と配線の ID を外し、配線に種類を書く。
+ * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
+ */
+export function toStoredProject(project: Project): StoredProject {
+  return {
+    ...project,
+    circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
+      ...def,
+      ...(i > 0 ? { name } : {}),
+      // sort は安定なので、同じ種類の中はアプリの中の順のまま
+      elements: [
+        ...parts.map(({ id: _, ...c }): StoredElement => scalePoint(c, 1 / GRID)),
+        ...wires.map(
+          (w): StoredElement => ({
+            kind: 'wire',
+            points: w.points.map((p) => scalePoint(p, 1 / GRID)),
+          }),
+        ),
+      ].sort((a, b) => elementOrderOf(a.kind) - elementOrderOf(b.kind)),
+    })),
+  };
+}
+
+/**
+ * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。
+ * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
+ * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
+ * 部品と配線には newId で新しい ID を付ける (回路ごとに部品、配線の順)。データに ID があっても使わない
+ */
+export function fromStoredProject(project: StoredProject, newId: () => string): Project {
+  return {
+    ...project,
+    circuits: project.circuits.map(({ name, elements, ...def }, i) => {
+      // データにある ID (id) は捨てて、新しい ID を付ける
+      const parts = elements
+        .filter((e): e is StoredPart => !isStoredWire(e))
+        .map(({ id: _, ...c }: StoredPart & { id?: unknown }) => ({
+          id: newId(),
+          ...scalePoint(c, GRID),
+        }));
+      const wires = elements.filter(isStoredWire).map((w) => ({
+        id: newId(),
+        points: w.points.map((p) => scalePoint(p, GRID)),
+      }));
+      return { ...def, name: i > 0 ? (name ?? '') : '', parts, wires };
+    }),
+  };
 }
 
 /** 保存データを読み込めなかった理由。BROKEN は形が壊れている、NEWER_VERSION は今より新しい版で保存された */
@@ -43,15 +176,18 @@ export interface LoadResult {
  */
 export function loadProject(): LoadResult {
   try {
-    return readStored(localStorage.getItem(STORAGE_KEY));
+    return readStored(localStorage.getItem(STORAGE_KEY), newId);
   } catch {
     // localStorage を使えない環境では、保存データなしとして扱う
     return { project: emptyProject() };
   }
 }
 
-/** 保存されていた文字列を読み込む (localStorage に触らない部分) */
-export function readStored(raw: string | null): LoadResult {
+/**
+ * 保存されていた文字列を読み込む (localStorage に触らない部分)。
+ * newId は、古い版の ID を付け直す変換 (upgradeV3) が使う
+ */
+export function readStored(raw: string | null, newId: () => string): LoadResult {
   if (!raw) {
     return { project: emptyProject() };
   }
@@ -77,7 +213,7 @@ export function readStored(raw: string | null): LoadResult {
     };
   }
   // 古い版は、今の版の形に変えてから確かめる
-  const project = upgradeProject(data.project, data.version);
+  const project = upgradeProject(data.project, data.version, newId);
   if (checkProject(project) !== undefined) {
     return {
       project: emptyProject(),
@@ -85,7 +221,7 @@ export function readStored(raw: string | null): LoadResult {
     };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
-  const loaded = withoutSwitchStates(project as Project);
+  const loaded = withoutSwitchStates(fromStoredProject(project as StoredProject, newId));
   // version 3 を公開する前の保存データには、ポート番号がない。シートの大きさを足す前のデータには、大きさがない
   return {
     project: {
@@ -99,7 +235,10 @@ export function saveProject(project: Project) {
   const unswitched = withoutSwitchStates(project);
   const data: StoredData = {
     version: STORAGE_VERSION,
-    project: { ...unswitched, circuits: unswitched.circuits.map(withCircuitSheet) },
+    project: toStoredProject({
+      ...unswitched,
+      circuits: unswitched.circuits.map(withCircuitSheet),
+    }),
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

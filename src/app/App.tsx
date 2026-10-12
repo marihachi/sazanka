@@ -105,10 +105,10 @@ export function App() {
     onPreferencesChange: setPreferences,
     project,
     // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
-    onApplyModuleSettings: (id, pkg, numbers, labels) =>
+    onApplyModuleSettings: (id, pkg, numbers, portNames) =>
       history.commit((p) => ({
         circuits: p.circuits.map((d) =>
-          d.id === id ? applyModuleSettings(d, pkg, numbers, labels) : d,
+          d.id === id ? applyModuleSettings(d, pkg, numbers, portNames) : d,
         ),
       })),
     onApplySheetSettings: (id, sheet) =>
@@ -445,8 +445,8 @@ export function App() {
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
     setClockPeriod: (id: string, period: number) =>
       setCircuit((cur) => edit.setClockPeriod(cur, id, period), false),
-    setLabel: (id: string, label: string) =>
-      setCircuit((cur) => edit.setLabel(cur, id, label), false),
+    setPortName: (id: string, portName: string) =>
+      setCircuit((cur) => edit.setPortName(cur, id, portName), false),
   });
 
   return (
@@ -530,19 +530,19 @@ export function App() {
                 ? findDef(project, selectedPart.module)?.name
                 : undefined
             }
-            otherLabels={circuit.parts
+            otherPortNames={circuit.parts
               .filter(
                 (c) =>
                   (c.kind === 'input' || c.kind === 'output') &&
                   c.id !== selectedPart?.id &&
-                  c.label !== undefined,
+                  c.portName !== undefined,
               )
-              .map((c) => c.label)
+              .map((c) => c.portName)
               .join('\n')}
             ticksPerSecond={preferences.ticksPerSecond}
             onEditStart={history.checkpoint}
             onClockPeriodChange={on.setClockPeriod}
-            onLabelChange={on.setLabel}
+            onPortNameChange={on.setPortName}
           />
         </Flex>
         <StatusBar

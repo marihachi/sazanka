@@ -7,7 +7,7 @@ import {
   assignPinNumbers,
   assignPortNumbers,
   fillPortNumbers,
-  findDuplicateLabels,
+  findDuplicatePortNames,
   calcFittingPins,
   listPortsInPositionOrder,
   circuitsUsing,
@@ -89,9 +89,9 @@ describe('モジュールのピン', () => {
           package: { kind: 'split' },
           // biome-ignore format: 表形式を維持するため
           parts: [
-            comp('i', 'input', { label: 'A' }),
+            comp('i', 'input', { portName: 'A' }),
             { ...comp('j', 'input'), y: 40 },
-            comp('o', 'output', { label: 'S' }),
+            comp('o', 'output', { portName: 'S' }),
           ],
           wires: [],
         },
@@ -144,10 +144,10 @@ describe('dip のモジュールのピン番号', () => {
   it('外側のピンは、入力か出力かを問わずピン番号の順に並ぶ', () => {
     // biome-ignore format: 表形式を維持するため
     const def = dip([
-      comp('a', 'input', { pinNumber: 3, label: 'A' }),
-      comp('b', 'input', { pinNumber: 1, label: 'B' }),
-      comp('s', 'output', { pinNumber: 8, label: 'S' }),
-      comp('c', 'output', { pinNumber: 2, label: 'C' }),
+      comp('a', 'input', { pinNumber: 3, portName: 'A' }),
+      comp('b', 'input', { pinNumber: 1, portName: 'B' }),
+      comp('s', 'output', { pinNumber: 8, portName: 'S' }),
+      comp('c', 'output', { pinNumber: 2, portName: 'C' }),
     ]);
     const { inputs, outputs } = getPortsInPinOrder(def);
     expect(inputs.map((c) => c.id)).toEqual(['b', 'a']);
@@ -302,13 +302,13 @@ describe('applyModuleSettings の名前', () => {
     package: { kind: 'split' },
     wires: [],
     parts: [
-      comp('a', 'input', { label: 'A' }),
+      comp('a', 'input', { portName: 'A' }),
       comp('b', 'output'),
-      comp('c', 'input', { label: 'C' }),
+      comp('c', 'input', { portName: 'C' }),
     ],
   };
 
-  it('名前を変え、空白だけなら名前なしにし、labels にないポートは変えない', () => {
+  it('名前を変え、空白だけなら名前なしにし、portNames にないポートは変えない', () => {
     const result = applyModuleSettings(
       def,
       { kind: 'split' },
@@ -319,24 +319,24 @@ describe('applyModuleSettings の名前', () => {
         ['c', '  '],
       ]),
     );
-    expect(result.parts.map((c) => c.label)).toEqual(['X', 'Y', undefined]);
-    expect(result.parts[2]).not.toHaveProperty('label');
+    expect(result.parts.map((c) => c.portName)).toEqual(['X', 'Y', undefined]);
+    expect(result.parts[2]).not.toHaveProperty('portName');
     expect(
       applyModuleSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
     ).toBe(def.parts[0]);
   });
 });
 
-describe('findDuplicateLabels', () => {
+describe('findDuplicatePortNames', () => {
   it('入力と出力をまたいで重なりを見る。名前なしと前後の空白は数えない', () => {
-    const labels = new Map([
+    const portNames = new Map([
       ['a', 'A'],
       ['b', ' A'],
       ['c', ''],
       ['d', '  '],
       ['e', 'E'],
     ]);
-    expect(findDuplicateLabels(labels)).toEqual(new Set(['a', 'b']));
+    expect(findDuplicatePortNames(portNames)).toEqual(new Set(['a', 'b']));
   });
 });
 
@@ -349,7 +349,7 @@ describe('getPinout の 7 セグメント', () => {
           id: 'mod',
           name: 'M',
           package: { kind: 'split' },
-          parts: [comp('a', 'input', { label: 'A' }), comp('s', 'sevenSegment')],
+          parts: [comp('a', 'input', { portName: 'A' }), comp('s', 'sevenSegment')],
           wires: [],
         },
       ],
