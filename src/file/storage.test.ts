@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Part } from '../circuit/part';
 import { emptyProject, type Project } from '../circuit/project';
 import { fromStoredProject, readStored, readTicksPerSecond, toStoredProject } from './storage';
 
@@ -92,6 +93,35 @@ describe('toStoredProject / fromStoredProject', () => {
       circuits: [{ ...stored.circuits[0], name: 'メイン' }, stored.circuits[1]],
     };
     expect(fromStoredProject(named, counter())).toEqual(loaded);
+  });
+
+  it('保存するときは、要素を種類の決まった順に並べる。同じ種類の中はアプリの中の順のまま', () => {
+    const part = (id: string, kind: Part['kind'], x: number): Part => ({ id, kind, x, y: 0 });
+    // biome-ignore format: 表形式を維持するため
+    const shuffled: Project = { circuits: [{ id: 'main', name: '', wires: [
+      { id: 'w', points: [{ x: 0, y: 0 }, { x: 20, y: 0 }] },
+    ], parts: [
+      part('m', 'module', 0),
+      part('j', 'jkFlipFlop', 0),
+      part('a1', 'and', 20),
+      part('o', 'output', 0),
+      part('c', 'clock', 0),
+      part('a2', 'and', 40),
+      part('i', 'input', 0),
+      part('s', 'sevenSegment', 0),
+    ] }] };
+    const { elements } = toStoredProject(shuffled).circuits[0];
+    expect(elements.map((e) => ('x' in e ? `${e.kind}${e.x}` : e.kind))).toEqual([
+      'input0',
+      'output0',
+      'clock0',
+      'and1',
+      'and2',
+      'jkFlipFlop0',
+      'sevenSegment0',
+      'module0',
+      'wire',
+    ]);
   });
 
   it('一覧の中で部品と配線が混ざっていても、種類で分け、それぞれの中の順を保つ', () => {

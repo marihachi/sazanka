@@ -14,7 +14,7 @@ import {
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
 import { GRID, type Point } from '../geometry/layout';
-import type { Part } from '../circuit/part';
+import type { Part, PlaceablePartKind } from '../circuit/part';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { fillPortNumbers } from '../circuit/module';
@@ -65,6 +65,39 @@ export interface StoredProject {
   })[];
 }
 
+/**
+ * 保存するときの要素の並び順 (種類 → 何番目か)。開発者が決めた順。
+ * 読み込むときは並び順に意味を持たせないが、書くときはこの順にそろえて、データを読みやすくする。
+ * どの種類も載せる (型で漏れを防ぐ)。種類を足したら、ここにも足す
+ */
+const ELEMENT_ORDER: Record<PlaceablePartKind | StoredWire['kind'], number> = {
+  input: 0,
+  output: 1,
+  clock: 2,
+  high: 3,
+  and: 4,
+  or: 5,
+  not: 6,
+  nand: 7,
+  nor: 8,
+  xor: 9,
+  xnor: 10,
+  rsLatch: 11,
+  rsEnLatch: 12,
+  dLatch: 13,
+  dFlipFlop: 14,
+  tFlipFlop: 15,
+  jkFlipFlop: 16,
+  sevenSegment: 17,
+  module: 18,
+  wire: 19,
+};
+
+/** 並び順の表にない種類 (アプリの中だけの BUF など。保存データには現れない) は最後に置く */
+function elementOrderOf(kind: string): number {
+  return (ELEMENT_ORDER as Record<string, number>)[kind] ?? Number.MAX_SAFE_INTEGER;
+}
+
 /** 要素が配線か (配線の種類は wire だけ) */
 function isStoredWire(e: StoredElement): e is StoredWire {
   return e.kind === 'wire';
@@ -77,7 +110,7 @@ function scalePoint<T extends Point>(p: T, scale: number): T {
 
 /**
  * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
- * 部品と配線を 1 つの一覧にまとめ (部品、配線の順)、位置を px からマスに直し、
+ * 部品と配線を 1 つの一覧にまとめ (種類の順 ELEMENT_ORDER。同じ種類の中はアプリの中の順)、位置を px からマスに直し、
  * メイン回路の名前と部品と配線の ID を外し、配線に種類を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
  */
@@ -87,15 +120,16 @@ export function toStoredProject(project: Project): StoredProject {
     circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
       ...def,
       ...(i > 0 ? { name } : {}),
+      // sort は安定なので、同じ種類の中はアプリの中の順のまま
       elements: [
-        ...parts.map(({ id: _, ...c }) => scalePoint(c, 1 / GRID)),
+        ...parts.map(({ id: _, ...c }): StoredElement => scalePoint(c, 1 / GRID)),
         ...wires.map(
-          (w): StoredWire => ({
+          (w): StoredElement => ({
             kind: 'wire',
             points: w.points.map((p) => scalePoint(p, 1 / GRID)),
           }),
         ),
-      ],
+      ].sort((a, b) => elementOrderOf(a.kind) - elementOrderOf(b.kind)),
     })),
   };
 }

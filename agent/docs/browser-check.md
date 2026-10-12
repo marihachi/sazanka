@@ -24,8 +24,8 @@
             id: 'main',
             elements: [
               { kind: 'input', x: 145, y: 98 },
-              { kind: 'and', x: 151, y: 97 },
               { kind: 'output', x: 159, y: 98 },
+              { kind: 'and', x: 151, y: 97 },
               { kind: 'wire', points: [{ x: 148, y: 99 }, { x: 149, y: 99 }, { x: 149, y: 98 }, { x: 150, y: 98 }] },
               { kind: 'wire', points: [{ x: 155, y: 99 }, { x: 158, y: 99 }] },
             ],
