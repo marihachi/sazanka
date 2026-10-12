@@ -24,7 +24,7 @@ export interface PartLayout {
   w: number;
   /** 本体の高さ (マス) */
   h: number;
-  /** 本体の輪郭。rect は角張った四角、rounded は角の丸い四角、circle は幅を直径とする円 */
+  /** 本体の輪郭。rect は角を少しだけ丸めた四角、rounded は角を rect より丸めた四角、circle は幅を直径とする円 */
   body: 'rect' | 'rounded' | 'circle';
   /** 入力ピンの置き方。並び順がピン番号 */
   inputs: PinPlacement[];

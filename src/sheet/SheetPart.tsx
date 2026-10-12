@@ -39,7 +39,7 @@ function BodyOutline({
   const className = classNames(styles.body, problem && styles.problem);
   switch (body) {
     case 'rect':
-      return <rect className={className} x={x} y={y} width={w} height={h} />;
+      return <rect className={className} x={x} y={y} width={w} height={h} rx={3} />;
     case 'rounded':
       return <rect className={className} x={x} y={y} width={w} height={h} rx={4} />;
     case 'circle':
