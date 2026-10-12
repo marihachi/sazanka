@@ -93,7 +93,7 @@
 
 - アプリの中は px のままにし、保存・書き出し・読み込みのときだけマスと px を変換する。
   - 描画、当たり判定、ネットの計算（`geometry/`、`sheet/`、`editing/edit.ts`）は px で書かれている。中までマスにすると影響が大きい。中をマスにするなら、版上げとは別のリファクタリングとして計画する。
-  - 変換は `file/storage.ts` に置き（`toStoredProject`、`fromStoredProject`）、`file/share.ts` からも使う（開発者が決めた。段階 2 で変更）。置き場所は、あとでもう一度考える（開発者）。
+  - 変換は `file/storage.ts` に置き（`toStoredProject`、`fromStoredProject`）、`file/share.ts` からも使う（開発者が決めた。段階 2 で変更）。置き場所は、この計画では見直さず、あとのリファクタリングで見直す（開発者が決めた）。
     - 計画では `circuit/project.ts` に置くつもりだったが、マスの大きさ `GRID` が `geometry/layout.ts` にあり、依存の向き（`geometry` → `circuit`）の都合で `project.ts` から使えなかった。
     - 採らなかった案: `file/` に新しいファイルを作る（ファイルが増える）。`GRID` を `circuit/` に下ろす（描画の値を回路のデータの側に置くことになる）。
     - 保存の形の型は `StoredProject`（位置がマス単位で、メイン回路は名前を持たない）。
