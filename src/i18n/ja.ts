@@ -220,10 +220,9 @@ export const ja = {
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
       BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
-      NO_PARTS_OR_WIRES: (e) => `「${e.circuit}」の部品か配線がありません`,
-      BAD_PART: (e) => `「${e.circuit}」に不正な部品があります`,
+      NO_ELEMENTS: (e) => `「${e.circuit}」に要素の一覧がありません`,
+      BAD_ELEMENT: (e) => `「${e.circuit}」に不正な要素があります`,
       DUPLICATE_ID: (e) => `ID が重複しています: ${e.id}`,
-      BAD_WIRE: (e) => `「${e.circuit}」に不正な配線があります`,
       MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
     } satisfies ErrorTexts<ProjectError>,
     /** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、project の文にしたもの */

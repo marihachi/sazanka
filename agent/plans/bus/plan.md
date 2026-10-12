@@ -60,6 +60,7 @@
    - ほかの案: 何も出さない。
 6. 保存データの項目名（配線に、省略できる項目を 2 つ足す）
    - バスかどうか: version 4 で配線に `kind`（今は `"wire"` だけ）を足すことにしたので、`kind: "bus"` にする見込み（[保存データの version 4](../format-v4/plan.md)）。前の候補: `bus: true`。
+   - version 4 で、部品と配線を 1 つの一覧（`elements`）にまとめ、`kind` で見分けることにした。保存データの側では、バスは `kind: "bus"` の要素、名前を持つラベルを別の要素にするなら（上の 1 のほかの案）`kind` を 1 つ足すだけで済む。
    - 名前: `label`（推す案。部品の `label` とそろう）、`name`。
 7. 計画の文書の置き場所
    - 仮に `agent/plans/bus/plan.md` に置いた。ほかの候補: `agent/plans/bus-wiring/plan.md`。

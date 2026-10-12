@@ -12,7 +12,7 @@ function counter(): () => string {
 }
 
 describe('upgradeV3', () => {
-  it('位置をマスにし、回路の ID を付け直し、label を portName に移し、メイン回路の名前と部品と配線の ID を消す', () => {
+  it('部品と配線を 1 つの一覧にし、位置をマスにし、回路の ID を付け直し、label を portName に移し、メイン回路の名前と部品と配線の ID を消す', () => {
     const v3 = {
       author: 'さざんか',
       circuits: [
@@ -45,19 +45,17 @@ describe('upgradeV3', () => {
           id: 'main',
           sheet: { width: 40, height: 30 },
           // biome-ignore format: 表形式を維持するため
-          parts: [
+          elements: [
             { kind: 'input', x: 0, y: 1, portName: 'A', portNumber: 1 },
             { kind: 'module', x: 5, y: 0, module: 'id1' },
+            { kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] },
           ],
-          // biome-ignore format: 表形式を維持するため
-          wires: [{ kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
         },
         {
           id: 'id1',
           name: 'M',
           package: { kind: 'split' },
-          parts: [{ kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
-          wires: [],
+          elements: [{ kind: 'output', x: 2, y: 3, portName: 'Q', portNumber: 1 }],
         },
       ],
     });
@@ -90,7 +88,7 @@ describe('upgradeV3', () => {
       { id: 'b', kind: 'and', x: 29, y: 31 },
     ] }] };
     const v4 = upgradeV3(v3, counter()) as StoredProject;
-    expect(v4.circuits[0].parts.map((c) => [c.x, c.y])).toEqual([
+    expect(v4.circuits[0].elements.map((c) => ('x' in c ? [c.x, c.y] : []))).toEqual([
       [0, 1],
       [1, 2],
     ]);
@@ -118,8 +116,14 @@ describe('upgradeV3', () => {
     expect(upgradeV3({ circuits: 1 }, counter())).toEqual({ circuits: 1 });
     // biome-ignore format: 表形式を維持するため
     const broken = { circuits: [{ id: 'main', name: 'メイン', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }] };
+    // 部品か配線の一覧が配列でなければ、まとめずにそのまま残す
     expect(upgradeV3(broken, counter())).toEqual({
-      circuits: [{ id: 'main', parts: [1, { kind: 'and', x: '0', y: 0 }], wires: 'w' }],
+      circuits: [{ id: 'main', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: 'w' }],
+    });
+    // biome-ignore format: 表形式を維持するため
+    const badItems = { circuits: [{ id: 'main', name: 'メイン', parts: [1, { id: 2, kind: 'and', x: '0', y: 0 }], wires: [null] }] };
+    expect(upgradeV3(badItems, counter())).toEqual({
+      circuits: [{ id: 'main', elements: [1, { kind: 'and', x: '0', y: 0 }, null] }],
     });
   });
 

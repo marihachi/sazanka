@@ -167,9 +167,8 @@ export type ProjectError =
   | { code: 'NO_PACKAGE'; circuit: string; circuitId: string }
   | { code: 'BAD_PACKAGE'; circuit: string; circuitId: string }
   | { code: 'BAD_SHEET'; circuit: string; circuitId: string }
-  | { code: 'NO_PARTS_OR_WIRES'; circuit: string; circuitId: string }
-  | { code: 'BAD_PART'; circuit: string; circuitId: string }
-  | { code: 'BAD_WIRE'; circuit: string; circuitId: string }
+  | { code: 'NO_ELEMENTS'; circuit: string; circuitId: string }
+  | { code: 'BAD_ELEMENT'; circuit: string; circuitId: string }
   | { code: 'DUPLICATE_ID'; id: string }
   | { code: 'MISSING_MODULE'; circuit: string; circuitId: string };
 
@@ -193,23 +192,30 @@ function checkCircuit(def: unknown, isModule: boolean): ProjectError | undefined
   if (def.sheet !== undefined && !isCircuitSheet(def.sheet)) {
     return { code: 'BAD_SHEET', ...at };
   }
-  if (!Array.isArray(def.parts) || !Array.isArray(def.wires)) {
-    return { code: 'NO_PARTS_OR_WIRES', ...at };
+  if (!Array.isArray(def.elements)) {
+    return { code: 'NO_ELEMENTS', ...at };
   }
-  if (!(def.parts as unknown[]).every(isPart)) {
-    return { code: 'BAD_PART', ...at };
-  }
-  if (!(def.wires as unknown[]).every(isWire)) {
-    return { code: 'BAD_WIRE', ...at };
+  // 要素は種類で見分ける。配線の種類 (wire) なら配線の形、それ以外は部品の形で確かめる (知らない種類は部品の種類にもないので断る)。
+  // エラーは部品と配線で分けない (どちらも要素の問題として知らせる)
+  const isElement = (e: unknown) => (isObject(e) && e.kind === 'wire' ? isWire(e) : isPart(e));
+  if (!(def.elements as unknown[]).every(isElement)) {
+    return { code: 'BAD_ELEMENT', ...at };
   }
   return undefined;
+}
+
+/** 保存データの回路のうち、検証のあとに見るところ (checkCircuit で形を確かめたもの) */
+interface CheckedCircuit {
+  id: string;
+  name?: string;
+  elements: { kind: string; module?: string }[];
 }
 
 /**
  * 回路の ID で、ほかと重なるもの (最初に見つかったもの)。なければ undefined。
  * 保存する ID は回路の ID だけ (部品と配線の ID は読み込むときに付ける。形式の文書の「ID の付け方」)
  */
-function findDuplicateId(circuits: readonly Pick<CircuitDef, 'id'>[]): string | undefined {
+function findDuplicateId(circuits: readonly { id: string }[]): string | undefined {
   const ids = new Set<string>();
   for (const { id } of circuits) {
     if (ids.has(id)) {
@@ -241,15 +247,15 @@ export function checkProject(project: unknown): ProjectError | undefined {
       return error;
     }
   }
-  const defs = circuits as CircuitDef[];
+  const defs = circuits as CheckedCircuit[];
   const duplicate = findDuplicateId(defs);
   if (duplicate !== undefined) {
     return { code: 'DUPLICATE_ID', id: duplicate };
   }
   const circuitIds = new Set(defs.map((d) => d.id));
   for (const [i, def] of defs.entries()) {
-    if (def.parts.some((c) => c.kind === 'module' && !circuitIds.has(c.module ?? ''))) {
-      return { code: 'MISSING_MODULE', circuit: i > 0 ? def.name : '', circuitId: def.id };
+    if (def.elements.some((c) => c.kind === 'module' && !circuitIds.has(c.module ?? ''))) {
+      return { code: 'MISSING_MODULE', circuit: i > 0 ? (def.name ?? '') : '', circuitId: def.id };
     }
   }
   return undefined;

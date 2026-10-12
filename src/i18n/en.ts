@@ -203,10 +203,9 @@ export const en: Messages = {
       NO_PACKAGE: (e) => `"${e.circuit}" has no package`,
       BAD_PACKAGE: (e) => `"${e.circuit}" has an invalid package`,
       BAD_SHEET: (e) => `"${e.circuit}" has an invalid sheet size`,
-      NO_PARTS_OR_WIRES: (e) => `"${e.circuit}" has no parts or wires`,
-      BAD_PART: (e) => `"${e.circuit}" has an invalid part`,
+      NO_ELEMENTS: (e) => `"${e.circuit}" has no element list`,
+      BAD_ELEMENT: (e) => `"${e.circuit}" has an invalid element`,
       DUPLICATE_ID: (e) => `Duplicate ID: ${e.id}`,
-      BAD_WIRE: (e) => `"${e.circuit}" has an invalid wire`,
       MISSING_MODULE: (e) => `"${e.circuit}" refers to a module that does not exist`,
     },
     share: {

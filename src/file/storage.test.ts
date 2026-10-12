@@ -65,27 +65,26 @@ function withoutId<T extends { id: string }>({ id: _, ...rest }: T) {
 }
 
 describe('toStoredProject / fromStoredProject', () => {
-  it('保存するときは、位置をマスにし、メイン回路の名前と部品と配線の ID を外し、配線に種類を書く', () => {
-    const [main, mod] = withModule.circuits;
-    const { name: _, ...mainWithoutName } = main;
+  it('保存するときは、部品と配線を 1 つの一覧にし、位置をマスにし、メイン回路の名前と部品と配線の ID を外し、配線に種類を書く', () => {
+    const [{ name: _, parts, wires: _w, ...main }, { parts: modParts, wires: _mw, ...mod }] =
+      withModule.circuits;
     expect(toStoredProject(withModule)).toEqual({
       circuits: [
         {
-          ...mainWithoutName,
+          ...main,
           // biome-ignore format: 表形式を維持するため
-          parts: [
-            { ...withoutId(main.parts[0]), x: 0, y: 1 },
-            { ...withoutId(main.parts[1]), x: 5, y: 0 },
+          elements: [
+            { ...withoutId(parts[0]), x: 0, y: 1 },
+            { ...withoutId(parts[1]), x: 5, y: 0 },
+            { kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] },
           ],
-          // biome-ignore format: 表形式を維持するため
-          wires: [{ kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] }],
         },
-        { ...mod, parts: [{ ...withoutId(mod.parts[0]), x: 2, y: 3 }] },
+        { ...mod, elements: [{ ...withoutId(modParts[0]), x: 2, y: 3 }] },
       ],
     });
   });
 
-  it('読み込むと元に戻り、部品と配線に新しい ID が付く。メイン回路の名前は、あっても空文字にする', () => {
+  it('読み込むと元に戻り (一覧は種類で部品と配線に分かれる)、部品と配線に新しい ID が付く。メイン回路の名前は、あっても空文字にする', () => {
     expect(fromStoredProject(toStoredProject(withModule), counter())).toEqual(loaded);
     const stored = toStoredProject(withModule);
     const named = {
@@ -95,18 +94,26 @@ describe('toStoredProject / fromStoredProject', () => {
     expect(fromStoredProject(named, counter())).toEqual(loaded);
   });
 
+  it('一覧の中で部品と配線が混ざっていても、種類で分け、それぞれの中の順を保つ', () => {
+    const stored = toStoredProject(withModule);
+    const [input, module, wire] = stored.circuits[0].elements;
+    const mixed = {
+      ...stored,
+      circuits: [{ ...stored.circuits[0], elements: [wire, module, input] }, stored.circuits[1]],
+    };
+    const [main] = fromStoredProject(mixed, counter()).circuits;
+    expect(main.parts.map((c) => c.kind)).toEqual(['module', 'input']);
+    expect(main.wires).toHaveLength(1);
+  });
+
   it('読み込むデータの部品と配線に ID があっても (重なっていても) 使わない', () => {
     const stored = toStoredProject(withModule);
     const [main, mod] = stored.circuits;
     const withIds = {
       ...stored,
       circuits: [
-        {
-          ...main,
-          parts: main.parts.map((c) => ({ ...c, id: 'old' })),
-          wires: [{ ...main.wires[0], id: 'old' }],
-        },
-        { ...mod, parts: mod.parts.map((c) => ({ ...c, id: 'old' })) },
+        { ...main, elements: main.elements.map((e) => ({ ...e, id: 'old' })) },
+        { ...mod, elements: mod.elements.map((e) => ({ ...e, id: 'old' })) },
       ],
     };
     expect(read(JSON.stringify({ version: 4, project: withIds }))).toEqual({ project: loaded });

@@ -1,6 +1,6 @@
 // 形式 version 3 のプロジェクトを、version 4 の形に変える。保存データと共有用 JSON の両方で使い、upgrade.ts から呼ぶ。
 // version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路の ID をプロジェクトをまたいでも重ならないものにした。
-// 部品と配線は ID を持たなくなり、配線は種類 (kind) を持つ。
+// 部品と配線は ID を持たなくなり、配線は種類 (kind) を持つ。部品と配線は 1 つの一覧 (elements) に並べる。
 // INPUT / OUTPUT のポート名の項目名を label から portName に変え、メイン回路は name を持たなくなった。
 // 形式は docs/format/archive/v3.md と docs/format/v4.md。
 //
@@ -76,17 +76,19 @@ function upgradeCircuit(
   if (!isObject(circuit)) {
     return circuit;
   }
-  const { name, ...rest } = circuit;
+  const { name, parts, wires, ...rest } = circuit;
   const id =
     typeof circuit.id === 'string' ? (moduleIds.get(circuit.id) ?? circuit.id) : circuit.id;
   return {
     ...rest,
     id,
     ...(isModule ? { name } : {}),
-    parts: Array.isArray(circuit.parts)
-      ? circuit.parts.map((p) => upgradePart(p, moduleIds))
-      : circuit.parts,
-    wires: Array.isArray(circuit.wires) ? circuit.wires.map(upgradeWire) : circuit.wires,
+    // 部品と配線を 1 つの一覧にまとめる (部品、配線の順)。どちらかが配列でなければ、まとめずに残す (検証で断る)
+    ...(Array.isArray(parts) && Array.isArray(wires)
+      ? {
+          elements: [...parts.map((p) => upgradePart(p, moduleIds)), ...wires.map(upgradeWire)],
+        }
+      : { parts, wires }),
   };
 }
 

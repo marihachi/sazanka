@@ -74,22 +74,22 @@ function parse(text: string) {
 }
 
 describe('share', () => {
-  it('書き出すと、位置はマスになり、メイン回路の名前と部品と配線の ID は書かず、配線に種類を書く', () => {
-    const [main, mod] = project.circuits;
-    const { name: _, ...mainWithoutName } = main;
+  it('書き出すと、部品と配線を 1 つの一覧にし、位置はマスになり、メイン回路の名前と部品と配線の ID は書かず、配線に種類を書く', () => {
+    const [{ name: _, parts: _p, wires: _w, ...main }, { parts: _mp, wires: _mw, ...mod }] =
+      project.circuits;
     expect(JSON.parse(serializeProject(project)).project).toEqual({
       circuits: [
         {
-          ...mainWithoutName,
-          parts: [
+          ...main,
+          // biome-ignore format: 表形式を維持するため
+          elements: [
             { kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
             { kind: 'module', x: 5, y: 0, module: 'mod' },
+            { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
           ],
-          // biome-ignore format: 表形式を維持するため
-          wires: [{ kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] }],
         },
         // シートの大きさがない回路は、300×200 として書き出す
-        { ...mod, sheet: DEFAULT_SHEET, parts: [{ kind: 'input', x: 0, y: 0, portNumber: 1 }] },
+        { ...mod, sheet: DEFAULT_SHEET, elements: [{ kind: 'input', x: 0, y: 0, portNumber: 1 }] },
       ],
     });
   });
@@ -142,45 +142,26 @@ describe('share', () => {
   });
 
   it('壊れた回路データは読み込まない', () => {
-    const main = toStoredProject(project).circuits[0];
+    const [main, mod] = toStoredProject(project).circuits;
+    const [input, module, wire] = main.elements;
     const broken = [
       { circuits: [] },
       { circuits: [{ ...main, id: 'x' }] },
-      {
-        circuits: [
-          {
-            ...main,
-            parts: [{ id: 'a', kind: 'buf', x: 0, y: 0 }],
-            wires: [],
-          },
-        ],
-      },
-      {
-        circuits: [
-          {
-            ...main,
-            parts: [{ id: 'a', kind: 'and', x: '0', y: 0 }],
-            wires: [],
-          },
-        ],
-      },
-      {
-        circuits: [
-          {
-            ...main,
-            // 点が 1 つしかない配線
-            wires: [{ kind: 'wire', points: [{ x: 0, y: 0 }] }],
-          },
-        ],
-      },
+      // 要素の一覧がない (version 3 までの形)
+      { circuits: [project.circuits[0], project.circuits[1]] },
+      // 置けない種類の部品、位置が数でない部品
+      { circuits: [{ ...main, elements: [{ kind: 'buf', x: 0, y: 0 }] }] },
+      { circuits: [{ ...main, elements: [{ kind: 'and', x: '0', y: 0 }] }] },
+      // 点が 1 つしかない配線
+      { circuits: [{ ...main, elements: [{ kind: 'wire', points: [{ x: 0, y: 0 }] }] }] },
       // 存在しないモジュールへの参照
       { circuits: [main] },
-      // 知らない種類の配線
-      { circuits: [{ ...main, wires: [{ ...main.wires[0], kind: 'bus' }] }, project.circuits[1]] },
+      // 知らない種類の要素
+      { circuits: [{ ...main, elements: [input, module, { ...wire, kind: 'bus' }] }, mod] },
       // 回路 ID の重複
-      { circuits: [main, project.circuits[1], project.circuits[1]] },
+      { circuits: [main, mod, mod] },
       // 位置がマスの途中
-      { circuits: [{ ...main, parts: [{ ...main.parts[0], x: 0.5 }] }, project.circuits[1]] },
+      { circuits: [{ ...main, elements: [{ ...input, x: 0.5 }, module, wire] }, mod] },
     ];
     for (const p of broken) {
       expect(parse(withProject(p)).ok).toBe(false);
@@ -226,9 +207,8 @@ describe('配線の点', () => {
       [{ x: '1', y: 0 }, { x: 0, y: 0 }],
       [{ x: 0, y: 0 }, { x: 1, y: 1 }],
     ]) {
-      const broken = {
-        circuits: [{ ...project.circuits[0], wires: [{ kind: 'wire', points: bad }] }, project.circuits[1]],
-      };
+      const [main, mod] = toStoredProject(project).circuits;
+      const broken = { circuits: [{ ...main, elements: [{ kind: 'wire', points: bad }] }, mod] };
       expect(parse(withProject(broken)).ok).toBe(false);
     }
   });
@@ -237,7 +217,7 @@ describe('配線の点', () => {
 describe('古い版のデータ', () => {
   it('ポート番号がないものや重なるものは、読み込むときに付け直す', () => {
     // biome-ignore format: 表形式を維持するため
-    const main = { id: MAIN_ID, wires: [], parts: [
+    const main = { id: MAIN_ID, elements: [
       { id: 'a', kind: 'input', x: 0, y: 100, portNumber: 1 },
       { id: 'b', kind: 'input', x: 0, y: 0, portNumber: 1 },
       { id: 'c', kind: 'input', x: 0, y: 200 },
@@ -248,8 +228,11 @@ describe('古い版のデータ', () => {
       2, 1, 3, 1,
     ]);
     expect(
-      parse(withProject({ circuits: [{ ...main, parts: [{ ...main.parts[0], portNumber: 0 }] }] }))
-        .ok,
+      parse(
+        withProject({
+          circuits: [{ ...main, elements: [{ ...main.elements[0], portNumber: 0 }] }],
+        }),
+      ).ok,
     ).toBe(false);
   });
 
@@ -296,16 +279,9 @@ describe('古い版のデータ', () => {
 
 describe('CLOCK の周期', () => {
   it('範囲外の周期を持つ部品は読み込まない', () => {
-    const main = project.circuits[0];
+    const [main, mod] = toStoredProject(project).circuits;
     const broken = {
-      circuits: [
-        {
-          ...main,
-          parts: [{ id: 'c', kind: 'clock', x: 20, y: 0, period: 0 }],
-          wires: [],
-        },
-        project.circuits[1],
-      ],
+      circuits: [{ ...main, elements: [{ kind: 'clock', x: 1, y: 0, period: 0 }] }, mod],
     };
     expect(parse(withProject(broken)).ok).toBe(false);
   });
