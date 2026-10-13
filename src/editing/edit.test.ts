@@ -8,6 +8,7 @@ import {
   moveParts,
   remapSelection,
   removeParts,
+  rotateParts,
   selectionOf,
   setClockPeriod,
   setWirePoints,
@@ -17,7 +18,9 @@ import {
 } from './edit';
 import type { Circuit } from '../circuit/circuit';
 import { computeNets } from '../geometry/net';
-import type { CircuitDef } from '../circuit/project';
+import { DEFAULT_SHEET, type CircuitDef, type Project } from '../circuit/project';
+import { getPinout } from '../circuit/module';
+import type { Part } from '../circuit/part';
 
 // 配線の点は、編集で点がどう変わるかを確かめるためのもの。つながりは geometry/net.test.ts で確かめる
 const base: Circuit = {
@@ -250,5 +253,100 @@ describe('setClockPeriod', () => {
   it('CLOCK の周期を変える', () => {
     const c = setClockPeriod(base, 'a', 20);
     expect(c.parts.find((x) => x.id === 'a')?.period).toBe(20);
+  });
+});
+
+describe('rotateParts', () => {
+  const project: Project = { circuits: [] };
+  const pinoutOf = (c: Part) => getPinout(c, project);
+  const pts = (...ps: [number, number][]) => ps.map(([x, y]) => ({ x, y }));
+
+  it('部品 1 つは、本体の真ん中のあたりで回り、向きが変わる', () => {
+    const circuit: Circuit = { parts: [{ id: 'g', kind: 'and', x: 100, y: 100 }], wires: [] };
+    // 本体 60×80 が 80×60 になる。中心 (130, 140) は x だけが半端なので、(140, 140) の回りに回す
+    expect(rotateParts(circuit, ['g'], [], 'cw', pinoutOf)?.parts).toEqual([
+      { id: 'g', kind: 'and', x: 100, y: 100, rotation: 90 },
+    ]);
+    expect(rotateParts(circuit, ['g'], [], 'ccw', pinoutOf)?.parts).toEqual([
+      { id: 'g', kind: 'and', x: 100, y: 120, rotation: 270 },
+    ]);
+  });
+
+  it('配線 1 本は、点を囲む長方形の中心の回りに回る', () => {
+    const circuit: Circuit = { parts: [], wires: [{ id: 'w', points: pts([0, 100], [80, 100]) }] };
+    expect(rotateParts(circuit, [], ['w'], 'cw', pinoutOf)?.wires).toEqual([
+      { id: 'w', points: pts([40, 60], [40, 140]) },
+    ]);
+  });
+
+  it('選んでいない部品と配線は変えない', () => {
+    const next = rotateParts(base, ['g'], ['w3'], 'cw', pinoutOf);
+    expect(next?.parts.filter((c) => c.id !== 'g')).toEqual(base.parts.filter((c) => c.id !== 'g'));
+    expect(next?.wires.filter((w) => w.id !== 'w3')).toEqual(
+      base.wires.filter((w) => w.id !== 'w3'),
+    );
+  });
+
+  it('部品と、それにつながる配線を一緒に回すと、つながったまま', () => {
+    // w1 は AND g の入力 0 に、w3 は g の出力につながる
+    const next = rotateParts(base, ['g'], ['w1', 'w3'], 'cw', pinoutOf);
+    if (!next) {
+      throw new Error('回せなかった');
+    }
+    const { wireNet } = computeNets(next, project);
+    expect(wireNet.get('w1')?.inputs).toEqual([{ comp: 'g', pin: 0 }]);
+    expect(wireNet.get('w3')?.outputs).toEqual([{ comp: 'g', pin: 0 }]);
+  });
+
+  // 幅と高さのマスの数の偶奇が違うもの (AND、7 セグメント) と、同じもの (INPUT)、部品と配線のまとまり
+  // biome-ignore format: 表形式を維持するため
+  const cases: [string, Circuit][] = [
+    ['AND', { parts: [{ id: 'g', kind: 'and', x: 100, y: 100 }], wires: [] }],
+    ['INPUT', { parts: [{ id: 'i', kind: 'input', x: 100, y: 100 }], wires: [] }],
+    ['7 セグメント', { parts: [{ id: 's', kind: 'sevenSegment', x: 100, y: 100 }], wires: [] }],
+    ['まとまり', base],
+  ];
+  for (const [name, circuit] of cases) {
+    const ids = circuit.parts.map((c) => c.id);
+    const wires = circuit.wires.map((w) => w.id);
+    const turn = (c: Circuit | undefined, direction: 'cw' | 'ccw') => {
+      if (!c) {
+        throw new Error('回せなかった');
+      }
+      return rotateParts(c, ids, wires, direction, pinoutOf);
+    };
+
+    it(`4 回回すと元に戻る (ずれていかない): ${name}`, () => {
+      expect(turn(turn(turn(turn(circuit, 'cw'), 'cw'), 'cw'), 'cw')).toEqual(circuit);
+      expect(turn(turn(turn(turn(circuit, 'ccw'), 'ccw'), 'ccw'), 'ccw')).toEqual(circuit);
+    });
+
+    it(`時計回りと反時計回りは打ち消し合う: ${name}`, () => {
+      expect(turn(turn(circuit, 'cw'), 'ccw')).toEqual(circuit);
+      expect(turn(turn(circuit, 'ccw'), 'cw')).toEqual(circuit);
+      // 1 回回してからでも同じ
+      const once = turn(circuit, 'cw');
+      expect(turn(turn(once, 'cw'), 'ccw')).toEqual(once);
+    });
+  }
+
+  it('回した後にシートからはみ出すなら、回さない', () => {
+    // 左端に置いた AND。回すと入力ピンが上に来て、本体が左へ 1 マスずれ、左の 1 マスが足りなくなる
+    const circuit: Circuit = { parts: [{ id: 'g', kind: 'and', x: 20, y: 0 }], wires: [] };
+    expect(rotateParts(circuit, ['g'], [], 'cw', pinoutOf, DEFAULT_SHEET)).toBeUndefined();
+    // シートを渡さなければ、はみ出しは見ない
+    expect(rotateParts(circuit, ['g'], [], 'cw', pinoutOf)).toBeDefined();
+  });
+
+  it('配線の点がシートからはみ出すなら、回さない', () => {
+    const circuit: Circuit = { parts: [], wires: [{ id: 'w', points: pts([0, 0], [80, 0]) }] };
+    expect(rotateParts(circuit, [], ['w'], 'cw', pinoutOf, DEFAULT_SHEET)).toBeUndefined();
+  });
+
+  it('シートの中に収まるなら回す', () => {
+    const circuit: Circuit = { parts: [{ id: 'g', kind: 'and', x: 100, y: 100 }], wires: [] };
+    expect(rotateParts(circuit, ['g'], [], 'cw', pinoutOf, DEFAULT_SHEET)?.parts[0].rotation).toBe(
+      90,
+    );
   });
 });

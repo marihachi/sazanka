@@ -53,6 +53,8 @@ export const ja = {
     wireTitle: '配線モード (W): クリックした点から点へ配線を引く',
     split: '分割',
     splitTitle: '分割モード (S): 配線をクリックした点で 2 本に分ける',
+    rotate: '回転',
+    rotateTitle: '回転 (R)',
     pause: '一時停止',
     pauseTitle: 'シミュレーションを一時停止',
     resume: '再開',
@@ -112,6 +114,7 @@ export const ja = {
     outsideSheet: 'シートの外に部品か配線があります',
     conflict: '出力がぶつかっています',
     unstable: '発振しています',
+    cannotRotate: 'はみ出すため回転できません',
   },
   preferences: {
     title: '環境設定',
@@ -290,13 +293,14 @@ export const ja = {
     } satisfies Record<PortProblem, string>,
     overTrash: '離すと削除します',
     dragging: '右下の削除エリアで離すと削除します',
-    placing: 'クリックした位置に貼り付け ・ Esc で取り消し',
+    placing: 'クリックした位置に貼り付け ・ R で回転 ・ Esc で取り消し',
     wiring:
       'クリックで折れる点を追加 ・ ピンか配線の上でつないで終了 ・ 最後の点をもう一度クリックで終了 ・ Esc で取り消し',
     wireTool:
       '配線モード: 何もないところ・ピン・配線の上をクリックして配線を開始 ・ V か Esc で選択モードに戻る',
     editing: 'Enter で確定 ・ Esc で取り消し',
-    wireSelected: 'Delete で配線を削除 ・ ドラッグで移動 ・ 配線の端をドラッグで長さを変更',
+    wireSelected:
+      'Delete で配線を削除 ・ ドラッグで移動 ・ 配線の端をドラッグで長さを変更 ・ R で回転',
     splitTool: '配線をクリックで 2 本に分割 ・ Esc で選択モードに戻る',
     wireEndDragging: '配線の端をドラッグして長さを変更 ・ 離すと確定',
     multipleSelected: [
@@ -304,8 +308,9 @@ export const ja = {
       'Delete か、右下の削除エリアへドラッグでまとめて削除',
       'Shift+クリックで選択に追加・解除',
       'Ctrl+C でコピー、Ctrl+X で切り取り',
+      'R で回転',
     ],
-    partSelected: ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除'],
+    partSelected: ['ドラッグで移動', 'Delete か、右下の削除エリアへドラッグで削除', 'R で回転'],
     unstable: '発振中: 出力が自分の入力に戻るループで、値が決まらない状態になっている',
     conflict:
       '赤い配線に出力ピンが2つ以上つながっていて、値が決まらない。つながる入力ピンは OFF になる',

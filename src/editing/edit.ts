@@ -2,10 +2,20 @@
 // どれも新しい回路を返し、元の回路は書き換えない。
 // 元に戻す対象にするかどうかは、使う側 (app/App.tsx) が useProjectHistory.ts で決める
 
-import { type Point, simplifyWire } from '../geometry/layout';
+import {
+  bodySize,
+  clampPosition,
+  clampToSheet,
+  GRID,
+  type Point,
+  simplifyWire,
+} from '../geometry/layout';
 import { onSegment } from '../geometry/net';
 import type { Part } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
+import type { Pinout } from '../circuit/module';
+import type { CircuitSheet } from '../circuit/project';
+import type { Rotation } from '../parts/layout';
 
 /** 選んでいる部品と配線。どちらも複数を同時に選べる。何も選んでいなければ null (両方が空のものは作らない) */
 export type Selection = { comps: string[]; wires: string[] } | null;
@@ -81,6 +91,136 @@ export function moveParts<T extends Circuit>(
       return points ? { ...w, points } : w;
     }),
   };
+}
+
+/** 回す向き。cw は時計回り、ccw は反時計回り (どちらも 90 度) */
+export type TurnDirection = 'cw' | 'ccw';
+
+/**
+ * 部品と配線をまとめて、全体の中心の回りに 90 度回す。部品は位置と向き (rotation) が、配線は点が変わる。
+ * 回す中心の決め方は turnCenter。回した後も、グリッドに乗った位置とピンの先はグリッドに乗る。
+ * 同じものを 4 回回すと元の位置に戻り、時計回りと反時計回りは打ち消し合う。
+ * sheet を渡すと、回した後にどれかがシートからはみ出すときは回さず、undefined を返す。
+ * 渡さなければはみ出しを見ない (貼り付け中のように、あとで置く位置を決めるとき)
+ */
+export function rotateParts<T extends Circuit>(
+  circuit: T,
+  comps: readonly string[],
+  wires: readonly string[],
+  direction: TurnDirection,
+  pinoutOf: (c: Part) => Pinout,
+  sheet?: CircuitSheet,
+): T | undefined {
+  const compSet = new Set(comps);
+  const wireSet = new Set(wires);
+  const parts = circuit.parts.filter((c) => compSet.has(c.id));
+  const points = circuit.wires.filter((w) => wireSet.has(w.id)).flatMap((w) => w.points);
+  if (parts.length === 0 && points.length === 0) {
+    return circuit;
+  }
+  // 部品の本体の角と配線の点。どれも回すと一緒に回るので、これを囲む長方形も形を変えずに回る
+  const corners = [
+    ...parts.flatMap((c) => {
+      const { w, h } = bodySize(c, pinoutOf(c));
+      return [
+        { x: c.x, y: c.y },
+        { x: c.x + w, y: c.y + h },
+      ];
+    }),
+    ...points,
+  ];
+  const center = turnCenter(corners);
+  const turn = (p: Point) => turnPoint(p, center, direction);
+
+  const turnedParts = new Map<string, Part>();
+  for (const c of parts) {
+    const { w, h } = bodySize(c, pinoutOf(c));
+    // 本体の 4 つの角を回し、いちばん左上に来た点が回した後の本体の左上
+    const corners = [
+      { x: c.x, y: c.y },
+      { x: c.x + w, y: c.y },
+      { x: c.x, y: c.y + h },
+      { x: c.x + w, y: c.y + h },
+    ].map(turn);
+    const rotation = (((c.rotation ?? 0) + (direction === 'cw' ? 90 : 270)) % 360) as Rotation;
+    const { rotation: _, ...rest } = c;
+    turnedParts.set(c.id, {
+      ...rest,
+      x: Math.min(...corners.map((p) => p.x)),
+      y: Math.min(...corners.map((p) => p.y)),
+      // 0 度のときは持たせない (保存データに書かないため)
+      ...(rotation === 0 ? {} : { rotation }),
+    });
+  }
+  const turnedWires = new Map<string, Point[]>(
+    circuit.wires.filter((w) => wireSet.has(w.id)).map((w) => [w.id, w.points.map(turn)]),
+  );
+
+  if (sheet) {
+    const outside =
+      [...turnedParts.values()].some((c) => {
+        const p = clampPosition(c, pinoutOf(c), c, sheet);
+        return p.x !== c.x || p.y !== c.y;
+      }) ||
+      [...turnedWires.values()].some((ps) =>
+        ps.some((p) => {
+          const q = clampToSheet(p, sheet);
+          return q.x !== p.x || q.y !== p.y;
+        }),
+      );
+    if (outside) {
+      return undefined;
+    }
+  }
+  return {
+    ...circuit,
+    parts: circuit.parts.map((c) => turnedParts.get(c.id) ?? c),
+    wires: circuit.wires.map((w) => {
+      const ps = turnedWires.get(w.id);
+      return ps ? { ...w, points: ps } : w;
+    }),
+  };
+}
+
+/**
+ * 点の集まりを回す中心。点を囲む長方形の中心を、グリッドを保てる点に合わせる。
+ * マス単位で、中心の x と y が両方とも整数か、両方とも整数 + 0.5 なら、そこを中心にして、
+ * 回したグリッドの点はグリッドの点に移る (例: (0.5, 0.5) の回りに (0, 0) を時計回りに回すと (1, 0))。
+ * 片方だけが整数 + 0.5 のとき (長方形の幅と高さのマスの数の偶奇が違うとき) は、その座標を隣の整数のどちらかに寄せる。
+ * 寄せる先は、中心の x + y (マス) が偶数になる方。こう決めると、4 回回したときと、時計回りの後に反時計回りにしたときに、
+ * 寄せた分が打ち消し合い、元の位置に戻る (いつも同じ向きに寄せると、回すたびに少しずつずれていく)
+ */
+function turnCenter(points: readonly Point[]): Point {
+  // 長方形の中心 (マス)。0.5 刻みになる
+  const cx = (Math.min(...points.map((p) => p.x)) + Math.max(...points.map((p) => p.x))) / 2 / GRID;
+  const cy = (Math.min(...points.map((p) => p.y)) + Math.max(...points.map((p) => p.y))) / 2 / GRID;
+  const halfX = !Number.isInteger(cx);
+  const halfY = !Number.isInteger(cy);
+  if (halfX === halfY) {
+    return { x: cx * GRID, y: cy * GRID };
+  }
+  if (halfX) {
+    const x = Math.floor(cx);
+    return { x: (isEven(x + cy) ? x : x + 1) * GRID, y: cy * GRID };
+  }
+  const y = Math.floor(cy);
+  return { x: cx * GRID, y: (isEven(cx + y) ? y : y + 1) * GRID };
+}
+
+function isEven(n: number): boolean {
+  return ((n % 2) + 2) % 2 === 0;
+}
+
+/**
+ * 点 p を、点 center の回りに 90 度回す。シートの座標は y が下へ増えるので、
+ * 時計回りは (dx, dy) → (−dy, dx)。例: 中心の右 (dx, dy) = (20, 0) は、中心の下 (0, 20) へ移る
+ */
+function turnPoint(p: Point, center: Point, direction: TurnDirection): Point {
+  const dx = p.x - center.x;
+  const dy = p.y - center.y;
+  return direction === 'cw'
+    ? { x: center.x - dy, y: center.y + dx }
+    : { x: center.x + dy, y: center.y - dx };
 }
 
 /** 配線の点の並びを変える (端のドラッグで長さを変えたときなど) */

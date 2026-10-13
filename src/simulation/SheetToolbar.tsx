@@ -3,6 +3,7 @@ import { Flex } from '@chakra-ui/react';
 import selectIcon from '../assets/icons/select.svg';
 import wireIcon from '../assets/icons/wire.svg';
 import splitIcon from '../assets/icons/split.svg';
+import rotateIcon from '../assets/icons/rotate.svg';
 import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
@@ -19,6 +20,10 @@ export type Tool = 'select' | 'wire' | 'split';
 interface SheetToolbarProps {
   tool: Tool;
   onToolChange: (tool: Tool) => void;
+  /** 選んでいる部品と配線 (貼り付け中は貼り付けるもの) を時計回りに回す。キーの R と同じ */
+  onRotate: () => void;
+  /** 回せるものがあるか (選択モードで何か選んでいるか、貼り付け中) */
+  canRotate: boolean;
   /** シミュレーションが動いているか */
   running: boolean;
   onToggleRunning: () => void;
@@ -42,6 +47,8 @@ interface SheetToolbarProps {
 export const SheetToolbar = memo(function SheetToolbar({
   tool,
   onToolChange,
+  onRotate,
+  canRotate,
   running,
   onToggleRunning,
   onStep,
@@ -75,6 +82,14 @@ export const SheetToolbar = memo(function SheetToolbar({
         title={m.toolbar.splitTitle}
         onClick={() => onToolChange('split')}
         active={tool === 'split'}
+      />
+      <ToolDivider />
+      <ToolButton
+        icon={rotateIcon}
+        label={m.toolbar.rotate}
+        title={m.toolbar.rotateTitle}
+        onClick={onRotate}
+        disabled={!canRotate}
       />
       <ToolDivider />
       <ToolButton

@@ -2,7 +2,7 @@ import { memo } from 'react';
 import type { Part, PartKind } from '../circuit/part';
 import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
-import type { PartLayout } from '../parts/layout';
+import type { PartLayout, Rotation } from '../parts/layout';
 import { PART_BODIES } from '../parts/bodies';
 import { getLayout } from '../parts/layouts';
 import { classNames } from '../ui/classNames';
@@ -317,7 +317,7 @@ interface SheetPartProps {
 }
 
 export function SheetPart({
-  comp: c,
+  comp,
   pinout,
   name,
   outputValues,
@@ -330,6 +330,8 @@ export function SheetPart({
 }: SheetPartProps) {
   const lang = useLanguage();
   const m = useMessages();
+  // 部品は回していない向きで描き、最後に全体を回す (文字も一緒に回る)。下の c は回していない部品
+  const { rotation = 0, ...c } = comp;
   const { w, h } = bodySize(c, pinout);
   const outline = (
     <BodyOutline
@@ -452,16 +454,39 @@ export function SheetPart({
       onDoubleClick={onBodyDoubleClick}
       style={{ cursor: 'move' }}
     >
-      <g transform={`translate(${c.x} ${c.y})`}>
-        <PinLeads
-          kind={c.kind}
-          pinout={pinout}
-          inputValues={inputValues}
-          outputValues={outputValues}
-          showPinNumbers={showPinNumbers}
-        />
+      <g transform={rotation === 0 ? undefined : rotateTransform(c, w, h, rotation)}>
+        <g transform={`translate(${c.x} ${c.y})`}>
+          <PinLeads
+            kind={c.kind}
+            pinout={pinout}
+            inputValues={inputValues}
+            outputValues={outputValues}
+            showPinNumbers={showPinNumbers}
+          />
+        </g>
+        {body}
       </g>
-      {body}
     </g>
   );
+}
+
+/**
+ * 回していない向きで描いた部品を、向き (rotation) だけ回す SVG の transform。
+ * 回していない本体の左上 (x, y)、幅 w、高さ h の部品を、回した後の本体の左上が (x, y) に来るように回す
+ * (シート上の配置 geometry/layout.ts の getPartLayout と同じ回し方)。
+ * 本体の中の点 (x + px, y + py) は、90 度なら (x + h − py, y + px)、180 度なら (x + w − px, y + h − py)、
+ * 270 度なら (x + py, y + w − px) に移る。どれも、左上を原点に移して回し (rotate)、回した後の左上へ戻す (translate)
+ */
+function rotateTransform(c: { x: number; y: number }, w: number, h: number, rotation: Rotation) {
+  const back = `translate(${-c.x} ${-c.y})`;
+  switch (rotation) {
+    case 90:
+      return `translate(${c.x + h} ${c.y}) rotate(90) ${back}`;
+    case 180:
+      return `translate(${c.x + w} ${c.y + h}) rotate(180) ${back}`;
+    case 270:
+      return `translate(${c.x} ${c.y + w}) rotate(270) ${back}`;
+    default:
+      return undefined;
+  }
 }

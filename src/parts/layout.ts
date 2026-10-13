@@ -44,6 +44,63 @@ export interface PartLayout {
   directionMarks?: boolean;
 }
 
+/** 部品の向き。種類の配置から時計回りに回した角度 */
+export type Rotation = 0 | 90 | 180 | 270;
+
+export const ROTATIONS: readonly Rotation[] = [0, 90, 180, 270];
+
+/**
+ * 時計回りに 90 度回したときの辺。ピンの辺のほか、本体の上に書く名前 (nameAbove) が回った後の辺にも使う
+ */
+const TURNED_SIDE: Record<PinSide, PinSide> = {
+  left: 'top',
+  top: 'right',
+  right: 'bottom',
+  bottom: 'left',
+};
+
+/** 辺 side を rotation だけ時計回りに回した辺 */
+export function rotateSide(side: PinSide, rotation: Rotation): PinSide {
+  let s = side;
+  for (let r = 0; r < rotation; r += 90) {
+    s = TURNED_SIDE[s];
+  }
+  return s;
+}
+
+/**
+ * 配置を rotation だけ時計回りに回す。本体の幅と高さ、ピンの辺と位置が変わる。
+ * 本体の上に書く名前 (nameAbove) は、回す前の上の辺を指したまま残す。回した後の辺は rotateSide で求める
+ */
+export function rotateLayout(layout: PartLayout, rotation: Rotation): PartLayout {
+  let l = layout;
+  for (let r = 0; r < rotation; r += 90) {
+    l = turnLayout(l);
+  }
+  return l;
+}
+
+/**
+ * 配置を時計回りに 90 度回す。本体の中の点 (x, y) は (h − y, x) に移る (h は回す前の高さ)。
+ * 例: 左の辺の位置 at の点 (0, at) は (h − at, 0) で、上の辺の位置 h − at になる
+ */
+function turnLayout(l: PartLayout): PartLayout {
+  const turn = (p: PinPlacement): PinPlacement => ({
+    ...p,
+    side: TURNED_SIDE[p.side],
+    // 上と下の辺へ移るピンは、左右の辺での上端からの位置が、右端からの位置になる
+    at: p.side === 'left' || p.side === 'right' ? l.h - p.at : p.at,
+  });
+  return {
+    ...l,
+    w: l.h,
+    h: l.w,
+    inputs: l.inputs.map(turn),
+    outputs: l.outputs.map(turn),
+    ...(l.nc ? { nc: l.nc.map(turn) } : {}),
+  };
+}
+
 /**
  * 種類の配置。部品のピンの割り当て (circuit/module.ts の getPinout) を受け取って配置を返す。
  * ピンの数と形はモジュールごとに違うので、部品ごとに渡す

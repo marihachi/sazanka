@@ -113,6 +113,23 @@ describe('computeNets', () => {
   });
 });
 
+describe('回した部品', () => {
+  it('回した後のピンの先で、配線とつながる', () => {
+    // INPUT を 90 度回すと出力ピンは下の辺の真ん中 (20, 60)。
+    // OUTPUT を 270 度回すと入力ピンは下の辺の真ん中 (420, 60)
+    // biome-ignore format: 表形式を維持するため
+    const parts: Part[] = [
+      { id: 'a', kind: 'input', x: 0, y: 0, rotation: 90 },
+      { id: 'o', kind: 'output', x: 400, y: 0, rotation: 270 },
+    ];
+    const {
+      nets: [net],
+    } = computeNets({ parts, wires: [wire('w', [20, 60], [420, 60])] }, project);
+    expect(net.outputs).toEqual([{ comp: 'a', pin: 0 }]);
+    expect(net.inputs).toEqual([{ comp: 'o', pin: 0 }]);
+  });
+});
+
 describe('出力のぶつかり', () => {
   const r = nets(
     wire('w1', [60, 20], [200, 20], [200, 220], [60, 220]),

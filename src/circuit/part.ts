@@ -5,6 +5,7 @@
 
 import { isObject } from '../util';
 import { isSpecialKind, type SpecKind, partSpecOf, type SpecialKind } from '../parts/specs';
+import { ROTATIONS, type Rotation } from '../parts/layout';
 
 export type { FlipFlopKind, GateKind, SpecialKind } from '../parts/specs';
 
@@ -32,6 +33,11 @@ export interface Part {
    * メイン回路とモジュールの回路のどちらでも持つ。読み込みでは、ないものや重なるものを付け直す (module.ts の fillPortNumbers)
    */
   portNumber?: number;
+  /**
+   * 部品の向き。種類の配置から時計回りに回した角度。なければ 0 (回していない)。
+   * 0 のときは持たせない (保存データに書かないため)
+   */
+  rotation?: Rotation;
 }
 
 /**
@@ -48,8 +54,14 @@ export function isPart(c: unknown): boolean {
     Number.isInteger(c.y) &&
     (c.period === undefined || isClockPeriod(c.period)) &&
     (c.pinNumber === undefined || Number.isInteger(c.pinNumber)) &&
-    (c.portNumber === undefined || isPortNumber(c.portNumber))
+    (c.portNumber === undefined || isPortNumber(c.portNumber)) &&
+    (c.rotation === undefined || isRotation(c.rotation))
   );
+}
+
+/** 部品の向きとして使える値か (0 / 90 / 180 / 270) */
+function isRotation(v: unknown): v is Rotation {
+  return ROTATIONS.includes(v as Rotation);
 }
 
 /** ポート番号として使える値か (1 以上の整数) */

@@ -3,9 +3,10 @@ import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { Selection } from './edit';
 import { newId, type Circuit } from '../circuit/circuit';
 import * as edit from './edit';
-import type { Point } from '../geometry/layout';
-import { assignPinNumbers, assignPortNumbers, dependsOn } from '../circuit/module';
-import { type CircuitDef, findDef, type Project } from '../circuit/project';
+import { getSheetEnd, type Point } from '../geometry/layout';
+import { circuitBounds } from '../geometry/view';
+import { assignPinNumbers, assignPortNumbers, dependsOn, getPinout } from '../circuit/module';
+import { type CircuitDef, findDef, getCircuitSheet, type Project } from '../circuit/project';
 import type { Messages } from '../i18n/messages';
 
 /** 部品と配線のコピー・切り取り・貼り付け。貼り付けは、位置をシートのクリックで決める */
@@ -76,6 +77,35 @@ export function useClipboard({
     setPlacing(clipboard);
   }
 
+  /**
+   * 貼り付けるものを回す。置く位置は、回したあとも貼り付けるときにシートに収まるようずらす (Sheet.tsx の placeOffset) ので、
+   * 回せないのは、回したものがシートより大きくて収まらないときだけ。回せたかを返す
+   */
+  function rotatePlacing(direction: edit.TurnDirection): boolean {
+    if (!placing) {
+      return false;
+    }
+    const turned = edit.rotateParts(
+      placing,
+      placing.parts.map((c) => c.id),
+      placing.wires.map((w) => w.id),
+      direction,
+      (c) => getPinout(c, project),
+    );
+    const bounds = turned && circuitBounds(turned, project);
+    const end = getSheetEnd(getCircuitSheet(circuit));
+    if (
+      !turned ||
+      !bounds ||
+      bounds.right - bounds.left > end.x ||
+      bounds.bottom - bounds.top > end.y
+    ) {
+      return false;
+    }
+    setPlacing(turned);
+    return true;
+  }
+
   /** 貼り付ける位置が決まった。delta はコピー元の位置からのずれ */
   function paste(delta: Point) {
     if (!placing) {
@@ -103,6 +133,7 @@ export function useClipboard({
     cut,
     startPaste,
     paste,
+    rotatePlacing,
     /** 貼り付けをやめる (回路を切り替えたとき、Esc など) */
     cancelPaste: () => setPlacing(null),
   };
