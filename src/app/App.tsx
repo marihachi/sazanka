@@ -267,6 +267,54 @@ export function App() {
     setSelection({ comps: [c.id], wires: [] });
   }
 
+  /** 回せなかったことを知らせるバッジを出しているか */
+  const [cannotRotate, setCannotRotate] = useState(false);
+  const cannotRotateTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(cannotRotateTimer.current), []);
+
+  /** 回せなかったことを、バッジで 3 秒知らせる。続けて回せなければ、そこから 3 秒に延ばす */
+  function showCannotRotate() {
+    clearTimeout(cannotRotateTimer.current);
+    setCannotRotate(true);
+    cannotRotateTimer.current = setTimeout(() => setCannotRotate(false), 3000);
+  }
+
+  /** 回せるものがあるか。選択モードで何か選んでいるときと、貼り付け中 */
+  const canRotate = !!clipboard.placing || (tool === 'select' && !!selection);
+
+  /**
+   * 選んでいる部品と配線を、まとめて 90 度回す。貼り付け中は、貼り付けるものを回す。
+   * 回した後にシートからはみ出すときは回さず、バッジで知らせる
+   */
+  function rotate(direction: edit.TurnDirection) {
+    // ドラッグ中は、ドラッグの開始時点との整合が崩れるので受け付けない (元に戻すと同じ)
+    if (dragMode !== 'none' || !canRotate) {
+      return;
+    }
+    if (clipboard.placing) {
+      if (!clipboard.rotatePlacing(direction)) {
+        showCannotRotate();
+      }
+      return;
+    }
+    if (!selection) {
+      return;
+    }
+    const next = edit.rotateParts(
+      circuit,
+      selection.comps,
+      selection.wires,
+      direction,
+      (c) => getPinout(c, project),
+      getCircuitSheet(circuit),
+    );
+    if (!next) {
+      showCannotRotate();
+      return;
+    }
+    setCircuit(() => next);
+  }
+
   /** 選択モード・配線モード・分割モードにする。モードが変わるときは、配線中の線を取り消す */
   function changeTool(next: Tool) {
     if (next !== tool) {
@@ -306,6 +354,7 @@ export function App() {
     onSelectTool: () => changeTool('select'),
     onWireTool: () => changeTool('wire'),
     onSplitTool: () => changeTool('split'),
+    onRotate: rotate,
   });
 
   /** 選択や編集中の状態は、戻した先に存在しないことがあるので解除する */
@@ -441,6 +490,7 @@ export function App() {
     openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
     openSheetSettings: () => dialogs.openSheetSettings(circuit.id),
     changeTool,
+    rotate: () => rotate('cw'),
     addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
     // 入力中の変更は履歴に積まない。最初の変更の直前に積んだ1回分で元に戻す
     setClockPeriod: (id: string, period: number) =>
@@ -477,6 +527,8 @@ export function App() {
         <SheetToolbar
           tool={tool}
           onToolChange={on.changeTool}
+          onRotate={on.rotate}
+          canRotate={canRotate}
           running={running}
           onToggleRunning={on.toggleRunning}
           onStep={on.stepOnce}
@@ -551,6 +603,7 @@ export function App() {
           conflict={conflict}
           unexposedPorts={problems.size > 0}
           outsideSheet={outsideSheet}
+          cannotRotate={cannotRotate}
         />
         {dialogs.element}
       </Flex>

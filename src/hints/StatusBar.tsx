@@ -23,15 +23,21 @@ interface StatusBarProps {
   unexposedPorts: boolean;
   /** 開いている回路に、シートに収まっていない部品や配線がある */
   outsideSheet: boolean;
+  /** 回そうとしたが、シートからはみ出すため回せなかった (App が少しのあいだだけ true にする) */
+  cannotRotate: boolean;
 }
 
-/** 画面下のステータスバー。使い方のヒントと、発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品の警告を出す */
+/**
+ * 画面下のステータスバー。使い方のヒントと、発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品の警告、
+ * 回せなかったことのお知らせを出す
+ */
 export const StatusBar = memo(function StatusBar({
   hints,
   unstable,
   conflict,
   unexposedPorts,
   outsideSheet,
+  cannotRotate,
 }: StatusBarProps) {
   const m = useMessages();
   const hintKey = hints.join('|');
@@ -72,6 +78,11 @@ export const StatusBar = memo(function StatusBar({
       <Box key={hint} flex="1" minW="0" truncate color="fg.muted" animation="fade-in 0.4s ease-out">
         {hint}
       </Box>
+      {cannotRotate && (
+        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
+          {m.status.cannotRotate}
+        </Badge>
+      )}
       {outsideSheet && (
         <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
           {m.status.outsideSheet}
@@ -103,6 +114,7 @@ function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
     a.conflict === b.conflict &&
     a.unexposedPorts === b.unexposedPorts &&
     a.outsideSheet === b.outsideSheet &&
+    a.cannotRotate === b.cannotRotate &&
     a.hints.length === b.hints.length &&
     a.hints.every((h, i) => h === b.hints[i])
   );

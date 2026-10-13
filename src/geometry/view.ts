@@ -9,6 +9,7 @@ import {
   type Project,
 } from '../circuit/project';
 import { getPinout } from '../circuit/module';
+import type { Circuit } from '../circuit/circuit';
 
 /** シートの表示位置と倍率。画面の座標 = 回路の座標 × scale + (x, y) */
 export interface View {
@@ -93,7 +94,7 @@ export function fitView(bounds: Rect, width: number, height: number, sheet: Circ
 }
 
 /** 回路全体 (部品と配線) が占める範囲。部品も配線もなければ undefined */
-export function circuitBounds(circuit: CircuitDef, project: Project): Rect | undefined {
+export function circuitBounds(circuit: Circuit, project: Project): Rect | undefined {
   // 配線は部品と別に置けるので、配線の点も範囲に含める
   const rects = [
     ...circuit.parts.map((c) => partBounds(c, getPinout(c, project))),

@@ -44,6 +44,8 @@ export const en: Messages = {
     wireTitle: 'Wire mode (W): draw wires from point to point by clicking',
     split: 'Split',
     splitTitle: 'Split mode (S): split a wire in two at the clicked point',
+    rotate: 'Rotate',
+    rotateTitle: 'Rotate (R)',
     pause: 'Pause',
     pauseTitle: 'Pause the simulation',
     resume: 'Resume',
@@ -103,6 +105,7 @@ export const en: Messages = {
     outsideSheet: 'Parts or wires outside the sheet',
     conflict: 'Outputs are in conflict',
     unstable: 'Oscillating',
+    cannotRotate: "Can't rotate: off the sheet",
   },
   preferences: {
     title: 'Preferences',
@@ -266,13 +269,14 @@ export const en: Messages = {
     },
     overTrash: 'Release to delete',
     dragging: 'Release on the delete area at the bottom right to delete',
-    placing: 'Click where to paste · Esc to cancel',
+    placing: 'Click where to paste · R to rotate · Esc to cancel',
     wiring:
       'Click to add a bend · Connect on a pin or wire to finish · Click the last point again to finish · Esc to cancel',
     wireTool:
       'Wire mode: click an empty spot, pin, or wire to start a wire · V or Esc returns to select mode',
     editing: 'Enter to confirm · Esc to cancel',
-    wireSelected: 'Delete to remove the wire · Drag to move · Drag a wire end to resize',
+    wireSelected:
+      'Delete to remove the wire · Drag to move · Drag a wire end to resize · R to rotate',
     splitTool: 'Click a wire to split it in two · Esc to return to Select mode',
     wireEndDragging: 'Drag the wire end to resize · Release to apply',
     multipleSelected: [
@@ -280,10 +284,12 @@ export const en: Messages = {
       'Delete, or drag to the delete area at the bottom right, to delete together',
       'Shift+click adds to or removes from the selection',
       'Ctrl+C copies, Ctrl+X cuts',
+      'R to rotate',
     ],
     partSelected: [
       'Drag to move',
       'Delete, or drag to the delete area at the bottom right, to delete',
+      'R to rotate',
     ],
     unstable: 'Oscillating: an output loops back to its own input, so the value never settles',
     conflict:

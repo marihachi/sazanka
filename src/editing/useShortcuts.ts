@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { TurnDirection } from './edit';
 
 export interface Shortcuts {
   /** false の間はキーを編集操作として扱わない (ダイアログ表示中など) */
@@ -17,6 +18,8 @@ export interface Shortcuts {
   onWireTool: () => void;
   /** 分割モードにする (S) */
   onSplitTool: () => void;
+  /** 選んでいるもの (貼り付け中は貼り付けるもの) を回す。R は時計回り、Shift+R は反時計回り */
+  onRotate: (direction: TurnDirection) => void;
 }
 
 /** 編集操作のキーボードショートカット */
@@ -80,6 +83,8 @@ export function useShortcuts(shortcuts: Shortcuts) {
           s.onWireTool();
         } else if (key === 's') {
           s.onSplitTool();
+        } else if (key === 'r') {
+          s.onRotate(e.shiftKey ? 'ccw' : 'cw');
         }
       }
     }
