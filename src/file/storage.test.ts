@@ -25,7 +25,7 @@ const withModule: Project = {
       // biome-ignore format: 表形式を維持するため
       parts: [
         { id: 'a', kind: 'input', x: 0, y: 20, portName: 'A', portNumber: 1 },
-        { id: 'm', kind: 'module', x: 100, y: 0, module: 'mod' },
+        { id: 'm', kind: 'module', x: 100, y: 0, module: 'mod', rotation: 90 },
       ],
       // biome-ignore format: 表形式を維持するため
       wires: [{ id: 'w', points: [{ x: 60, y: 40 }, { x: 80, y: 40 }] }],

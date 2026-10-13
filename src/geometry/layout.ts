@@ -4,7 +4,14 @@
 import type { Part } from '../circuit/part';
 import type { Pinout } from '../circuit/module';
 import type { CircuitSheet } from '../circuit/project';
-import type { PartLayout, PinPlacement, PinSide } from '../parts/layout';
+import {
+  type PartLayout,
+  type PinPlacement,
+  type PinSide,
+  type Rotation,
+  rotateLayout,
+  rotateSide,
+} from '../parts/layout';
 import { getLayout } from '../parts/layouts';
 
 export const GRID = 20;
@@ -19,9 +26,17 @@ export function snap(v: number): number {
   return Math.round(v / GRID) * GRID;
 }
 
-/** 部品本体のサイズ。部品の種類の配置 (parts/layouts.ts) のマスを px に直す */
+/**
+ * シート上の部品の配置。種類の配置 (parts/layouts.ts) を、部品の向き (rotation) だけ回したもの。
+ * シート上の大きさとピンの座標は、どれもこの配置から求める
+ */
+export function getPartLayout(c: Part, pinout: Pinout): PartLayout {
+  return rotateLayout(getLayout(c.kind, pinout), c.rotation ?? 0);
+}
+
+/** 部品本体のサイズ。部品の配置 (getPartLayout) のマスを px に直す。回した部品は、回した後の幅と高さ */
 export function bodySize(c: Part, pinout: Pinout): { w: number; h: number } {
-  const { w, h } = getLayout(c.kind, pinout);
+  const { w, h } = getPartLayout(c, pinout);
   return { w: w * GRID, h: h * GRID };
 }
 
@@ -72,7 +87,7 @@ export function calcSheetPins(
   c: Part,
   pinout: Pinout,
 ): { inputs: SheetPin[]; outputs: SheetPin[]; nc: SheetPin[]; directionMarks: boolean } {
-  const layout = getLayout(c.kind, pinout);
+  const layout = getPartLayout(c, pinout);
   return {
     inputs: layout.inputs.map((p) => toSheetPin(c, layout, p)),
     outputs: layout.outputs.map((p) => toSheetPin(c, layout, p)),
@@ -83,7 +98,7 @@ export function calcSheetPins(
 
 /** 入力ピンの先端座標 */
 export function inputPinPos(c: Part, pinout: Pinout, pin: number): Point {
-  const layout = getLayout(c.kind, pinout);
+  const layout = getPartLayout(c, pinout);
   const p = layout.inputs[pin];
   if (!p) {
     throw new Error(`入力ピン ${pin} がありません: ${c.kind}`);
@@ -93,7 +108,7 @@ export function inputPinPos(c: Part, pinout: Pinout, pin: number): Point {
 
 /** 出力ピンの先端座標 */
 export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
-  const layout = getLayout(c.kind, pinout);
+  const layout = getPartLayout(c, pinout);
   const p = layout.outputs[pin];
   if (!p) {
     throw new Error(`出力ピン ${pin} がありません: ${c.kind}`);
@@ -102,16 +117,17 @@ export function outputPinPos(c: Part, pinout: Pinout, pin: number): Point {
 }
 
 /**
- * 本体の外で、部品が占める幅 (px)。
+ * 本体の外で、部品が占める幅 (px)。layout は部品の配置 (回した後)、rotation はその向き。
  * 左右はピンの先まで取る (ピンのない辺も 1 マス)。上下は、その辺にピンがあればピンの先まで取る。
- * 上は、本体の上に書く名前 (モジュール名) の分も取る
+ * 本体の上に書く名前 (モジュール名) の分も取る。回した部品では、名前は回した後の辺 (90 度なら右) に来る
  */
-export function calcMarginAroundBody(layout: PartLayout): Rect {
+export function calcMarginAroundBody(layout: PartLayout, rotation: Rotation = 0): Rect {
   const pins = [...layout.inputs, ...layout.outputs, ...(layout.nc ?? [])];
-  const has = (side: PinSide) => pins.some((p) => p.side === side);
+  const nameSide = layout.nameAbove ? rotateSide('top', rotation) : undefined;
+  const has = (side: PinSide) => side === nameSide || pins.some((p) => p.side === side);
   return {
     left: GRID,
-    top: layout.nameAbove || has('top') ? GRID : 0,
+    top: has('top') ? GRID : 0,
     right: GRID,
     bottom: has('bottom') ? GRID : 0,
   };
@@ -135,7 +151,7 @@ export function clampToSheet(p: Point, sheet: CircuitSheet): Point {
 export function clampPosition(c: Part, pinout: Pinout, p: Point, sheet: CircuitSheet): Point {
   const end = getSheetEnd(sheet);
   const { w, h } = bodySize(c, pinout);
-  const m = calcMarginAroundBody(getLayout(c.kind, pinout));
+  const m = calcMarginAroundBody(getPartLayout(c, pinout), c.rotation ?? 0);
   const minX = m.left;
   const minY = m.top;
   // 右端と下端は「本体 + 外の幅」がシートに収まる位置。グリッドに乗るよう切り捨てる。
@@ -183,7 +199,7 @@ export interface Rect {
 /** シート上で部品が占める範囲。本体に加え、ピンの先端と、本体の上に書く名前 (モジュール名) の分を含める */
 export function partBounds(c: Part, pinout: Pinout): Rect {
   const { w, h } = bodySize(c, pinout);
-  const m = calcMarginAroundBody(getLayout(c.kind, pinout));
+  const m = calcMarginAroundBody(getPartLayout(c, pinout), c.rotation ?? 0);
   return {
     left: c.x - m.left,
     top: c.y - m.top,

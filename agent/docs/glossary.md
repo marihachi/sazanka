@@ -27,6 +27,7 @@
 | ポート名       | `Part.portName`          | INPUT / OUTPUT に付ける名前。モジュールのピン名になる                                                                                                        |
 | ポート番号     | `Part.portNumber`        | INPUT / OUTPUT を見分ける番号（1 から）。入力と出力で別々に振り、置いたときに決まる。メイン回路の INPUT / OUTPUT も持つ。ピン番号とは別のもの                |
 | ピン番号       | `Part.pinNumber`         | ポートを割り当てる外側のピンの番号（1 から）。`dip` / `qfp` で使う                                                                                           |
+| 向き           | `Part.rotation`          | 部品を、種類の配置から時計回りに回した角度（0 / 90 / 180 / 270）。回すと本体の幅と高さ、ピンの辺と位置が変わる                                               |
 | NC             | なし                     | どのポートにも割り当てていないピン番号。線と「NC」の文字だけを描き、何にもつながらない                                                                       |
 | 配線           | `Wire`                   | 縦と横の線分をつないだ線。部品とは別に置け、端の位置でピンやほかの配線とつながる                                                                             |
 | 要素           | `StoredElement`          | 保存データで、回路に置いたもの（部品と配線）。回路の `elements` に 1 つの一覧で並べ、`kind` で見分ける。アプリの中では `parts` と `wires` に分ける |
@@ -122,5 +123,6 @@
 | 選択モード / 配線モード / 分割モード | Select mode / Wire mode / Split mode |
 | 新規作成 / 読み込み / 書き出し | New / Import / Export     |
 | 元に戻す / やり直し       | Undo / Redo                    |
+| 回転                      | Rotate                         |
 | tick                      | tick（複数は ticks）           |
 | シミュレーションの速さ    | Simulation speed（単位は ticks/s） |

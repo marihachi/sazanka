@@ -264,6 +264,53 @@ describe('ピンの辺', () => {
     };
     expect(calcMarginAroundBody(sides)).toEqual({ left: 20, top: 0, right: 20, bottom: 0 });
   });
+
+  it('本体の上に書く名前の 1 マスは、回した後の辺で取る', () => {
+    const named: PartLayout = { ...layout, inputs: [], outputs: [], nameAbove: true };
+    expect(calcMarginAroundBody(named)).toEqual({ left: 20, top: 20, right: 20, bottom: 0 });
+    // 180 度なら名前は下に来る
+    expect(calcMarginAroundBody(named, 180)).toEqual({ left: 20, top: 0, right: 20, bottom: 20 });
+  });
+});
+
+describe('回した部品', () => {
+  const pinout = { inputs: ['', ''], outputs: [''] };
+  const and = (rotation?: Part['rotation']): Part => ({
+    id: 'g',
+    kind: 'and',
+    x: 100,
+    y: 100,
+    ...(rotation === undefined ? {} : { rotation }),
+  });
+
+  it('90 度なら本体は横長になり、入力ピンは上、出力ピンは下に出る', () => {
+    // 回す前は幅 60・高さ 80。回した後は幅 80・高さ 60
+    expect(bodySize(and(90), pinout)).toEqual({ w: 80, h: 60 });
+    // 入力 0 は上の辺の左端から 3 マスめ、入力 1 は 1 マスめ。出力は下の辺の 2 マスめ
+    expect(inputPinPos(and(90), pinout, 0)).toEqual({ x: 160, y: 80 });
+    expect(inputPinPos(and(90), pinout, 1)).toEqual({ x: 120, y: 80 });
+    expect(outputPinPos(and(90), pinout, 0)).toEqual({ x: 140, y: 180 });
+  });
+
+  it('180 度なら入力ピンは右、出力ピンは左に出る', () => {
+    expect(bodySize(and(180), pinout)).toEqual({ w: 60, h: 80 });
+    expect(inputPinPos(and(180), pinout, 0)).toEqual({ x: 180, y: 160 });
+    expect(outputPinPos(and(180), pinout, 0)).toEqual({ x: 80, y: 140 });
+  });
+
+  it('占める範囲は、回した後のピンのある辺で決まる', () => {
+    // 90 度: 上下にピンがある。左右はピンがなくても 1 マス
+    expect(partBounds(and(90), pinout)).toEqual({ left: 80, top: 80, right: 200, bottom: 180 });
+    expect(partBounds(and(), pinout)).toEqual({ left: 80, top: 100, right: 180, bottom: 180 });
+  });
+
+  it('シートからはみ出さない位置も、回した後の大きさで決まる', () => {
+    // 90 度: 本体の幅 80 + 右の 1 マス、高さ 60 + 下のピン 20
+    expect(clampPosition(and(90), pinout, { x: 99999, y: 99999 }, sheet)).toEqual({
+      x: SHEET_WIDTH - 100,
+      y: SHEET_HEIGHT - 80,
+    });
+  });
 });
 
 describe('partsInRect', () => {

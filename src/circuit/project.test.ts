@@ -44,6 +44,12 @@ describe('checkProject', () => {
     expect(checkProject(main([comp('s', 'sevenSegment')]))).toBeUndefined();
   });
 
+  it('部品の向きは 0 / 90 / 180 / 270 を通す', () => {
+    for (const rotation of [0, 90, 180, 270] as const) {
+      expect(checkProject(main([comp('a', 'and', { rotation })]))).toBeUndefined();
+    }
+  });
+
   it('メイン回路の名前は見ない (なくても、あっても通す)', () => {
     expect(checkProject({ circuits: [{ id: MAIN_ID, elements: [] }] })).toBeUndefined();
     expect(checkProject({ circuits: [{ id: MAIN_ID, name: 1, elements: [] }] })).toBeUndefined();
@@ -176,6 +182,9 @@ describe('checkProject', () => {
     ['存在しないモジュールを参照', main([comp('u', 'module', { module: 'ない' })])],
     ['ピン番号が整数でない', main([comp('i', 'input', { pinNumber: 1.5 })])],
     ['ピン番号が数値でない', main([{ ...comp('i', 'input'), pinNumber: '1' } as unknown as Part])],
+    ['向きが 90 度の倍数でない', main([{ ...comp('a', 'and'), rotation: 45 } as unknown as Part])],
+    ['向きが 360 度', main([{ ...comp('a', 'and'), rotation: 360 } as unknown as Part])],
+    ['向きが文字列', main([{ ...comp('a', 'and'), rotation: '90' } as unknown as Part])],
   ];
   for (const [name, value] of 壊れたもの) {
     it(`壊れたデータを弾く: ${name}`, () => {

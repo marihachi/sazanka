@@ -1,6 +1,6 @@
 # 部品と配線の回転（計画）
 
-状態: **計画中**
+状態: **進行中**（段階 1 まで終えた）
 
 - 段階ごとに、開発者の合図を受けてから実装する（[作業の進め方](../../docs/workflow.md)の「実装を始める合図」）。
 - 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../docs/documentation.md)の「計画の文書」）。
@@ -101,4 +101,22 @@
 
 ## エージェントが決めたこと
 
-まだない（実装の中の名前などを決めたら、理由と採らなかった案を添えて書く）。
+段階 1:
+
+- 向きの型 `Rotation`（`0 | 90 | 180 | 270`）と一覧 `ROTATIONS` は `parts/layout.ts` に置き、`circuit/part.ts` から import する。
+  - 理由: 依存の向きが `circuit` → `parts` なので、配置を回す側（`parts`）に置くと逆向きの import が要らない。
+  - 採らなかった案: `circuit/part.ts` に置く（`parts/layout.ts` から `circuit/` を import することになる）。
+- 配置を回す関数は `rotateLayout(layout, rotation)`、辺を回す関数は `rotateSide(side, rotation)`（`parts/layout.ts`）。90 度ずつの回転（`turnLayout`）をくり返して求める。
+  - 採らなかった案: 角度ごとに式を書き分ける（式が 3 つになり、テストで確かめる組み合わせが増える）。
+- シート上の配置を引く入口を `geometry/layout.ts` の `getPartLayout(c, pinout)` にし、`bodySize`、`calcSheetPins`、`inputPinPos` / `outputPinPos`、`clampPosition`、`partBounds` をこれに替えた。`getLayout` は種類の配置（回していない向き）を引くだけにする。
+- `nameAbove` は配置の中では回さず、回していない向きでの上を指したまま残す。`calcMarginAroundBody(layout, rotation)` が `rotateSide('top', rotation)` で名前の辺を求める。
+  - 理由: 画面の描画は、回していない向きで描いてから全体を回す（「決めたこと」の文字と図の描き方）ので、そのときは回していない配置の `nameAbove` をそのまま使える。
+  - 採らなかった案: 配置に「名前を書く辺」の項目を足す（種類の `layout.ts` すべてに関わる）。
+- 部品の `rotation` は、0 のときは持たせない（保存データに書かないため）。検証は 0 も受け付ける。
+
+## 進み具合
+
+- 段階 1（データと座標）: 終えた。
+  - `Part.rotation`、検証、`rotateLayout`、`getPartLayout`、形式の文書（部品の表、ピンの先の位置、検証、version 4 の中で変えたもの）、エージェント向けドキュメント（部品の種類の「配置」、ソースの構成、用語）。
+  - テスト: 配置の回転（4 回で戻る、2 回・3 回が 180 度・270 度と同じ、ピンが整数のマス）、回した部品のピンの先・大きさ・占める範囲・はみ出さない位置、回した部品のネットのつながり、検証、保存と読み込みで向きが残ること。
+  - 画面の描画（`SheetPart.tsx`）はまだ回していない。向きを持つデータを読み込むと、本体の大きさとピンの位置だけが回り、描き込みは崩れて見える（段階 3 で直す）。
