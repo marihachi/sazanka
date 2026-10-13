@@ -9,6 +9,7 @@ import {
   fillPortNumbers,
   findDuplicatePortNames,
   calcFittingPins,
+  listPortsInNumberOrder,
   listPortsInPositionOrder,
   circuitsUsing,
   dependsOn,
@@ -388,6 +389,49 @@ describe('モジュール設定の計算', () => {
 
   it('ポートを、入力を上から、続けて出力を上から並べる', () => {
     expect(listPortsInPositionOrder(def).map((c) => c.id)).toEqual(['i1', 'i2', 'o1']);
+  });
+
+  it('ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる (位置の順とは別)', () => {
+    // 入力 1 を下、入力 2 を上、入力 3 を真ん中に置き、出力 1 を下、出力 2 を上に置いたもの
+    // biome-ignore format: 表形式を維持するため
+    const ports: Part[] = [
+      { ...comp('i1', 'input'), y: 80, portNumber: 1 },
+      { ...comp('o1', 'output'), y: 60, portNumber: 1 },
+      { ...comp('i2', 'input'), y: 0, portNumber: 2 },
+      { ...comp('o2', 'output'), y: 0, portNumber: 2 },
+      { ...comp('i3', 'input'), y: 40, portNumber: 3 },
+      { ...comp('g', 'and'), y: 0 },
+    ];
+    const numbered: CircuitDef = { ...def, parts: ports };
+    expect(listPortsInNumberOrder(numbered).map((c) => c.id)).toEqual([
+      'i1',
+      'i2',
+      'i3',
+      'o1',
+      'o2',
+    ]);
+    expect(listPortsInPositionOrder(numbered).map((c) => c.id)).toEqual([
+      'i2',
+      'i3',
+      'i1',
+      'o2',
+      'o1',
+    ]);
+  });
+
+  it('ポート番号が同じなら位置の順、番号のないものは最後に並べる', () => {
+    // 読み込みと置く操作で付け直すので、ふつうは起きない。それでも並びが決まるようにしている
+    // biome-ignore format: 表形式を維持するため
+    const ports: Part[] = [
+      { ...comp('none', 'input'), y: 0 },
+      { ...comp('low', 'input'), y: 40, portNumber: 1 },
+      { ...comp('high', 'input'), y: 0, portNumber: 1 },
+    ];
+    expect(listPortsInNumberOrder({ ...def, parts: ports }).map((c) => c.id)).toEqual([
+      'high',
+      'low',
+      'none',
+    ]);
   });
 
   it('並びの先頭から番号を割り当てる。番号が足りなければ残りは割り当てない', () => {
