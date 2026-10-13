@@ -17,6 +17,7 @@ import {
   calcFittingPins,
   findDuplicatePortNames,
   getPinout,
+  listPortsInNumberOrder,
   listPortsInPositionOrder,
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
@@ -51,7 +52,9 @@ export function ModuleSettingsDialog({
 }) {
   const m = useMessages();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const ports = useMemo(() => listPortsInPositionOrder(def), [def]);
+  // ポートの並び。一覧と選択肢はポート番号の順 (見出しが番号のため)、番号を振るときは位置の順 (上から順に振るため)
+  const ports = useMemo(() => listPortsInNumberOrder(def), [def]);
+  const portsByPosition = useMemo(() => listPortsInPositionOrder(def), [def]);
   const initial = def.package ?? { kind: 'split' };
   const [kind, setKind] = useState<PackageKind>(initial.kind);
   const [pinsText, setPinsText] = useState(
@@ -89,7 +92,7 @@ export function ModuleSettingsDialog({
     const fitted = calcFittingPins(next, Math.max(current, ports.length));
     setPinsText(String(isPackage({ kind: next, pins: current }) ? current : fitted));
     if (kind === 'split') {
-      setNumbers(assignInOrder(ports, fitted));
+      setNumbers(assignInOrder(portsByPosition, fitted));
     }
   }
 
@@ -235,7 +238,7 @@ export function ModuleSettingsDialog({
                     size="xs"
                     variant="outline"
                     colorPalette="gray"
-                    onClick={() => setNumbers(assignInOrder(ports, pins))}
+                    onClick={() => setNumbers(assignInOrder(portsByPosition, pins))}
                   >
                     {m.moduleSettings.assignInOrder}
                   </Button>
@@ -409,7 +412,10 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
   );
 }
 
-/** 開いたときのピンの割り当て (部品 ID → 番号)。同じ番号のポートが 2 つ以上あれば、並びの先頭のものだけを残す */
+/**
+ * 開いたときのピンの割り当て (部品 ID → 番号)。同じ番号のポートが 2 つ以上あれば、並びの先頭のものだけを残す。
+ * ports は一覧の並び (ポート番号の順) なので、一覧で先に出るポートに番号が残る
+ */
 function initialNumbers(ports: readonly Part[]): Map<string, number> {
   const numbers = new Map<string, number>();
   const used = new Set<number>();

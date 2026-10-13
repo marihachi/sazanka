@@ -289,6 +289,22 @@ export function listPortsInPositionOrder(def: Circuit): Part[] {
   return [...inputs, ...outputs];
 }
 
+/**
+ * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。モジュール設定の一覧と選択肢に使う
+ * (見出しがポート番号なので、番号の順に並べる)。番号を振る順は、位置の順 (listPortsInPositionOrder) を使う。
+ * 番号がない・重なるポートは読み込みと置く操作で付け直すので、ふつうは起きない。それでも並びが決まるよう、
+ * 番号が同じなら位置の順、番号のないものは最後にする
+ */
+export function listPortsInNumberOrder(def: Circuit): Part[] {
+  const byNumber = (a: Part, b: Part) =>
+    (a.portNumber ?? Number.POSITIVE_INFINITY) - (b.portNumber ?? Number.POSITIVE_INFINITY) ||
+    byPosition(a, b);
+  return [
+    ...def.parts.filter((c) => c.kind === 'input').sort(byNumber),
+    ...def.parts.filter((c) => c.kind === 'output').sort(byNumber),
+  ];
+}
+
 /** ポートの並び ports の先頭から、1 から pins までの番号を順に割り当てる (部品 ID → 番号)。番号が足りなければ、残りは割り当てない */
 export function assignInOrder(ports: readonly Part[], pins: number): Map<string, number> {
   return new Map(ports.slice(0, pins).map((c, i) => [c.id, i + 1]));
