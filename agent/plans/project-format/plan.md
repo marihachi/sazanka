@@ -70,6 +70,7 @@
 - ブラウザの中での保存（localStorage）は、今と同じく 1 つのキーに入れる。中身は、モジュールをインラインで持つプロジェクトのデータ（プロジェクトとモジュールが、それぞれ自分の版を持つ）。形式は分けても、保存の場所は分けない。
   - 採らなかった案: モジュールごとにキーを分ける（例: `sazanka.module.<id>`）。
 - 共有用 JSON（プロジェクト全体の書き出し）は、今と同じく 1 ファイルで受け渡せるようにする（下の「プロジェクトの形」のとおり、モジュールをプロジェクトの中にインラインで持つ）。
+- 共有用 JSON をファイルに保存するときの名前を、`sazanka-YYYY-MM-DD.json` から `project-YYYY-MM-DD.sazanka.json`（端末の日付）に変える（2026-10-18）。モジュールの束のファイル名（`modules-YYYY-MM-DD.sazanka.json`。[計画 22](../module-files/plan.md)）とそろえるため。採らなかった案: 今の名前のままにする。
 - 計画 17（保存データの version 5）は、この計画にまとめた。version 5 はなくなる。
 - 形式の文書は、`docs/format/project/v1.md` と `docs/format/module/v1.md` を新しく作る。一体の形式（v1〜v4）は `docs/format/archive/` に置く（今の `docs/format/v4.md` も `archive/` に移す）。
   - 採らなかった案: 1 つの文書の中で、プロジェクトの形式とモジュールの形式を節で分ける。
@@ -216,6 +217,7 @@
 3. 保存と読み込みをつなぐ
    - `file/storage.ts`（localStorage）と `file/share.ts`（共有用 JSON）を、新しい形式で書き、読み込みの入口を通して読むようにする。
    - 共有用 JSON の目印は `format`（`"sazanka-project"`）。古い共有用 JSON（`"app": "sazanka"`）も読めるようにする。
+   - 「ファイルに保存」のファイル名を `project-YYYY-MM-DD.sazanka.json` にする（`file/localFile.ts`）。[保存データ](../../docs/persistence.md)の「共有用 JSON」の記述も直す。
    - エラーの種類と文言（日本語と英語）を合わせる（例: 新しすぎる版、見つからないモジュール）。
    - 作者名: 書き出しのダイアログの作者名の欄と、読み込んだときのお知らせをなくす。回路設定の作者名の欄は計画 18 で作る（それまでは作者名を入れる所がないが、3 つの計画が揃うまで公開しないので困らない）。
    - テスト: 保存の形とアプリの中の形の行き来（`storage.test.ts`、`share.test.ts`）。
