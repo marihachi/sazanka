@@ -55,7 +55,7 @@ INPUT / OUTPUT に付ける名前を、画面とドキュメントで「ラベ�
    - コード: `src/app/PropertyPanel.tsx`、`src/app/App.tsx`、`src/i18n/ja.ts`、`src/i18n/en.ts`。
    - ドキュメント:
      - [用語](../../docs/glossary.md): 「ポート」の意味を「INPUT / OUTPUT。モジュールの中では外側のピンになる」とし、メイン回路もポートと呼ぶ理由を添える。「ラベル」の行は「ポート名」（`Part.label`）に書き換える。英語の表の「ラベル / Label」を消す。
-     - [UI](../../docs/ui.md)、[編集と元に戻す](../../docs/editing.md)、[画面操作](../../docs/interaction.md)、[操作マニュアル](../../../docs/manual/README.md)、[形式の文書 v3](../../../docs/format/archive/v3.md) の説明文の「ラベル」を「ポート名」にする。`docs/format/archive/` は過去の版の記録なので直さない。
+     - [UI](../../docs/ui.md)、[編集と元に戻す](../../docs/editing.md)、[画面操作](../../docs/interaction.md)、[操作マニュアル](../../../docs/manual/README.md)、[形式の文書 v3](../../../docs/format/integrated/v3.md) の説明文の「ラベル」を「ポート名」にする。`docs/format/archive/` は過去の版の記録なので直さない。
      - コードのコメント（`src/circuit/part.ts`、`src/editing/edit.ts` など）の「ラベル」も「ポート名」にする。テストの名前も同じ。
    - 確かめること: `npm run format`、`npm run lint`、`npx tsc -b`、`npm test`、`npx vite build`。ヘッドレスブラウザで、メイン回路とモジュールの中のそれぞれで INPUT / OUTPUT を選び、欄の名前とプレースホルダーが日本語・英語とも新しい文言になっていること、名前を入れるとシートに出ること、重なる名前でエラーが出ることを確かめる。
 

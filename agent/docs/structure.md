@@ -35,8 +35,8 @@
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
-  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。共有用 JSON でも使う）。`share.ts` … 共有用 JSON。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
-  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データと共有用 JSON で共通）。`upgradeV1.ts` … version 1 → 2 の変換。`upgradeV2.ts` … version 2 → 3 の変換。`upgradeV3.ts` … version 3 → 4 の変換。
+  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。プロジェクトファイルでも使う）。`share.ts` … プロジェクトファイル。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
+  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データとプロジェクトファイル で共通）。`upgradeV1.ts` … version 1 → 2 の変換。`upgradeV2.ts` … version 2 → 3 の変換。`upgradeV3.ts` … version 3 → 4 の変換。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
@@ -70,7 +70,7 @@
   - `language.ts` … 言語の型（`Language`）、言語ごとに書き分けた値の型（`Localized`、`LocalText`）、環境設定の言語から画面に出す言語を決めること（`resolveLanguage`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。`en.ts` … 英語の表。
   - `useMessages.ts` … 画面の側に言語と文言の表を渡す（`LanguageContext`、`useLanguage`、`useMessages`）。
   - 画面の文言は、ここの表から引く。部品の種類ごとの文言（表示名、説明、ヒント）とアクセントカラーの色の名前は、それぞれの定義に言語ごとに書く（`parts/<種類>/view.ts`、`preferences/preferences.ts`）。
-  - 計算の側（検証、共有用 JSON、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
+  - 計算の側（検証、プロジェクトファイル、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
 - `util.ts` … どの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない。
 - `assets/` … ロゴと、ボタンなどのアイコンの SVG（部品の種類のアイコンは `parts/`）。
 
