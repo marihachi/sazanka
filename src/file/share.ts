@@ -1,54 +1,36 @@
-// 共有用 JSON の書き出しと読み込み。形の検証は project.ts の checkProject を使う
+// 共有用 JSON (プロジェクトファイル) の書き出しと読み込み。形の検証は project.ts の checkProject を使う
 
 import {
   type Project,
   type ProjectError,
   checkProject,
-  withCircuitSheet,
   withoutSwitchStates,
 } from '../circuit/project';
-import { fillPortNumbers } from '../circuit/module';
-import { isObject } from '../util';
 import { fromStoredProject, type StoredProject, toStoredProject } from './storage';
-import { upgradeProject } from './upgrade';
+import { upgradeStoredProject } from './upgrade';
 
-/** 共有用 JSON の形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const SHARE_VERSION = 4;
-
-interface ShareData {
-  /** sazanka の共有データであることの目印 */
-  app: 'sazanka';
-  version: number;
-  project: StoredProject;
-}
-
-/** プロジェクト全体を共有用の JSON にする */
+/** プロジェクト全体を共有用の JSON (プロジェクトの形式のデータ) にする */
 export function serializeProject(project: Project): string {
-  const author = project.author?.trim();
-  const data: ShareData = {
-    app: 'sazanka',
-    version: SHARE_VERSION,
-    project: toStoredProject({
-      // 作者名は、入力されていなければ含めない
-      ...(author && { author }),
-      circuits: withoutSwitchStates(project).circuits.map(withCircuitSheet),
-    }),
-  };
-  return JSON.stringify(data);
+  return JSON.stringify(toStoredProject(withoutSwitchStates(project)));
 }
 
-/** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、検証で見つかった問題 */
+/**
+ * 共有用 JSON を読み込めなかった理由。BROKEN の detail は、検証で見つかった問題。
+ * MODULE_FILE は、モジュールのデータかモジュールファイルを選んだ (プロジェクトの読み込みでは読めない)
+ */
 export type ShareError =
   | { code: 'NOT_JSON' }
   | { code: 'NOT_SAZANKA' }
   | { code: 'NEWER_VERSION' }
+  | { code: 'MODULE_FILE' }
   | { code: 'BROKEN'; detail: ProjectError };
 
 export type ParseResult = { ok: true; project: Project } | { ok: false; error: ShareError };
 
 /**
- * 共有用の JSON を読み込む。回路と部品の ID は付け直さない。
- * newId は、配線の ID (保存しない) を付けるのと、古い版の ID を付け直す変換 (upgradeV3) に使う。
+ * 共有用の JSON を読み込む。回路の ID は付け直さない。
+ * 一体の形式 (version 1〜4) で書き出したものも、読み込みの入口 (upgrade/index.ts) で新しい形式にしてから読む。
+ * newId は、部品と配線の ID (保存しない) を付けるのと、古い版の ID を付け直す変換 (upgradeV3) に使う。
  * 他人から受け取った文字列なので、形が正しいかをひととおり確かめ、問題があれば理由を返す
  */
 export function parseProject(text: string, newId: () => string): ParseResult {
@@ -58,26 +40,18 @@ export function parseProject(text: string, newId: () => string): ParseResult {
   } catch {
     return { ok: false, error: { code: 'NOT_JSON' } };
   }
-  if (!isObject(data) || data.app !== 'sazanka') {
-    return { ok: false, error: { code: 'NOT_SAZANKA' } };
+  const upgraded = upgradeStoredProject(data, newId);
+  if (!upgraded.ok) {
+    const { code } = upgraded.error;
+    return { ok: false, error: { code: code === 'NOT_PROJECT' ? 'NOT_SAZANKA' : code } };
   }
-  if (typeof data.version !== 'number' || data.version > SHARE_VERSION) {
-    return { ok: false, error: { code: 'NEWER_VERSION' } };
-  }
-  // 古い版は、今の版の形に変えてから確かめる
-  const raw = upgradeProject(data.project, data.version, newId);
-  const error = checkProject(raw);
+  const error = checkProject(upgraded.project);
   if (error) {
     return { ok: false, error: { code: 'BROKEN', detail: error } };
   }
-  // 古いデータには ON/OFF が入っていることがあるが、使わない。ポート番号は、ないものや重なるものを付け直す。
-  // シートの大きさがない回路は 300×200 にする
-  const project = withoutSwitchStates(fromStoredProject(raw as StoredProject, newId));
+  // 古いデータには ON/OFF が入っていることがあるが、使わない
   return {
     ok: true,
-    project: {
-      ...project,
-      circuits: project.circuits.map((d) => withCircuitSheet(fillPortNumbers(d))),
-    },
+    project: withoutSwitchStates(fromStoredProject(upgraded.project as StoredProject, newId)),
   };
 }

@@ -6,7 +6,7 @@
 //
 // 今のアプリのコード (部品の型や検証、配置、マスの大きさ) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため
 
-import { isObject } from '../util';
+import { isObject } from '../../../util';
 
 /** version 3 の 1 マスの px */
 const CELL_PX = 20;

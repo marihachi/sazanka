@@ -352,8 +352,8 @@ const fullAdder = buildWiredCircuit({
     comp('a', 'input'),
     comp('b', 'input'),
     comp('ci', 'input'),
-    comp('h1', 'module', { module: 'ha' }),
-    comp('h2', 'module', { module: 'ha' }),
+    comp('h1', 'module', { moduleId: 'ha' }),
+    comp('h2', 'module', { moduleId: 'ha' }),
     comp('or', 'or'),
     comp('s', 'output'),
     comp('co', 'output'),
@@ -387,7 +387,7 @@ function mainWith(
     name: 'メイン',
     parts: [
       ...ins.map((on, i) => comp(`i${i}`, 'input', { on })),
-      comp('u', 'module', { module }),
+      comp('u', 'module', { moduleId: module }),
       ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'output')),
       ...extra.parts,
     ],
@@ -404,11 +404,33 @@ describe('モジュール', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };
-    expect(getPinout(comp('u', 'module', { module: 'ha' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { moduleId: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
       package: { kind: 'split' },
     });
+  });
+
+  it('split のモジュールは、ポート番号の順に中の INPUT / OUTPUT とつながる (位置の順ではない)', () => {
+    // 中: 上の INPUT a (ポート番号 2) をそのまま OUTPUT に出す。下の INPUT b はポート番号 1
+    const sw = buildWiredCircuit({
+      id: 'sw',
+      name: 'SW',
+      // biome-ignore format: 表形式を維持するため
+      parts: [
+        comp('a', 'input', { portNumber: 2 }),
+        comp('b', 'input', { portNumber: 1 }),
+        comp('o', 'output', { portNumber: 1 }),
+      ],
+      links: [link('a', 0, 'o', 0)],
+    });
+    const run = (ins: boolean[]) => {
+      const project: Project = { circuits: [mainWith('sw', 2, 1, ins), sw] };
+      return settleProject(project, MAIN_ID).values.get('u:0') ?? false;
+    };
+    // 外側の入力ピン 0 番はポート番号 1 の b、1 番はポート番号 2 の a
+    expect(run([true, false])).toBe(false);
+    expect(run([false, true])).toBe(true);
   });
 
   it('dip のモジュールは、ピン番号の順に中の INPUT / OUTPUT とつながる', () => {
@@ -435,7 +457,7 @@ describe('モジュール', () => {
           parts: [
             comp('i0', 'input', { on: b }),
             comp('i1', 'input', { on: a }),
-            comp('u', 'module', { module: 'ha' }),
+            comp('u', 'module', { moduleId: 'ha' }),
             comp('o0', 'output'),
             comp('o1', 'output'),
           ],
@@ -533,13 +555,13 @@ describe('モジュール', () => {
     const a: CircuitDef = {
       id: 'a',
       name: 'A',
-      parts: [comp('s', 'module', { module: 'b' })],
+      parts: [comp('s', 'module', { moduleId: 'b' })],
       wires: [],
     };
     const b: CircuitDef = {
       id: 'b',
       name: 'B',
-      parts: [comp('s', 'module', { module: 'a' })],
+      parts: [comp('s', 'module', { moduleId: 'a' })],
       wires: [],
     };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };

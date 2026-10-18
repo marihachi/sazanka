@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getPinout } from '../circuit/module';
-import { checkProject } from '../circuit/project';
-import { inputPinPos, outputPinPos } from '../geometry/layout';
-import { fromStoredProject, type StoredProject } from './storage';
+import { getPinout } from '../../../circuit/module';
+import { checkProject } from '../../../circuit/project';
+import { inputPinPos, outputPinPos } from '../../../geometry/layout';
+import { fromStoredProject, type StoredProject } from '../../storage';
+import { upgradeToProjectV1 } from '../project/v1';
 import { upgradeV3 } from './upgradeV3';
 
 /** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
@@ -78,7 +79,8 @@ describe('upgradeV3', () => {
       ],
     });
     const v4 = upgradeV3({ circuits: [circuit('main', 'メイン'), circuit('m', 'M')] }, counter());
-    expect(checkProject(v4)).toBeUndefined();
+    // 検証は今の形 (プロジェクトの形式) で行うので、今の形まで変えてから確かめる
+    expect(checkProject(upgradeToProjectV1(v4))).toBeUndefined();
   });
 
   it('20 の倍数でない位置は、いちばん近いマスに丸める (ちょうど中間なら大きい方)', () => {
@@ -87,7 +89,9 @@ describe('upgradeV3', () => {
       { id: 'a', kind: 'and', x: 9, y: 10 },
       { id: 'b', kind: 'and', x: 29, y: 31 },
     ] }] };
-    const v4 = upgradeV3(v3, counter()) as StoredProject;
+    const v4 = upgradeV3(v3, counter()) as {
+      circuits: { elements: { x?: number; y?: number }[] }[];
+    };
     expect(v4.circuits[0].elements.map((c) => ('x' in c ? [c.x, c.y] : []))).toEqual([
       [0, 1],
       [1, 2],
@@ -107,7 +111,9 @@ describe('upgradeV3', () => {
       { circuits: [main, module('m'), module('m')] },
       { circuits: [main, module('main')] },
     ]) {
-      expect(checkProject(upgradeV3(v3, counter()))).toMatchObject({ code: 'DUPLICATE_ID' });
+      expect(checkProject(upgradeToProjectV1(upgradeV3(v3, counter())))).toMatchObject({
+        code: 'DUPLICATE_ID',
+      });
     }
   });
 
@@ -137,9 +143,9 @@ describe('upgradeV3', () => {
       ],
       wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 180, y: 20 }] }],
     }] };
-    const v4 = upgradeV3(v3, counter());
-    expect(checkProject(v4)).toBeUndefined();
-    const project = fromStoredProject(v4 as StoredProject, counter());
+    const current = upgradeToProjectV1(upgradeV3(v3, counter()));
+    expect(checkProject(current)).toBeUndefined();
+    const project = fromStoredProject(current as StoredProject, counter());
     const [a, q] = project.circuits[0].parts;
     const [w] = project.circuits[0].wires;
     expect(w.points[0]).toEqual(outputPinPos(a, getPinout(a, project), 0));

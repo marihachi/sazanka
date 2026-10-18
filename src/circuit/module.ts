@@ -24,7 +24,7 @@ export interface Pinout {
   pinNumbers?: { inputs: number[]; outputs: number[] };
 }
 
-/** ピン番号で外側のピンを決める形か (dip / qfp)。split は中の位置の順で決める */
+/** ピン番号で外側のピンを決める形か (dip / qfp)。split はポート番号の順で決める */
 export function usesPinNumbers(
   pkg: Package | undefined,
 ): pkg is Extract<Package, { pins: number }> {
@@ -74,7 +74,7 @@ export function findUnexposedPorts(def: Circuit & { package?: Package }): Map<st
 
 /**
  * モジュールのピンになる INPUT / OUTPUT。この並びが PinRef.pin の番号になる。
- * split は中の位置の順 (上から、同じ高さなら左から)。
+ * split はポート番号の順 (入力は入力のポート番号の順、出力は出力のポート番号の順)。
  * dip / qfp はピン番号の順で、外側のピンに出せないポート (findUnexposedPorts) は除く
  */
 export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
@@ -93,17 +93,17 @@ export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
     };
   }
 
-  // 中の位置の順がピンの順になるので、byPosition を変えると既存の配線が別のピンにつながる
+  // ポート番号の順がピンの順になる。読み込んだデータとアプリで置いたポートの番号は、入力どうし・出力どうしで重ならない
   return {
-    inputs: def.parts.filter((c) => c.kind === 'input').sort(byPosition),
-    outputs: def.parts.filter((c) => c.kind === 'output').sort(byPosition),
+    inputs: def.parts.filter((c) => c.kind === 'input').sort(byPortNumber),
+    outputs: def.parts.filter((c) => c.kind === 'output').sort(byPortNumber),
   };
 }
 
 /** 部品のピン名。モジュールは中の INPUT / OUTPUT のポート名、ほかは種類で決まる */
 export function getPinout(c: Part, project: Project): Pinout {
   if (c.kind === 'module') {
-    const def = findDef(project, c.module);
+    const def = findDef(project, c.moduleId);
 
     if (!def) {
       return { inputs: [], outputs: [], package: { kind: 'split' } };
@@ -181,9 +181,20 @@ function withoutPinNumber(c: Part): Part {
   return rest;
 }
 
-/** 上から、同じ高さなら左から。split のピンの順でもあるので、変えると既存の配線が別のピンにつながる */
+/** 上から、同じ高さなら左から。番号を振り直す順に使う (ピンの順はポート番号の順で、位置の順ではない) */
 function byPosition(a: Part, b: Part): number {
   return a.y - b.y || a.x - b.x;
+}
+
+/**
+ * ポート番号の順。番号のないポート (テストで作ったものなど) は最後にし、番号が同じか、どちらも番号がなければ位置の順にする
+ * (読み込んだデータとアプリで置いたポートでは起きないが、並びが決まるように)
+ */
+function byPortNumber(a: Part, b: Part): number {
+  return (
+    (a.portNumber ?? Number.POSITIVE_INFINITY) - (b.portNumber ?? Number.POSITIVE_INFINITY) ||
+    byPosition(a, b)
+  );
 }
 
 /**
@@ -224,25 +235,6 @@ export function assignPortNumbers<T extends Circuit>(def: T, added: ReadonlySet<
   return { ...def, parts };
 }
 
-/**
- * 読み込んだ回路の、ポート番号がないポートと、ほかと重なるポートに番号を付ける。
- * 重なるときは、中の位置の順で先のポートが番号を持ち続ける
- */
-export function fillPortNumbers<T extends Circuit>(def: T): T {
-  const missing = new Set<string>();
-  for (const kind of ['input', 'output'] as const) {
-    const seen = new Set<number>();
-    for (const c of def.parts.filter((p) => p.kind === kind).sort(byPosition)) {
-      if (c.portNumber === undefined || seen.has(c.portNumber)) {
-        missing.add(c.id);
-      } else {
-        seen.add(c.portNumber);
-      }
-    }
-  }
-  return assignPortNumbers(def, missing);
-}
-
 /** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */
 export function dependsOn(
   project: Project,
@@ -266,42 +258,41 @@ export function dependsOn(
   return def.parts.some(
     (c) =>
       c.kind === 'module' &&
-      c.module !== undefined &&
-      (c.module === b || dependsOn(project, c.module, b, seen)),
+      c.moduleId !== undefined &&
+      (c.moduleId === b || dependsOn(project, c.moduleId, b, seen)),
   );
 }
 
 /** モジュール id を部品として直接置いている回路 */
 export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   return project.circuits.filter((d) =>
-    d.parts.some((c) => c.kind === 'module' && c.module === id),
+    d.parts.some((c) => c.kind === 'module' && c.moduleId === id),
   );
 }
 
 // モジュール設定 (modules/ModuleSettingsDialog.tsx) で使う計算
 
 /**
- * ポートを、split のピンの順 (入力を上から、続けて出力を上から) に並べる。
+ * ポートを、位置の順 (入力を上から、続けて出力を上から) に並べる。
  * split から dip / qfp に変えるときと、「上から順に割り当て直す」で、この順に番号を振る
  */
 export function listPortsInPositionOrder(def: Circuit): Part[] {
-  const { inputs, outputs } = getPortsInPinOrder({ ...def, package: { kind: 'split' } });
-  return [...inputs, ...outputs];
+  return [
+    ...def.parts.filter((c) => c.kind === 'input').sort(byPosition),
+    ...def.parts.filter((c) => c.kind === 'output').sort(byPosition),
+  ];
 }
 
 /**
  * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。モジュール設定の一覧と選択肢に使う
  * (見出しがポート番号なので、番号の順に並べる)。番号を振る順は、位置の順 (listPortsInPositionOrder) を使う。
- * 番号がない・重なるポートは読み込みと置く操作で付け直すので、ふつうは起きない。それでも並びが決まるよう、
+ * 番号がない・重なるポートは、読み込みでは断り、置く操作では付け直すので、ふつうは起きない。それでも並びが決まるよう、
  * 番号が同じなら位置の順、番号のないものは最後にする
  */
 export function listPortsInNumberOrder(def: Circuit): Part[] {
-  const byNumber = (a: Part, b: Part) =>
-    (a.portNumber ?? Number.POSITIVE_INFINITY) - (b.portNumber ?? Number.POSITIVE_INFINITY) ||
-    byPosition(a, b);
   return [
-    ...def.parts.filter((c) => c.kind === 'input').sort(byNumber),
-    ...def.parts.filter((c) => c.kind === 'output').sort(byNumber),
+    ...def.parts.filter((c) => c.kind === 'input').sort(byPortNumber),
+    ...def.parts.filter((c) => c.kind === 'output').sort(byPortNumber),
   ];
 }
 

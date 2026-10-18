@@ -179,7 +179,6 @@ export const en: Messages = {
     exportTitle: 'Export',
     exportMessage:
       'Export the whole project. Copy it or save it to a file, then load it with "Import".',
-    author: 'Author (optional)',
     saveFile: 'Save to file',
     copy: 'Copy',
     copied: 'Copied',
@@ -194,27 +193,39 @@ export const en: Messages = {
     noFile: 'No file selected',
     readFailed: 'Could not read the file',
     importConfirm: 'Import',
-    importedFrom: (author) => `Imported a circuit by "${author}".`,
     openedEmpty: (reason) => `${reason} Opening an empty project.`,
   },
   errors: {
     project: {
-      NO_CIRCUITS: 'There is no list of circuits',
-      AUTHOR_NOT_STRING: 'The author is not a string',
-      NO_MAIN: 'There is no main circuit',
+      NOT_PROJECT: 'This is not in the project data format',
+      NO_FOLDERS: 'There is no list of folders',
+      BAD_FOLDER: (e) => `The folder "${e.folder}" is invalid`,
+      NO_MODULES: 'There is no list of modules',
+      BAD_ENTRY: 'The list of modules has an invalid item',
+      MISSING_FOLDER: (e) => `The folder "${e.folder}" is not in the list of folders`,
       NO_CIRCUIT_ID_OR_NAME: 'A circuit has no ID or name',
+      NOT_MODULE: (e) => `"${e.circuit}" is not in the module data format`,
+      EMPTY_NAME: 'A module has no name',
+      AUTHOR_NOT_STRING: (e) => `The author of "${e.circuit}" is not a string`,
       NO_PACKAGE: (e) => `"${e.circuit}" has no package`,
       BAD_PACKAGE: (e) => `"${e.circuit}" has an invalid package`,
       BAD_SHEET: (e) => `"${e.circuit}" has an invalid sheet size`,
       NO_ELEMENTS: (e) => `"${e.circuit}" has no element list`,
       BAD_ELEMENT: (e) => `"${e.circuit}" has an invalid element`,
+      DUPLICATE_PORT_NUMBER: (e) => `"${e.circuit}" has ports with the same port number`,
+      NO_MAIN: 'There is no main circuit',
       DUPLICATE_ID: (e) => `Duplicate ID: ${e.id}`,
+      DUPLICATE_NAME: (e) =>
+        e.folder === ''
+          ? `There are modules with the same name: ${e.name}`
+          : `The folder "${e.folder}" has modules with the same name: ${e.name}`,
       MISSING_MODULE: (e) => `"${e.circuit}" refers to a module that does not exist`,
     },
     share: {
       NOT_JSON: 'Cannot be read as JSON',
       NOT_SAZANKA: 'This is not sazanka circuit data',
       NEWER_VERSION: 'Cannot import data made with a newer version of sazanka',
+      MODULE_FILE: 'This is a module file and cannot be imported as a project',
       BROKEN: (detail) => `The circuit data is broken (${detail})`,
     },
     stored: {

@@ -229,8 +229,8 @@ describe('モジュール', () => {
         comp('c1', 'input', { on: clk1 }),
         comp('d2', 'input', { on: d2 }),
         comp('c2', 'input', { on: clk2 }),
-        comp('u1', 'module', { module: 'reg' }),
-        comp('u2', 'module', { module: 'reg' }),
+        comp('u1', 'module', { moduleId: 'reg' }),
+        comp('u2', 'module', { moduleId: 'reg' }),
       ],
       // biome-ignore format: 表形式を維持するため
       links: [
@@ -280,7 +280,7 @@ describe('モジュール', () => {
       name: '自分',
       // biome-ignore format: 表形式を維持するため
       parts: [
-        comp('u', 'module', { module: 'self' }),
+        comp('u', 'module', { moduleId: 'self' }),
         comp('o', 'output'),
       ],
       links: [link('u', 0, 'o', 0)],
@@ -290,7 +290,7 @@ describe('モジュール', () => {
         {
           id: MAIN_ID,
           name: 'メイン',
-          parts: [comp('u', 'module', { module: 'self' })],
+          parts: [comp('u', 'module', { moduleId: 'self' })],
           wires: [],
         },
         self,
@@ -527,7 +527,7 @@ describe('ゲート遅延', () => {
         // biome-ignore format: 表形式を維持するため
         parts: [
           comp('in', 'input', { on }),
-          comp('u', 'module', { module: 'inv' }),
+          comp('u', 'module', { moduleId: 'inv' }),
           comp('out', 'output'),
         ],
         links: [link('in', 0, 'u', 0), link('u', 0, 'out', 0)],

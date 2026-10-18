@@ -11,7 +11,7 @@ import {
   simplifyWire,
 } from '../geometry/layout';
 import { onSegment } from '../geometry/net';
-import type { Part } from '../circuit/part';
+import { DEFAULT_CLOCK_PERIOD, type Part, type PartKind } from '../circuit/part';
 import type { Circuit, Wire } from '../circuit/circuit';
 import type { Pinout } from '../circuit/module';
 import type { CircuitSheet } from '../circuit/project';
@@ -46,6 +46,26 @@ function updatePart<T extends Circuit>(circuit: T, id: string, update: (c: Part)
     ...circuit,
     parts: circuit.parts.map((c) => (c.id === id ? update(c) : c)),
   };
+}
+
+/**
+ * パレットから置く部品を作る。保存データで省略できない項目は、ここで持たせる (CLOCK の周期)。
+ * ON/OFF を持つ部品 (INPUT、CLOCK) は OFF から始める。モジュールの部品は moduleId で指すモジュールを持つ。
+ * INPUT / OUTPUT のポート番号とピン番号は、置く先の回路で決まるので、置いたあとに付ける (module.ts の assignPortNumbers)
+ */
+export function newPart(id: string, kind: PartKind, at: Point, moduleId?: string): Part {
+  const c: Part = { id, kind, x: at.x, y: at.y };
+  // CLOCK の実際の ON/OFF はシミュレーションの中で持つ (useSimulation.ts)
+  if (kind === 'input' || kind === 'clock') {
+    c.on = false;
+  }
+  if (kind === 'clock') {
+    c.period = DEFAULT_CLOCK_PERIOD;
+  }
+  if (moduleId) {
+    c.moduleId = moduleId;
+  }
+  return c;
 }
 
 export function addPart<T extends Circuit>(circuit: T, c: Part): T {

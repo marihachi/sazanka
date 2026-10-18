@@ -10,7 +10,6 @@ import { describeShareError, type Messages } from '../i18n/messages';
 export function useProjectFile({
   project,
   replaceProject,
-  setProjectWithoutHistory,
   showConfirm,
   showText,
   m,
@@ -20,8 +19,6 @@ export function useProjectFile({
   project: Project;
   /** プロジェクト全体を置き換える (元に戻すで戻せる)。開いている回路や表示も初めからにする */
   replaceProject: (next: Project) => void;
-  /** 元に戻す対象にせずにプロジェクトを更新する */
-  setProjectWithoutHistory: (next: Project) => void;
   showConfirm: (request: ConfirmRequest) => void;
   showText: (request: TextRequest) => void;
 }) {
@@ -40,16 +37,6 @@ export function useProjectFile({
       message: m.file.exportMessage,
       initial: serializeProject(project),
       readOnly: true,
-      field: {
-        label: m.file.author,
-        initial: project.author ?? '',
-        onChange: (value) => {
-          // 作者名は回路の編集ではないので、元に戻す対象にしない
-          const next: Project = { ...project, author: value };
-          setProjectWithoutHistory(next);
-          return serializeProject(next);
-        },
-      },
       extraAction: {
         label: m.file.saveFile,
         onClick: (text) => saveJsonFile(getExportFileName(new Date()), text),
@@ -76,11 +63,6 @@ export function useProjectFile({
         return describeShareError(m, result.error);
       }
       replaceProject(result.project);
-      if (result.project.author) {
-        showConfirm({
-          message: m.file.importedFrom(result.project.author),
-        });
-      }
       return undefined;
     }
 

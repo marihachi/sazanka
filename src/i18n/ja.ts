@@ -193,7 +193,6 @@ export const ja = {
     exportTitle: '書き出し',
     exportMessage:
       'プロジェクト全体を書き出します。コピーするか、ファイルに保存してください。「読み込み」で取り込めます。',
-    author: '作者名 (省略可)',
     saveFile: 'ファイルに保存',
     copy: 'コピー',
     copied: 'コピーしました',
@@ -208,7 +207,6 @@ export const ja = {
     noFile: '選択されていません',
     readFailed: 'ファイルを読み取れませんでした',
     importConfirm: '読み込む',
-    importedFrom: (author: string) => `「${author}」さんの回路を読み込みました。`,
     /** 保存データを読み込めなかったときのお知らせ。reason は errors.stored の文 */
     openedEmpty: (reason: string) => `${reason}空のプロジェクトで開きます。`,
   },
@@ -216,16 +214,28 @@ export const ja = {
   errors: {
     /** 検証で見つかった、プロジェクトの形の問題 */
     project: {
-      NO_CIRCUITS: '回路の一覧がありません',
-      AUTHOR_NOT_STRING: '作者名が文字列ではありません',
-      NO_MAIN: 'メイン回路がありません',
+      NOT_PROJECT: 'プロジェクトのデータの形式ではありません',
+      NO_FOLDERS: 'フォルダの一覧がありません',
+      BAD_FOLDER: (e) => `フォルダ「${e.folder}」が不正です`,
+      NO_MODULES: 'モジュールの一覧がありません',
+      BAD_ENTRY: 'モジュールの一覧に不正な項目があります',
+      MISSING_FOLDER: (e) => `フォルダ「${e.folder}」がフォルダの一覧にありません`,
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
+      NOT_MODULE: (e) => `「${e.circuit}」がモジュールのデータの形式ではありません`,
+      EMPTY_NAME: '名前のないモジュールがあります',
+      AUTHOR_NOT_STRING: (e) => `「${e.circuit}」の作者名が文字列ではありません`,
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
       BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
       NO_ELEMENTS: (e) => `「${e.circuit}」に要素の一覧がありません`,
       BAD_ELEMENT: (e) => `「${e.circuit}」に不正な要素があります`,
+      DUPLICATE_PORT_NUMBER: (e) => `「${e.circuit}」にポート番号が重複したポートがあります`,
+      NO_MAIN: 'メイン回路がありません',
       DUPLICATE_ID: (e) => `ID が重複しています: ${e.id}`,
+      DUPLICATE_NAME: (e) =>
+        e.folder === ''
+          ? `同じ名前のモジュールがあります: ${e.name}`
+          : `フォルダ「${e.folder}」に同じ名前のモジュールがあります: ${e.name}`,
       MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
     } satisfies ErrorTexts<ProjectError>,
     /** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
@@ -233,6 +243,7 @@ export const ja = {
       NOT_JSON: 'JSON として読み取れません',
       NOT_SAZANKA: 'sazanka の回路データではありません',
       NEWER_VERSION: '新しい版の sazanka で作られたデータのため読み込めません',
+      MODULE_FILE: 'これはモジュールのファイルのため、プロジェクトとしては読み込めません',
       BROKEN: (detail: string) => `回路データが壊れています (${detail})`,
     } satisfies ErrorTexts<Exclude<ShareError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;

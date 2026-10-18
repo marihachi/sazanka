@@ -27,23 +27,34 @@
 - 版を上げるのは、今の版で古いデータを読むのに変換が要る変更（項目の意味や形が変わるなど）のとき。部品の種類や、省略できる項目を足すだけなら上げない。
   - 上げなくてよいのは、公開しているのが最新版だけで、新しいデータが古い版で開かれることがほぼないため。古い版を開けるようにする（版ごとの URL を残す、オフラインで動かすなど）なら、この判断を見直す。そのときは、追加だけでも版を上げることと、古い版が新しいデータを上書きしないようにすることが要る。今は、古い版のアプリで新しいデータを開くと、「壊れている」か「新しい版のデータ」として断り、空のプロジェクトを自動保存で上書きしてしまう。
 - 版を上げるときにすること:
-  1. 保存データの `STORAGE_VERSION`（`file/storage.ts`）と、プロジェクトファイルの `SHARE_VERSION`（`file/share.ts`）を上げる。
-  2. 1 版分の変換（`file/upgradeV<N>.ts` の `upgradeV<N>`: version N → N+1）を作り、`file/upgrade.ts` の `UPGRADES` の末尾に足す。
-- 古い版のデータは、`file/upgrade.ts` の `upgradeProject` が、`UPGRADES` の変換を版の順に通して今の版の形にする。保存データ（`readStored`）とプロジェクトファイル（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
-- 今の版は、どちらも 4。
-- version 1 → 2 は `file/upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/integrated/v2.md) の「version 1 からの変更」にある。
-  - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
-  - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
-- version 2 → 3 は `file/upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../../docs/format/integrated/v3.md) の「version 2 からの変更」にある。
-  - 種類の名前の対応表（`KIND_NAMES_V3`）を中に持つ。今のアプリの種類の名前を変えても、ここは直さない。
-  - モジュールの回路には `split`（version 2 までのモジュールの形）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
-- version 3 → 4 は `file/upgradeV3.ts` の `upgradeV3`。変え方は [version 4](../../docs/format/integrated/v4.md) の「version 3 からの変更」にある。
-  - 1 マスの大きさ（20px）を中に持つ。今のアプリの `GRID` を変えても、ここは直さない。
-  - モジュールの回路の ID を付け直すので、新しい ID を作る関数（`newId`）を引数で受け取る。`upgradeProject` と、それを呼ぶ `readStored` と `parseProject` も受け取って渡す。テストでは決まった ID を渡す。
-  - モジュールの ID が変わるので、そのモジュールの表示（`sazanka.views`）は引けなくなり、既定の表示に戻る。付け替えない（開発者が決めた）。
-- どちらも、今より新しい版のデータは読み込まずに断る。
-- 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`）も合わせる。置ける種類の判定（`part.ts` の `isPlaceablePartKind`）は `PART_SPECS` と `SPECIAL_KINDS` を見るので、`PART_SPECS` に足した種類はそのまま検証を通る。
-- モジュールの回路のパッケージ（`project.ts` の `CircuitDef.package`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。型で省略できるのは、メイン回路が持たないためと、テストでモジュールを手短に作れるようにするため。持たないモジュールは `split` として扱う（`module.ts` の `getPinout`）。
+  1. プロジェクトの形式なら `PROJECT_FORMAT_VERSION`、モジュールの形式なら `MODULE_FORMAT_VERSION`（どちらも `file/upgrade/index.ts`）を上げる。
+  2. 1 版分の変換（`file/upgrade/project/v<N>.ts` か `file/upgrade/module/v<N>.ts`。ファイル名は「version N へ変える変換」）を作り、読み込みの入口（`upgradeStoredProject`）から順に通す。
+- 読み込みの入口は `file/upgrade/index.ts` の `upgradeStoredProject`。保存データ（`readStored`）とプロジェクトファイル（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
+  - 新しい形式は `format` で見分ける。`"sazanka-project"` なら、プロジェクトと中のモジュールの版を見て、今より新しければ断る（今は v1 しかないので変換はない）。`"sazanka-module"` と `"sazanka-modules"` は、種類が違うとして断る（`MODULE_FILE`）。
+  - `format` がなく、いちばん外に `version` と `project` があれば一体の形式。`upgradeIntegratedProject` で version 4 まで順に変えてから、`upgradeToProjectV1`（`file/upgrade/project/v1.ts`）でプロジェクトの形式 v1 に変える。回路 1 つずつは `upgradeToModuleV1`（`file/upgrade/module/v1.ts`）が変える。
+  - 版の番号だけでは見分けない。一体の形式の version 1 と、プロジェクトの形式の version 1 があるため。
+- 今の版は、プロジェクトの形式もモジュールの形式も 1。一体の形式は version 4 で終わり。
+- 一体の形式の変換は `file/upgrade/integrated/` にある。古い形式を読むためだけに残しているので、直さない。
+  - version 1 → 2 は `upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/integrated/v2.md) の「version 1 からの変更」にある。
+    - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
+    - 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの（形式の文書の表）を `upgradeV1.ts` の中に持つ。今のアプリの配置を直しても、ここは直さない。
+  - version 2 → 3 は `upgradeV2.ts` の `upgradeV2`。変え方は [version 3](../../docs/format/integrated/v3.md) の「version 2 からの変更」にある。
+    - 種類の名前の対応表（`KIND_NAMES_V3`）を中に持つ。今のアプリの種類の名前を変えても、ここは直さない。
+    - モジュールの回路には `split`（version 2 までのモジュールの形）を書き込む。ピンの位置が変わらないので、配線は書き換えない。
+  - version 3 → 4 は `upgradeV3.ts` の `upgradeV3`。変え方は [version 4](../../docs/format/integrated/v4.md) の「version 3 からの変更」にある。
+    - 1 マスの大きさ（20px）を中に持つ。今のアプリの `GRID` を変えても、ここは直さない。
+    - モジュールの回路の ID を付け直すので、新しい ID を作る関数（`newId`）を引数で受け取る。読み込みの入口と、それを呼ぶ `readStored` と `parseProject` も受け取って渡す。テストでは決まった ID を渡す。
+    - モジュールの ID が変わるので、そのモジュールの表示（`sazanka.views`）は引けなくなり、既定の表示に戻る。付け替えない（開発者が決めた）。
+- 一体の形式 v4 → プロジェクトの形式 v1 の変え方は、[プロジェクトの形式 v1](../../docs/format/project/v1.md)と[モジュールの形式 v1](../../docs/format/module/v1.md)の「一体の形式 version 4 からの変更」にある。
+  - 変換の中に、一体の形式の既定値（シート 300×200、CLOCK の周期 100）と、ポート番号の付け方（ないものと重なるものに付ける。split とメイン回路は位置の順に振り直す）を持つ。今のアプリの `DEFAULT_SHEET`、`DEFAULT_CLOCK_PERIOD`、`assignPortNumbers` には頼らない。
+  - split のモジュールとメイン回路のポート番号を位置の順に振り直すので、split のピンの順がポート番号の順になっても、外側の配線は今までと同じピンにつながる。
+  - 名前の空のモジュールに付ける「モジュール<n>」は、表示言語によらず日本語のまま（データの変換なので）。
+- 部品の種類や項目を足したら、検証（`project.ts` の `checkProject`。部品は `part.ts` の `isPart`）も合わせる。置ける種類の判定（`part.ts` の `isPlaceablePartKind`）は `PART_SPECS` と `SPECIAL_KINDS` を見るので、`PART_SPECS` に足した種類はそのまま検証を通る。
+- 回路のパッケージ、シートの大きさ、フォルダのパス、作者名（`project.ts` の `CircuitDef` の `package`、`sheet`、`path`、`author`）と、ポート番号（`Part.portNumber`）は、型では省略できるが、読み込むデータでは省略を許さない（`checkProject`）。アプリで作る回路とポートにも必ず持たせる。型で省略できるのは、テストで回路や部品を手短に作れるようにするため。持たないものは、split、`DEFAULT_SHEET`、空文字として扱い、保存するときもそう書く（`storage.ts` の `toStoredProject`）。
+- 保存データで省略できない項目は、アプリで部品や回路を作る所と変える所（置く、貼り付け、モジュールの追加、新規作成、回路設定やモジュール設定での変更など）で、なくならないようにする。作る所や変える所、省略できない項目を足したら、保存したデータが検証を通るかを確かめる。(開発者からの指示)
+  - 部品をパレットから置くときは `editing/edit.ts` の `newPart` で作る（CLOCK の周期を持たせる）。INPUT / OUTPUT のポート番号は、置いたあと・貼り付けたあとに `assignPortNumbers` で付ける。
+  - 回路やプロジェクトを変えるときは、変えない項目を残す（`{ ...p, circuits: … }`、`{ ...def, … }`）。回路の一覧だけで作り直すと、`folders` などが消える。
+  - どの種類の部品も、置いた形のまま保存して検証を通ることを、テストで確かめている（`storage.test.ts`）。
 
 ### 開発者からの指示
 
@@ -63,13 +74,15 @@
 
 ## 保存の形とアプリの中の形
 
-保存データとプロジェクトファイルの中のプロジェクト（`file/storage.ts` の `StoredProject`）は、アプリの中の形（`Project`）と次のところが違う。読み書きのときに `storage.ts` の `toStoredProject` / `fromStoredProject` で変える。プロジェクトファイル（`share.ts`）も同じ関数を使う。
+保存データとプロジェクトファイルの中のプロジェクト（`file/storage.ts` の `StoredProject`。プロジェクトの形式のデータ）は、アプリの中の形（`Project`）と次のところが違う。読み書きのときに `storage.ts` の `toStoredProject` / `fromStoredProject` で変える。プロジェクトファイル（`share.ts`）も同じ関数を使う。
 
+- 回路は、保存の形ではプロジェクトの要素（フォルダのパス `path` とモジュールのデータ `module` の組）の並び（`modules`）に並べ、アプリの中では回路にパスを持たせた並び（`circuits`）にする。並びは同じ順のまま変える。アプリの中もプロジェクトの形式と同じ形にするかは、未解決のモジュール（[計画 20](../plans/unresolved-module/plan.md)）を作るときに見直す（描画、ネット、シミュレーションが回路の並びを前提にしているため）。
+- モジュールを置いた部品は、保存の形では指すモジュールの名前の写し（`moduleName`）を持ち、アプリの中では持たない。保存するたびに今の名前を写し、読み込むときは使わない（モジュールの名前を引く）。未解決のモジュールで、何が足りないかを見せるためのもの（計画 20）。
 - 部品と配線は、保存の形では 1 つの一覧（`elements`）に `kind` で見分けて並べ、アプリの中では `parts` と `wires` に分ける。読み込むときは種類で分け（`kind` が `"wire"` なら配線）、それぞれの中の順は保つ。保存するときは、種類の決まった順（`storage.ts` の `ELEMENT_ORDER`。開発者が決めた順）に並べ、同じ種類の中はアプリの中の順を保つ。データを読みやすくするため。種類を足したら `ELEMENT_ORDER` にも足す（漏れると型エラーになる）。
   - 一覧を分けないのは、部品か配線かという分け方が実際の種類の分類（計算するもの、端子、表示、つながり）と合わず、種類を足すたびにどちらに入れるかで迷うため。分類は種類の性質として、部品の種類の仕様の側に持つ。
   - アプリの中を分けたままにしているのは、描画やネットの計算が部品と配線を別々に扱っているため。アプリの中もまとめるかは、別の計画で考える。
 - 部品と配線は、保存の形では ID を持たず、アプリの中では持つ。読み込むたびに、部品と配線に `newId` で新しい ID を付ける。
-  - 部品と配線の ID は、保存データの中でどこからも参照されない（モジュールの参照は回路の ID、配線のつながりは位置、モジュールのピンは `pinNumber` か位置の順で決まる）。アプリの中で、選択・編集・シミュレーション・元に戻すのために見分けるのに使うだけなので、保存しない。
+  - 部品と配線の ID は、保存データの中でどこからも参照されない（モジュールの参照は回路の ID、配線のつながりは位置、モジュールのピンは `pinNumber` かポート番号の順で決まる）。アプリの中で、選択・編集・シミュレーション・元に戻すのために見分けるのに使うだけなので、保存しない。
   - 読み込むたびに変わっても困らない。選択、元に戻すの履歴、シミュレーションの状態（フリップフロップや CLOCK の ON/OFF）は、もともと保存も引き継ぎもしない。表示の位置は回路の ID で引く。
   - セッションをまたいで同じ部品を指したくなったら（モジュールを置き換えるときに同じポートを見分けるなど）、部品の ID を保存データに戻し、版を上げる。
 - 配線は、保存の形では種類（`kind`。今は `"wire"` だけ）を持ち、アプリの中では持たない（`StoredWire` と `Wire`）。アプリの中の型に種類を持たせていないのは、今は 1 種類しかないため。種類を足すときに、`Wire` にも持たせる。
@@ -88,7 +101,7 @@
 
 ## 保存データ
 
-- プロジェクトは、変わるたびに localStorage の `sazanka.project` に自動で保存する（`App.tsx` の `useEffect` から `storage.ts` の `saveProject` を呼ぶ）。形は `{ version, project }`。
+- プロジェクトは、変わるたびに localStorage の `sazanka.project` に自動で保存する（`App.tsx` の `useEffect` から `storage.ts` の `saveProject` を呼ぶ）。形はプロジェクトの形式のデータそのもの。一体の形式で保存したもの（`{ version, project }`）も読める。
 - 読み込むときは、プロジェクトファイルと同じ検証（`checkProject`）を通す。壊れていたら空のプロジェクトで開き、ダイアログで利用者に知らせる。壊れたデータをそのまま使うと、表示や計算の途中で例外が起きて画面が出なくなるため。
 - localStorage を使えない環境では、保存データなしとして扱い、保存の失敗は無視する。
 - 読み込みの処理は、localStorage に触る `loadProject` と、文字列を受け取って結果を返す `readStored` に分けている。`readStored` はテストできる。
@@ -96,14 +109,14 @@
 
 ## プロジェクトファイル
 
-- ヘッダーの「書き出し」「読み込み」で使う（`file/share.ts`、操作は `file/useProjectFile.ts`）。形は `{ app: 'sazanka', version, project }`。
+- ヘッダーの「書き出し」「読み込み」で使う（`file/share.ts`、操作は `file/useProjectFile.ts`）。形はプロジェクトの形式のデータそのもの（保存データと同じ。外側の包みはない）。一体の形式で書き出したもの（`{ app: 'sazanka', version, project }`）も読める。
 - 文字列のコピーと貼り付けのほかに、ファイルでも受け渡せる。中身は同じで、版も同じ。文字列での受け渡しは、計画 19 でやめる（ファイルだけにする）。
   - 書き出しの「ファイルに保存」は、`sazanka-YYYY-MM-DD.json`（端末の日付）で保存させる。読み込みでは、読み込み元に「ファイル」を選び、ファイルを選んでから読み込む。
   - 手元のファイルとのやりとりは `file/localFile.ts` にまとめている（保存の `saveJsonFile`、読む `readTextFile`）。保存は `<a download>` で行う。`showSaveFilePicker` は Chromium でしか動かないので使わない。
   - ファイルは UTF-8 として読む。先頭の BOM は `File.text()` が外す。
 - 書き出しでも読み込みでも、回路の ID は付け直さない（上の「ID」）。
 - 他人から受け取る文字列なので、読み込むときは形を検証してから使う（`checkProject`）。
-- 書き出すときに作者名を付けられる（`Project.author`。空なら含めない）。作者名の入ったものを読み込むと、お知らせを出す。
+- 作者名は、モジュールごとに持つ（`CircuitDef.author`。入れていなければ空文字）。プロジェクトは作者名を持たない。作者名を入れる欄は、[計画 18](../plans/main-as-module/plan.md)で回路設定に足す（今はない）。
 
 ## 保存しないもの
 

@@ -5,7 +5,7 @@
 // 今のアプリのコード (部品の型や検証、配置) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため。
 // 部品の確かめ方、ピンの数、ピンの先の位置は、version 2 の時点のもの (docs/format/integrated/v2.md) をここに持つ。あとから直さない
 
-import { isObject } from '../util';
+import { isObject } from '../../../util';
 
 /** 座標 (version 2 の配線の点) */
 interface Point {

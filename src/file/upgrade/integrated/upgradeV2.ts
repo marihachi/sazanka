@@ -7,7 +7,7 @@
 // 今のアプリのコード (部品の型や検証、配置) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため。
 // 配線は書き換えない。古い版のモジュールは version 2 までの形 (split) にするので、ピンの位置は変わらない
 
-import { isObject } from '../util';
+import { isObject } from '../../../util';
 
 /** version 2 の種類の名前と、version 3 の種類の名前 */
 const KIND_NAMES_V3: Record<string, string> = {
