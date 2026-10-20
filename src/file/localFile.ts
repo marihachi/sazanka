@@ -32,13 +32,25 @@ function releaseFocus() {
 }
 
 /**
+ * Electron で作ったアプリの中のブラウザか (ユーザーエージェントに `Electron/` を含む)。VS Code の中のブラウザなど。
+ * これらは showSaveFilePicker を持ち、保存の画面も開けるが、選んだファイルへの書き込み (createWritable) を断る。
+ * 断られてからダウンロードに切り替えると、ダウンロードでも保存先を聞くので、保存の画面が 2 回出てしまう。
+ * そのため初めから保存の画面を使わず、ダウンロードで保存する
+ */
+function isElectron(): boolean {
+  return /\bElectron\//.test(navigator.userAgent);
+}
+
+/**
  * 文字列を JSON ファイルとして保存する。保存したら true、利用者が保存の画面で取り消したら false。
  * showSaveFilePicker が使えるブラウザでは、保存場所とファイル名を選ぶ画面を出す。
- * 使えないブラウザ (Firefox、Safari) と、あっても画面を開けない・書き込めない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
- * 取り消したかはアプリから分からないので、保存を始めたら true)。書き込めなければ例外を投げる
+ * 使えないブラウザ (Firefox、Safari)、Electron の中のブラウザ (isElectron) と、あっても画面を開けない・書き込めない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
+ * 取り消したかはアプリから分からないので、保存を始めたら true)
  */
 export async function saveJsonFile(name: string, text: string): Promise<boolean> {
-  const picker = (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
+  const picker = isElectron()
+    ? undefined
+    : (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
   if (picker) {
     releaseFocus();
     try {
