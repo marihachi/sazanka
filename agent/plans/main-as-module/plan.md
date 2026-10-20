@@ -94,7 +94,7 @@
      - コードの名前: `src/modules/` を `src/circuits/` に、`useModules` を `useCircuits` にした。`createCircuit`、`onAddCircuit`、`onDeleteCircuit`、`applyCircuitSettings`。文言のキーは `m.circuits`、`tabs.addCircuit`、`tabs.circuitTabTooltip`、`toolbar.deleteCircuit`、`hints.nonMain`、`hints.splitPackage`、`hints.numberedPackage`（`HintContext.numberedPackage` も）。`moduleSettings` は `circuitSettings` にまとめた。`circuit/module.ts`、`PaletteModule`、`ModulePorts`、古い形式の変換（`file/upgrade/`）は変えていない。
      - 定義を指していたコメントとドキュメントの言い方も直した。
    - 確かめたこと: ブラウザで、日本語と英語の両方で、回路の追加（既定の名前「回路1」「Circuit1」）、タブ、ヒント、「回路を削除」と削除の確認の文言。コンソールのエラーなし。
-   - 残したこと（開発者に確かめる）: 開発者からの指示の行にある古い言い方（`coding-style.md` の例の `useModules.ts`、`interaction.md` の「モジュールのタブを並べ替えても」、`persistence.md` の「モジュールの追加」）。古い形式の変換で名前の空の回路に付ける「モジュール<n>」（`file/upgrade/project/v1.ts`）。
+   - 開発者に確かめて直したこと（2026-10-21）: 開発者からの指示の行にあった古い言い方（`coding-style.md` の例の `useModules.ts`、`interaction.md` の「モジュールのタブを並べ替えても」、`persistence.md` の「モジュールの追加」）を、回路の言い方にそろえた。古い形式の変換で名前の空の回路に付ける名前を「モジュール<n>」から「回路<n>」にした（`file/upgrade/project/v1.ts`、`docs/format/project/v1.md`）。プロジェクトの形式 v1 はまだ公開していないので、版は上げない。
 
 実装は Skill の `modify` で進める。
 
