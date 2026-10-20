@@ -6,7 +6,7 @@ import { Header } from './Header';
 import { Palette } from '../palette/Palette';
 import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
-import { TabBar } from '../modules/TabBar';
+import { TabBar } from '../circuits/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { fitsInSheet, overview, toWorld } from '../geometry/view';
 import * as edit from '../editing/edit';
@@ -29,11 +29,11 @@ import {
   type Project,
 } from '../circuit/project';
 import {
-  applyModuleSettings,
+  applyCircuitSettings,
   assignPinNumbers,
   assignPortNumbers,
   getPinout,
-  findUnexposedPorts,
+  findUnexposedPortsToWarn,
   usesPinNumbers,
 } from '../circuit/module';
 import { statusHints } from '../hints/hints';
@@ -50,7 +50,7 @@ import {
 } from '../file/storage';
 import { useClipboard } from '../editing/useClipboard';
 import { useDialogs } from './useDialogs';
-import { useModules } from '../modules/useModules';
+import { useCircuits } from '../circuits/useCircuits';
 import { useProjectFile } from '../file/useProjectFile';
 import { useSimulation } from '../simulation/useSimulation';
 import { useProjectHistory } from '../editing/useProjectHistory';
@@ -60,13 +60,13 @@ import { describeStoredError, getMessages } from '../i18n/messages';
 import { LanguageContext } from '../i18n/useMessages';
 import { resolveLanguage } from '../i18n/language';
 
-/** その場で編集中の名前 (タブのモジュール名) */
+/** その場で編集中の名前 (タブの回路名) */
 type Editing = { type: 'tab'; id: string } | null;
 
 /**
  * 画面全体の組み立てと、状態のつなぎ役。
  * まとまった操作は別のフックにある (ダイアログ: useDialogs、コピー・貼り付け: useClipboard、
- * 新規作成・書き出し・読み込み: useProjectFile、モジュールの管理: useModules)。ここには回路の編集と、画面の組み立てを置く
+ * 新規作成・書き出し・読み込み: useProjectFile、回路の管理: useCircuits)。ここには回路の編集と、画面の組み立てを置く
  */
 export function App() {
   const [preferences, setPreferences] = useState(loadPreferences);
@@ -105,18 +105,20 @@ export function App() {
     preferences,
     onPreferencesChange: setPreferences,
     project,
-    // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
-    onApplyModuleSettings: (id, pkg, numbers, portNames) =>
+    // 作者名、シートの大きさ、パッケージとポートを、まとめて 1 回の編集にする (元に戻す 1 回で戻る)
+    onApplyCircuitSettings: (id, settings) =>
       history.commit((p) => ({
         ...p,
         circuits: p.circuits.map((d) =>
-          d.id === id ? applyModuleSettings(d, pkg, numbers, portNames) : d,
+          d.id === id
+            ? {
+                ...applyCircuitSettings(d, settings.package, settings.numbers, settings.portNames),
+                name: settings.name,
+                author: settings.author,
+                sheet: settings.sheet,
+              }
+            : d,
         ),
-      })),
-    onApplySheetSettings: (id, sheet) =>
-      history.commit((p) => ({
-        ...p,
-        circuits: p.circuits.map((d) => (d.id === id ? { ...d, sheet } : d)),
       })),
   });
 
@@ -206,7 +208,7 @@ export function App() {
     setPending(null);
   }
 
-  const modules = useModules({
+  const circuits = useCircuits({
     m,
     project,
     circuit,
@@ -257,7 +259,7 @@ export function App() {
     };
     const c = edit.newPart(newId(), kind, { x: snap(base.x), y: snap(base.y) }, module);
     Object.assign(c, clampPosition(c, getPinout(c, project), c, getCircuitSheet(circuit)));
-    // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
+    // dip / qfp の回路に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
     setCircuit((cur) => {
       const added = new Set([c.id]);
       return assignPortNumbers(assignPinNumbers(edit.addPart(cur, c), added), added);
@@ -431,8 +433,8 @@ export function App() {
   // 開いている回路の配線のつながり。描画 (Sheet) と、出力のぶつかりの警告に使う
   const nets = useMemo(() => computeNets(circuit, project), [circuit, project]);
   const conflict = nets.nets.some(isConflict);
-  // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
-  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
+  // 開いている回路の、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)。メイン回路では知らせない
+  const problems = useMemo(() => findUnexposedPortsToWarn(circuit), [circuit]);
   // シートに収まっていない部品や配線 (座標が負のもの、大きさを変える前からはみ出しているものなど)
   const outsideSheet = useMemo(
     () => !fitsInSheet(circuit, project, getCircuitSheet(circuit)),
@@ -452,8 +454,8 @@ export function App() {
       multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
       unstable,
       conflict,
-      inModule: circuit.id !== MAIN_ID,
-      numberedModule: usesPinNumbers(circuit.package),
+      inMain: circuit.id === MAIN_ID,
+      numberedPackage: usesPinNumbers(circuit.package),
       selectedPortProblem: selectedPart && problems.get(selectedPart.id),
       unexposedPorts: problems.size > 0,
       ticksPerSecond: preferences.ticksPerSecond,
@@ -475,18 +477,17 @@ export function App() {
     startRename: (id: string) => setEditing({ type: 'tab', id }),
     renameCircuit: (id: string, value: string) => {
       setEditing(null);
-      modules.renameCircuit(id, value);
+      circuits.renameCircuit(id, value);
     },
     cancelRename: () => setEditing(null),
-    createModule: modules.createModule,
+    createCircuit: circuits.createCircuit,
     // タブの並びは保存データの回路の順なので、元に戻す対象にする
     reorder: (id: string, index: number) => setProject((p) => moveCircuit(p, id, index)),
     toggleRunning,
     stepOnce,
     stepBack,
-    deleteCircuit: modules.deleteCircuit,
-    openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
-    openSheetSettings: () => dialogs.openSheetSettings(circuit.id),
+    deleteCircuit: circuits.deleteCircuit,
+    openCircuitSettings: () => dialogs.openCircuitSettings(circuit.id),
     changeTool,
     rotate: () => rotate('cw'),
     addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
@@ -519,7 +520,7 @@ export function App() {
           onStartRename={on.startRename}
           onRename={on.renameCircuit}
           onCancelRename={on.cancelRename}
-          onAddModule={on.createModule}
+          onAddCircuit={on.createCircuit}
           onReorder={on.reorder}
         />
         <SheetToolbar
@@ -532,13 +533,12 @@ export function App() {
           onStep={on.stepOnce}
           onStepBack={on.stepBack}
           canStepBack={canStepBack}
-          onSheetSettings={on.openSheetSettings}
-          onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
-          onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
+          onCircuitSettings={on.openCircuitSettings}
+          onDeleteCircuit={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
         />
         <Flex flex="1" minH="0">
           <Palette
-            modules={modules.paletteModules}
+            modules={circuits.paletteModules}
             collapsed={collapsedGroups}
             onCollapsedChange={setCollapsedGroups}
             onAdd={on.addFromPalette}

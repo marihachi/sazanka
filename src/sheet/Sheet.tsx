@@ -35,7 +35,7 @@ import {
   type CircuitSheet,
   type Project,
 } from '../circuit/project';
-import { findUnexposedPorts, getPinout } from '../circuit/module';
+import { findUnexposedPortsToWarn, getPinout } from '../circuit/module';
 import { pinKey, type SimResult } from '../simulation/sim';
 import type { SimStore } from '../simulation/useSimulation';
 import type { Tool } from '../simulation/SheetToolbar';
@@ -299,8 +299,8 @@ export function Sheet({
   }, [circuit, project]);
   const selectedComps = useMemo(() => new Set(selection?.comps ?? []), [selection]);
   const selectedWires = useMemo(() => new Set(selection?.wires ?? []), [selection]);
-  /** 外側のピンに出せないポート (部品 ID → 理由)。印を付ける */
-  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
+  /** 外側のピンに出せないポート (部品 ID → 理由)。印を付ける。メイン回路では付けない */
+  const problems = useMemo(() => findUnexposedPortsToWarn(circuit), [circuit]);
 
   // 部品を追加するとき、表示している範囲の真ん中に置けるよう、大きさを知らせる
   useEffect(() => {

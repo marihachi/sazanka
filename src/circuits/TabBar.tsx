@@ -18,9 +18,9 @@ interface TabBarProps {
   onStartRename: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onCancelRename: () => void;
-  /** モジュールを追加する (タブの末尾の「+」) */
-  onAddModule: () => void;
-  /** モジュールのタブを、回路の一覧の index 番目に移した */
+  /** 回路を追加する (タブの末尾の「+」) */
+  onAddCircuit: () => void;
+  /** メイン回路以外のタブを、回路の一覧の index 番目に移した */
   onReorder: (id: string, index: number) => void;
 }
 
@@ -36,7 +36,7 @@ interface TabDrag {
 /** 押した位置からこれ以上動いたらドラッグとみなす (px)。それまではクリックやダブルクリックとして扱う */
 const DRAG_THRESHOLD = 4;
 
-/** 回路を切り替えるタブ。モジュールのタブはダブルクリックで名前を変更でき、ドラッグで並べ替えられる */
+/** 回路を切り替えるタブ。メイン回路以外のタブはダブルクリックで名前を変更でき、ドラッグで並べ替えられる */
 export const TabBar = memo(function TabBar({
   circuits,
   currentId,
@@ -45,7 +45,7 @@ export const TabBar = memo(function TabBar({
   onStartRename,
   onRename,
   onCancelRename,
-  onAddModule,
+  onAddCircuit,
   onReorder,
 }: TabBarProps) {
   const m = useMessages();
@@ -80,13 +80,13 @@ export const TabBar = memo(function TabBar({
     if (!drag.started) {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
-    // ドラッグ中のタブ以外で、中央がポインターより左にあるモジュールのタブの数が、落とす位置
+    // ドラッグ中のタブ以外で、中央がポインターより左にあるメイン回路以外のタブの数が、落とす位置
     const others = circuits.filter((d) => d.id !== drag.id && d.id !== MAIN_ID);
     const before = others.filter((d) => {
       const rect = tabRefs.current.get(d.id)?.getBoundingClientRect();
       return rect && rect.left + rect.width / 2 < e.clientX;
     }).length;
-    // 回路の一覧の先頭はメイン回路なので、モジュールの番号は 1 から
+    // 回路の一覧の先頭はメイン回路なので、ほかの回路の番号は 1 から
     setDrag({ ...drag, started: true, index: before + 1 });
   }
 
@@ -163,19 +163,19 @@ export const TabBar = memo(function TabBar({
       </Tabs.Root>
       {/* タブの末尾の「+」。タブの文字とそろう高さに置く */}
       <Box flexShrink={0} pb="1">
-        <ToolButton icon={plusIcon} label={m.tabs.addModule} onClick={onAddModule} iconOnly />
+        <ToolButton icon={plusIcon} label={m.tabs.addCircuit} onClick={onAddCircuit} iconOnly />
       </Box>
     </Flex>
   );
 }, sameTabs);
 
-/** モジュールのタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
+/** メイン回路以外のタブに付ける操作の説明。メイン回路と、ドラッグ中は出さない */
 function TabTooltip({ show, children }: { show: boolean; children: React.ReactElement }) {
   const m = useMessages();
   if (!show) {
     return children;
   }
-  return <HintTooltip content={m.tabs.moduleTabTooltip}>{children}</HintTooltip>;
+  return <HintTooltip content={m.tabs.circuitTabTooltip}>{children}</HintTooltip>;
 }
 
 /**

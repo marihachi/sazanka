@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from './part';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import {
-  applyModuleSettings,
+  applyCircuitSettings,
   assignInOrder,
   assignPinNumbers,
   assignPortNumbers,
@@ -14,6 +14,7 @@ import {
   dependsOn,
   getPortsInPinOrder,
   findUnexposedPorts,
+  findUnexposedPortsToWarn,
   getPinout,
 } from './module';
 import type { CircuitDef } from './project';
@@ -154,6 +155,24 @@ describe('モジュールのピン', () => {
       inputs: [''],
       outputs: [],
     });
+  });
+});
+
+describe('findUnexposedPortsToWarn', () => {
+  // ピン番号のない INPUT を置いた dip の回路
+  const parts = [comp('a', 'input', { portNumber: 1 })];
+  const pkg = { kind: 'dip' as const, pins: 4 };
+
+  it('メイン回路以外では、外側のピンに出せないポートを知らせる', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: 'm', name: 'M', package: pkg, parts, wires: [] }),
+    ).toEqual(new Map([['a', 'unassigned']]));
+  });
+
+  it('メイン回路では知らせない (ピンがどこにもつながらないため)', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: MAIN_ID, name: '', package: pkg, parts, wires: [] }).size,
+    ).toBe(0);
   });
 });
 
@@ -304,7 +323,7 @@ describe('assignPortNumbers', () => {
   });
 });
 
-describe('applyModuleSettings の名前', () => {
+describe('applyCircuitSettings の名前', () => {
   const def: CircuitDef = {
     id: 'm',
     name: 'M',
@@ -318,7 +337,7 @@ describe('applyModuleSettings の名前', () => {
   };
 
   it('名前を変え、空白だけなら名前なしにし、portNames にないポートは変えない', () => {
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       def,
       { kind: 'split' },
       new Map(),
@@ -331,7 +350,7 @@ describe('applyModuleSettings の名前', () => {
     expect(result.parts.map((c) => c.portName)).toEqual(['X', 'Y', undefined]);
     expect(result.parts[2]).not.toHaveProperty('portName');
     expect(
-      applyModuleSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
+      applyCircuitSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
     ).toBe(def.parts[0]);
   });
 });
@@ -385,7 +404,7 @@ describe('dependsOn', () => {
   });
 });
 
-describe('モジュール設定の計算', () => {
+describe('回路設定の計算', () => {
   // biome-ignore format: 表形式を維持するため
   const parts: Part[] = [
     { ...comp('o1', 'output'), y: 0 },
@@ -470,7 +489,7 @@ describe('モジュール設定の計算', () => {
       ...def,
       parts: [...parts.slice(0, 3).map((c) => ({ ...c, pinNumber: 9 })), parts[3]],
     };
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       numbered,
       { kind: 'dip', pins: 4 },
       new Map([
@@ -485,7 +504,7 @@ describe('モジュール設定の計算', () => {
 
   it('split にすると、ポートのピン番号を外す', () => {
     const numbered: CircuitDef = { ...def, parts: [{ ...parts[0], pinNumber: 1 }] };
-    const result = applyModuleSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
+    const result = applyCircuitSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
     expect(result.parts[0]).not.toHaveProperty('pinNumber');
   });
 });

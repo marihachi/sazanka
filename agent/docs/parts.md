@@ -53,7 +53,7 @@
   - 本体の輪郭（`body`）: `rect`（角を 3px 丸めた四角）、`rounded`（角を 4px 丸めた四角）、`circle`（円）。四角の端子（INPUT、CLOCK など小さな四角）は `rounded`、それ以外の部品（ゲート、記憶素子、7 セグメント、モジュール）は `rect` にする
   - ピンの置き方（`inputs`、`outputs`）: 辺（`side`。`left` / `right` / `top` / `bottom`）と、辺の上の位置（`at`。左右の辺なら本体の上端から、上下の辺なら左端からのマス）。並び順がピン番号。ピンの先は辺から 1 マス外にある
   - 本体の上に名前を書くか（`nameAbove`）。部品の占める範囲に、その 1 マスを含める
-  - どのポートにもつながらないピン（`nc`。線と「NC」の文字だけを描く）と、外側のピン番号（`PinPlacement.number`）。dip / qfp のモジュールだけが使う。ピン番号は、シート上には書かず、モジュール設定のプレビューでだけピンの横に書く（`SheetPart` の `showPinNumbers`）
+  - どのポートにもつながらないピン（`nc`。線と「NC」の文字だけを描く）と、外側のピン番号（`PinPlacement.number`）。dip / qfp のモジュールだけが使う。ピン番号は、シート上には書かず、回路設定のプレビューでだけピンの横に書く（`SheetPart` の `showPinNumbers`）
   - ピンの線に、入力か出力かを示す向きの三角を付けるか（`directionMarks`）。辺から入力か出力かが分からない配置（dip / qfp のモジュール）で付ける
 - 部品の占める範囲（`geometry/layout.ts` の `calcMarginAroundBody`）: 左右は、ピンがなくても 1 マス取る。上下は、その辺にピンがあるときだけ 1 マス取る。本体の上に書く名前（`nameAbove`）の 1 マスは、回した後の辺で取る。
 - 部品の向き（`Part.rotation`。時計回りに 0 / 90 / 180 / 270 度）は、種類の配置を回して表す（`parts/layout.ts` の `rotateLayout`）。幅と高さが入れ替わり、ピンの辺と位置が移る。種類の `layout.ts` は、回していない向きだけを書く。

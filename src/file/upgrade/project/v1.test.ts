@@ -39,21 +39,16 @@ describe('upgradeToProjectV1', () => {
     expect(authors(upgradeToProjectV1({ circuits }))).toEqual(['', '']);
   });
 
-  it('名前が空のモジュールに「モジュール<n>」を付ける (ほかの名前と重ならない、いちばん小さい数)', () => {
+  it('名前が空の回路に「回路<n>」を付ける (ほかの名前と重ならない、いちばん小さい数)', () => {
     const v4 = {
       circuits: [
         { id: 'main', elements: [] },
         v4Module('a', ''),
-        v4Module('b', 'モジュール1'),
+        v4Module('b', '回路1'),
         v4Module('c', '  '),
       ],
     };
-    expect(names(upgradeToProjectV1(v4))).toEqual([
-      undefined,
-      'モジュール2',
-      'モジュール1',
-      'モジュール3',
-    ]);
+    expect(names(upgradeToProjectV1(v4))).toEqual([undefined, '回路2', '回路1', '回路3']);
   });
 
   it('同じ名前のモジュールは、2 つめ以降に (2)、(3) などを付ける。付けた名前がほかと重なるなら次の数にする', () => {

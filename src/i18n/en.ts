@@ -34,8 +34,8 @@ export const en: Messages = {
     license: 'Available under the MIT License. The logo uses the Inter SemiBold font (SIL OFL).',
   },
   tabs: {
-    addModule: 'Add module',
-    moduleTabTooltip: 'Double-click to rename, drag to reorder.',
+    addCircuit: 'Add circuit',
+    circuitTabTooltip: 'Double-click to rename, drag to reorder.',
   },
   toolbar: {
     select: 'Select',
@@ -54,12 +54,10 @@ export const en: Messages = {
     stepBackTitle: 'Move time back by 1 tick',
     stepForward: 'Forward 1 tick',
     stepForwardTitle: 'Move time forward by 1 tick',
-    sheetSettings: 'Sheet settings',
-    sheetSettingsTitle: 'Sheet settings: change the sheet size (width and height)',
-    moduleSettings: 'Module settings',
-    moduleSettingsTitle:
-      'Module settings: change the package (shape and pin count), port names, and pin assignment',
-    deleteModule: 'Delete module',
+    circuitSettings: 'Circuit settings',
+    circuitSettingsTitle:
+      'Circuit settings: change the sheet size, package, port names, and pin assignment',
+    deleteCircuit: 'Delete circuit',
   },
   palette: {
     groups: {
@@ -74,7 +72,7 @@ export const en: Messages = {
     expandAll: 'Expand all',
     collapseAll: 'Collapse all',
     noModules: 'No modules yet',
-    selfModule: 'A module cannot be placed inside itself',
+    selfModule: 'A circuit cannot be placed inside itself',
     containsThis: (name) => `"${name}" cannot be placed because it contains this circuit`,
   },
   sheet: {
@@ -93,7 +91,7 @@ export const en: Messages = {
     portLabel: 'Port name',
     noPortLabel: 'No name',
     duplicatePortName: 'Another port already has this name',
-    portNameHelp: 'Inside a module, this becomes the pin name',
+    portNameHelp: 'Becomes the pin name when placed as a module',
     noItems: 'This part has no settings',
     selectOne: 'Select a single part to edit its settings',
     clockPeriod: 'Period (ticks)',
@@ -123,15 +121,15 @@ export const en: Messages = {
       en: 'English',
     },
   },
-  sheetSettings: {
-    title: (name) => `Sheet settings: ${name}`,
-    width: 'Width (cells)',
-    height: 'Height (cells)',
-    tooSmall: (width, height) => `Parts and wires need at least ${width} × ${height} cells`,
+  circuitSettings: {
+    title: (name) => `Circuit settings: ${name}`,
+    author: 'Author (optional)',
+    tabs: {
+      general: 'General',
+      module: 'Module',
+      invalid: 'Has invalid values',
+    },
     apply: 'Apply',
-  },
-  moduleSettings: {
-    title: (name) => `Module settings: ${name}`,
     packages: {
       dip: 'DIP (pins on 2 sides)',
       qfp: 'QFP (pins on 4 sides)',
@@ -150,31 +148,35 @@ export const en: Messages = {
     unassigned: 'Unassigned ports (not on any outer pin):',
     listSeparator: ', ',
     wiringWarning:
-      'Changing the package or pin assignment may reconnect or disconnect wires where this module is placed. Be sure to check those circuits.',
+      'Changing the package or pin assignment may reconnect or disconnect wires where this circuit is placed as a module. Be sure to check those circuits.',
     preview: 'Preview',
     previewLabel: 'Module preview',
-    apply: 'Apply',
     pinLabel: (n) => `Pin ${n}`,
     portLabelOf: (heading) => `Name of ${heading}`,
     noName: 'No name',
     portOption: (port, name) => `${port} ${name || '(no name)'}`,
   },
-  modules: {
-    defaultName: (n) => `Module${n}`,
-    addTitle: 'Add module',
+  sheetSettings: {
+    width: 'Width (cells)',
+    height: 'Height (cells)',
+    tooSmall: (width, height) => `Parts and wires need at least ${width} × ${height} cells`,
+  },
+  circuits: {
+    defaultName: (n) => `Circuit${n}`,
+    addTitle: 'Add circuit',
     name: 'Name',
     add: 'Add',
     nameRequired: 'Enter a name',
     nameTaken: 'A circuit with this name already exists',
     inUse: (name, users) =>
       `"${name}" cannot be deleted because it is used in: ${users.join(', ')}`,
-    confirmDelete: (name) => `Delete module "${name}"?`,
+    confirmDelete: (name) => `Delete circuit "${name}"?`,
     delete: 'Delete',
     cannotPaste: (name) => `"${name}" cannot be pasted here because it contains this circuit`,
   },
   file: {
     confirmNew:
-      'Create a new project? The current project (the main circuit and all modules) will be cleared (you can undo this).',
+      'Create a new project? The current project (all circuits) will be cleared (you can undo this).',
     newProject: 'New',
     saveFailed: 'Could not save the file',
     readFailed: 'Could not read the file',
@@ -242,21 +244,22 @@ export const en: Messages = {
       'RS Latch has no clock: Q changes as soon as S / R change',
       'Parts have delay. Signals travel 1 tick at a time',
       'Pause, then use "Forward 1 tick" and "Back 1 tick" to step through signals 1 tick at a time',
-      'Add a module with "+" on the tabs to bundle a circuit into a part',
+      'Add a circuit with "+" on the tabs to place it in other circuits as a module',
       '"Export" copies the whole project as JSON. Paste it into "Import" to open the same circuit',
-      'Naming an INPUT / OUTPUT inside a module sets the pin name',
+      'Naming an INPUT / OUTPUT sets the pin name when the circuit is placed as a module',
     ],
-    module: [
-      'Double-click a tab to rename the module',
-      'Drag module tabs to reorder them (Main stays first)',
+    nonMain: [
+      'Double-click a tab to rename the circuit',
+      'Drag tabs to reorder them (Main stays first)',
       'Placing an INPUT / OUTPUT adds a pin to the module',
-      'While a module tab is open, the main circuit simulation is paused',
-      '"Module settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
+      'While another circuit tab is open, the main circuit simulation is paused',
     ],
-    splitModule: [
+    circuitSettings:
+      '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
+    splitPackage: [
       'Moving INPUT / OUTPUT up or down changes the pin order, so outer wires may connect to different pins',
     ],
-    numberedModule: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
+    numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
     portProblems: {
       unassigned: 'This INPUT / OUTPUT has no pin number, so it is not on an outer pin',
       outOfRange:
@@ -292,6 +295,6 @@ export const en: Messages = {
     conflict:
       'The red wire has 2 or more output pins connected, so its value is undefined. Input pins on it read OFF',
     unexposedPorts:
-      'Red INPUT / OUTPUT are not assigned to a pin. Assign them in "Module settings"',
+      'Red INPUT / OUTPUT are not assigned to a pin. Assign them in "Circuit settings"',
   },
 };

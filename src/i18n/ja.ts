@@ -43,8 +43,8 @@ export const ja = {
       'MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL) というフォントを使っています。',
   },
   tabs: {
-    addModule: 'モジュールを追加',
-    moduleTabTooltip: 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。',
+    addCircuit: '回路を追加',
+    circuitTabTooltip: 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。',
   },
   toolbar: {
     select: '選択',
@@ -63,12 +63,10 @@ export const ja = {
     stepBackTitle: '1 tick だけ時間を戻す',
     stepForward: '1 tick 進める',
     stepForwardTitle: '1 tick だけ時間を進める',
-    sheetSettings: 'シート設定',
-    sheetSettingsTitle: 'シート設定: シートの大きさ (幅と高さ) を変える',
-    moduleSettings: 'モジュール設定',
-    moduleSettingsTitle:
-      'モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える',
-    deleteModule: 'モジュールを削除',
+    circuitSettings: '回路設定',
+    circuitSettingsTitle:
+      '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
+    deleteCircuit: '回路を削除',
   },
   palette: {
     groups: {
@@ -83,7 +81,7 @@ export const ja = {
     expandAll: 'すべて展開',
     collapseAll: 'すべて折りたたむ',
     noModules: 'モジュールはまだありません',
-    selfModule: 'モジュールの中に自分自身は置けません',
+    selfModule: '回路の中に自分自身は置けません',
     containsThis: (name: string) => `「${name}」はこの回路を含んでいるため置けません`,
   },
   sheet: {
@@ -102,7 +100,7 @@ export const ja = {
     portLabel: 'ポート名',
     noPortLabel: '名前未設定',
     duplicatePortName: 'ほかのポートと同じ名前は付けられません',
-    portNameHelp: 'モジュールの中では、ピンの名前になります',
+    portNameHelp: 'モジュールとして置くと、ピンの名前になります',
     noItems: 'この部品に設定できる項目はありません',
     selectOne: '部品を1つ選ぶと、その部品の項目を編集できます',
     clockPeriod: '周期 (tick)',
@@ -133,17 +131,16 @@ export const ja = {
       en: 'English',
     } satisfies Record<LanguageSetting, string>,
   },
-  sheetSettings: {
-    title: (name: string) => `シート設定: ${name}`,
-    width: '幅 (マス)',
-    height: '高さ (マス)',
-    /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
-    tooSmall: (width: number, height: number) =>
-      `部品と配線が収まるのは ${width} × ${height} マス以上です`,
+  circuitSettings: {
+    title: (name: string) => `回路設定: ${name}`,
+    author: '作者名 (省略可)',
+    tabs: {
+      general: '全般',
+      module: 'モジュール',
+      /** 使えない値があるタブの印 (読み上げ用) */
+      invalid: '使えない値があります',
+    },
     apply: '適用',
-  },
-  moduleSettings: {
-    title: (name: string) => `モジュール設定: ${name}`,
     packages: {
       dip: 'DIP (左右の 2 辺にピン)',
       qfp: 'QFP (4 辺にピン)',
@@ -162,33 +159,39 @@ export const ja = {
     unassigned: '割り当てのないポート (外側のピンに出ない):',
     listSeparator: '、',
     wiringWarning:
-      'パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。',
+      'パッケージやピンの割り当てを変更すると、この回路をモジュールとして置いた先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。',
     preview: 'プレビュー',
     previewLabel: 'モジュールのプレビュー',
-    apply: '適用',
     pinLabel: (n: number) => `${n} 番のピン`,
     portLabelOf: (heading: string) => `${heading} の名前`,
     noName: '名前未設定',
     /** 一覧に出すポートの名前。名前がなければ「(名前未設定)」 */
     portOption: (port: string, name: string) => `${port} ${name || '(名前未設定)'}`,
   },
-  modules: {
-    defaultName: (n: number) => `モジュール${n}`,
-    addTitle: 'モジュールを追加',
+  sheetSettings: {
+    width: '幅 (マス)',
+    height: '高さ (マス)',
+    /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
+    tooSmall: (width: number, height: number) =>
+      `部品と配線が収まるのは ${width} × ${height} マス以上です`,
+  },
+  circuits: {
+    defaultName: (n: number) => `回路${n}`,
+    addTitle: '回路を追加',
     name: '名前',
     add: '追加',
     nameRequired: '名前を入力してください',
     nameTaken: '同じ名前の回路がすでにあります',
     inUse: (name: string, users: string[]) =>
       `「${name}」は次の回路で使われているため削除できません: ${users.join(', ')}`,
-    confirmDelete: (name: string) => `モジュール「${name}」を削除しますか？`,
+    confirmDelete: (name: string) => `回路「${name}」を削除しますか？`,
     delete: '削除',
     cannotPaste: (name: string) =>
       `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
   },
   file: {
     confirmNew:
-      '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
+      '新しいプロジェクトを作成しますか？今のプロジェクト (すべての回路) は消えます (元に戻すで戻せます)。',
     newProject: '新規作成',
     saveFailed: 'ファイルに保存できませんでした',
     readFailed: 'ファイルを読み取れませんでした',
@@ -264,24 +267,26 @@ export const ja = {
       'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
       '部品には遅延がある。信号は 1 tick ずつ、時間をかけて伝わる',
       '「一時停止」してから「1 tick 進める」「1 tick 戻す」で、信号が伝わる様子を 1 tick ずつ行き来できる',
-      'タブの「+」でモジュールを追加すると、回路を部品としてまとめられる',
+      'タブの「+」で回路を追加すると、モジュールとしてほかの回路に置ける',
       '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
-      'モジュールの中の INPUT / OUTPUT に名前を付けると、ピンの名前になる',
+      'INPUT / OUTPUT に名前を付けると、モジュールとして置いたときのピンの名前になる',
     ],
-    /** モジュールのタブを開いているときに追加で表示するヒント */
-    module: [
-      'タブをダブルクリックすると、モジュールの名前を変更できる',
-      'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
+    /** モジュールのタブ (メイン回路でない回路) を開いているときに追加で表示するヒント */
+    nonMain: [
+      'タブをダブルクリックすると、回路の名前を変更できる',
+      'タブはドラッグで並べ替えられる (メインは先頭に固定)',
       'INPUT / OUTPUT を置くと、モジュールのピンが増える',
-      'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
-      'ツールバーの「モジュール設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
+      'ほかの回路のタブを開いている間は、メイン回路のシミュレーションは止まる',
     ],
-    /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で、module に足すヒント */
-    splitModule: [
+    /** どの回路のタブでも、nonMain のあと (メイン回路では先頭) に出すヒント */
+    circuitSettings:
+      'ツールバーの「回路設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
+    /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で足すヒント。メイン回路では出さない (外側の配線がないため) */
+    splitPackage: [
       'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
     ],
-    /** パッケージが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、module に足すヒント */
-    numberedModule: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
+    /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
+    numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
     portProblems: {
       unassigned: 'この INPUT / OUTPUT はピン番号がないため、外側のピンに出ていない',
@@ -313,6 +318,6 @@ export const ja = {
     conflict:
       '赤い配線に出力ピンが2つ以上つながっていて、値が決まらない。つながる入力ピンは OFF になる',
     unexposedPorts:
-      '赤い INPUT / OUTPUT はピンに割り当てられていない。「モジュール設定」で割り当てられる',
+      '赤い INPUT / OUTPUT はピンに割り当てられていない。「回路設定」で割り当てられる',
   },
 };
