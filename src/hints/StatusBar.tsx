@@ -19,7 +19,7 @@ interface StatusBarProps {
   unstable: boolean;
   /** 出力ピンが 2 つ以上つながったネットがある */
   conflict: boolean;
-  /** 開いているモジュールに、外側のピンに出せないポートがある */
+  /** 開いている回路に、外側のピンに出せないポートがある */
   unexposedPorts: boolean;
   /** 開いている回路に、シートに収まっていない部品や配線がある */
   outsideSheet: boolean;

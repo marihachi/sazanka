@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from './part';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import {
-  applyModuleSettings,
+  applyCircuitSettings,
   assignInOrder,
   assignPinNumbers,
   assignPortNumbers,
@@ -323,7 +323,7 @@ describe('assignPortNumbers', () => {
   });
 });
 
-describe('applyModuleSettings の名前', () => {
+describe('applyCircuitSettings の名前', () => {
   const def: CircuitDef = {
     id: 'm',
     name: 'M',
@@ -337,7 +337,7 @@ describe('applyModuleSettings の名前', () => {
   };
 
   it('名前を変え、空白だけなら名前なしにし、portNames にないポートは変えない', () => {
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       def,
       { kind: 'split' },
       new Map(),
@@ -350,7 +350,7 @@ describe('applyModuleSettings の名前', () => {
     expect(result.parts.map((c) => c.portName)).toEqual(['X', 'Y', undefined]);
     expect(result.parts[2]).not.toHaveProperty('portName');
     expect(
-      applyModuleSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
+      applyCircuitSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
     ).toBe(def.parts[0]);
   });
 });
@@ -489,7 +489,7 @@ describe('回路設定の計算', () => {
       ...def,
       parts: [...parts.slice(0, 3).map((c) => ({ ...c, pinNumber: 9 })), parts[3]],
     };
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       numbered,
       { kind: 'dip', pins: 4 },
       new Map([
@@ -504,7 +504,7 @@ describe('回路設定の計算', () => {
 
   it('split にすると、ポートのピン番号を外す', () => {
     const numbered: CircuitDef = { ...def, parts: [{ ...parts[0], pinNumber: 1 }] };
-    const result = applyModuleSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
+    const result = applyCircuitSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
     expect(result.parts[0]).not.toHaveProperty('pinNumber');
   });
 });

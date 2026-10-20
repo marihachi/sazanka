@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import {
-  applyModuleSettings,
+  applyCircuitSettings,
   assignInOrder,
   calcFittingPins,
   findDuplicatePortNames,
@@ -108,7 +108,7 @@ export function CircuitSettingsDialog({
   const pins = Number(pinsText);
   const draft: Package = kind === 'split' ? { kind } : { kind, pins };
   const valid = isPackage(draft);
-  const applied = valid ? applyModuleSettings(def, draft, numbers, portNames) : undefined;
+  const applied = valid ? applyCircuitSettings(def, draft, numbers, portNames) : undefined;
   const pinsChanged = applied !== undefined && !samePins(def, applied);
   const authorText = author.trim();
   const changed =
@@ -118,7 +118,7 @@ export function CircuitSettingsDialog({
       sheetChanged ||
       authorText !== (def.author ?? ''));
   const canApply = changed && sheetCheck.valid && duplicates.size === 0;
-  const preview = valid ? applyModuleSettings(def, draft, numbers, deferredPortNames) : def;
+  const preview = valid ? applyCircuitSettings(def, draft, numbers, deferredPortNames) : def;
 
   const changePortName = useCallback((id: string, text: string) => {
     setPortNames((cur) => new Map(cur).set(id, text));
@@ -219,7 +219,7 @@ export function CircuitSettingsDialog({
             />
             <HStack gap="3" align="start">
               <Field.Root flex="1">
-                <Field.Label>{m.moduleSettings.package}</Field.Label>
+                <Field.Label>{m.circuitSettings.package}</Field.Label>
                 <NativeSelect.Root>
                   <NativeSelect.Field
                     value={kind}
@@ -227,7 +227,7 @@ export function CircuitSettingsDialog({
                   >
                     {PACKAGE_KINDS.map((k) => (
                       <option key={k} value={k}>
-                        {m.moduleSettings.packages[k]}
+                        {m.circuitSettings.packages[k]}
                       </option>
                     ))}
                   </NativeSelect.Field>
@@ -236,7 +236,7 @@ export function CircuitSettingsDialog({
               </Field.Root>
               {kind !== 'split' && (
                 <Field.Root invalid={!valid} w="28">
-                  <Field.Label>{m.moduleSettings.pins}</Field.Label>
+                  <Field.Label>{m.circuitSettings.pins}</Field.Label>
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -251,17 +251,17 @@ export function CircuitSettingsDialog({
             </HStack>
             {!valid && (
               <Text textStyle="sm" color="fg.error">
-                {kind === 'dip' ? m.moduleSettings.dipPinsError : m.moduleSettings.qfpPinsError}
+                {kind === 'dip' ? m.circuitSettings.dipPinsError : m.circuitSettings.qfpPinsError}
               </Text>
             )}
             {kind === 'split' && (
               <Text textStyle="sm" color="fg.muted">
-                {m.moduleSettings.splitHelp}
+                {m.circuitSettings.splitHelp}
               </Text>
             )}
             <Stack gap="2" flex={{ md: '1' }} minH="0">
               <Text textStyle="sm" fontWeight="medium">
-                {m.moduleSettings.ports}
+                {m.circuitSettings.ports}
               </Text>
               <Stack
                 gap="1"
@@ -284,7 +284,7 @@ export function CircuitSettingsDialog({
               </Stack>
               {duplicates.size > 0 && (
                 <Text textStyle="sm" color="fg.error">
-                  {m.moduleSettings.duplicatePortName}
+                  {m.circuitSettings.duplicatePortName}
                 </Text>
               )}
             </Stack>
@@ -292,7 +292,7 @@ export function CircuitSettingsDialog({
               <Stack gap="2" flex={{ md: '1' }} minH="0">
                 <HStack justify="space-between">
                   <Text textStyle="sm" fontWeight="medium">
-                    {m.moduleSettings.assignment}
+                    {m.circuitSettings.assignment}
                   </Text>
                   <Button
                     size="xs"
@@ -300,7 +300,7 @@ export function CircuitSettingsDialog({
                     colorPalette="gray"
                     onClick={() => setNumbers(assignInOrder(portsByPosition, pins))}
                   >
-                    {m.moduleSettings.assignInOrder}
+                    {m.circuitSettings.assignInOrder}
                   </Button>
                 </HStack>
                 <Stack
@@ -323,8 +323,8 @@ export function CircuitSettingsDialog({
                 </Stack>
                 {unassigned.length > 0 && (
                   <Text textStyle="sm" color="fg.warning">
-                    {m.moduleSettings.unassigned}{' '}
-                    {unassigned.map((c) => names.get(c.id)).join(m.moduleSettings.listSeparator)}
+                    {m.circuitSettings.unassigned}{' '}
+                    {unassigned.map((c) => names.get(c.id)).join(m.circuitSettings.listSeparator)}
                   </Text>
                 )}
               </Stack>
@@ -332,13 +332,13 @@ export function CircuitSettingsDialog({
             {/* メイン回路は置く先がないので、置いた先の配線の注意は要らない */}
             {pinsChanged && !isMain && (
               <Text textStyle="sm" color="fg.warning">
-                {m.moduleSettings.wiringWarning}
+                {m.circuitSettings.wiringWarning}
               </Text>
             )}
           </Stack>
           <Stack gap="2" w={{ base: 'full', md: '72' }} flexShrink={0}>
             <Text textStyle="sm" fontWeight="medium">
-              {m.moduleSettings.preview}
+              {m.circuitSettings.preview}
             </Text>
             <Preview def={preview} project={project} />
           </Stack>
@@ -380,7 +380,7 @@ const PinRow = memo(function PinRow({
       </Text>
       <NativeSelect.Root size="sm">
         <NativeSelect.Field
-          aria-label={m.moduleSettings.pinLabel(n)}
+          aria-label={m.circuitSettings.pinLabel(n)}
           value={value}
           onChange={(e) => onAssign(n, e.target.value)}
         >
@@ -421,8 +421,8 @@ const PortRow = memo(function PortRow({
       <Field.Root invalid={duplicate}>
         <Input
           size="sm"
-          aria-label={m.moduleSettings.portLabelOf(heading)}
-          placeholder={m.moduleSettings.noName}
+          aria-label={m.circuitSettings.portLabelOf(heading)}
+          placeholder={m.circuitSettings.noName}
           value={value}
           onChange={(e) => onChange(id, e.target.value)}
         />
@@ -455,7 +455,7 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
         width="100%"
         height="100%"
         role="img"
-        aria-label={m.moduleSettings.previewLabel}
+        aria-label={m.circuitSettings.previewLabel}
       >
         <SheetPart
           comp={part}
@@ -494,7 +494,7 @@ function initialNumbers(ports: readonly Part[]): Map<string, number> {
  * 名前が空白だけなら「入力 1 (名前未設定)」とする
  */
 function getPortName(c: Part, text: string, m: Messages): string {
-  return m.moduleSettings.portOption(m.common.portName(c.kind, c.portNumber ?? ''), text.trim());
+  return m.circuitSettings.portOption(m.common.portName(c.kind, c.portNumber ?? ''), text.trim());
 }
 
 /** パッケージとポートのピン番号が同じか (外の配線に響く変更がないか) */

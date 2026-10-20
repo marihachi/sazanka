@@ -69,7 +69,7 @@ export function useClipboard({
     if (blocked) {
       const name = findDef(project, blocked.circuitId)?.name ?? '';
       showConfirm({
-        message: m.modules.cannotPaste(name),
+        message: m.circuits.cannotPaste(name),
       });
       return;
     }

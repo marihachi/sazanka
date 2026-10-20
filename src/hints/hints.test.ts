@@ -14,7 +14,7 @@ const base: HintContext = {
   unstable: false,
   conflict: false,
   inMain: false,
-  numberedModule: false,
+  numberedPackage: false,
   unexposedPorts: false,
   ticksPerSecond: 100,
 };
@@ -108,7 +108,7 @@ describe('statusHints', () => {
     expect(main.some((h) => h.includes('上下の並び'))).toBe(false);
     expect(main.some((h) => h.includes('ピンが増える'))).toBe(false);
     // dip / qfp なら、空いているピンに割り当てられることは出す
-    const numbered = hints({ inMain: true, numberedModule: true });
+    const numbered = hints({ inMain: true, numberedPackage: true });
     expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);
   });
 
@@ -125,7 +125,7 @@ describe('statusHints', () => {
 
   it('モジュールのヒントは、ピンの決め方 (split か、ピン番号か) で変える', () => {
     const split = hints({});
-    const numbered = hints({ numberedModule: true });
+    const numbered = hints({ numberedPackage: true });
     expect(split.some((h) => h.includes('上下の並び'))).toBe(true);
     expect(numbered.some((h) => h.includes('上下の並び'))).toBe(false);
     expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);

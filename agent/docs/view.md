@@ -12,7 +12,7 @@
 
 ## シートの大きさを変える
 
-- シートのツールバーの「回路設定」（`modules/CircuitSettingsDialog.tsx`。欄は `sheet/SheetSizeFields.tsx`）で、回路ごとに幅と高さ（マス）を変える。1 辺は 20〜1000 の整数（`project.ts` の `MIN_SHEET_CELLS` / `MAX_SHEET_CELLS`）。
+- シートのツールバーの「回路設定」（`circuits/CircuitSettingsDialog.tsx`。欄は `sheet/SheetSizeFields.tsx`）で、回路ごとに幅と高さ（マス）を変える。1 辺は 20〜1000 の整数（`project.ts` の `MIN_SHEET_CELLS` / `MAX_SHEET_CELLS`）。
 - 左上は固定で、右と下で増やしたり減らしたりする。中身はずらさない。
 - 部品と配線が収まらない大きさにはできない（開発者が決めた）。収まる大きさ（a × b マス以上）をエラーで知らせる。座標が負のものがあると、どの大きさにしても収まらない。
 - 保存データとプロジェクトファイルには、300×200 の回路も必ず書く（`sheet` は省略できない。[回路の形式 version 1](../../docs/format/circuit/v1.md)の「シートの大きさ」）。大きさを持たない回路（テストで作ったもの）は、保存するときに `DEFAULT_SHEET` を書く（`storage.ts` の `toStoredProject`）。

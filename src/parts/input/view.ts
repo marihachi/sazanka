@@ -6,11 +6,11 @@ export const input: PartView = {
   icon,
   group: 'io',
   description: {
-    ja: '入力スイッチ。クリックで ON/OFF を切り替える。モジュールの中に置くと、そのモジュールの入力ピンになる',
-    en: 'Input switch. Click to toggle ON/OFF. Inside a module, it becomes an input pin of the module',
+    ja: '入力スイッチ。クリックで ON/OFF を切り替える。回路をモジュールとして置くと、入力ピンになる',
+    en: 'Input switch. Click to toggle ON/OFF. When the circuit is placed as a module, it becomes an input pin',
   },
   hints: {
-    ja: ['クリックで ON/OFF。モジュールの中に置くと、そのモジュールの入力ピンにもなる'],
-    en: ['Click to toggle ON/OFF. Inside a module, it is also an input pin of the module'],
+    ja: ['クリックで ON/OFF。回路をモジュールとして置くと、入力ピンにもなる'],
+    en: ['Click to toggle ON/OFF. When the circuit is placed as a module, it is also an input pin'],
   },
 };

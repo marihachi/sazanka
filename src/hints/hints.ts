@@ -27,10 +27,10 @@ export interface HintContext {
   unstable: boolean;
   /** 出力ピンが 2 つ以上つながったネットがある */
   conflict: boolean;
-  /** メイン回路のタブを開いている。モジュールのタブ (タブの改名や並べ替え、split の並び順の注意など) のヒントを出さない */
+  /** メイン回路のタブを開いている。ほかの回路のタブのヒント (タブの改名や並べ替え、split の並び順の注意など) を出さない */
   inMain: boolean;
   /** 開いている回路が、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
-  numberedModule: boolean;
+  numberedPackage: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;
   /** 開いている回路に、外側のピンに出せないポートがある (メイン回路では警告しないので false) */
@@ -96,7 +96,7 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
     return [m.unexposedPorts];
   }
   // 回路設定とピン番号の割り当ては、メイン回路でも使える。split の並び順の注意は外側の配線のことなので、モジュールだけ
-  const own = ctx.numberedModule ? m.numberedModule : ctx.inMain ? [] : m.splitModule;
-  const moduleOnly = ctx.inMain ? [] : m.module;
+  const own = ctx.numberedPackage ? m.numberedPackage : ctx.inMain ? [] : m.splitPackage;
+  const moduleOnly = ctx.inMain ? [] : m.nonMain;
   return [...moduleOnly, m.circuitSettings, ...own, ...m.idle];
 }

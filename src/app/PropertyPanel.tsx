@@ -143,7 +143,7 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
 
 /**
  * INPUT / OUTPUT のポート名の入力欄。入力したらすぐに反映する。
- * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
+ * 欄を離れるまでの変更は1回の操作として元に戻せる。回路をモジュールとして置くと、外から見たピンの名前になる
  */
 function PortNameField({
   part,

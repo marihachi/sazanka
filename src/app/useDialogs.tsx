@@ -6,7 +6,7 @@ import { PreferencesDialog } from '../preferences/PreferencesDialog';
 import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
 import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
-import { CircuitSettingsDialog, type CircuitSettings } from '../modules/CircuitSettingsDialog';
+import { CircuitSettingsDialog, type CircuitSettings } from '../circuits/CircuitSettingsDialog';
 import { findDef, type Project } from '../circuit/project';
 
 /**

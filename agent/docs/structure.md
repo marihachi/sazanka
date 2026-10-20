@@ -24,8 +24,8 @@
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
-- `modules/` … モジュールの追加・改名・削除・設定と、回路の切り替え。
-  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
+- `circuits/` … 回路の追加・改名・削除・設定と、回路の切り替え。
+  - `useCircuits.ts` … 回路の操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
   - `SheetPart.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
@@ -52,7 +52,7 @@
   - `sim.ts` … 回路の評価（番号で引く形にした回路を、1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
   - `testCircuits.ts` … テスト用の回路の作り方（つなぎたいピンから配線を引いた回路）。アプリからは使わない。
   - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数と、1 フレームの計算時間の上限。
-  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、回路設定、モジュールの削除）と、モードの型（`Tool`）。
+  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、回路設定、回路の削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
   - `layout.ts` … グリッド、部品の配置（種類の配置を部品の向きで回したもの。`getPartLayout`）、部品の大きさとピンの座標（配置をマスから px に直す）、シートの右下の角（`getSheetEnd`）、はみ出さない位置、範囲選択、配線中の点の置き方、配線の端のドラッグ（`dragWireEnd`）。
   - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。1 本に見える 2 本の結合（`mergeWiresAt`）、分割できる点と分かれ目の判定（`findSplitTarget`、`findWireJoints`）。
@@ -81,9 +81,9 @@
 
 今のフォルダ同士の依存は、次の向きになっている（左が右を使う）。依存の向きについての方針は[コードの置き場所の決め方](code-placement.md)の「依存の向き」。
 
-`app` → `modules` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
+`app` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
 
-- この向きになる主な理由: モジュールの一覧はパレットに出す（`modules` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
+- この向きになる主な理由: モジュールの一覧はパレットに出す（`circuits` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
 - 逆向きに、`i18n/ja.ts` は、エラーを文にするために `circuit/` と `file/` のエラーの型を型だけ import する。
 - `circuit/` の中では、`module.ts` → `project.ts` → `circuit.ts` → `part.ts` → `parts/` の向きに使う。`part.ts` と `circuit.ts` はプロジェクトを知らず、`project.ts` と `module.ts` は知る。逆向きに、`parts/layout.ts` は配置の入力として `module.ts` の `Pinout` を型だけ import する。
 - `util.ts` は何も import しない。

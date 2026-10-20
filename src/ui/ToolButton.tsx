@@ -11,7 +11,7 @@ interface ToolButtonProps {
   disabled?: boolean;
   /** 文字を出さず、アイコンだけにする (タブの「+」など) */
   iconOnly?: boolean;
-  /** 取り消しにくい危険な操作 (モジュールの削除など)。赤で表示する */
+  /** 取り消しにくい危険な操作 (回路の削除など)。赤で表示する */
   danger?: boolean;
   /** 切り替えのボタンで、今選ばれている (選択モード・配線モードなど)。地の色を付けて示す */
   active?: boolean;

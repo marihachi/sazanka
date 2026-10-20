@@ -24,8 +24,8 @@ export interface Part {
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
   period?: number;
   /**
-   * モジュールの中の INPUT / OUTPUT の、外側のピン番号 (1 から)。
-   * モジュールのパッケージが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
+   * 回路の中の INPUT / OUTPUT の、モジュールとして置いたときの外側のピン番号 (1 から)。
+   * 回路のパッケージが dip / qfp のときだけ使う。範囲外や重なりがあっても読み込みは断らない
    */
   pinNumber?: number;
   /**
