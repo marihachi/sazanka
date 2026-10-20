@@ -51,8 +51,9 @@ export function useProjectFile({
     exporting.current = true;
     try {
       await saveJsonFile(getExportFileName(new Date()), serializeProject(project));
-    } catch {
-      // 書き込みの許可がない、空き容量がないなど
+    } catch (e) {
+      // 書き込みの許可がない、空き容量がないなど。利用者には理由を出さないので、調べられるようにコンソールに残す
+      console.error('プロジェクトファイルを保存できませんでした', e);
       showConfirm({ message: m.file.saveFailed });
     } finally {
       exporting.current = false;
@@ -68,8 +69,9 @@ export function useProjectFile({
     let text: string;
     try {
       text = await readTextFile(file);
-    } catch {
-      // 選んだあとにファイルが消された・動かされたときなど
+    } catch (e) {
+      // 選んだあとにファイルが消された・動かされたときなど。調べられるようにコンソールに残す
+      console.error('ファイルを読み取れませんでした', e);
       showConfirm({ message: m.file.readFailed });
       return;
     }

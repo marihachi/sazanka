@@ -34,14 +34,14 @@ function releaseFocus() {
 /**
  * 文字列を JSON ファイルとして保存する。保存したら true、利用者が保存の画面で取り消したら false。
  * showSaveFilePicker が使えるブラウザでは、保存場所とファイル名を選ぶ画面を出す。
- * 使えないブラウザ (Firefox、Safari) では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
+ * 使えないブラウザ (Firefox、Safari) と、あっても画面を開けない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
  * 取り消したかはアプリから分からないので、保存を始めたら true)。書き込めなければ例外を投げる
  */
 export async function saveJsonFile(name: string, text: string): Promise<boolean> {
   const picker = (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
   if (picker) {
     releaseFocus();
-    let handle: SaveFileHandle;
+    let handle: SaveFileHandle | undefined;
     try {
       handle = await picker({
         suggestedName: name,
@@ -52,12 +52,16 @@ export async function saveJsonFile(name: string, text: string): Promise<boolean>
       if (e instanceof DOMException && e.name === 'AbortError') {
         return false;
       }
-      throw e;
+      // 保存の画面を開けなかった (showSaveFilePicker はあるのに画面を出せない環境。VS Code の中のブラウザなど)。
+      // 下のダウンロードで保存する
+      console.warn('保存の画面を開けなかったので、ダウンロードで保存します', e);
     }
-    const writable = await handle.createWritable();
-    await writable.write(text);
-    await writable.close();
-    return true;
+    if (handle) {
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return true;
+    }
   }
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const a = document.createElement('a');
