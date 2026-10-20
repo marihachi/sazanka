@@ -79,7 +79,7 @@ export const PropertyPanel = memo(function PropertyPanel({
           ) : part.kind === 'input' || part.kind === 'output' ? (
             <>
               {/* ポート番号は表示だけ (「入力 1」の形で、入力か出力かも示す)。置いたときに決まり、利用者は変えない。
-                  パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
+                  パッケージとピンの割り当ては回路設定で確かめるので、ここには出さない */}
               {part.portNumber !== undefined && (
                 <ReadOnlyRow
                   label={m.property.portNumber}

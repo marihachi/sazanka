@@ -54,11 +54,9 @@ export const en: Messages = {
     stepBackTitle: 'Move time back by 1 tick',
     stepForward: 'Forward 1 tick',
     stepForwardTitle: 'Move time forward by 1 tick',
-    sheetSettings: 'Sheet settings',
-    sheetSettingsTitle: 'Sheet settings: change the sheet size (width and height)',
-    moduleSettings: 'Module settings',
-    moduleSettingsTitle:
-      'Module settings: change the package (shape and pin count), port names, and pin assignment',
+    circuitSettings: 'Circuit settings',
+    circuitSettingsTitle:
+      'Circuit settings: change the sheet size, package, port names, and pin assignment',
     deleteModule: 'Delete module',
   },
   palette: {
@@ -123,15 +121,17 @@ export const en: Messages = {
       en: 'English',
     },
   },
+  circuitSettings: {
+    title: (name) => `Circuit settings: ${name}`,
+    author: 'Author (optional)',
+    apply: 'Apply',
+  },
   sheetSettings: {
-    title: (name) => `Sheet settings: ${name}`,
     width: 'Width (cells)',
     height: 'Height (cells)',
     tooSmall: (width, height) => `Parts and wires need at least ${width} × ${height} cells`,
-    apply: 'Apply',
   },
   moduleSettings: {
-    title: (name) => `Module settings: ${name}`,
     packages: {
       dip: 'DIP (pins on 2 sides)',
       qfp: 'QFP (pins on 4 sides)',
@@ -153,7 +153,6 @@ export const en: Messages = {
       'Changing the package or pin assignment may reconnect or disconnect wires where this module is placed. Be sure to check those circuits.',
     preview: 'Preview',
     previewLabel: 'Module preview',
-    apply: 'Apply',
     pinLabel: (n) => `Pin ${n}`,
     portLabelOf: (heading) => `Name of ${heading}`,
     noName: 'No name',
@@ -251,7 +250,7 @@ export const en: Messages = {
       'Drag module tabs to reorder them (Main stays first)',
       'Placing an INPUT / OUTPUT adds a pin to the module',
       'While a module tab is open, the main circuit simulation is paused',
-      '"Module settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
+      '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
     ],
     splitModule: [
       'Moving INPUT / OUTPUT up or down changes the pin order, so outer wires may connect to different pins',
@@ -292,6 +291,6 @@ export const en: Messages = {
     conflict:
       'The red wire has 2 or more output pins connected, so its value is undefined. Input pins on it read OFF',
     unexposedPorts:
-      'Red INPUT / OUTPUT are not assigned to a pin. Assign them in "Module settings"',
+      'Red INPUT / OUTPUT are not assigned to a pin. Assign them in "Circuit settings"',
   },
 };

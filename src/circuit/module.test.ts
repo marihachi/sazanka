@@ -14,6 +14,7 @@ import {
   dependsOn,
   getPortsInPinOrder,
   findUnexposedPorts,
+  findUnexposedPortsToWarn,
   getPinout,
 } from './module';
 import type { CircuitDef } from './project';
@@ -154,6 +155,24 @@ describe('モジュールのピン', () => {
       inputs: [''],
       outputs: [],
     });
+  });
+});
+
+describe('findUnexposedPortsToWarn', () => {
+  // ピン番号のない INPUT を置いた dip の回路
+  const parts = [comp('a', 'input', { portNumber: 1 })];
+  const pkg = { kind: 'dip' as const, pins: 4 };
+
+  it('メイン回路以外では、外側のピンに出せないポートを知らせる', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: 'm', name: 'M', package: pkg, parts, wires: [] }),
+    ).toEqual(new Map([['a', 'unassigned']]));
+  });
+
+  it('メイン回路では知らせない (ピンがどこにもつながらないため)', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: MAIN_ID, name: '', package: pkg, parts, wires: [] }).size,
+    ).toBe(0);
   });
 });
 
@@ -385,7 +404,7 @@ describe('dependsOn', () => {
   });
 });
 
-describe('モジュール設定の計算', () => {
+describe('回路設定の計算', () => {
   // biome-ignore format: 表形式を維持するため
   const parts: Part[] = [
     { ...comp('o1', 'output'), y: 0 },

@@ -6,9 +6,8 @@ import { PreferencesDialog } from '../preferences/PreferencesDialog';
 import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
 import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
-import { ModuleSettingsDialog } from '../modules/ModuleSettingsDialog';
-import { SheetSettingsDialog } from '../sheet/SheetSettingsDialog';
-import { findDef, type CircuitSheet, type Package, type Project } from '../circuit/project';
+import { CircuitSettingsDialog, type CircuitSettings } from '../modules/CircuitSettingsDialog';
+import { findDef, type Project } from '../circuit/project';
 
 /**
  * 画面内のダイアログの開閉と、描く部分。
@@ -19,24 +18,16 @@ export function useDialogs({
   preferences,
   onPreferencesChange,
   project,
-  onApplyModuleSettings,
-  onApplySheetSettings,
+  onApplyCircuitSettings,
 }: {
   /** 開いた直後に出すお知らせ (保存データが読めなかったときなど) */
   initialMessage?: string;
   preferences: Preferences;
   onPreferencesChange: (preferences: Preferences) => void;
-  /** モジュール設定のダイアログで、設定するモジュールを探し、プレビューを描くのに使う */
+  /** 回路設定のダイアログで、設定する回路を探し、プレビューを描くのに使う */
   project: Project;
-  /** モジュール設定を当てはめる (元に戻せる 1 回の編集にする) */
-  onApplyModuleSettings: (
-    id: string,
-    pkg: Package,
-    numbers: Map<string, number>,
-    labels: Map<string, string>,
-  ) => void;
-  /** 回路 id のシートの大きさを当てはめる (元に戻せる 1 回の編集にする) */
-  onApplySheetSettings: (id: string, sheet: CircuitSheet) => void;
+  /** 回路 id に回路設定を当てはめる (元に戻せる 1 回の編集にする) */
+  onApplyCircuitSettings: (id: string, settings: CircuitSettings) => void;
 }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(() =>
     initialMessage ? { message: initialMessage } : null,
@@ -62,12 +53,9 @@ export function useDialogs({
   }, [text, prompt]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
-  /** モジュール設定のダイアログで設定しているモジュールの ID */
-  const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null);
-  const moduleSettingsDef = moduleSettingsId ? findDef(project, moduleSettingsId) : undefined;
-  /** シート設定のダイアログで設定している回路の ID */
-  const [sheetSettingsId, setSheetSettingsId] = useState<string | null>(null);
-  const sheetSettingsDef = sheetSettingsId ? findDef(project, sheetSettingsId) : undefined;
+  /** 回路設定のダイアログで設定している回路の ID */
+  const [circuitSettingsId, setCircuitSettingsId] = useState<string | null>(null);
+  const circuitSettingsDef = circuitSettingsId ? findDef(project, circuitSettingsId) : undefined;
 
   const element = (
     <>
@@ -87,22 +75,12 @@ export function useDialogs({
           onClose={() => setPreferencesOpen(false)}
         />
       )}
-      {moduleSettingsDef && (
-        <ModuleSettingsDialog
-          def={moduleSettingsDef}
+      {circuitSettingsDef && (
+        <CircuitSettingsDialog
+          def={circuitSettingsDef}
           project={project}
-          onApply={(pkg, numbers, labels) =>
-            onApplyModuleSettings(moduleSettingsDef.id, pkg, numbers, labels)
-          }
-          onClose={() => setModuleSettingsId(null)}
-        />
-      )}
-      {sheetSettingsDef && (
-        <SheetSettingsDialog
-          def={sheetSettingsDef}
-          project={project}
-          onApply={(sheet) => onApplySheetSettings(sheetSettingsDef.id, sheet)}
-          onClose={() => setSheetSettingsId(null)}
+          onApply={(settings) => onApplyCircuitSettings(circuitSettingsDef.id, settings)}
+          onClose={() => setCircuitSettingsId(null)}
         />
       )}
     </>
@@ -117,19 +95,11 @@ export function useDialogs({
     showText: setText,
     openAbout: () => setAboutOpen(true),
     openPreferences: () => setPreferencesOpen(true),
-    /** モジュール id のモジュール設定を開く */
-    openModuleSettings: (id: string) => setModuleSettingsId(id),
-    /** 回路 id のシート設定を開く */
-    openSheetSettings: (id: string) => setSheetSettingsId(id),
+    /** 回路 id の回路設定を開く */
+    openCircuitSettings: (id: string) => setCircuitSettingsId(id),
     /** どれかのダイアログが開いているか */
     anyOpen:
-      !!confirm ||
-      !!prompt ||
-      !!text ||
-      aboutOpen ||
-      preferencesOpen ||
-      !!moduleSettingsDef ||
-      !!sheetSettingsDef,
+      !!confirm || !!prompt || !!text || aboutOpen || preferencesOpen || !!circuitSettingsDef,
     element,
   };
 }

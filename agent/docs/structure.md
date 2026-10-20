@@ -25,12 +25,12 @@
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
 - `modules/` … モジュールの追加・改名・削除・設定と、回路の切り替え。
-  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`ModuleSettingsDialog.tsx` … モジュール設定のダイアログ（パッケージとピンの割り当て。計算は `circuit/module.ts`）。
+  - `useModules.ts` … モジュールの操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
   - `Sheet.tsx` … シート。回路を描き、ポインターの操作を受けて出来事を知らせる。
   - `SheetPart.tsx` … シート上の部品 1 つ。`wirePath.ts` … 配線の点の並びから作る SVG のパス（角の丸め）。
   - `useViewGestures.ts` … 表示を動かす操作（ホイール、中ボタンか Space でのドラッグ、2 本指）。
-  - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。`SheetSettingsDialog.tsx` … シート設定のダイアログ（シートの大きさ）。
+  - `ZoomControls.tsx` … ズーム。`TrashZone.tsx` … 削除エリア。`SheetSizeFields.tsx` … シートの大きさの欄と、その検証（`checkSheetSize`。回路設定のダイアログから使う）。
   - `Sheet.module.css`、`SheetPart.module.css` … シートのスタイル（[見た目](styling.md)）。
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
@@ -52,7 +52,7 @@
   - `sim.ts` … 回路の評価（番号で引く形にした回路を、1 tick ずつ進める）。`flatten.ts` … モジュールの展開と、配線のネットからピン同士のつながりを作ること。
   - `testCircuits.ts` … テスト用の回路の作り方（つなぎたいピンから配線を引いた回路）。アプリからは使わない。
   - `useSimulation.ts` … 時間を進めるループ、一時停止、1 tick 送り・戻し、CLOCK の ON/OFF、シートに結果を渡す入れ物（`SimStore`）。`frameTicks.ts` … 1 フレームで進める tick 数と、1 フレームの計算時間の上限。
-  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、シート設定、モジュール設定、モジュールの削除）と、モードの型（`Tool`）。
+  - `SheetToolbar.tsx` … シートのツールバー（選択モード・配線モード・分割モードの切り替え、一時停止、1 tick 送り・戻し、回路設定、モジュールの削除）と、モードの型（`Tool`）。
 - `geometry/` … 座標の計算。
   - `layout.ts` … グリッド、部品の配置（種類の配置を部品の向きで回したもの。`getPartLayout`）、部品の大きさとピンの座標（配置をマスから px に直す）、シートの右下の角（`getSheetEnd`）、はみ出さない位置、範囲選択、配線中の点の置き方、配線の端のドラッグ（`dragWireEnd`）。
   - `net.ts` … 配線とピンの、位置によるつながり（ネット）、分岐の印の位置、出力のぶつかり。1 本に見える 2 本の結合（`mergeWiresAt`）、分割できる点と分かれ目の判定（`findSplitTarget`、`findWireJoints`）。

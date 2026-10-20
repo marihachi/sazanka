@@ -33,7 +33,7 @@ import {
   assignPinNumbers,
   assignPortNumbers,
   getPinout,
-  findUnexposedPorts,
+  findUnexposedPortsToWarn,
   usesPinNumbers,
 } from '../circuit/module';
 import { statusHints } from '../hints/hints';
@@ -105,18 +105,19 @@ export function App() {
     preferences,
     onPreferencesChange: setPreferences,
     project,
-    // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
-    onApplyModuleSettings: (id, pkg, numbers, portNames) =>
+    // 作者名、シートの大きさ、パッケージとポートを、まとめて 1 回の編集にする (元に戻す 1 回で戻る)
+    onApplyCircuitSettings: (id, settings) =>
       history.commit((p) => ({
         ...p,
         circuits: p.circuits.map((d) =>
-          d.id === id ? applyModuleSettings(d, pkg, numbers, portNames) : d,
+          d.id === id
+            ? {
+                ...applyModuleSettings(d, settings.package, settings.numbers, settings.portNames),
+                author: settings.author,
+                sheet: settings.sheet,
+              }
+            : d,
         ),
-      })),
-    onApplySheetSettings: (id, sheet) =>
-      history.commit((p) => ({
-        ...p,
-        circuits: p.circuits.map((d) => (d.id === id ? { ...d, sheet } : d)),
       })),
   });
 
@@ -431,8 +432,8 @@ export function App() {
   // 開いている回路の配線のつながり。描画 (Sheet) と、出力のぶつかりの警告に使う
   const nets = useMemo(() => computeNets(circuit, project), [circuit, project]);
   const conflict = nets.nets.some(isConflict);
-  // 開いているモジュールの、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)
-  const problems = useMemo(() => findUnexposedPorts(circuit), [circuit]);
+  // 開いている回路の、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)。メイン回路では知らせない
+  const problems = useMemo(() => findUnexposedPortsToWarn(circuit), [circuit]);
   // シートに収まっていない部品や配線 (座標が負のもの、大きさを変える前からはみ出しているものなど)
   const outsideSheet = useMemo(
     () => !fitsInSheet(circuit, project, getCircuitSheet(circuit)),
@@ -485,8 +486,7 @@ export function App() {
     stepOnce,
     stepBack,
     deleteCircuit: modules.deleteCircuit,
-    openModuleSettings: () => dialogs.openModuleSettings(circuit.id),
-    openSheetSettings: () => dialogs.openSheetSettings(circuit.id),
+    openCircuitSettings: () => dialogs.openCircuitSettings(circuit.id),
     changeTool,
     rotate: () => rotate('cw'),
     addFromPalette: (kind: PartKind, module?: string) => addPart(kind, module),
@@ -532,8 +532,7 @@ export function App() {
           onStep={on.stepOnce}
           onStepBack={on.stepBack}
           canStepBack={canStepBack}
-          onSheetSettings={on.openSheetSettings}
-          onModuleSettings={circuit.id !== MAIN_ID ? on.openModuleSettings : undefined}
+          onCircuitSettings={on.openCircuitSettings}
           onDeleteModule={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
         />
         <Flex flex="1" minH="0">

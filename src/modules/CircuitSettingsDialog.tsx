@@ -21,11 +21,20 @@ import {
   listPortsInPositionOrder,
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
-import { type CircuitDef, isPackage, type Package, type Project } from '../circuit/project';
+import {
+  type CircuitDef,
+  type CircuitSheet,
+  getCircuitSheet,
+  isPackage,
+  MAIN_ID,
+  type Package,
+  type Project,
+} from '../circuit/project';
 import { partBounds } from '../geometry/layout';
-import type { Messages } from '../i18n/messages';
+import { getCircuitName, type Messages } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
 import { SheetPart } from '../sheet/SheetPart';
+import { checkSheetSize, SheetSizeFields } from '../sheet/SheetSizeFields';
 import { DialogFrame } from '../ui/DialogFrame';
 
 type PackageKind = Package['kind'];
@@ -33,25 +42,51 @@ type PackageKind = Package['kind'];
 /** 形の種類の選択肢の並び。選択肢の文言は、言語ごとの文言の表 (i18n/) にある */
 const PACKAGE_KINDS: PackageKind[] = ['dip', 'qfp', 'split'];
 
+/** 回路設定で当てはめる設定 */
+export interface CircuitSettings {
+  /** 作者名 (空白だけなら空文字) */
+  author: string;
+  sheet: CircuitSheet;
+  package: Package;
+  /** ポートの部品 ID → ピン番号 */
+  numbers: Map<string, number>;
+  /** ポートの部品 ID → 名前 */
+  portNames: Map<string, string>;
+}
+
 /**
- * モジュール設定のダイアログ。開いているモジュールのパッケージ (形の種類とピン数) と、ポートの名前と、ピンの割り当てを編集する。
- * 変更は「適用」でまとめて 1 回の編集にする (onApply)。適用する前の設定で、シート上での見え方をプレビューに出す
+ * 回路設定のダイアログ。開いている回路の作者名、シートの大きさ、パッケージ (形の種類とピン数)、ポートの名前、ピンの割り当てを編集する。
+ * メイン回路にもほかの回路にも使う。変更は「適用」でまとめて 1 回の編集にする (onApply)。
+ * 使えない値 (シートが範囲外か部品が収まらない、ピン数が使えない、ポートの名前が重なる) があれば適用できない。
+ * 適用する前の設定で、モジュールとして置いたときの見え方をプレビューに出す
  */
-export function ModuleSettingsDialog({
+export function CircuitSettingsDialog({
   def,
   project,
   onApply,
   onClose,
 }: {
-  /** 設定するモジュールの回路 */
+  /** 設定する回路 */
   def: CircuitDef;
+  /** シートに部品が収まるか (置いたモジュールの大きさ) とプレビューに使う */
   project: Project;
-  /** 設定を当てはめる。numbers はポートの部品 ID → ピン番号、portNames はポートの部品 ID → 名前 */
-  onApply: (pkg: Package, numbers: Map<string, number>, portNames: Map<string, string>) => void;
+  onApply: (settings: CircuitSettings) => void;
   onClose: () => void;
 }) {
   const m = useMessages();
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const widthRef = useRef<HTMLInputElement>(null);
+  const isMain = def.id === MAIN_ID;
+  const [author, setAuthor] = useState(def.author ?? '');
+  const currentSheet = getCircuitSheet(def);
+  const [widthText, setWidthText] = useState(String(currentSheet.width));
+  const [heightText, setHeightText] = useState(String(currentSheet.height));
+  const sheetCheck = useMemo(
+    () => checkSheetSize(def, project, widthText, heightText),
+    [def, project, widthText, heightText],
+  );
+  const sheetChanged =
+    sheetCheck.draft.width !== currentSheet.width ||
+    sheetCheck.draft.height !== currentSheet.height;
   // ポートの並び。一覧と選択肢はポート番号の順 (見出しが番号のため)、番号を振るときは位置の順 (上から順に振るため)
   const ports = useMemo(() => listPortsInNumberOrder(def), [def]);
   const portsByPosition = useMemo(() => listPortsInPositionOrder(def), [def]);
@@ -75,7 +110,14 @@ export function ModuleSettingsDialog({
   const valid = isPackage(draft);
   const applied = valid ? applyModuleSettings(def, draft, numbers, portNames) : undefined;
   const pinsChanged = applied !== undefined && !samePins(def, applied);
-  const changed = applied !== undefined && (pinsChanged || !samePortNames(def, applied));
+  const authorText = author.trim();
+  const changed =
+    applied !== undefined &&
+    (pinsChanged ||
+      !samePortNames(def, applied) ||
+      sheetChanged ||
+      authorText !== (def.author ?? ''));
+  const canApply = changed && sheetCheck.valid && duplicates.size === 0;
   const preview = valid ? applyModuleSettings(def, draft, numbers, deferredPortNames) : def;
 
   const changePortName = useCallback((id: string, text: string) => {
@@ -140,23 +182,41 @@ export function ModuleSettingsDialog({
   return (
     <DialogFrame
       onClose={onClose}
-      initialFocus={cancelRef}
+      initialFocus={widthRef}
       size="lg"
       onSubmit={(e) => {
         e.preventDefault();
-        if (applied && changed && duplicates.size === 0) {
-          onApply(draft, numbers, portNames);
+        if (canApply) {
+          onApply({
+            author: authorText,
+            sheet: sheetCheck.draft,
+            package: draft,
+            numbers,
+            portNames,
+          });
           onClose();
         }
       }}
     >
       <ChakraDialog.Header>
-        <ChakraDialog.Title>{m.moduleSettings.title(def.name)}</ChakraDialog.Title>
+        <ChakraDialog.Title>{m.circuitSettings.title(getCircuitName(def, m))}</ChakraDialog.Title>
       </ChakraDialog.Header>
       {/* 種類やピン数、出ている注意で高さが変わらないよう、本文の高さは決めておき、中でスクロールする */}
       <ChakraDialog.Body h="min(36rem, 70vh)" flex="none" overflowY="auto">
         <Flex direction={{ base: 'column', md: 'row' }} gap="6" h={{ md: 'full' }}>
           <Stack gap="5" flex="1" minW="0" minH="0">
+            <Field.Root>
+              <Field.Label>{m.circuitSettings.author}</Field.Label>
+              <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
+            </Field.Root>
+            <SheetSizeFields
+              widthText={widthText}
+              heightText={heightText}
+              onWidthChange={setWidthText}
+              onHeightChange={setHeightText}
+              check={sheetCheck}
+              widthRef={widthRef}
+            />
             <HStack gap="3" align="start">
               <Field.Root flex="1">
                 <Field.Label>{m.moduleSettings.package}</Field.Label>
@@ -269,7 +329,8 @@ export function ModuleSettingsDialog({
                 )}
               </Stack>
             )}
-            {pinsChanged && (
+            {/* メイン回路は置く先がないので、置いた先の配線の注意は要らない */}
+            {pinsChanged && !isMain && (
               <Text textStyle="sm" color="fg.warning">
                 {m.moduleSettings.wiringWarning}
               </Text>
@@ -284,11 +345,11 @@ export function ModuleSettingsDialog({
         </Flex>
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
-        <Button ref={cancelRef} variant="outline" colorPalette="gray" onClick={onClose}>
+        <Button variant="outline" colorPalette="gray" onClick={onClose}>
           {m.common.cancel}
         </Button>
-        <Button type="submit" disabled={!changed || duplicates.size > 0}>
-          {m.moduleSettings.apply}
+        <Button type="submit" disabled={!canApply}>
+          {m.circuitSettings.apply}
         </Button>
       </ChakraDialog.Footer>
     </DialogFrame>
@@ -399,7 +460,7 @@ function Preview({ def, project }: { def: CircuitDef; project: Project }) {
         <SheetPart
           comp={part}
           pinout={pinout}
-          name={def.name}
+          name={getCircuitName(def, m)}
           inputValues={pinout.inputs.map(() => false)}
           outputValues={pinout.outputs.map(() => false)}
           selected={false}

@@ -3,7 +3,14 @@
 
 import { inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
-import { findDef, MAX_PACKAGE_PINS, type CircuitDef, type Package, type Project } from './project';
+import {
+  findDef,
+  MAIN_ID,
+  MAX_PACKAGE_PINS,
+  type CircuitDef,
+  type Package,
+  type Project,
+} from './project';
 
 /**
  * 部品のピンの割り当て (ピンの名前と、モジュールの外側のピン番号)。
@@ -70,6 +77,14 @@ export function findUnexposedPorts(def: Circuit & { package?: Package }): Map<st
     }
   }
   return problems;
+}
+
+/**
+ * 外側のピンに出せないポートのうち、利用者に知らせるもの (警告と、ポートの印)。
+ * メイン回路では知らせない。メイン回路のピンはどこにもつながらないので、割り当てていなくても困らないため (開発者が決めた)
+ */
+export function findUnexposedPortsToWarn(def: CircuitDef): Map<string, PortProblem> {
+  return def.id === MAIN_ID ? new Map() : findUnexposedPorts(def);
 }
 
 /**
@@ -270,7 +285,7 @@ export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   );
 }
 
-// モジュール設定 (modules/ModuleSettingsDialog.tsx) で使う計算
+// 回路設定 (modules/CircuitSettingsDialog.tsx) で使う計算
 
 /**
  * ポートを、位置の順 (入力を上から、続けて出力を上から) に並べる。
@@ -284,7 +299,7 @@ export function listPortsInPositionOrder(def: Circuit): Part[] {
 }
 
 /**
- * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。モジュール設定の一覧と選択肢に使う
+ * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。回路設定の一覧と選択肢に使う
  * (見出しがポート番号なので、番号の順に並べる)。番号を振る順は、位置の順 (listPortsInPositionOrder) を使う。
  * 番号がない・重なるポートは、読み込みでは断り、置く操作では付け直すので、ふつうは起きない。それでも並びが決まるよう、
  * 番号が同じなら位置の順、番号のないものは最後にする
@@ -311,7 +326,7 @@ export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
 }
 
 /**
- * モジュール設定を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
+ * 回路設定 (パッケージ、ポートの名前、ピンの割り当て) を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
  * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す。
  * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
  */

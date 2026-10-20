@@ -306,8 +306,8 @@ interface SheetPartProps {
   inputValues: boolean[];
   selected: boolean;
   /**
-   * dip / qfp のモジュールの、外側のピン番号を書くか。シート上では書かず (ピンの割り当てはモジュール設定で確かめる)、
-   * モジュール設定のプレビューでだけ書く
+   * dip / qfp のモジュールの、外側のピン番号を書くか。シート上では書かず (ピンの割り当ては回路設定で確かめる)、
+   * 回路設定のプレビューでだけ書く
    */
   showPinNumbers?: boolean;
   /** モジュールの中の INPUT / OUTPUT が、外側のピンに出せないとき、その理由。部品に印を付ける */

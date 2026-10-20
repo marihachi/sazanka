@@ -63,11 +63,9 @@ export const ja = {
     stepBackTitle: '1 tick だけ時間を戻す',
     stepForward: '1 tick 進める',
     stepForwardTitle: '1 tick だけ時間を進める',
-    sheetSettings: 'シート設定',
-    sheetSettingsTitle: 'シート設定: シートの大きさ (幅と高さ) を変える',
-    moduleSettings: 'モジュール設定',
-    moduleSettingsTitle:
-      'モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える',
+    circuitSettings: '回路設定',
+    circuitSettingsTitle:
+      '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
     deleteModule: 'モジュールを削除',
   },
   palette: {
@@ -133,17 +131,19 @@ export const ja = {
       en: 'English',
     } satisfies Record<LanguageSetting, string>,
   },
+  circuitSettings: {
+    title: (name: string) => `回路設定: ${name}`,
+    author: '作者名 (省略可)',
+    apply: '適用',
+  },
   sheetSettings: {
-    title: (name: string) => `シート設定: ${name}`,
     width: '幅 (マス)',
     height: '高さ (マス)',
     /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
     tooSmall: (width: number, height: number) =>
       `部品と配線が収まるのは ${width} × ${height} マス以上です`,
-    apply: '適用',
   },
   moduleSettings: {
-    title: (name: string) => `モジュール設定: ${name}`,
     packages: {
       dip: 'DIP (左右の 2 辺にピン)',
       qfp: 'QFP (4 辺にピン)',
@@ -165,7 +165,6 @@ export const ja = {
       'パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。',
     preview: 'プレビュー',
     previewLabel: 'モジュールのプレビュー',
-    apply: '適用',
     pinLabel: (n: number) => `${n} 番のピン`,
     portLabelOf: (heading: string) => `${heading} の名前`,
     noName: '名前未設定',
@@ -274,7 +273,7 @@ export const ja = {
       'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
       'INPUT / OUTPUT を置くと、モジュールのピンが増える',
       'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
-      'ツールバーの「モジュール設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
+      'ツールバーの「回路設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
     ],
     /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で、module に足すヒント */
     splitModule: [
@@ -313,6 +312,6 @@ export const ja = {
     conflict:
       '赤い配線に出力ピンが2つ以上つながっていて、値が決まらない。つながる入力ピンは OFF になる',
     unexposedPorts:
-      '赤い INPUT / OUTPUT はピンに割り当てられていない。「モジュール設定」で割り当てられる',
+      '赤い INPUT / OUTPUT はピンに割り当てられていない。「回路設定」で割り当てられる',
   },
 };
