@@ -48,6 +48,8 @@ const PACKAGE_KINDS: PackageKind[] = ['dip', 'qfp', 'split'];
 
 /** 回路設定で当てはめる設定 */
 export interface CircuitSettings {
+  /** 名前 (前後の空白を除いたもの)。メイン回路は名前を持たないので空文字のまま */
+  name: string;
   /** 作者名 (空白だけなら空文字) */
   author: string;
   sheet: CircuitSheet;
@@ -59,7 +61,7 @@ export interface CircuitSettings {
 }
 
 /**
- * 回路設定のダイアログ。開いている回路の作者名、シートの大きさ、パッケージ (形の種類とピン数)、ポートの名前、ピンの割り当てを編集する。
+ * 回路設定のダイアログ。開いている回路の名前 (メイン回路は除く)、作者名、シートの大きさ、パッケージ (形の種類とピン数)、ポートの名前、ピンの割り当てを編集する。
  * メイン回路にもほかの回路にも使う。変更は「適用」でまとめて 1 回の編集にする (onApply)。
  * 使えない値 (シートが範囲外か部品が収まらない、ピン数が使えない、ポートの名前が重なる) があれば適用できない。
  * 適用する前の設定で、モジュールとして置いたときの見え方をプレビューに出す
@@ -81,6 +83,17 @@ export function CircuitSettingsDialog({
   const widthRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<SettingsTab>('general');
   const isMain = def.id === MAIN_ID;
+  const [name, setName] = useState(def.name);
+  const nameText = name.trim();
+  // 回路の追加と同じく、空の名前と、ほかの回路やメイン回路の表示名と同じ名前は断る (タブで見分けられなくなるため)
+  const nameError = isMain
+    ? undefined
+    : !nameText
+      ? m.circuits.nameRequired
+      : project.circuits.some((d) => d.id !== def.id && d.name === nameText) ||
+          nameText === m.common.mainCircuit
+        ? m.circuits.nameTaken
+        : undefined;
   const [author, setAuthor] = useState(def.author ?? '');
   const currentSheet = getCircuitSheet(def);
   const [widthText, setWidthText] = useState(String(currentSheet.width));
@@ -121,8 +134,9 @@ export function CircuitSettingsDialog({
     (pinsChanged ||
       !samePortNames(def, applied) ||
       sheetChanged ||
-      authorText !== (def.author ?? ''));
-  const canApply = changed && sheetCheck.valid && duplicates.size === 0;
+      authorText !== (def.author ?? '') ||
+      nameText !== def.name);
+  const canApply = changed && !nameError && sheetCheck.valid && duplicates.size === 0;
   const preview = valid ? applyCircuitSettings(def, draft, numbers, deferredPortNames) : def;
 
   const changePortName = useCallback((id: string, text: string) => {
@@ -193,6 +207,7 @@ export function CircuitSettingsDialog({
         e.preventDefault();
         if (canApply) {
           onApply({
+            name: isMain ? def.name : nameText,
             author: authorText,
             sheet: sheetCheck.draft,
             package: draft,
@@ -221,7 +236,7 @@ export function CircuitSettingsDialog({
             <SettingsTabTrigger
               value="general"
               label={m.circuitSettings.tabs.general}
-              invalid={!sheetCheck.valid}
+              invalid={!!nameError || !sheetCheck.valid}
             />
             <SettingsTabTrigger
               value="module"
@@ -231,6 +246,14 @@ export function CircuitSettingsDialog({
           </Tabs.List>
           <Tabs.Content value="general">
             <Stack gap="5" maxW="sm">
+              {/* メイン回路は名前を変えられない (表示言語の名前で出す) ので、欄を出さない */}
+              {!isMain && (
+                <Field.Root invalid={!!nameError}>
+                  <Field.Label>{m.circuits.name}</Field.Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} />
+                  <Field.ErrorText>{nameError}</Field.ErrorText>
+                </Field.Root>
+              )}
               <Field.Root>
                 <Field.Label>{m.circuitSettings.author}</Field.Label>
                 <Input value={author} onChange={(e) => setAuthor(e.target.value)} />

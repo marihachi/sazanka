@@ -113,6 +113,7 @@ export function App() {
           d.id === id
             ? {
                 ...applyCircuitSettings(d, settings.package, settings.numbers, settings.portNames),
+                name: settings.name,
                 author: settings.author,
                 sheet: settings.sheet,
               }
