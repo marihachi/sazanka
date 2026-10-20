@@ -34,33 +34,30 @@ function releaseFocus() {
 /**
  * 文字列を JSON ファイルとして保存する。保存したら true、利用者が保存の画面で取り消したら false。
  * showSaveFilePicker が使えるブラウザでは、保存場所とファイル名を選ぶ画面を出す。
- * 使えないブラウザ (Firefox、Safari) と、あっても画面を開けない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
+ * 使えないブラウザ (Firefox、Safari) と、あっても画面を開けない・書き込めない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
  * 取り消したかはアプリから分からないので、保存を始めたら true)。書き込めなければ例外を投げる
  */
 export async function saveJsonFile(name: string, text: string): Promise<boolean> {
   const picker = (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
   if (picker) {
     releaseFocus();
-    let handle: SaveFileHandle | undefined;
     try {
-      handle = await picker({
+      const handle = await picker({
         suggestedName: name,
         types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
       });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return true;
     } catch (e) {
       // 保存の画面で取り消した
       if (e instanceof DOMException && e.name === 'AbortError') {
         return false;
       }
-      // 保存の画面を開けなかった (showSaveFilePicker はあるのに画面を出せない環境。VS Code の中のブラウザなど)。
-      // 下のダウンロードで保存する
-      console.warn('保存の画面を開けなかったので、ダウンロードで保存します', e);
-    }
-    if (handle) {
-      const writable = await handle.createWritable();
-      await writable.write(text);
-      await writable.close();
-      return true;
+      // showSaveFilePicker はあるのに、保存の画面を開けない、または選んだファイルに書き込めない環境がある
+      // (VS Code の中のブラウザでは、画面は開けるが createWritable が NotAllowedError になる)。下のダウンロードで保存する
+      console.warn('保存の画面からは保存できなかったので、ダウンロードで保存します', e);
     }
   }
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));

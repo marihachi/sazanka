@@ -114,7 +114,7 @@
   - 書き出しは、`project-YYYY-MM-DD.sazanka.json`（端末の日付）を既定の名前にして保存する。
   - 手元のファイルとのやりとりは `file/localFile.ts` にまとめている（保存の `saveJsonFile`、ファイルを選ぶ `pickFile`、読む `readTextFile`）。
   - 保存は、`showSaveFilePicker` が使えるブラウザ（Chrome、Edge など Chromium のもの。安全な接続のときだけ）では、保存場所とファイル名を選ぶ画面を出す。使えないブラウザ（Firefox、Safari）では `<a download>` で保存する（保存場所を聞くかはブラウザの設定による）。どちらでも書き出せるので、特定の環境を前提にしない決まりとはぶつからない。
-  - `showSaveFilePicker` があっても、保存の画面を開けない環境がある（VS Code の中のブラウザなど。取り消し以外の例外になる）。そのときもダウンロードで保存する（`saveJsonFile`）。取り消し（`AbortError`）のときは、何もしない。
+  - `showSaveFilePicker` があっても、保存の画面を開けない環境や、選んだファイルに書き込めない環境がある（VS Code の中のブラウザでは、画面は開けるが `createWritable` が `NotAllowedError` になる）。取り消し以外の例外のときは、ダウンロードで保存する（`saveJsonFile`）。取り消し（`AbortError`）のときは、何もしない。
   - ファイルは UTF-8 として読む。先頭の BOM は `File.text()` が外す。
 - 読み込むと、元に戻す・やり直しの履歴を消す（履歴はプロジェクトごとのもの。開発者が決めた）。読み込みは元に戻せない。
 - 回路ファイル（`format` が `"sazanka-circuits"`）や回路のデータを選んだときは、種類が違うと知らせる（`CIRCUIT_FILE`）。
