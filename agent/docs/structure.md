@@ -67,7 +67,7 @@
   - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は、動作の分類ごとの既定の配置、小さな四角の配置 `squareLayout`、部品の向きの型 `Rotation` と配置を回す `rotateLayout` も）。`specs.ts` … 仕様の一覧（`PART_SPECS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `getLayout`。`PartIcon.tsx` … 種類のアイコン。`bodies.tsx` … 本体の描き込みを種類のフォルダ（`<種類>/Body.tsx`）に置く種類の一覧（`PART_BODIES`）。
 - `ui/` … 回路を知らない、共通の画面部品。
   - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
-  - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。
+  - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（文字列の欄と、ファイルの選択を持つ入力。今は使う所がないが、残しておく）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
 - `i18n/` … 画面の文言（表示言語）。決まりと仕組みは[文言と表示言語](i18n.md)。
   - `language.ts` … 言語の型（`Language`）、言語ごとに書き分けた値の型（`Localized`、`LocalText`）、環境設定の言語から画面に出す言語を決めること（`resolveLanguage`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。`en.ts` … 英語の表。
