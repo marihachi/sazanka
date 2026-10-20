@@ -208,23 +208,28 @@ export function CircuitSettingsDialog({
       return next;
     });
   }, []);
-  // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す
+  // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す。
+  // 番号を入れ替えると名前 (「入力 1 A」) が変わり、選択肢を全部の行で作り直すので、名前と同じく入力より遅れてよい
+  const deferredPorts = useDeferredValue(ports);
   const names = useMemo(
-    () => new Map(ports.map((c) => [c.id, getPortName(c, deferredPortNames.get(c.id) ?? '', m)])),
-    [ports, deferredPortNames, m],
+    () =>
+      new Map(
+        deferredPorts.map((c) => [c.id, getPortName(c, deferredPortNames.get(c.id) ?? '', m)]),
+      ),
+    [deferredPorts, deferredPortNames, m],
   );
   const options = useMemo(
     () => [
       <option key="" value="">
         NC
       </option>,
-      ...ports.map((c) => (
+      ...deferredPorts.map((c) => (
         <option key={c.id} value={c.id}>
           {names.get(c.id)}
         </option>
       )),
     ],
-    [ports, names],
+    [deferredPorts, names],
   );
 
   const numbered = valid && kind !== 'split';
