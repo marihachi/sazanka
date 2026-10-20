@@ -5,6 +5,7 @@ import {
   Field,
   Flex,
   HStack,
+  IconButton,
   Input,
   NativeSelect,
   Stack,
@@ -20,6 +21,8 @@ import {
   getPinout,
   listPortsInNumberOrder,
   listPortsInPositionOrder,
+  renumberPortsByPosition,
+  swapPortNumbers,
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
 import {
@@ -37,7 +40,9 @@ import { getCircuitName, type Messages } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
 import { SheetPart } from '../sheet/SheetPart';
 import { checkSheetSize, SheetSizeFields } from '../sheet/SheetSizeFields';
+import chevronIcon from '../assets/icons/chevron.svg';
 import { DialogFrame } from '../ui/DialogFrame';
+import { MaskIcon } from '../ui/Icons';
 import { describeNameProblem } from './useCircuits';
 
 type PackageKind = Package['kind'];
@@ -60,6 +65,8 @@ export interface CircuitSettings {
   numbers: Map<string, number>;
   /** ポートの部品 ID → 名前 */
   portNames: Map<string, string>;
+  /** ポートの部品 ID → ポート番号 */
+  portNumbers: ReadonlyMap<string, number>;
 }
 
 /**
@@ -102,8 +109,21 @@ export function CircuitSettingsDialog({
   const sheetChanged =
     sheetCheck.draft.width !== currentSheet.width ||
     sheetCheck.draft.height !== currentSheet.height;
-  // ポートの並び。一覧と選択肢はポート番号の順 (見出しが番号のため)、番号を振るときは位置の順 (上から順に振るため)
-  const ports = useMemo(() => listPortsInNumberOrder(def), [def]);
+  // ポート番号の下書き (部品 ID → 番号)。「上へ」「下へ」と「上から順に番号を振り直す」で変える
+  const [portNumbers, setPortNumbers] = useState<ReadonlyMap<string, number>>(
+    () =>
+      new Map(
+        def.parts
+          .filter((c) => c.kind === 'input' || c.kind === 'output')
+          .flatMap((c) => (c.portNumber === undefined ? [] : [[c.id, c.portNumber] as const])),
+      ),
+  );
+  // ポートの並び。一覧と選択肢は、下書きのポート番号の順 (見出しが番号のため。番号を入れ替えると行も入れ替わる)。
+  // 「上から順に割り当て直す」は位置の順 (上から順に振るため)
+  const ports = useMemo(
+    () => listPortsInNumberOrder(withPortNumbers(def, portNumbers)),
+    [def, portNumbers],
+  );
   const portsByPosition = useMemo(() => listPortsInPositionOrder(def), [def]);
   const initial = def.package ?? { kind: 'split' };
   const [kind, setKind] = useState<PackageKind>(initial.kind);
@@ -111,7 +131,7 @@ export function CircuitSettingsDialog({
     'pins' in initial ? String(initial.pins) : String(calcFittingPins('dip', ports.length)),
   );
   // ピンの割り当ての下書き。開いたときの番号から、重なり (2 つめ以降) を除いて始める
-  const [numbers, setNumbers] = useState(() => initialNumbers(ports));
+  const [numbers, setNumbers] = useState(() => initialNumbers(listPortsInNumberOrder(def)));
   // ポートの名前の下書き (部品 ID → 入力中の文字)
   const [portNames, setPortNames] = useState(
     () => new Map(ports.map((c) => [c.id, c.portName ?? ''])),
@@ -123,24 +143,45 @@ export function CircuitSettingsDialog({
   const pins = Number(pinsText);
   const draft: Package = kind === 'split' ? { kind } : { kind, pins };
   const valid = isPackage(draft);
-  const applied = valid ? applyCircuitSettings(def, draft, numbers, portNames) : undefined;
+  const applied = valid
+    ? applyCircuitSettings(def, draft, numbers, portNames, portNumbers)
+    : undefined;
   const pinsChanged = applied !== undefined && !samePins(def, applied);
   const authorText = author.trim();
   const changed =
     applied !== undefined &&
     (pinsChanged ||
       !samePortNames(def, applied) ||
+      !samePortNumbers(def, applied) ||
       sheetChanged ||
       authorText !== (def.author ?? '') ||
       nameText !== def.name);
   const canApply = changed && !nameError && sheetCheck.valid && duplicates.size === 0;
-  const preview = valid ? applyCircuitSettings(def, draft, numbers, deferredPortNames) : def;
+  const preview = valid
+    ? applyCircuitSettings(def, draft, numbers, deferredPortNames, portNumbers)
+    : def;
 
   const changePortName = useCallback((id: string, text: string) => {
     setPortNames((cur) => new Map(cur).set(id, text));
   }, []);
 
-  /** 形の種類を変える。ピン数は、新しい種類で使える数に直す。split から変えるときは、上から順に番号を割り当てる */
+  /**
+   * ポート id の番号を、同じ種類で隣のポートと入れ替える (direction が -1 なら上へ、1 なら下へ)。
+   * 行 (PortRow) の描き直しを省けるよう、同じ関数を渡し続ける。並びは今の番号から引くので、関数の中で作る
+   */
+  const movePort = useCallback(
+    (id: string, direction: -1 | 1) => {
+      setPortNumbers((cur) =>
+        swapPortNumbers(listPortsInNumberOrder(withPortNumbers(def, cur)), cur, id, direction),
+      );
+    },
+    [def],
+  );
+
+  /**
+   * 形の種類を変える。ピン数は、新しい種類で使える数に直す。
+   * split から変えるときは、ポート番号の順に番号を割り当てる (split のときのピンの順を、そのまま引き継ぐため)
+   */
   function changeKind(next: PackageKind) {
     setKind(next);
     if (next === 'split') {
@@ -150,7 +191,7 @@ export function CircuitSettingsDialog({
     const fitted = calcFittingPins(next, Math.max(current, ports.length));
     setPinsText(String(isPackage({ kind: next, pins: current }) ? current : fitted));
     if (kind === 'split') {
-      setNumbers(assignInOrder(portsByPosition, fitted));
+      setNumbers(assignInOrder(ports, fitted));
     }
   }
 
@@ -210,6 +251,7 @@ export function CircuitSettingsDialog({
             package: draft,
             numbers,
             portNames,
+            portNumbers,
           });
           onClose();
         }
@@ -314,9 +356,19 @@ export function CircuitSettingsDialog({
                   </Text>
                 )}
                 <Stack gap="2" flex={{ md: '1' }} minH="0">
-                  <Text textStyle="sm" fontWeight="medium">
-                    {m.circuitSettings.ports}
-                  </Text>
+                  <HStack justify="space-between">
+                    <Text textStyle="sm" fontWeight="medium">
+                      {m.circuitSettings.ports}
+                    </Text>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      colorPalette="gray"
+                      onClick={() => setPortNumbers(renumberPortsByPosition(def))}
+                    >
+                      {m.circuitSettings.renumberPorts}
+                    </Button>
+                  </HStack>
                   <Stack
                     gap="1"
                     flex={{ md: '1' }}
@@ -325,14 +377,17 @@ export function CircuitSettingsDialog({
                     overflowY="auto"
                     pe="1"
                   >
-                    {ports.map((c) => (
+                    {ports.map((c, i) => (
                       <PortRow
                         key={c.id}
                         id={c.id}
                         heading={m.common.portName(c.kind, c.portNumber ?? '')}
                         value={portNames.get(c.id) ?? ''}
                         duplicate={duplicates.has(c.id)}
+                        canMoveUp={ports[i - 1]?.kind === c.kind}
+                        canMoveDown={ports[i + 1]?.kind === c.kind}
                         onChange={changePortName}
+                        onMove={movePort}
                       />
                     ))}
                   </Stack>
@@ -451,7 +506,7 @@ const PinRow = memo(function PinRow({
 });
 
 /**
- * ポートの 1 行。入力か出力かとポート番号と、名前の入力欄。
+ * ポートの 1 行。入力か出力かとポート番号と、名前の入力欄と、番号を入れ替える「上へ」「下へ」。
  * ポートが多いと、1 文字打つたびに全部の行を描き直すと重いので、memo で変わった行だけを描き直す
  */
 const PortRow = memo(function PortRow({
@@ -459,7 +514,10 @@ const PortRow = memo(function PortRow({
   heading,
   value,
   duplicate,
+  canMoveUp,
+  canMoveDown,
   onChange,
+  onMove,
 }: {
   id: string;
   /** 「入力 1」の形の見出し */
@@ -468,7 +526,12 @@ const PortRow = memo(function PortRow({
   value: string;
   /** ほかのポートと名前が重なっているか */
   duplicate: boolean;
+  /** 同じ種類の中で、前 (番号の小さい方) / 後のポートがあるか */
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onChange: (id: string, text: string) => void;
+  /** 番号を、同じ種類で隣のポートと入れ替える (-1 は上へ、1 は下へ) */
+  onMove: (id: string, direction: -1 | 1) => void;
 }) {
   const m = useMessages();
   return (
@@ -485,6 +548,28 @@ const PortRow = memo(function PortRow({
           onChange={(e) => onChange(id, e.target.value)}
         />
       </Field.Root>
+      <IconButton
+        size="xs"
+        variant="ghost"
+        colorPalette="gray"
+        aria-label={m.circuitSettings.moveUp(heading)}
+        title={m.circuitSettings.moveUp(heading)}
+        disabled={!canMoveUp}
+        onClick={() => onMove(id, -1)}
+      >
+        <MaskIcon src={chevronIcon} boxSize="3" transform="rotate(180deg)" />
+      </IconButton>
+      <IconButton
+        size="xs"
+        variant="ghost"
+        colorPalette="gray"
+        aria-label={m.circuitSettings.moveDown(heading)}
+        title={m.circuitSettings.moveDown(heading)}
+        disabled={!canMoveDown}
+        onClick={() => onMove(id, 1)}
+      >
+        <MaskIcon src={chevronIcon} boxSize="3" />
+      </IconButton>
     </HStack>
   );
 });
@@ -555,12 +640,32 @@ function getPortName(c: Part, text: string, m: Messages): string {
   return m.circuitSettings.portOption(m.common.portName(c.kind, c.portNumber ?? ''), text.trim());
 }
 
-/** パッケージとポートのピン番号が同じか (外の配線に響く変更がないか) */
+/**
+ * パッケージとポートのピン番号が同じか (外の配線に響く変更がないか)。
+ * split ではポート番号の順がピンの順なので、ポート番号も比べる
+ */
 function samePins(a: CircuitDef, b: CircuitDef): boolean {
   return (
     JSON.stringify(a.package ?? { kind: 'split' }) === JSON.stringify(b.package) &&
-    a.parts.every((c, i) => c.pinNumber === b.parts[i].pinNumber)
+    a.parts.every((c, i) => c.pinNumber === b.parts[i].pinNumber) &&
+    (b.package?.kind !== 'split' || samePortNumbers(a, b))
   );
+}
+
+/** ポート番号が同じか */
+function samePortNumbers(a: CircuitDef, b: CircuitDef): boolean {
+  return a.parts.every((c, i) => c.portNumber === b.parts[i].portNumber);
+}
+
+/** 回路 def のポートのポート番号を、numbers (部品 ID → 番号) にしたもの。番号の順に並べるのに使う */
+function withPortNumbers(def: CircuitDef, numbers: ReadonlyMap<string, number>): CircuitDef {
+  return {
+    ...def,
+    parts: def.parts.map((c) => {
+      const n = numbers.get(c.id);
+      return n === undefined || n === c.portNumber ? c : { ...c, portNumber: n };
+    }),
+  };
 }
 
 /** ポートの名前が同じか */

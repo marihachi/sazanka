@@ -112,7 +112,13 @@ export function App() {
         circuits: p.circuits.map((d) =>
           d.id === id
             ? {
-                ...applyCircuitSettings(d, settings.package, settings.numbers, settings.portNames),
+                ...applyCircuitSettings(
+                  d,
+                  settings.package,
+                  settings.numbers,
+                  settings.portNames,
+                  settings.portNumbers,
+                ),
                 name: settings.name,
                 author: settings.author,
                 sheet: settings.sheet,

@@ -156,6 +156,9 @@ export const ja = {
     duplicatePortName: 'ほかのポートと同じ名前は付けられません',
     assignment: 'ピンの割り当て',
     assignInOrder: '上から順に割り当て直す',
+    renumberPorts: '上から順に番号を振り直す',
+    moveUp: (heading: string) => `${heading} を上へ (番号を前のポートと入れ替える)`,
+    moveDown: (heading: string) => `${heading} を下へ (番号を後のポートと入れ替える)`,
     unassigned: '割り当てのないポート (外側のピンに出ない):',
     listSeparator: '、',
     wiringWarning:

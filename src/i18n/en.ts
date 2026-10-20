@@ -145,6 +145,9 @@ export const en: Messages = {
     duplicatePortName: 'Another port already has this name',
     assignment: 'Pin assignment',
     assignInOrder: 'Reassign from the top',
+    renumberPorts: 'Renumber from the top',
+    moveUp: (heading) => `Move ${heading} up (swap its number with the previous port)`,
+    moveDown: (heading) => `Move ${heading} down (swap its number with the next port)`,
     unassigned: 'Unassigned ports (not on any outer pin):',
     listSeparator: ', ',
     wiringWarning:
