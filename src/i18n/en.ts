@@ -124,6 +124,11 @@ export const en: Messages = {
   circuitSettings: {
     title: (name) => `Circuit settings: ${name}`,
     author: 'Author (optional)',
+    tabs: {
+      basic: 'General',
+      ports: 'Ports',
+      invalid: 'Has invalid values',
+    },
     apply: 'Apply',
     packages: {
       dip: 'DIP (pins on 2 sides)',
@@ -136,7 +141,7 @@ export const en: Messages = {
     qfpPinsError: 'QFP pin count must be a multiple of 4 from 8 to 256',
     splitHelp:
       'Inputs go on the left and outputs on the right, in order of position inside (top to bottom, then left to right). Pin numbers are not used.',
-    ports: 'Ports',
+    ports: 'Port names',
     duplicatePortName: 'Another port already has this name',
     assignment: 'Pin assignment',
     assignInOrder: 'Reassign from the top',

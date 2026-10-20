@@ -134,6 +134,12 @@ export const ja = {
   circuitSettings: {
     title: (name: string) => `回路設定: ${name}`,
     author: '作者名 (省略可)',
+    tabs: {
+      basic: '基本',
+      ports: 'ポート',
+      /** 使えない値があるタブの印 (読み上げ用) */
+      invalid: '使えない値があります',
+    },
     apply: '適用',
     packages: {
       dip: 'DIP (左右の 2 辺にピン)',
@@ -146,7 +152,7 @@ export const ja = {
     qfpPinsError: 'QFP のピン数は、8〜256 の 4 の倍数で入力してください',
     splitHelp:
       '入力は左、出力は右に、中の位置の順 (上から、同じ高さなら左から) に並びます。ピン番号は使いません。',
-    ports: 'ポート',
+    ports: 'ポートの名前',
     duplicatePortName: 'ほかのポートと同じ名前は付けられません',
     assignment: 'ピンの割り当て',
     assignInOrder: '上から順に割り当て直す',

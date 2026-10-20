@@ -8,6 +8,7 @@ import {
   Input,
   NativeSelect,
   Stack,
+  Tabs,
   Text,
 } from '@chakra-ui/react';
 import { memo, useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
@@ -38,6 +39,9 @@ import { checkSheetSize, SheetSizeFields } from '../sheet/SheetSizeFields';
 import { DialogFrame } from '../ui/DialogFrame';
 
 type PackageKind = Package['kind'];
+
+/** 回路設定のタブ。基本 (作者名、シートの大きさ) と、ポート (パッケージ、ポートの名前、ピンの割り当て、プレビュー) */
+type SettingsTab = 'basic' | 'ports';
 
 /** 形の種類の選択肢の並び。選択肢の文言は、言語ごとの文言の表 (i18n/) にある */
 const PACKAGE_KINDS: PackageKind[] = ['dip', 'qfp', 'split'];
@@ -75,6 +79,7 @@ export function CircuitSettingsDialog({
 }) {
   const m = useMessages();
   const widthRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<SettingsTab>('basic');
   const isMain = def.id === MAIN_ID;
   const [author, setAuthor] = useState(def.author ?? '');
   const currentSheet = getCircuitSheet(def);
@@ -201,148 +206,181 @@ export function CircuitSettingsDialog({
       <ChakraDialog.Header>
         <ChakraDialog.Title>{m.circuitSettings.title(getCircuitName(def, m))}</ChakraDialog.Title>
       </ChakraDialog.Header>
-      {/* 種類やピン数、出ている注意で高さが変わらないよう、本文の高さは決めておき、中でスクロールする */}
+      {/* 種類やピン数、出ている注意、タブで高さが変わらないよう、本文の高さは決めておき、中でスクロールする */}
       <ChakraDialog.Body h="min(36rem, 70vh)" flex="none" overflowY="auto">
-        <Flex direction={{ base: 'column', md: 'row' }} gap="6" h={{ md: 'full' }}>
-          <Stack gap="5" flex="1" minW="0" minH="0">
-            <Field.Root>
-              <Field.Label>{m.circuitSettings.author}</Field.Label>
-              <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
-            </Field.Root>
-            <SheetSizeFields
-              widthText={widthText}
-              heightText={heightText}
-              onWidthChange={setWidthText}
-              onHeightChange={setHeightText}
-              check={sheetCheck}
-              widthRef={widthRef}
+        <Tabs.Root
+          value={tab}
+          onValueChange={(e) => setTab(e.value as SettingsTab)}
+          variant="line"
+          size="sm"
+          display="flex"
+          flexDirection="column"
+          h={{ md: 'full' }}
+        >
+          <Tabs.List>
+            <SettingsTabTrigger
+              value="basic"
+              label={m.circuitSettings.tabs.basic}
+              invalid={!sheetCheck.valid}
             />
-            <HStack gap="3" align="start">
-              <Field.Root flex="1">
-                <Field.Label>{m.circuitSettings.package}</Field.Label>
-                <NativeSelect.Root>
-                  <NativeSelect.Field
-                    value={kind}
-                    onChange={(e) => changeKind(e.target.value as PackageKind)}
-                  >
-                    {PACKAGE_KINDS.map((k) => (
-                      <option key={k} value={k}>
-                        {m.circuitSettings.packages[k]}
-                      </option>
-                    ))}
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
+            <SettingsTabTrigger
+              value="ports"
+              label={m.circuitSettings.tabs.ports}
+              invalid={!valid || duplicates.size > 0}
+            />
+          </Tabs.List>
+          <Tabs.Content value="basic">
+            <Stack gap="5" maxW="sm">
+              <Field.Root>
+                <Field.Label>{m.circuitSettings.author}</Field.Label>
+                <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
               </Field.Root>
-              {kind !== 'split' && (
-                <Field.Root invalid={!valid} w="28">
-                  <Field.Label>{m.circuitSettings.pins}</Field.Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    step={kind === 'dip' ? 2 : 4}
-                    min={kind === 'dip' ? 4 : 8}
-                    max={256}
-                    value={pinsText}
-                    onChange={(e) => setPinsText(e.target.value)}
-                  />
-                </Field.Root>
-              )}
-            </HStack>
-            {!valid && (
-              <Text textStyle="sm" color="fg.error">
-                {kind === 'dip' ? m.circuitSettings.dipPinsError : m.circuitSettings.qfpPinsError}
-              </Text>
-            )}
-            {kind === 'split' && (
-              <Text textStyle="sm" color="fg.muted">
-                {m.circuitSettings.splitHelp}
-              </Text>
-            )}
-            <Stack gap="2" flex={{ md: '1' }} minH="0">
-              <Text textStyle="sm" fontWeight="medium">
-                {m.circuitSettings.ports}
-              </Text>
-              <Stack
-                gap="1"
-                flex={{ md: '1' }}
-                minH="0"
-                maxH={{ base: '60', md: 'none' }}
-                overflowY="auto"
-                pe="1"
-              >
-                {ports.map((c) => (
-                  <PortRow
-                    key={c.id}
-                    id={c.id}
-                    heading={m.common.portName(c.kind, c.portNumber ?? '')}
-                    value={portNames.get(c.id) ?? ''}
-                    duplicate={duplicates.has(c.id)}
-                    onChange={changePortName}
-                  />
-                ))}
-              </Stack>
-              {duplicates.size > 0 && (
-                <Text textStyle="sm" color="fg.error">
-                  {m.circuitSettings.duplicatePortName}
-                </Text>
-              )}
+              <SheetSizeFields
+                widthText={widthText}
+                heightText={heightText}
+                onWidthChange={setWidthText}
+                onHeightChange={setHeightText}
+                check={sheetCheck}
+                widthRef={widthRef}
+              />
             </Stack>
-            {numbered && (
-              <Stack gap="2" flex={{ md: '1' }} minH="0">
-                <HStack justify="space-between">
-                  <Text textStyle="sm" fontWeight="medium">
-                    {m.circuitSettings.assignment}
-                  </Text>
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    colorPalette="gray"
-                    onClick={() => setNumbers(assignInOrder(portsByPosition, pins))}
-                  >
-                    {m.circuitSettings.assignInOrder}
-                  </Button>
+          </Tabs.Content>
+          {/* 中で Flex を高さいっぱいに広げる。Tabs.Content に display を書くと、選んでいないときに隠れなくなる */}
+          <Tabs.Content value="ports" flex={{ md: '1' }} minH="0">
+            <Flex direction={{ base: 'column', md: 'row' }} gap="6" h={{ md: 'full' }}>
+              <Stack gap="5" flex="1" minW="0" minH="0">
+                <HStack gap="3" align="start">
+                  <Field.Root flex="1">
+                    <Field.Label>{m.circuitSettings.package}</Field.Label>
+                    <NativeSelect.Root>
+                      <NativeSelect.Field
+                        value={kind}
+                        onChange={(e) => changeKind(e.target.value as PackageKind)}
+                      >
+                        {PACKAGE_KINDS.map((k) => (
+                          <option key={k} value={k}>
+                            {m.circuitSettings.packages[k]}
+                          </option>
+                        ))}
+                      </NativeSelect.Field>
+                      <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                  </Field.Root>
+                  {kind !== 'split' && (
+                    <Field.Root invalid={!valid} w="28">
+                      <Field.Label>{m.circuitSettings.pins}</Field.Label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        step={kind === 'dip' ? 2 : 4}
+                        min={kind === 'dip' ? 4 : 8}
+                        max={256}
+                        value={pinsText}
+                        onChange={(e) => setPinsText(e.target.value)}
+                      />
+                    </Field.Root>
+                  )}
                 </HStack>
-                <Stack
-                  gap="1"
-                  flex={{ md: '1' }}
-                  minH="0"
-                  maxH={{ base: '60', md: 'none' }}
-                  overflowY="auto"
-                  pe="1"
-                >
-                  {Array.from({ length: pins }, (_, i) => i + 1).map((n) => (
-                    <PinRow
-                      key={n}
-                      n={n}
-                      value={portAt.get(n) ?? ''}
-                      options={options}
-                      onAssign={assign}
-                    />
-                  ))}
+                {!valid && (
+                  <Text textStyle="sm" color="fg.error">
+                    {kind === 'dip'
+                      ? m.circuitSettings.dipPinsError
+                      : m.circuitSettings.qfpPinsError}
+                  </Text>
+                )}
+                {kind === 'split' && (
+                  <Text textStyle="sm" color="fg.muted">
+                    {m.circuitSettings.splitHelp}
+                  </Text>
+                )}
+                <Stack gap="2" flex={{ md: '1' }} minH="0">
+                  <Text textStyle="sm" fontWeight="medium">
+                    {m.circuitSettings.ports}
+                  </Text>
+                  <Stack
+                    gap="1"
+                    flex={{ md: '1' }}
+                    minH="0"
+                    maxH={{ base: '60', md: 'none' }}
+                    overflowY="auto"
+                    pe="1"
+                  >
+                    {ports.map((c) => (
+                      <PortRow
+                        key={c.id}
+                        id={c.id}
+                        heading={m.common.portName(c.kind, c.portNumber ?? '')}
+                        value={portNames.get(c.id) ?? ''}
+                        duplicate={duplicates.has(c.id)}
+                        onChange={changePortName}
+                      />
+                    ))}
+                  </Stack>
+                  {duplicates.size > 0 && (
+                    <Text textStyle="sm" color="fg.error">
+                      {m.circuitSettings.duplicatePortName}
+                    </Text>
+                  )}
                 </Stack>
-                {unassigned.length > 0 && (
+                {numbered && (
+                  <Stack gap="2" flex={{ md: '1' }} minH="0">
+                    <HStack justify="space-between">
+                      <Text textStyle="sm" fontWeight="medium">
+                        {m.circuitSettings.assignment}
+                      </Text>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        colorPalette="gray"
+                        onClick={() => setNumbers(assignInOrder(portsByPosition, pins))}
+                      >
+                        {m.circuitSettings.assignInOrder}
+                      </Button>
+                    </HStack>
+                    <Stack
+                      gap="1"
+                      flex={{ md: '1' }}
+                      minH="0"
+                      maxH={{ base: '60', md: 'none' }}
+                      overflowY="auto"
+                      pe="1"
+                    >
+                      {Array.from({ length: pins }, (_, i) => i + 1).map((n) => (
+                        <PinRow
+                          key={n}
+                          n={n}
+                          value={portAt.get(n) ?? ''}
+                          options={options}
+                          onAssign={assign}
+                        />
+                      ))}
+                    </Stack>
+                    {unassigned.length > 0 && (
+                      <Text textStyle="sm" color="fg.warning">
+                        {m.circuitSettings.unassigned}{' '}
+                        {unassigned
+                          .map((c) => names.get(c.id))
+                          .join(m.circuitSettings.listSeparator)}
+                      </Text>
+                    )}
+                  </Stack>
+                )}
+                {/* メイン回路は置く先がないので、置いた先の配線の注意は要らない */}
+                {pinsChanged && !isMain && (
                   <Text textStyle="sm" color="fg.warning">
-                    {m.circuitSettings.unassigned}{' '}
-                    {unassigned.map((c) => names.get(c.id)).join(m.circuitSettings.listSeparator)}
+                    {m.circuitSettings.wiringWarning}
                   </Text>
                 )}
               </Stack>
-            )}
-            {/* メイン回路は置く先がないので、置いた先の配線の注意は要らない */}
-            {pinsChanged && !isMain && (
-              <Text textStyle="sm" color="fg.warning">
-                {m.circuitSettings.wiringWarning}
-              </Text>
-            )}
-          </Stack>
-          <Stack gap="2" w={{ base: 'full', md: '72' }} flexShrink={0}>
-            <Text textStyle="sm" fontWeight="medium">
-              {m.circuitSettings.preview}
-            </Text>
-            <Preview def={preview} project={project} />
-          </Stack>
-        </Flex>
+              <Stack gap="2" w={{ base: 'full', md: '72' }} flexShrink={0}>
+                <Text textStyle="sm" fontWeight="medium">
+                  {m.circuitSettings.preview}
+                </Text>
+                <Preview def={preview} project={project} />
+              </Stack>
+            </Flex>
+          </Tabs.Content>
+        </Tabs.Root>
       </ChakraDialog.Body>
       <ChakraDialog.Footer>
         <Button variant="outline" colorPalette="gray" onClick={onClose}>
@@ -508,4 +546,33 @@ function samePins(a: CircuitDef, b: CircuitDef): boolean {
 /** ポートの名前が同じか */
 function samePortNames(a: CircuitDef, b: CircuitDef): boolean {
   return a.parts.every((c, i) => c.portName === b.parts[i].portName);
+}
+
+/** 回路設定のタブの見出し。使えない値があるタブには、ほかのタブからでも分かるよう、赤い印を付ける (適用を押せない理由を探せるように) */
+function SettingsTabTrigger({
+  value,
+  label,
+  invalid,
+}: {
+  value: SettingsTab;
+  label: string;
+  invalid: boolean;
+}) {
+  const m = useMessages();
+  return (
+    <Tabs.Trigger value={value}>
+      {label}
+      {invalid && (
+        <Box
+          as="span"
+          w="2"
+          h="2"
+          borderRadius="full"
+          bg="fg.error"
+          aria-label={m.circuitSettings.tabs.invalid}
+          role="img"
+        />
+      )}
+    </Tabs.Trigger>
+  );
 }
