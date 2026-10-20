@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PART_VIEWS } from '../parts/views';
 import { ACCENT_PRESETS } from '../preferences/preferences';
-import { describeShareError, getCircuitName, getMessages, MESSAGES } from './messages';
+import { describeProjectFileError, getCircuitName, getMessages, MESSAGES } from './messages';
 
 const JAPANESE = /[぀-ヿ一-鿿]/;
 
@@ -44,17 +44,17 @@ describe('英語の文言', () => {
   });
 });
 
-describe('describeShareError', () => {
+describe('describeProjectFileError', () => {
   it('壊れたデータでは、検証で見つかった問題を添える', () => {
     const error = {
       code: 'BROKEN',
       detail: { code: 'BAD_ELEMENT', circuit: 'M', circuitId: 'm' },
     } as const;
-    expect(describeShareError(getMessages('en'), error)).toBe(
-      'The circuit data is broken ("M" has an invalid element)',
+    expect(describeProjectFileError(getMessages('en'), error)).toBe(
+      'The project file is broken ("M" has an invalid element)',
     );
-    expect(describeShareError(getMessages('ja'), error)).toBe(
-      '回路データが壊れています (「M」に不正な要素があります)',
+    expect(describeProjectFileError(getMessages('ja'), error)).toBe(
+      'プロジェクトファイルが壊れています (「M」に不正な要素があります)',
     );
   });
 
@@ -63,11 +63,11 @@ describe('describeShareError', () => {
       code: 'BROKEN',
       detail: { code: 'BAD_ELEMENT', circuit: '', circuitId: 'main' },
     } as const;
-    expect(describeShareError(getMessages('en'), error)).toBe(
-      'The circuit data is broken ("Main" has an invalid element)',
+    expect(describeProjectFileError(getMessages('en'), error)).toBe(
+      'The project file is broken ("Main" has an invalid element)',
     );
-    expect(describeShareError(getMessages('ja'), error)).toBe(
-      '回路データが壊れています (「メイン」に不正な要素があります)',
+    expect(describeProjectFileError(getMessages('ja'), error)).toBe(
+      'プロジェクトファイルが壊れています (「メイン」に不正な要素があります)',
     );
   });
 });

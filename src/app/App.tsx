@@ -93,7 +93,8 @@ export function App() {
   const [views, setViews] = useState(loadViews);
   const [editing, setEditing] = useState<Editing>(null);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
-  const circuit = findDef(project, currentId) ?? project.circuits[0];
+  // 開いていた回路がなくなったら、メイン回路を開く (メイン回路は必ずある)
+  const circuit = findDef(project, currentId) ?? findDef(project, MAIN_ID) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
   const view = views[circuit.id] ?? overview(circuit, project, sheetSize.width, sheetSize.height);
 
@@ -107,6 +108,7 @@ export function App() {
     // 設定はモジュールのタブを開いている間だけ開けるので、開いている回路に当てはめる
     onApplyModuleSettings: (id, pkg, numbers, portNames) =>
       history.commit((p) => ({
+        ...p,
         circuits: p.circuits.map((d) =>
           d.id === id ? applyModuleSettings(d, pkg, numbers, portNames) : d,
         ),
@@ -122,6 +124,7 @@ export function App() {
   function setCircuit(update: (c: CircuitDef) => CircuitDef, record = true) {
     const id = circuit.id;
     (record ? history.commit : history.replace)((p) => ({
+      ...p,
       circuits: p.circuits.map((d) => (d.id === id ? update(d) : d)),
     }));
   }
@@ -217,20 +220,27 @@ export function App() {
     showPrompt: dialogs.showPrompt,
   });
 
+  /** プロジェクトを丸ごと入れ替えたあと、開いている回路と表示を初めからにする */
+  function startOver() {
+    forget();
+    // 回路の ID が同じでも中身は別物なので、表示は初めから
+    setViews({});
+    openCircuit(MAIN_ID);
+    setEditing(null);
+  }
+
   const file = useProjectFile({
     m,
     project,
     replaceProject: (next: Project) => {
       setProject(() => next);
-      forget();
-      // 回路の ID が同じでも中身は別物なので、表示は初めから
-      setViews({});
-      openCircuit(MAIN_ID);
-      setEditing(null);
+      startOver();
     },
-    setProjectWithoutHistory: history.replace,
+    openProject: (next: Project) => {
+      history.reset(next);
+      startOver();
+    },
     showConfirm: dialogs.showConfirm,
-    showText: dialogs.showText,
   });
 
   /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */
@@ -245,19 +255,7 @@ export function App() {
       x: center.x - GRID * 2 + (n % 10) * GRID,
       y: center.y - GRID * 2 + (n % 10) * GRID,
     };
-    const c: Part = {
-      id: newId(),
-      kind,
-      x: snap(base.x),
-      y: snap(base.y),
-    };
-    // ON/OFF を持つ部品は OFF から始める。CLOCK の実際の ON/OFF はシミュレーションの中で持つ (useSimulation.ts)
-    if (kind === 'input' || kind === 'clock') {
-      c.on = false;
-    }
-    if (module) {
-      c.module = module;
-    }
+    const c = edit.newPart(newId(), kind, { x: snap(base.x), y: snap(base.y) }, module);
     Object.assign(c, clampPosition(c, getPinout(c, project), c, getCircuitSheet(circuit)));
     // モジュールの中に置いた INPUT / OUTPUT には、ピン番号も割り当てる (置く操作と一緒に元に戻せる)
     setCircuit((cur) => {
@@ -382,8 +380,8 @@ export function App() {
   }
 
   function onCompDoubleClick(c: Part) {
-    if (c.kind === 'module' && c.module && findDef(project, c.module)) {
-      openCircuit(c.module);
+    if (c.kind === 'module' && c.circuitId && findDef(project, c.circuitId)) {
+      openCircuit(c.circuitId);
     }
   }
 
@@ -577,9 +575,9 @@ export function App() {
           />
           <PropertyPanel
             part={selectedPart}
-            moduleName={
+            circuitName={
               selectedPart?.kind === 'module'
-                ? findDef(project, selectedPart.module)?.name
+                ? findDef(project, selectedPart.circuitId)?.name
                 : undefined
             }
             otherPortNames={circuit.parts

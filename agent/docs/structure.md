@@ -35,8 +35,11 @@
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
-  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。共有用 JSON でも使う）。`share.ts` … 共有用 JSON。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
-  - `upgrade.ts` … 古い版のプロジェクトを、1 版分の変換を順に通して今の版の形にする入口（保存データと共有用 JSON で共通）。`upgradeV1.ts` … version 1 → 2 の変換。`upgradeV2.ts` … version 2 → 3 の変換。`upgradeV3.ts` … version 3 → 4 の変換。
+  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。プロジェクトファイルでも使う）。`projectFile.ts` … プロジェクトファイル。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
+  - `upgrade/` … 古い版のデータを、今の版の形にする変換（保存データとプロジェクトファイルで共通。[保存データ](persistence.md)の「形式を変えるとき」）。
+    - `index.ts` … 読み込みの入口（`upgradeStoredProject`。一体の形式か新しい形式かを見分ける）と、形式の版（`PROJECT_FORMAT_VERSION`、`CIRCUIT_FORMAT_VERSION`）。
+    - `integrated/` … 一体の形式の変換。`upgradeV1.ts` … version 1 → 2。`upgradeV2.ts` … version 2 → 3。`upgradeV3.ts` … version 3 → 4。
+    - `project/v1.ts` … 一体の形式 v4 → プロジェクトの形式 v1（`upgradeToProjectV1`）。`circuit/v1.ts` … 一体の形式 v4 の回路 1 つ → 回路の形式 v1（`upgradeToCircuitV1`）。ファイル名 `v<N>.ts` は「version N へ変える変換」。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
@@ -64,13 +67,13 @@
   - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は、動作の分類ごとの既定の配置、小さな四角の配置 `squareLayout`、部品の向きの型 `Rotation` と配置を回す `rotateLayout` も）。`specs.ts` … 仕様の一覧（`PART_SPECS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `getLayout`。`PartIcon.tsx` … 種類のアイコン。`bodies.tsx` … 本体の描き込みを種類のフォルダ（`<種類>/Body.tsx`）に置く種類の一覧（`PART_BODIES`）。
 - `ui/` … 回路を知らない、共通の画面部品。
   - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
-  - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（書き出し・読み込み）。
+  - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（文字列の欄と、ファイルの選択を持つ入力。今は使う所がないが、残しておく）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
 - `i18n/` … 画面の文言（表示言語）。決まりと仕組みは[文言と表示言語](i18n.md)。
   - `language.ts` … 言語の型（`Language`）、言語ごとに書き分けた値の型（`Localized`、`LocalText`）、環境設定の言語から画面に出す言語を決めること（`resolveLanguage`）。`messages.ts` … 言語ごとの文言の表の一覧と、その形（`Messages`）、エラーを表の文にする処理。`ja.ts` … 日本語の表。`en.ts` … 英語の表。
   - `useMessages.ts` … 画面の側に言語と文言の表を渡す（`LanguageContext`、`useLanguage`、`useMessages`）。
   - 画面の文言は、ここの表から引く。部品の種類ごとの文言（表示名、説明、ヒント）とアクセントカラーの色の名前は、それぞれの定義に言語ごとに書く（`parts/<種類>/view.ts`、`preferences/preferences.ts`）。
-  - 計算の側（検証、共有用 JSON、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
+  - 計算の側（検証、プロジェクトファイル、保存データの読み込み）は文を返さず、エラーの種類と値を返す（`ProjectError`、`ShareError`、`StoredError`）。文は表の `errors` に種類ごとに置き、`messages.ts` の `describeShareError` などで文にする。エラーの種類の名前は大文字のスネークケース（[コードの書き方](coding-style.md)の「名前」）。
 - `util.ts` … どの責務にも属さない、型を問わない小さな関数（`isObject`、`mustGet`、`shallowEqual` など）。何も import しない。
 - `assets/` … ロゴと、ボタンなどのアイコンの SVG（部品の種類のアイコンは `parts/`）。
 

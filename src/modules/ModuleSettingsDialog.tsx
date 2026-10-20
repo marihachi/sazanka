@@ -376,7 +376,7 @@ const PortRow = memo(function PortRow({
  */
 function Preview({ def, project }: { def: CircuitDef; project: Project }) {
   const m = useMessages();
-  const part: Part = { id: 'preview', kind: 'module', module: def.id, x: 0, y: 0 };
+  const part: Part = { id: 'preview', kind: 'module', circuitId: def.id, x: 0, y: 0 };
   // 下書きの回路で、ピンの割り当てを求める
   const draftProject: Project = {
     ...project,

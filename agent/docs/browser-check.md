@@ -9,34 +9,43 @@
 
 ## 状態の用意
 
-- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と `docs/format/v4.md` にある。
+- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と、`docs/format/project/v1.md`、`docs/format/circuit/v1.md` にある。一体の形式 v4（`docs/format/integrated/v4.md`）で書いても読める（開くと新しい形式に変えて保存し直す）。
   - アプリはプロジェクトが変わるたびに自動で保存するので、書いた値が上書きされることがある。書き方は Skill の `browser-check` の「ハマりやすい点」に従う。
   - 位置はマス単位の整数で書く（アプリの中の px の 1/20）。
   - 部品と配線は、回路の `elements` に 1 つの一覧で並べる。ID を書くのは回路だけ。確かめるためのデータは別のプロジェクトへ持ち込まないので、読める短い名前でよい。部品と配線は ID を持たず、配線には `kind: 'wire'` を書く。
-  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/v4.md` の「ピンの先の位置」）に合わせる:
+  - 省略できない項目を忘れない: 回路の `format`、`version`、`author`、`package`（メイン回路も）、`sheet`、INPUT / OUTPUT の `portNumber`、CLOCK の `period`、モジュールの部品の `circuitId` と `circuitName`。抜けていると、壊れたデータとして空のプロジェクトで開く。
+  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/circuit/v1.md` の「ピンの先の位置」）に合わせる:
 
     ```js
     const project = {
-      version: 4,
-      project: {
-        circuits: [
-          {
+      format: 'sazanka-project',
+      version: 1,
+      folders: [],
+      circuits: [
+        {
+          path: '',
+          circuit: {
+            format: 'sazanka-circuit',
+            version: 1,
             id: 'main',
+            author: '',
+            package: { kind: 'split' },
+            sheet: { width: 300, height: 200 },
             elements: [
-              { kind: 'input', x: 145, y: 98 },
-              { kind: 'output', x: 159, y: 98 },
+              { kind: 'input', x: 145, y: 98, portNumber: 1 },
+              { kind: 'output', x: 159, y: 98, portNumber: 1 },
               { kind: 'and', x: 151, y: 97 },
               { kind: 'wire', points: [{ x: 148, y: 99 }, { x: 149, y: 99 }, { x: 149, y: 98 }, { x: 150, y: 98 }] },
               { kind: 'wire', points: [{ x: 155, y: 99 }, { x: 158, y: 99 }] },
             ],
           },
-        ],
-      },
+        },
+      ],
     };
     ```
 
 - ほかのキー: 環境設定は `sazanka.preferences`、パレットの折り畳みは `sazanka.paletteCollapsed`、シートの表示は `sazanka.views`（`file/storage.ts`）。
-- 部品の座標は、シート（回路の `sheet` で決まる。省略すれば 300×200 マスで、真ん中は (150, 100)）の中に置く。部品同士が重ならないよう、何マスかずつ離す。
+- 部品の座標は、シート（回路の `sheet` で決まる。300×200 マスなら、真ん中は (150, 100)）の中に置く。部品同士が重ならないよう、何マスかずつ離す。
   - 表示（`sazanka.views`）を保存していない回路は、部品があれば回路全体が見える表示で開き、部品がなければシートの真ん中を等倍で開く（[シートの表示](view.md)）。
 - 発振する回路が要るときは、NOT の出力を自分の入力へつなぐ。
 - 部品の座標を読み書きして操作するときは、シートの `<g transform="translate(x y) scale(s)">` から、回路の座標を画面の座標に直す（画面の座標 = 回路の座標 × s + (x, y) + シートの左上）。ここでの回路の座標はアプリの中の px で、保存データのマスの 20 倍。
@@ -76,8 +85,8 @@ localStorage の読み書き（`file/storage.ts` の `load*` / `save*`）は単�
 
 ## ファイルの保存と選択
 
-- 書き出しの「ファイルに保存」は、ダウンロードとして保存される。Puppeteer なら、CDP の `Browser.setDownloadBehavior`（`behavior: 'allow'`、`downloadPath`）で作業用のフォルダに保存させ、中身を読んで比べる。スクリプトを並べて流すときは、保存先のフォルダを分ける。
-- 読み込みの「ファイルを選択」は、ボタンを押すと開くファイルを選ぶ画面を、`page.waitForFileChooser()` で受けて `accept([パス])` で選ぶ。ボタンを押す操作は人の速さでする。`cancel()` で取り消しも試せる。
+- 書き出しは、Chromium では保存の画面（`showSaveFilePicker`）を開く。ヘッドレスでは画面を操作できないので、`page.evaluateOnNewDocument` で `window.showSaveFilePicker` を、渡された中身を覚える偽物に差し替えて確かめる（取り消しは `AbortError` の `DOMException` を投げる偽物で試す。画面を開けない環境は、`NotAllowedError` などほかの例外を投げる偽物で、書き込めない環境は `createWritable` が例外を投げる偽物で試し、ダウンロードに切り替わることを見る）。Electron の中のブラウザの扱いは、`page.setUserAgent` で `Electron/` を含む名前にして試す（保存の画面を呼ばずにダウンロードになる）。同じブラウザで続けてダウンロードさせると、2 回目からは Chrome が自動のダウンロードを止めることがある。ダウンロードを見る確認は、ブラウザを分けるか、1 回目に置く。ダウンロードの経路（Firefox と Safari の代わり）は、`delete window.showSaveFilePicker` で消してから押し、CDP の `Browser.setDownloadBehavior`（`behavior: 'allow'`、`downloadPath`）で作業用のフォルダに保存させ、中身を読んで比べる。スクリプトを並べて流すときは、保存先のフォルダを分ける。
+- 読み込みは、ヘッダーの「読み込み」を押すと開くファイルを選ぶ画面を、`page.waitForFileChooser()` で受けて `accept([パス])` で選ぶ。ボタンを押す操作は人の速さでする。`cancel()` で取り消しも試せる。
 - 試すファイル（JSON でないもの、空のもの、壊れたもの、BOM 付き、とても大きいもの）は作業用のフォルダに作る。
 
 ## フレームレートを測る

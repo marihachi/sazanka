@@ -113,7 +113,7 @@ describe('ピンの位置', () => {
         kind,
         x: 2 * GRID,
         y: 3 * GRID,
-        module: 'mod',
+        circuitId: 'mod',
       };
       const pinout = getPinout(c, project);
       const pins = [

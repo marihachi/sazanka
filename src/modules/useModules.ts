@@ -42,7 +42,7 @@ export function useModules({
       (d) =>
         `${d.id}:${d.name}:${d.parts
           .filter((c) => c.kind === 'module')
-          .map((c) => c.module)
+          .map((c) => c.circuitId)
           .join(',')}`,
     ),
   ].join('|');
@@ -83,12 +83,14 @@ export function useModules({
         const def: CircuitDef = {
           id: newId(),
           name,
+          path: '',
+          author: '',
           package: { kind: 'dip', pins: 8 },
           sheet: DEFAULT_SHEET,
           parts: [],
           wires: [],
         };
-        setProject((p) => ({ circuits: [...p.circuits, def] }));
+        setProject((p) => ({ ...p, circuits: [...p.circuits, def] }));
         openCircuit(def.id);
       },
     });
@@ -101,6 +103,7 @@ export function useModules({
       return;
     }
     setProject((p) => ({
+      ...p,
       circuits: p.circuits.map((d) => (d.id === id ? { ...d, name } : d)),
     }));
   }
@@ -124,6 +127,7 @@ export function useModules({
       danger: true,
       onConfirm: () => {
         setProject((p) => ({
+          ...p,
           circuits: p.circuits.filter((d) => d.id !== id),
         }));
         onDeleted(id);

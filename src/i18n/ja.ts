@@ -2,7 +2,7 @@
 // 部品の種類ごとの文言は、種類のフォルダの view.ts に言語ごとに書く
 import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
-import type { ShareError } from '../file/share';
+import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
 import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';
@@ -24,9 +24,9 @@ export const ja = {
     newProject: '新規作成',
     newProjectTitle: '空のプロジェクトを新しく作る',
     importProject: '読み込み',
-    importProjectTitle: 'JSON の文字列かファイルからプロジェクトを読み込む',
+    importProjectTitle: 'プロジェクトファイルを選んで読み込む',
     exportProject: '書き出し',
-    exportProjectTitle: 'プロジェクト全体を JSON にして共有する',
+    exportProjectTitle: 'プロジェクト全体をファイルに保存する',
     undo: '元に戻す',
     undoTitle: '元に戻す (Ctrl+Z)',
     redo: 'やり直し',
@@ -190,25 +190,10 @@ export const ja = {
     confirmNew:
       '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
     newProject: '新規作成',
-    exportTitle: '書き出し',
-    exportMessage:
-      'プロジェクト全体を書き出します。コピーするか、ファイルに保存してください。「読み込み」で取り込めます。',
-    author: '作者名 (省略可)',
-    saveFile: 'ファイルに保存',
-    copy: 'コピー',
-    copied: 'コピーしました',
-    copyFailed: 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください',
-    importTitle: '読み込み',
-    importMessage:
-      '書き出したファイルを選択するか、データを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
-    source: '読み込み元',
-    sourceFile: 'ファイル',
-    sourceText: 'テキスト',
-    chooseFile: 'ファイルを選択',
-    noFile: '選択されていません',
+    saveFailed: 'ファイルに保存できませんでした',
     readFailed: 'ファイルを読み取れませんでした',
-    importConfirm: '読み込む',
-    importedFrom: (author: string) => `「${author}」さんの回路を読み込みました。`,
+    /** プロジェクトファイルを読み込めなかったときのお知らせ。reason は errors.projectFile の文 */
+    importFailed: (reason: string) => `読み込めませんでした。${reason}`,
     /** 保存データを読み込めなかったときのお知らせ。reason は errors.stored の文 */
     openedEmpty: (reason: string) => `${reason}空のプロジェクトで開きます。`,
   },
@@ -216,25 +201,38 @@ export const ja = {
   errors: {
     /** 検証で見つかった、プロジェクトの形の問題 */
     project: {
+      NOT_PROJECT: 'プロジェクトのデータの形式ではありません',
+      NO_FOLDERS: 'フォルダの一覧がありません',
+      BAD_FOLDER: (e) => `フォルダ「${e.folder}」が不正です`,
       NO_CIRCUITS: '回路の一覧がありません',
-      AUTHOR_NOT_STRING: '作者名が文字列ではありません',
-      NO_MAIN: 'メイン回路がありません',
+      BAD_ENTRY: '回路の一覧に不正な項目があります',
+      MISSING_FOLDER: (e) => `フォルダ「${e.folder}」がフォルダの一覧にありません`,
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
+      NOT_CIRCUIT: (e) => `「${e.circuit}」が回路のデータの形式ではありません`,
+      EMPTY_NAME: '名前のない回路があります',
+      AUTHOR_NOT_STRING: (e) => `「${e.circuit}」の作者名が文字列ではありません`,
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
       BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
       NO_ELEMENTS: (e) => `「${e.circuit}」に要素の一覧がありません`,
       BAD_ELEMENT: (e) => `「${e.circuit}」に不正な要素があります`,
+      DUPLICATE_PORT_NUMBER: (e) => `「${e.circuit}」にポート番号が重複したポートがあります`,
+      NO_MAIN: 'メイン回路がありません',
       DUPLICATE_ID: (e) => `ID が重複しています: ${e.id}`,
-      MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
+      DUPLICATE_NAME: (e) =>
+        e.folder === ''
+          ? `同じ名前の回路があります: ${e.name}`
+          : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
+      MISSING_CIRCUIT: (e) => `「${e.circuit}」に、存在しない回路のモジュールがあります`,
     } satisfies ErrorTexts<ProjectError>,
-    /** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
-    share: {
+    /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
+    projectFile: {
       NOT_JSON: 'JSON として読み取れません',
-      NOT_SAZANKA: 'sazanka の回路データではありません',
-      NEWER_VERSION: '新しい版の sazanka で作られたデータのため読み込めません',
-      BROKEN: (detail: string) => `回路データが壊れています (${detail})`,
-    } satisfies ErrorTexts<Exclude<ShareError, { code: 'BROKEN' }>> & {
+      NOT_SAZANKA: 'sazanka のプロジェクトファイルではありません',
+      NEWER_VERSION: '新しい版の sazanka で作られたデータです',
+      CIRCUIT_FILE: 'これは回路ファイルです。プロジェクトファイルを選んでください',
+      BROKEN: (detail: string) => `プロジェクトファイルが壊れています (${detail})`,
+    } satisfies ErrorTexts<Exclude<ProjectFileError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;
     },
     /** 保存データを読み込めなかった理由。このあとに file.openedEmpty で「空のプロジェクトで開きます。」を続ける */

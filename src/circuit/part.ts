@@ -19,8 +19,8 @@ export interface Part {
   on?: boolean;
   /** INPUT / OUTPUT のポート名 (モジュールのピン名になる) */
   portName?: string;
-  /** モジュールが参照する回路定義の ID */
-  module?: string;
+  /** モジュールの部品が指している回路の ID (どの回路をモジュールとして置いたか) */
+  circuitId?: string;
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
   period?: number;
   /**
@@ -30,7 +30,8 @@ export interface Part {
   pinNumber?: number;
   /**
    * INPUT / OUTPUT を見分ける番号 (ポート番号。1 から)。入力と出力で別々に振る。
-   * メイン回路とモジュールの回路のどちらでも持つ。読み込みでは、ないものや重なるものを付け直す (module.ts の fillPortNumbers)
+   * メイン回路とほかの回路のどちらでも持つ。読み込んだデータと、アプリで置いたポートには必ずあり、入力どうし・出力どうしで重ならない。
+   * 型で省略できるのは、テストで部品を手短に作れるようにするため
    */
   portNumber?: number;
   /**
@@ -41,20 +42,29 @@ export interface Part {
 }
 
 /**
- * 保存データの部品として正しい形か。
- * ID は保存しないので見ない (あっても読み込むときに捨てる)。位置はマス単位なので整数
+ * 保存データ (回路の形式) の部品として正しい形か。
+ * ID は保存しないので見ない (あっても読み込むときに捨てる)。位置はマス単位なので整数。
+ * INPUT / OUTPUT のポート番号、CLOCK の周期、モジュールの部品の circuitId と名前の写し circuitName は省略できない
+ * (省略したときの意味を既定値にすると、既定値を変えたときに古いデータの意味が変わるため)
  */
 export function isPart(c: unknown): boolean {
+  if (!isObject(c) || typeof c.kind !== 'string' || !isPlaceablePartKind(c.kind)) {
+    return false;
+  }
+  const isPort = c.kind === 'input' || c.kind === 'output';
   return (
-    isObject(c) &&
-    typeof c.kind === 'string' &&
-    isPlaceablePartKind(c.kind) &&
     // 保存データの位置はマス単位なので、整数でなければならない
     Number.isInteger(c.x) &&
     Number.isInteger(c.y) &&
-    (c.period === undefined || isClockPeriod(c.period)) &&
+    (c.kind === 'clock'
+      ? isClockPeriod(c.period)
+      : c.period === undefined || isClockPeriod(c.period)) &&
     (c.pinNumber === undefined || Number.isInteger(c.pinNumber)) &&
-    (c.portNumber === undefined || isPortNumber(c.portNumber)) &&
+    (isPort
+      ? isPortNumber(c.portNumber)
+      : c.portNumber === undefined || isPortNumber(c.portNumber)) &&
+    (c.kind !== 'module' ||
+      (typeof c.circuitId === 'string' && typeof c.circuitName === 'string')) &&
     (c.rotation === undefined || isRotation(c.rotation))
   );
 }

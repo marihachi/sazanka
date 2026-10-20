@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getPinout } from '../circuit/module';
-import { checkProject, type Project } from '../circuit/project';
-import { inputPinPos, outputPinPos } from '../geometry/layout';
+import { getPinout } from '../../../circuit/module';
+import { checkProject } from '../../../circuit/project';
+import { inputPinPos, outputPinPos } from '../../../geometry/layout';
+import { fromStoredProject, type StoredProject } from '../../storage';
+import { upgradeToProjectV1 } from '../project/v1';
 import { upgradeV1 } from './upgradeV1';
 import { upgradeV2 } from './upgradeV2';
 import { upgradeV3 } from './upgradeV3';
@@ -101,7 +103,9 @@ describe('upgradeV2', () => {
     expect(upgradeV2(unknown)).toEqual({
       circuits: [{ id: 'main', parts: [{ kind: 'FOO' }], wires: [] }],
     });
-    expect(checkProject(upgradeV2(unknown))).toBeDefined();
+    expect(
+      checkProject(upgradeToProjectV1(upgradeV3(upgradeV2(unknown), () => 'id'))),
+    ).toBeDefined();
   });
 });
 
@@ -138,10 +142,12 @@ describe('古い版から順に変えたときのつながり', () => {
 
   it('version 1 のデータを読むと、配線の端がピンの先に重なったまま version 3 の形になる', () => {
     const v3 = upgradeV2(upgradeV1(v1));
-    // 検証は今の版 (version 4) の形で行うので、version 4 に変えてから確かめる
+    // 検証とピンの位置は今の形 (プロジェクトの形式) で求めるので、今の形まで変えてから確かめる
     let n = 0;
-    expect(checkProject(upgradeV3(v3, () => `id${++n}`))).toBeUndefined();
-    const project = v3 as Project;
+    const newId = () => `id${++n}`;
+    const current = upgradeToProjectV1(upgradeV3(v3, newId));
+    expect(checkProject(current)).toBeUndefined();
+    const project = fromStoredProject(current as StoredProject, newId);
     const [a, m, q] = project.circuits[0].parts;
     const pinout = (p: (typeof project.circuits)[0]['parts'][0]) => getPinout(p, project);
     const [w1, w2] = project.circuits[0].wires;

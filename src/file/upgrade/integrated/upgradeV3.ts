@@ -2,11 +2,11 @@
 // version 4 では、部品の位置と配線の点を px からマス単位の整数にし、回路の ID をプロジェクトをまたいでも重ならないものにした。
 // 部品と配線は ID を持たなくなり、配線は種類 (kind) を持つ。部品と配線は 1 つの一覧 (elements) に並べる。
 // INPUT / OUTPUT のポート名の項目名を label から portName に変え、メイン回路は name を持たなくなった。
-// 形式は docs/format/archive/v3.md と docs/format/v4.md。
+// 形式は docs/format/integrated/v3.md と docs/format/integrated/v4.md。
 //
 // 今のアプリのコード (部品の型や検証、配置、マスの大きさ) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため
 
-import { isObject } from '../util';
+import { isObject } from '../../../util';
 
 /** version 3 の 1 マスの px */
 const CELL_PX = 20;

@@ -42,7 +42,7 @@ function flattenInto(
   const modules = new Map<string, ModulePorts>();
   for (const c of def.parts) {
     if (c.kind === 'module') {
-      const child = findDef(project, c.module);
+      const child = findDef(project, c.circuitId);
       // 見つからない・循環している参照は無視
       if (!child || stack.includes(child.id)) {
         continue;
