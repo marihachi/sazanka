@@ -13,8 +13,8 @@ import { upgradeToProjectV1 } from './project/v1';
 /** プロジェクトの形式の今の版。形式を変えたら上げて、1 版分の変換 (project/v<N>.ts) を足す */
 export const PROJECT_FORMAT_VERSION = 1;
 
-/** モジュールの形式の今の版。形式を変えたら上げて、1 版分の変換 (module/v<N>.ts) を足す */
-export const MODULE_FORMAT_VERSION = 1;
+/** 回路の形式の今の版。形式を変えたら上げて、1 版分の変換 (circuit/v<N>.ts) を足す */
+export const CIRCUIT_FORMAT_VERSION = 1;
 
 /**
  * 一体の形式の 1 版分の変換を、版の順に並べたもの。INTEGRATED_UPGRADES[i] は version i + 1 のプロジェクトを version i + 2 の形にする。
@@ -49,12 +49,12 @@ export function upgradeIntegratedProject(
 /**
  * 読み込んだデータを、今の版のプロジェクトの形式にできなかった理由。
  * NOT_PROJECT は sazanka のプロジェクトのデータでない、NEWER_VERSION は今より新しい版のデータ、
- * MODULE_FILE はモジュールのデータかモジュールファイル (プロジェクトの読み込みで選ぶものではない)
+ * CIRCUIT_FILE は回路のデータか回路ファイル (プロジェクトの読み込みで選ぶものではない)
  */
 export type UpgradeError =
   | { code: 'NOT_PROJECT' }
   | { code: 'NEWER_VERSION' }
-  | { code: 'MODULE_FILE' };
+  | { code: 'CIRCUIT_FILE' };
 
 export type UpgradeResult = { ok: true; project: unknown } | { ok: false; error: UpgradeError };
 
@@ -68,8 +68,8 @@ export function upgradeStoredProject(data: unknown, newId: () => string): Upgrad
   if (!isObject(data)) {
     return { ok: false, error: { code: 'NOT_PROJECT' } };
   }
-  if (data.format === 'sazanka-module' || data.format === 'sazanka-modules') {
-    return { ok: false, error: { code: 'MODULE_FILE' } };
+  if (data.format === 'sazanka-circuit' || data.format === 'sazanka-circuits') {
+    return { ok: false, error: { code: 'CIRCUIT_FILE' } };
   }
   if (data.format === 'sazanka-project') {
     return isNewer(data)
@@ -87,21 +87,21 @@ export function upgradeStoredProject(data: unknown, newId: () => string): Upgrad
 }
 
 /**
- * プロジェクトの形式のデータか、その中のモジュールに、今より新しい版のものがあるか。
+ * プロジェクトの形式のデータか、その中の回路に、今より新しい版のものがあるか。
  * 版が数でないものは新しいとはみなさない (検証で断る)
  */
 function isNewer(data: Record<string, unknown>): boolean {
   if (typeof data.version === 'number' && data.version > PROJECT_FORMAT_VERSION) {
     return true;
   }
-  if (!Array.isArray(data.modules)) {
+  if (!Array.isArray(data.circuits)) {
     return false;
   }
-  return data.modules.some(
+  return data.circuits.some(
     (entry) =>
       isObject(entry) &&
-      isObject(entry.module) &&
-      typeof entry.module.version === 'number' &&
-      entry.module.version > MODULE_FORMAT_VERSION,
+      isObject(entry.circuit) &&
+      typeof entry.circuit.version === 'number' &&
+      entry.circuit.version > CIRCUIT_FORMAT_VERSION,
   );
 }

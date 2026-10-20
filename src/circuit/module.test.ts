@@ -29,13 +29,13 @@ describe('circuitsUsing', () => {
         {
           id: MAIN_ID,
           name: 'メイン',
-          parts: [comp('m', 'module', { moduleId: 'a' })],
+          parts: [comp('m', 'module', { circuitId: 'a' })],
           wires: [],
         },
         {
           id: 'a',
           name: 'A',
-          parts: [comp('n', 'module', { moduleId: 'b' })],
+          parts: [comp('n', 'module', { circuitId: 'b' })],
           wires: [],
         },
         { id: 'b', name: 'B', parts: [], wires: [] },
@@ -94,7 +94,7 @@ describe('モジュールのピン', () => {
         { id: 'm', name: 'M', parts: [], wires: [] },
       ],
     };
-    expect(getPinout(comp('u', 'module', { moduleId: 'm' }), project).package).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project).package).toEqual({
       kind: 'split',
     });
     // モジュール以外の部品は持たない
@@ -119,13 +119,13 @@ describe('モジュールのピン', () => {
         },
       ],
     };
-    expect(getPinout(comp('u', 'module', { moduleId: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project)).toEqual({
       inputs: ['A', ''],
       outputs: ['S'],
       package: { kind: 'split' },
     });
     // 参照先がなければピンなし
-    expect(getPinout(comp('u', 'module', { moduleId: 'ない' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'ない' }), project)).toEqual({
       inputs: [],
       outputs: [],
       package: { kind: 'split' },
@@ -175,7 +175,7 @@ describe('dip のモジュールのピン番号', () => {
     expect(inputs.map((c) => c.id)).toEqual(['b', 'a']);
     expect(outputs.map((c) => c.id)).toEqual(['c', 's']);
     const project: Project = { circuits: [emptyProject().circuits[0], def] };
-    expect(getPinout(comp('u', 'module', { moduleId: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project)).toEqual({
       inputs: ['B', 'A'],
       outputs: ['C', 'S'],
       package: { kind: 'dip', pins: 8 },
@@ -353,7 +353,7 @@ describe('getPinout の 7 セグメント', () => {
   it('モジュールの中の 7 セグメントは、モジュールのピンにならない', () => {
     const project: Project = {
       circuits: [
-        { ...emptyProject().circuits[0], parts: [comp('m', 'module', { moduleId: 'mod' })] },
+        { ...emptyProject().circuits[0], parts: [comp('m', 'module', { circuitId: 'mod' })] },
         {
           id: 'mod',
           name: 'M',
@@ -372,8 +372,8 @@ describe('dependsOn', () => {
   // biome-ignore format: 表形式を維持するため
   const project: Project = {
     circuits: [
-      { id: MAIN_ID, name: 'メイン', parts: [comp('u', 'module', { moduleId: 'a' })], wires: [] },
-      { id: 'a', name: 'A', parts: [comp('u', 'module', { moduleId: 'b' })], wires: [] },
+      { id: MAIN_ID, name: 'メイン', parts: [comp('u', 'module', { circuitId: 'a' })], wires: [] },
+      { id: 'a', name: 'A', parts: [comp('u', 'module', { circuitId: 'b' })], wires: [] },
       { id: 'b', name: 'B', parts: [], wires: [] },
     ],
   };

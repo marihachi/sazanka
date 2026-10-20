@@ -40,10 +40,10 @@ describe('checkProject', () => {
   // 検証は保存データの形 (プロジェクトの形式のデータ。部品と配線を 1 つの一覧 elements に並べ、部品は ID を持たなくてよい) で行う
   type Data = Record<string, unknown>;
 
-  /** モジュールの形式のデータ。メイン回路は名前を持たない */
+  /** 回路の形式のデータ。メイン回路は名前を持たない */
   function mod(id: string, elements: unknown = [], extra: Data = {}): Data {
     return {
-      format: 'sazanka-module',
+      format: 'sazanka-circuit',
       version: 1,
       id,
       ...(id === MAIN_ID ? {} : { name: id.toUpperCase() }),
@@ -55,13 +55,13 @@ describe('checkProject', () => {
     };
   }
 
-  /** プロジェクトの形式のデータ。modules はフォルダなしに置く */
-  function project(modules: Data[], extra: Data = {}): Data {
+  /** プロジェクトの形式のデータ。circuits はフォルダなしに置く */
+  function project(circuits: Data[], extra: Data = {}): Data {
     return {
       format: 'sazanka-project',
       version: 1,
       folders: [],
-      modules: modules.map((module) => ({ path: '', module })),
+      circuits: circuits.map((circuit) => ({ path: '', circuit })),
       ...extra,
     };
   }
@@ -77,9 +77,9 @@ describe('checkProject', () => {
 
   const port = (id: string, kind: 'input' | 'output', portNumber: number) =>
     comp(id, kind, { portNumber });
-  const moduleOf = (id: string, moduleId: string, moduleName: string) => ({
-    ...comp(id, 'module', { moduleId }),
-    moduleName,
+  const moduleOf = (id: string, circuitId: string, circuitName: string) => ({
+    ...comp(id, 'module', { circuitId }),
+    circuitName,
   });
   const 点 = (x: number, y: number) => ({ x, y });
   const empty = main([]);
@@ -106,7 +106,7 @@ describe('checkProject', () => {
       checkProject({
         ...project([]),
         folders: ['a'],
-        modules: [{ path: 'a', module: mod(MAIN_ID) }],
+        circuits: [{ path: 'a', circuit: mod(MAIN_ID) }],
       }),
     ).toBeUndefined();
   });
@@ -155,11 +155,11 @@ describe('checkProject', () => {
       const data = {
         ...project([]),
         folders: ['f'],
-        modules: [
-          { path: '', module: mod(MAIN_ID) },
-          { path: '', module: mod('a', [], { name: 'X' }) },
-          { path: 'f', module: mod('b', [], { name: 'X' }) },
-          { path: '', module: mod('c', [], { name: 'x' }) },
+        circuits: [
+          { path: '', circuit: mod(MAIN_ID) },
+          { path: '', circuit: mod('a', [], { name: 'X' }) },
+          { path: 'f', circuit: mod('b', [], { name: 'X' }) },
+          { path: '', circuit: mod('c', [], { name: 'x' }) },
         ],
       };
       expect(checkProject(data)).toBeUndefined();
@@ -177,7 +177,7 @@ describe('checkProject', () => {
 
   describe('フォルダとパス', () => {
     function inFolders(folders: unknown, path = '') {
-      return { ...project([]), folders, modules: [{ path, module: mod(MAIN_ID) }] };
+      return { ...project([]), folders, circuits: [{ path, circuit: mod(MAIN_ID) }] };
     }
 
     it('正しいフォルダの一覧と、そこにあるパスを通す', () => {
@@ -208,7 +208,7 @@ describe('checkProject', () => {
     });
 
     it('パスが文字列でない要素を弾く', () => {
-      expect(checkProject({ ...project([]), modules: [{ module: mod(MAIN_ID) }] })).toEqual({
+      expect(checkProject({ ...project([]), circuits: [{ circuit: mod(MAIN_ID) }] })).toEqual({
         code: 'BAD_ENTRY',
       });
     });
@@ -239,15 +239,15 @@ describe('checkProject', () => {
   const 壊れたもの: [string, unknown, string][] = [
     ['オブジェクトでない', [1, 2], 'NOT_PROJECT'],
     ['format がない', { ...empty, format: undefined }, 'NOT_PROJECT'],
-    ['format がモジュール', { ...empty, format: 'sazanka-module' }, 'NOT_PROJECT'],
+    ['format がモジュール', { ...empty, format: 'sazanka-circuit' }, 'NOT_PROJECT'],
     ['版がない', { ...empty, version: undefined }, 'NOT_PROJECT'],
     ['一体の形式', { circuits: [{ id: MAIN_ID, elements: [] }] }, 'NOT_PROJECT'],
-    ['モジュールの一覧がない', { ...empty, modules: undefined }, 'NO_MODULES'],
-    ['要素がオブジェクトでない', { ...empty, modules: [1] }, 'BAD_ENTRY'],
+    ['モジュールの一覧がない', { ...empty, circuits: undefined }, 'NO_CIRCUITS'],
+    ['要素がオブジェクトでない', { ...empty, circuits: [1] }, 'BAD_ENTRY'],
     ['メイン回路がない', project([mod('m')]), 'NO_MAIN'],
     ['モジュールに名前がない', project([mod(MAIN_ID), mod('m', [], { name: undefined })]), 'NO_CIRCUIT_ID_OR_NAME'],
-    ['モジュールの format がない', project([mod(MAIN_ID, [], { format: undefined })]), 'NOT_MODULE'],
-    ['モジュールの版が整数でない', project([mod(MAIN_ID, [], { version: 1.5 })]), 'NOT_MODULE'],
+    ['モジュールの format がない', project([mod(MAIN_ID, [], { format: undefined })]), 'NOT_CIRCUIT'],
+    ['モジュールの版が整数でない', project([mod(MAIN_ID, [], { version: 1.5 })]), 'NOT_CIRCUIT'],
     ['作者名がない', project([mod(MAIN_ID, [], { author: undefined })]), 'AUTHOR_NOT_STRING'],
     ['作者名が文字列でない', project([mod(MAIN_ID, [], { author: 1 })]), 'AUTHOR_NOT_STRING'],
     ['メイン回路にパッケージがない', project([mod(MAIN_ID, [], { package: undefined })]), 'NO_PACKAGE'],
@@ -264,9 +264,9 @@ describe('checkProject', () => {
     ['配線に斜めの区間がある', main([], [{ kind: 'wire', points: [点(0, 0), 点(1, 1)] }]), 'BAD_ELEMENT'],
     ['version 1 の形の配線', main([], [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'a', pin: 0 } }]), 'BAD_ELEMENT'],
     ['CLOCK に周期がない', main([comp('c', 'clock')]), 'BAD_ELEMENT'],
-    ['モジュールの部品に moduleId がない', withModule([{ ...comp('u', 'module'), moduleName: 'M' }], []), 'BAD_ELEMENT'],
-    ['モジュールの部品に名前の写しがない', withModule([comp('u', 'module', { moduleId: 'm' })], []), 'BAD_ELEMENT'],
-    ['存在しないモジュールを参照', main([moduleOf('u', 'ない', 'X')]), 'MISSING_MODULE'],
+    ['モジュールの部品に circuitId がない', withModule([{ ...comp('u', 'module'), circuitName: 'M' }], []), 'BAD_ELEMENT'],
+    ['モジュールの部品に名前の写しがない', withModule([comp('u', 'module', { circuitId: 'm' })], []), 'BAD_ELEMENT'],
+    ['存在しないモジュールを参照', main([moduleOf('u', 'ない', 'X')]), 'MISSING_CIRCUIT'],
     ['ピン番号が整数でない', main([{ ...port('i', 'input', 1), pinNumber: 1.5 }]), 'BAD_ELEMENT'],
     ['ピン番号が数値でない', main([{ ...port('i', 'input', 1), pinNumber: '1' }]), 'BAD_ELEMENT'],
     ['向きが 90 度の倍数でない', main([{ ...comp('a', 'and'), rotation: 45 }]), 'BAD_ELEMENT'],

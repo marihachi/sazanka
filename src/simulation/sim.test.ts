@@ -352,8 +352,8 @@ const fullAdder = buildWiredCircuit({
     comp('a', 'input'),
     comp('b', 'input'),
     comp('ci', 'input'),
-    comp('h1', 'module', { moduleId: 'ha' }),
-    comp('h2', 'module', { moduleId: 'ha' }),
+    comp('h1', 'module', { circuitId: 'ha' }),
+    comp('h2', 'module', { circuitId: 'ha' }),
     comp('or', 'or'),
     comp('s', 'output'),
     comp('co', 'output'),
@@ -387,7 +387,7 @@ function mainWith(
     name: 'メイン',
     parts: [
       ...ins.map((on, i) => comp(`i${i}`, 'input', { on })),
-      comp('u', 'module', { moduleId: module }),
+      comp('u', 'module', { circuitId: module }),
       ...Array.from({ length: nOut }, (_, j) => comp(`o${j}`, 'output')),
       ...extra.parts,
     ],
@@ -404,7 +404,7 @@ describe('モジュール', () => {
     const project: Project = {
       circuits: [mainWith('ha', 2, 2, [false, false]), halfAdder],
     };
-    expect(getPinout(comp('u', 'module', { moduleId: 'ha' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
       package: { kind: 'split' },
@@ -457,7 +457,7 @@ describe('モジュール', () => {
           parts: [
             comp('i0', 'input', { on: b }),
             comp('i1', 'input', { on: a }),
-            comp('u', 'module', { moduleId: 'ha' }),
+            comp('u', 'module', { circuitId: 'ha' }),
             comp('o0', 'output'),
             comp('o1', 'output'),
           ],
@@ -555,13 +555,13 @@ describe('モジュール', () => {
     const a: CircuitDef = {
       id: 'a',
       name: 'A',
-      parts: [comp('s', 'module', { moduleId: 'b' })],
+      parts: [comp('s', 'module', { circuitId: 'b' })],
       wires: [],
     };
     const b: CircuitDef = {
       id: 'b',
       name: 'B',
-      parts: [comp('s', 'module', { moduleId: 'a' })],
+      parts: [comp('s', 'module', { circuitId: 'a' })],
       wires: [],
     };
     const project: Project = { circuits: [mainWith('a', 0, 0, []), a, b] };

@@ -186,12 +186,12 @@ export const en: Messages = {
       NOT_PROJECT: 'This is not in the project data format',
       NO_FOLDERS: 'There is no list of folders',
       BAD_FOLDER: (e) => `The folder "${e.folder}" is invalid`,
-      NO_MODULES: 'There is no list of modules',
-      BAD_ENTRY: 'The list of modules has an invalid item',
+      NO_CIRCUITS: 'There is no list of circuits',
+      BAD_ENTRY: 'The list of circuits has an invalid item',
       MISSING_FOLDER: (e) => `The folder "${e.folder}" is not in the list of folders`,
       NO_CIRCUIT_ID_OR_NAME: 'A circuit has no ID or name',
-      NOT_MODULE: (e) => `"${e.circuit}" is not in the module data format`,
-      EMPTY_NAME: 'A module has no name',
+      NOT_CIRCUIT: (e) => `"${e.circuit}" is not in the circuit data format`,
+      EMPTY_NAME: 'A circuit has no name',
       AUTHOR_NOT_STRING: (e) => `The author of "${e.circuit}" is not a string`,
       NO_PACKAGE: (e) => `"${e.circuit}" has no package`,
       BAD_PACKAGE: (e) => `"${e.circuit}" has an invalid package`,
@@ -203,15 +203,15 @@ export const en: Messages = {
       DUPLICATE_ID: (e) => `Duplicate ID: ${e.id}`,
       DUPLICATE_NAME: (e) =>
         e.folder === ''
-          ? `There are modules with the same name: ${e.name}`
-          : `The folder "${e.folder}" has modules with the same name: ${e.name}`,
-      MISSING_MODULE: (e) => `"${e.circuit}" refers to a module that does not exist`,
+          ? `There are circuits with the same name: ${e.name}`
+          : `The folder "${e.folder}" has circuits with the same name: ${e.name}`,
+      MISSING_CIRCUIT: (e) => `"${e.circuit}" has a module of a circuit that does not exist`,
     },
     projectFile: {
       NOT_JSON: 'Cannot be read as JSON',
       NOT_SAZANKA: 'This is not a sazanka project file',
       NEWER_VERSION: 'The data was made with a newer version of sazanka',
-      MODULE_FILE: 'This is a module file. Choose a project file',
+      CIRCUIT_FILE: 'This is a circuit file. Choose a project file',
       BROKEN: (detail) => `The project file is broken (${detail})`,
     },
     stored: {

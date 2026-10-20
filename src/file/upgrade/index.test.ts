@@ -84,19 +84,19 @@ describe('upgradeStoredProject', () => {
   });
 
   it('プロジェクトの形式の今の版は、そのまま返す', () => {
-    const project = { format: 'sazanka-project', version: 1, folders: [], modules: [] };
+    const project = { format: 'sazanka-project', version: 1, folders: [], circuits: [] };
     expect(upgradeStoredProject(project, counter())).toEqual({ ok: true, project });
   });
 
   it('今より新しい版は、理由を返す (一体の形式、プロジェクト、中のモジュール)', () => {
     for (const data of [
       { version: 5, project: v1 },
-      { format: 'sazanka-project', version: 2, folders: [], modules: [] },
+      { format: 'sazanka-project', version: 2, folders: [], circuits: [] },
       {
         format: 'sazanka-project',
         version: 1,
         folders: [],
-        modules: [{ path: '', module: { format: 'sazanka-module', version: 2 } }],
+        circuits: [{ path: '', circuit: { format: 'sazanka-circuit', version: 2 } }],
       },
     ]) {
       expect(upgradeStoredProject(data, counter())).toEqual({
@@ -107,10 +107,10 @@ describe('upgradeStoredProject', () => {
   });
 
   it('モジュールのデータとモジュールファイルは、種類が違うことを返す', () => {
-    for (const format of ['sazanka-module', 'sazanka-modules']) {
+    for (const format of ['sazanka-circuit', 'sazanka-circuits']) {
       expect(upgradeStoredProject({ format, version: 1 }, counter())).toEqual({
         ok: false,
-        error: { code: 'MODULE_FILE' },
+        error: { code: 'CIRCUIT_FILE' },
       });
     }
   });

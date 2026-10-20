@@ -17,7 +17,7 @@ const project: Project = {
       // biome-ignore format: 表形式を維持するため
       parts: [
         { id: 'a', kind: 'input', x: 0, y: 0, on: true, portNumber: 1 },
-        { id: 'm', kind: 'module', x: 100, y: 0, moduleId: 'mod' },
+        { id: 'm', kind: 'module', x: 100, y: 0, circuitId: 'mod' },
       ],
       // a の出力ピンの先 (60, 20) から、m の入力ピンの先 (80, 20) へ
       // biome-ignore format: 表形式を維持するため
@@ -66,13 +66,13 @@ function integratedV4(p: unknown): string {
 
 /** 保存の形のプロジェクトと、そのメイン回路 */
 const stored = toStoredProject(project);
-const storedMain = stored.modules[0].module;
+const storedMain = stored.circuits[0].circuit;
 
 /** メイン回路の要素を elements にしたもの (2 つ目以降のモジュールはそのまま) */
 function withMainElements(elements: unknown[]): string {
   return JSON.stringify({
     ...stored,
-    modules: [{ path: '', module: { ...storedMain, elements } }, stored.modules[1]],
+    circuits: [{ path: '', circuit: { ...storedMain, elements } }, stored.circuits[1]],
   });
 }
 
@@ -95,8 +95,8 @@ describe('share', () => {
   });
 
   it('書き出すと、部品と配線を 1 つの一覧にし、位置はマスになり、メイン回路の名前と部品と配線の ID は書かず、配線に種類を書く', () => {
-    expect((JSON.parse(serializeProject(project)) as StoredProject).modules[0].module).toEqual({
-      format: 'sazanka-module',
+    expect((JSON.parse(serializeProject(project)) as StoredProject).circuits[0].circuit).toEqual({
+      format: 'sazanka-circuit',
       version: 1,
       id: MAIN_ID,
       author: '',
@@ -105,7 +105,7 @@ describe('share', () => {
       // biome-ignore format: 表形式を維持するため
       elements: [
         { kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
-        { kind: 'module', x: 5, y: 0, moduleId: 'mod', moduleName: 'モジュール1' },
+        { kind: 'module', x: 5, y: 0, circuitId: 'mod', circuitName: 'モジュール1' },
         { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
       ],
     });
@@ -143,7 +143,7 @@ describe('share', () => {
       circuits: project.circuits.map((d) => ({ ...d, author: `${d.id} の作者` })),
     };
     const text = serializeProject(authored);
-    expect((JSON.parse(text) as StoredProject).modules.map((e) => e.module.author)).toEqual([
+    expect((JSON.parse(text) as StoredProject).circuits.map((e) => e.circuit.author)).toEqual([
       'main の作者',
       'mod の作者',
     ]);
@@ -162,15 +162,15 @@ describe('share', () => {
   });
 
   it('モジュールのデータやモジュールファイルは、種類が違うので読み込まない', () => {
-    for (const format of ['sazanka-module', 'sazanka-modules']) {
+    for (const format of ['sazanka-circuit', 'sazanka-circuits']) {
       expect(parse(JSON.stringify({ format, version: 1 }))).toEqual({
         ok: false,
-        error: { code: 'MODULE_FILE' },
+        error: { code: 'CIRCUIT_FILE' },
       });
     }
     expect(parse(JSON.stringify(storedMain))).toEqual({
       ok: false,
-      error: { code: 'MODULE_FILE' },
+      error: { code: 'CIRCUIT_FILE' },
     });
   });
 
@@ -178,7 +178,7 @@ describe('share', () => {
     const newer: unknown[] = [
       { app: 'sazanka', version: 99, project },
       { ...stored, version: 2 },
-      { ...stored, modules: [{ path: '', module: { ...storedMain, version: 2 } }] },
+      { ...stored, circuits: [{ path: '', circuit: { ...storedMain, version: 2 } }] },
     ];
     for (const data of newer) {
       expect(parse(JSON.stringify(data))).toEqual({ ok: false, error: { code: 'NEWER_VERSION' } });
@@ -188,25 +188,27 @@ describe('share', () => {
   it('壊れた回路データは読み込まない', () => {
     const [input, module, wire] = storedMain.elements;
     const broken = [
-      { ...stored, modules: [] },
-      { ...stored, modules: [{ path: '', module: { ...storedMain, id: 'x' } }] },
+      { ...stored, circuits: [] },
+      { ...stored, circuits: [{ path: '', circuit: { ...storedMain, id: 'x' } }] },
       // 置けない種類の部品、位置が数でない部品
       {
         ...stored,
-        modules: [{ path: '', module: { ...storedMain, elements: [{ kind: 'buf', x: 0, y: 0 }] } }],
+        circuits: [
+          { path: '', circuit: { ...storedMain, elements: [{ kind: 'buf', x: 0, y: 0 }] } },
+        ],
       },
       {
         ...stored,
-        modules: [
-          { path: '', module: { ...storedMain, elements: [{ kind: 'and', x: '0', y: 0 }] } },
+        circuits: [
+          { path: '', circuit: { ...storedMain, elements: [{ kind: 'and', x: '0', y: 0 }] } },
         ],
       },
       // 存在しないモジュールへの参照
-      { ...stored, modules: [stored.modules[0]] },
+      { ...stored, circuits: [stored.circuits[0]] },
       // 知らない種類の要素
       JSON.parse(withMainElements([input, module, { ...wire, kind: 'bus' }])),
       // 回路 ID の重複
-      { ...stored, modules: [...stored.modules, stored.modules[1]] },
+      { ...stored, circuits: [...stored.circuits, stored.circuits[1]] },
       // 位置がマスの途中
       JSON.parse(withMainElements([{ ...input, x: 0.5 }, module, wire])),
     ];
@@ -231,7 +233,7 @@ describe('share', () => {
     }
     const [main] = result.project.circuits;
     expect(main.parts[0]).toMatchObject({ kind: 'input', x: 0, y: 0 });
-    expect(main.parts[1]).toMatchObject({ kind: 'module', moduleId: 'mod' });
+    expect(main.parts[1]).toMatchObject({ kind: 'module', circuitId: 'mod' });
     expect(result.project.circuits[1].id).toBe('mod');
   });
 
@@ -337,7 +339,7 @@ describe('一体の形式のデータ', () => {
             // biome-ignore format: 表形式を維持するため
             parts: [
               { ...main.parts[0], id: 'id2' },
-              { ...main.parts[1], id: 'id3', moduleId: 'id1' },
+              { ...main.parts[1], id: 'id3', circuitId: 'id1' },
             ],
             wires: [{ ...main.wires[0], id: 'id4' }],
           },

@@ -1,14 +1,14 @@
-// 一体の形式 version 4 の回路 1 つを、モジュールの形式 version 1 の形に変える。プロジェクト全体の変換 (project/v1.ts) から呼ぶ。
-// モジュールの形式 v1 では、形式の目印 (format) と版 (version)、作者名 (author) を持ち、メイン回路もパッケージを持つ。
-// sheet、CLOCK の period、INPUT / OUTPUT の portNumber を省略できなくし、部品がモジュールを指す項目を module から moduleId にして、
-// 名前の写し moduleName を足した。split のピンの順は、中の位置の順からポート番号の順になった。
-// 形式は docs/format/integrated/v4.md と docs/format/module/v1.md。
+// 一体の形式 version 4 の回路 1 つを、回路の形式 version 1 の形に変える。プロジェクト全体の変換 (project/v1.ts) から呼ぶ。
+// 回路の形式 v1 では、形式の目印 (format) と版 (version)、作者名 (author) を持ち、メイン回路もパッケージを持つ。
+// sheet、CLOCK の period、INPUT / OUTPUT の portNumber を省略できなくし、モジュールの部品が回路を指す項目を module から circuitId にして、
+// 名前の写し circuitName を足した。split のピンの順は、中の位置の順からポート番号の順になった。
+// 形式は docs/format/integrated/v4.md と docs/format/circuit/v1.md。
 //
 // 今のアプリのコード (部品の型や検証、ポート番号の付け方) には頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため
 
 import { isObject } from '../../../util';
 
-/** メイン回路の ID。モジュールの形式 v1 でも変えない */
+/** メイン回路の ID。回路の形式 v1 でも変えない */
 const MAIN_ID = 'main';
 
 /** 一体の形式 v4 で、sheet を省略したときの大きさ */
@@ -80,17 +80,17 @@ function withPortNumbers(elements: unknown[], renumber: boolean): unknown[] {
 }
 
 /**
- * 部品 1 つの、ポート番号以外の項目を変える。module を moduleId に移して名前の写し moduleName を書き、
- * CLOCK の周期がなければ書き込む。moduleNames は、モジュールの ID から、変換後の名前への対応
+ * 部品 1 つの、ポート番号以外の項目を変える。module を circuitId に移して名前の写し circuitName を書き、
+ * CLOCK の周期がなければ書き込む。circuitNames は、回路の ID から、変換後の名前への対応
  */
-function upgradeElement(e: Element, moduleNames: ReadonlyMap<string, string>): Element {
+function upgradeElement(e: Element, circuitNames: ReadonlyMap<string, string>): Element {
   if (e.kind === 'module') {
     const { module, ...rest } = e;
     return {
       ...rest,
-      moduleId: module,
-      // 指す先のないモジュールは、写す名前がない。検証で断る (見つからないモジュール)
-      moduleName: typeof module === 'string' ? (moduleNames.get(module) ?? '') : '',
+      circuitId: module,
+      // 指す先の回路がないモジュールは、写す名前がない。検証で断る (見つからない回路)
+      circuitName: typeof module === 'string' ? (circuitNames.get(module) ?? '') : '',
     };
   }
   if (e.kind === 'clock' && e.period === undefined) {
@@ -99,21 +99,21 @@ function upgradeElement(e: Element, moduleNames: ReadonlyMap<string, string>): E
   return e;
 }
 
-export interface ModuleV1Options {
-  /** モジュールの作者名 (一体の形式のプロジェクトの作者名) */
+export interface CircuitV1Options {
+  /** 回路の作者名 (一体の形式のプロジェクトの作者名) */
   author: unknown;
-  /** モジュールの名前。メイン回路では使わない (名前を持たない) */
+  /** 回路の名前。メイン回路では使わない (名前を持たない) */
   name: unknown;
-  /** モジュールの ID から、変換後の名前への対応。部品の名前の写し (moduleName) に使う */
-  moduleNames: ReadonlyMap<string, string>;
+  /** 回路の ID から、変換後の名前への対応。モジュールの部品の名前の写し (circuitName) に使う */
+  circuitNames: ReadonlyMap<string, string>;
 }
 
 /**
- * 一体の形式 version 4 の回路 1 つを、モジュールの形式 version 1 にする。
+ * 一体の形式 version 4 の回路 1 つを、回路の形式 version 1 にする。
  * 名前と作者名は、プロジェクト全体の変換が決めたもの (options) を書く。
  * 形の正しくないデータは、分かるところだけを変えて返す (検証で断る)
  */
-export function upgradeToModuleV1(circuit: unknown, options: ModuleV1Options): unknown {
+export function upgradeToCircuitV1(circuit: unknown, options: CircuitV1Options): unknown {
   if (!isObject(circuit)) {
     return circuit;
   }
@@ -123,7 +123,7 @@ export function upgradeToModuleV1(circuit: unknown, options: ModuleV1Options): u
   const modulePackage = isMain ? { kind: 'split' } : pkg;
   const renumber = isMain || (isObject(pkg) && pkg.kind === 'split');
   return {
-    format: 'sazanka-module',
+    format: 'sazanka-circuit',
     version: 1,
     ...rest,
     id,
@@ -133,7 +133,7 @@ export function upgradeToModuleV1(circuit: unknown, options: ModuleV1Options): u
     sheet: sheet === undefined ? V4_DEFAULT_SHEET : sheet,
     elements: Array.isArray(elements)
       ? withPortNumbers(
-          elements.map((e) => (isObject(e) ? upgradeElement(e, options.moduleNames) : e)),
+          elements.map((e) => (isObject(e) ? upgradeElement(e, options.circuitNames) : e)),
           renumber,
         )
       : elements,

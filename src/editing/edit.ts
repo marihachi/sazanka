@@ -50,10 +50,10 @@ function updatePart<T extends Circuit>(circuit: T, id: string, update: (c: Part)
 
 /**
  * パレットから置く部品を作る。保存データで省略できない項目は、ここで持たせる (CLOCK の周期)。
- * ON/OFF を持つ部品 (INPUT、CLOCK) は OFF から始める。モジュールの部品は moduleId で指すモジュールを持つ。
+ * ON/OFF を持つ部品 (INPUT、CLOCK) は OFF から始める。モジュールの部品は circuitId で指す回路を持つ。
  * INPUT / OUTPUT のポート番号とピン番号は、置く先の回路で決まるので、置いたあとに付ける (module.ts の assignPortNumbers)
  */
-export function newPart(id: string, kind: PartKind, at: Point, moduleId?: string): Part {
+export function newPart(id: string, kind: PartKind, at: Point, circuitId?: string): Part {
   const c: Part = { id, kind, x: at.x, y: at.y };
   // CLOCK の実際の ON/OFF はシミュレーションの中で持つ (useSimulation.ts)
   if (kind === 'input' || kind === 'clock') {
@@ -62,8 +62,8 @@ export function newPart(id: string, kind: PartKind, at: Point, moduleId?: string
   if (kind === 'clock') {
     c.period = DEFAULT_CLOCK_PERIOD;
   }
-  if (moduleId) {
-    c.moduleId = moduleId;
+  if (circuitId) {
+    c.circuitId = circuitId;
   }
   return c;
 }

@@ -16,13 +16,13 @@ export function serializeProject(project: Project): string {
 
 /**
  * プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、検証で見つかった問題。
- * MODULE_FILE は、モジュールのデータかモジュールファイルを選んだ (プロジェクトの読み込みでは読めない)
+ * CIRCUIT_FILE は、回路のデータか回路ファイルを選んだ (プロジェクトの読み込みでは読めない)
  */
 export type ProjectFileError =
   | { code: 'NOT_JSON' }
   | { code: 'NOT_SAZANKA' }
   | { code: 'NEWER_VERSION' }
-  | { code: 'MODULE_FILE' }
+  | { code: 'CIRCUIT_FILE' }
   | { code: 'BROKEN'; detail: ProjectError };
 
 export type ParseResult = { ok: true; project: Project } | { ok: false; error: ProjectFileError };

@@ -1,4 +1,4 @@
-# 保存データをプロジェクトとモジュールに分ける（計画）
+# 保存データをプロジェクトと回路に分ける（計画）
 
 状態: **進行中**
 
@@ -55,6 +55,20 @@
 ## 決めたこと
 
 開発者が決めたこと。
+
+用語の変更（2026-10-20）: 定義は「回路」、置いたものは「モジュール」と呼び分けることにした（[用語](../../docs/glossary.md)）。この計画で決めた名前のうち、定義を指していたものを次のように変えた。下の記述のうち、決めた日がこれより前のものは、もとの名前のまま残している。
+
+| もとの名前 | 新しい名前 |
+| --- | --- |
+| モジュールの形式（`docs/format/module/`） | 回路の形式（`docs/format/circuit/`） |
+| `format: "sazanka-module"` / `"sazanka-modules"` | `"sazanka-circuit"` / `"sazanka-circuits"` |
+| プロジェクトの `modules`、要素の `module` | `circuits`、`circuit` |
+| 部品の `moduleId` / `moduleName` | `circuitId` / `circuitName`（部品の種類は `module` のまま） |
+| モジュールファイル | 回路ファイル |
+| `StoredModule`、`MODULE_FORMAT_VERSION`、`upgradeToModuleV1`（`upgrade/module/`）、`Part.moduleId` | `StoredCircuit`、`CIRCUIT_FORMAT_VERSION`、`upgradeToCircuitV1`（`upgrade/circuit/`）、`Part.circuitId` |
+| エラーの種類 `MODULE_FILE`、`NOT_MODULE`、`NO_MODULES`、`MISSING_MODULE` | `CIRCUIT_FILE`、`NOT_CIRCUIT`、`NO_CIRCUITS`、`MISSING_CIRCUIT` |
+
+- 画面の文言（「モジュールの追加」など）と、アプリの中のほかの名前は、[計画 18](../main-as-module/plan.md)でそろえる。この計画では、保存データの形式と、その周りのコードの名前、エラーの文言だけを変えた。
 
 形式の分け方（2026-10-17）:
 

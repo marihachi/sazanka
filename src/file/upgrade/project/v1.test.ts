@@ -9,10 +9,10 @@ function v4Module(id: string, name: unknown, elements: unknown[] = []) {
   return { id, name, package: { kind: 'split' }, elements };
 }
 
-/** 変換したプロジェクトの、要素ごとのモジュールの名前 (メイン回路は undefined) */
+/** 変換したプロジェクトの、要素ごとの回路の名前 (メイン回路は undefined) */
 function names(project: unknown): unknown[] {
-  return (project as { modules: { module: { name?: unknown } }[] }).modules.map(
-    (e) => e.module.name,
+  return (project as { circuits: { circuit: { name?: unknown } }[] }).circuits.map(
+    (e) => e.circuit.name,
   );
 }
 
@@ -21,7 +21,7 @@ describe('upgradeToProjectV1', () => {
     const v4 = { circuits: [{ id: 'main', elements: [] }, v4Module('b', 'B'), v4Module('a', 'A')] };
     const project = upgradeToProjectV1(v4) as StoredProject;
     expect(project).toMatchObject({ format: 'sazanka-project', version: 1, folders: [] });
-    expect(project.modules.map((e) => [e.path, e.module.id])).toEqual([
+    expect(project.circuits.map((e) => [e.path, e.circuit.id])).toEqual([
       ['', 'main'],
       ['', 'b'],
       ['', 'a'],
@@ -31,7 +31,7 @@ describe('upgradeToProjectV1', () => {
 
   it('プロジェクトの作者名を、すべてのモジュール (メイン回路を含む) に写す。なければ空文字', () => {
     const circuits = [{ id: 'main', elements: [] }, v4Module('m', 'M')];
-    const authors = (p: unknown) => (p as StoredProject).modules.map((e) => e.module.author);
+    const authors = (p: unknown) => (p as StoredProject).circuits.map((e) => e.circuit.author);
     expect(authors(upgradeToProjectV1({ author: 'さざんか', circuits }))).toEqual([
       'さざんか',
       'さざんか',
@@ -86,9 +86,9 @@ describe('upgradeToProjectV1', () => {
       ],
     };
     const project = upgradeToProjectV1(v4) as StoredProject;
-    expect(project.modules[0].module.elements).toMatchObject([
-      { moduleId: 'a', moduleName: 'X' },
-      { moduleId: 'b', moduleName: 'X (2)' },
+    expect(project.circuits[0].circuit.elements).toMatchObject([
+      { circuitId: 'a', circuitName: 'X' },
+      { circuitId: 'b', circuitName: 'X (2)' },
     ]);
   });
 
@@ -132,7 +132,7 @@ describe('変換の前後で、外側の配線は同じピンにつながった�
   it('ポート番号を位置の順に振り直し、シミュレーションの結果が変わらない', () => {
     const stored = upgradeToProjectV1(v4) as StoredProject;
     expect(checkProject(stored)).toBeUndefined();
-    const sel = stored.modules[1].module.elements;
+    const sel = stored.circuits[1].circuit.elements;
     expect(sel.filter((e) => e.kind === 'input')).toMatchObject([
       { portName: 'A', portNumber: 1 },
       { portName: 'B', portNumber: 2 },

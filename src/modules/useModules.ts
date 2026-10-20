@@ -42,7 +42,7 @@ export function useModules({
       (d) =>
         `${d.id}:${d.name}:${d.parts
           .filter((c) => c.kind === 'module')
-          .map((c) => c.moduleId)
+          .map((c) => c.circuitId)
           .join(',')}`,
     ),
   ].join('|');

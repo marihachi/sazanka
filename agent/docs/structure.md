@@ -37,9 +37,9 @@
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
   - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。プロジェクトファイルでも使う）。`share.ts` … プロジェクトファイル。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
   - `upgrade/` … 古い版のデータを、今の版の形にする変換（保存データとプロジェクトファイルで共通。[保存データ](persistence.md)の「形式を変えるとき」）。
-    - `index.ts` … 読み込みの入口（`upgradeStoredProject`。一体の形式か新しい形式かを見分ける）と、形式の版（`PROJECT_FORMAT_VERSION`、`MODULE_FORMAT_VERSION`）。
+    - `index.ts` … 読み込みの入口（`upgradeStoredProject`。一体の形式か新しい形式かを見分ける）と、形式の版（`PROJECT_FORMAT_VERSION`、`CIRCUIT_FORMAT_VERSION`）。
     - `integrated/` … 一体の形式の変換。`upgradeV1.ts` … version 1 → 2。`upgradeV2.ts` … version 2 → 3。`upgradeV3.ts` … version 3 → 4。
-    - `project/v1.ts` … 一体の形式 v4 → プロジェクトの形式 v1（`upgradeToProjectV1`）。`module/v1.ts` … 一体の形式 v4 の回路 1 つ → モジュールの形式 v1（`upgradeToModuleV1`）。ファイル名 `v<N>.ts` は「version N へ変える変換」。
+    - `project/v1.ts` … 一体の形式 v4 → プロジェクトの形式 v1（`upgradeToProjectV1`）。`circuit/v1.ts` … 一体の形式 v4 の回路 1 つ → 回路の形式 v1（`upgradeToCircuitV1`）。ファイル名 `v<N>.ts` は「version N へ変える変換」。
 - `preferences/` … 環境設定。
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。

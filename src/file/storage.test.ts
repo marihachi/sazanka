@@ -38,7 +38,7 @@ const withModule: Project = {
       // biome-ignore format: 表形式を維持するため
       parts: [
         { id: 'a', kind: 'input', x: 0, y: 20, portName: 'A', portNumber: 1 },
-        { id: 'm', kind: 'module', x: 100, y: 0, moduleId: 'mod', rotation: 90 },
+        { id: 'm', kind: 'module', x: 100, y: 0, circuitId: 'mod', rotation: 90 },
       ],
       // biome-ignore format: 表形式を維持するため
       wires: [{ id: 'w', points: [{ x: 60, y: 40 }, { x: 80, y: 40 }] }],
@@ -88,11 +88,11 @@ describe('toStoredProject / fromStoredProject', () => {
       format: 'sazanka-project',
       version: 1,
       folders: ['lib'],
-      modules: [
+      circuits: [
         {
           path: '',
-          module: {
-            format: 'sazanka-module',
+          circuit: {
+            format: 'sazanka-circuit',
             version: 1,
             id: 'main',
             author: '',
@@ -101,15 +101,15 @@ describe('toStoredProject / fromStoredProject', () => {
             // biome-ignore format: 表形式を維持するため
             elements: [
               { ...withoutId(main.parts[0]), x: 0, y: 1 },
-              { ...withoutId(main.parts[1]), x: 5, y: 0, moduleName: 'M' },
+              { ...withoutId(main.parts[1]), x: 5, y: 0, circuitName: 'M' },
               { kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] },
             ],
           },
         },
         {
           path: 'lib',
-          module: {
-            format: 'sazanka-module',
+          circuit: {
+            format: 'sazanka-circuit',
             version: 1,
             id: 'mod',
             name: 'M',
@@ -130,7 +130,9 @@ describe('toStoredProject / fromStoredProject', () => {
       ],
     };
     const stored = toStoredProject(clock);
-    expect(stored.modules[0].module.elements).toEqual([{ kind: 'clock', x: 0, y: 0, period: 100 }]);
+    expect(stored.circuits[0].circuit.elements).toEqual([
+      { kind: 'clock', x: 0, y: 0, period: 100 },
+    ]);
     expect(checkProject(stored)).toBeUndefined();
   });
 
@@ -162,11 +164,11 @@ describe('toStoredProject / fromStoredProject', () => {
       format: 'sazanka-project',
       version: 1,
       folders: [],
-      modules: [
+      circuits: [
         {
           path: '',
-          module: {
-            format: 'sazanka-module',
+          circuit: {
+            format: 'sazanka-circuit',
             version: 1,
             id: 'main',
             author: '',
@@ -182,26 +184,26 @@ describe('toStoredProject / fromStoredProject', () => {
   it('読み込むと元に戻り (一覧は種類で部品と配線に分かれる)、部品と配線に新しい ID が付く。メイン回路の名前は、あっても空文字にする', () => {
     expect(fromStoredProject(toStoredProject(withModule), counter())).toEqual(loaded);
     const stored = toStoredProject(withModule);
-    const [main, mod] = stored.modules;
+    const [main, mod] = stored.circuits;
     const named = {
       ...stored,
-      modules: [{ ...main, module: { ...main.module, name: 'メイン' } }, mod],
+      circuits: [{ ...main, circuit: { ...main.circuit, name: 'メイン' } }, mod],
     };
     expect(fromStoredProject(named, counter())).toEqual(loaded);
   });
 
-  it('名前の写し (moduleName) は読み込まない (指すモジュールの名前を使う)', () => {
+  it('名前の写し (circuitName) は読み込まない (指す回路の名前を使う)', () => {
     const stored = toStoredProject(withModule);
-    const [main, mod] = stored.modules;
+    const [main, mod] = stored.circuits;
     const renamed = {
       ...stored,
-      modules: [
+      circuits: [
         {
           ...main,
-          module: {
-            ...main.module,
-            elements: main.module.elements.map((e) =>
-              e.kind === 'module' ? { ...e, moduleName: '古い名前' } : e,
+          circuit: {
+            ...main.circuit,
+            elements: main.circuit.elements.map((e) =>
+              e.kind === 'module' ? { ...e, circuitName: '古い名前' } : e,
             ),
           },
         },
@@ -226,7 +228,7 @@ describe('toStoredProject / fromStoredProject', () => {
       part('i', 'input', 0),
       part('s', 'sevenSegment', 0),
     ] }] };
-    const { elements } = toStoredProject(shuffled).modules[0].module;
+    const { elements } = toStoredProject(shuffled).circuits[0].circuit;
     expect(elements.map((e) => ('x' in e ? `${e.kind}${e.x}` : e.kind))).toEqual([
       'input0',
       'output0',
@@ -242,11 +244,11 @@ describe('toStoredProject / fromStoredProject', () => {
 
   it('一覧の中で部品と配線が混ざっていても、種類で分け、それぞれの中の順を保つ', () => {
     const stored = toStoredProject(withModule);
-    const [main, mod] = stored.modules;
-    const [input, module, wire] = main.module.elements;
+    const [main, mod] = stored.circuits;
+    const [input, module, wire] = main.circuit.elements;
     const mixed = {
       ...stored,
-      modules: [{ ...main, module: { ...main.module, elements: [wire, module, input] } }, mod],
+      circuits: [{ ...main, circuit: { ...main.circuit, elements: [wire, module, input] } }, mod],
     };
     const [loadedMain] = fromStoredProject(mixed, counter()).circuits;
     expect(loadedMain.parts.map((c) => c.kind)).toEqual(['module', 'input']);
@@ -257,11 +259,11 @@ describe('toStoredProject / fromStoredProject', () => {
     const stored = toStoredProject(withModule);
     const withIds: StoredProject = {
       ...stored,
-      modules: stored.modules.map((entry) => ({
+      circuits: stored.circuits.map((entry) => ({
         ...entry,
-        module: {
-          ...entry.module,
-          elements: entry.module.elements.map((e) => ({ ...e, id: 'old' })),
+        circuit: {
+          ...entry.circuit,
+          elements: entry.circuit.elements.map((e) => ({ ...e, id: 'old' })),
         },
       })),
     };
@@ -270,7 +272,7 @@ describe('toStoredProject / fromStoredProject', () => {
 
   it('読み込むと、回路の並びは要素の並びのまま (メイン回路が先頭でなくてもよい)', () => {
     const stored = toStoredProject(withModule);
-    const reversed = { ...stored, modules: [...stored.modules].reverse() };
+    const reversed = { ...stored, circuits: [...stored.circuits].reverse() };
     expect(fromStoredProject(reversed, counter()).circuits.map((d) => d.id)).toEqual([
       'mod',
       'main',
@@ -320,7 +322,7 @@ describe('readStored', () => {
           // biome-ignore format: 表形式を維持するため
           parts: [
             { id: 'id1', kind: 'input', x: 0, y: 20, portName: 'A', portNumber: 1 },
-            { id: 'id2', kind: 'module', x: 100, y: 0, moduleId: 'mod' },
+            { id: 'id2', kind: 'module', x: 100, y: 0, circuitId: 'mod' },
           ],
           wires: [],
         },
@@ -405,7 +407,7 @@ describe('readStored', () => {
             author: '',
             package: { kind: 'split' },
             sheet: { width: 300, height: 200 },
-            parts: [{ id: 'id2', kind: 'module', x: 100, y: 0, moduleId: 'id1' }],
+            parts: [{ id: 'id2', kind: 'module', x: 100, y: 0, circuitId: 'id1' }],
             wires: [],
           },
           {
@@ -430,7 +432,9 @@ describe('readStored', () => {
       { ...stored, version: 2 },
       {
         ...stored,
-        modules: [{ ...stored.modules[0], module: { ...stored.modules[0].module, version: 2 } }],
+        circuits: [
+          { ...stored.circuits[0], circuit: { ...stored.circuits[0].circuit, version: 2 } },
+        ],
       },
     ]) {
       const result = read(JSON.stringify(data));
@@ -445,8 +449,8 @@ describe('readStored', () => {
       JSON.stringify(project),
       '{"version":1}',
       JSON.stringify({ version: 1, project: { circuits: [] } }),
-      JSON.stringify({ ...toStoredProject(project), modules: [] }),
-      JSON.stringify({ format: 'sazanka-module', version: 1 }),
+      JSON.stringify({ ...toStoredProject(project), circuits: [] }),
+      JSON.stringify({ format: 'sazanka-circuit', version: 1 }),
     ];
     // 版のない保存データ (以前の形式) も読み込まない
     for (const raw of source) {

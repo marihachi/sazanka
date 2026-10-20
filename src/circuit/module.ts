@@ -103,7 +103,7 @@ export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
 /** 部品のピン名。モジュールは中の INPUT / OUTPUT のポート名、ほかは種類で決まる */
 export function getPinout(c: Part, project: Project): Pinout {
   if (c.kind === 'module') {
-    const def = findDef(project, c.moduleId);
+    const def = findDef(project, c.circuitId);
 
     if (!def) {
       return { inputs: [], outputs: [], package: { kind: 'split' } };
@@ -258,15 +258,15 @@ export function dependsOn(
   return def.parts.some(
     (c) =>
       c.kind === 'module' &&
-      c.moduleId !== undefined &&
-      (c.moduleId === b || dependsOn(project, c.moduleId, b, seen)),
+      c.circuitId !== undefined &&
+      (c.circuitId === b || dependsOn(project, c.circuitId, b, seen)),
   );
 }
 
 /** モジュール id を部品として直接置いている回路 */
 export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   return project.circuits.filter((d) =>
-    d.parts.some((c) => c.kind === 'module' && c.moduleId === id),
+    d.parts.some((c) => c.kind === 'module' && c.circuitId === id),
   );
 }
 

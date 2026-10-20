@@ -1,5 +1,5 @@
-// プロジェクト (メイン回路と複数のモジュール) の構造と、外から来たデータの検証。
-// モジュールのピンの決め方と回路同士の依存は module.ts にある
+// プロジェクト (メイン回路とほかの回路) の構造と、外から来たデータの検証。
+// 回路をモジュールとして置いたときのピンの決め方と、回路同士の依存は module.ts にある
 
 import { isPart } from './part';
 import { isWire, type Circuit } from './circuit';
@@ -10,12 +10,12 @@ export const MAIN_ID = 'main';
 export interface CircuitDef extends Circuit {
   id: string;
   /**
-   * 回路の名前 (モジュールの名前)。メイン回路は空文字。
+   * 回路の名前。メイン回路は空文字。
    * メイン回路の名前は表示言語の文言から引き (i18n/messages.ts の getCircuitName)、保存データにも書かない
    */
   name: string;
   /**
-   * モジュールの形 (パッケージ)。メイン回路も持つ (メイン回路のピンはどこにもつながらない)。
+   * モジュールとして置いたときの形 (パッケージ)。メイン回路も持つ (メイン回路のピンはどこにもつながらない)。
    * 読み込んだデータと、アプリで作った回路には必ずある (checkProject で確かめる)。
    * 型で省略できるのは、テストで回路を手短に作れるようにするため。持たない回路は split として扱う
    */
@@ -46,7 +46,7 @@ export interface CircuitSheet {
 /**
  * 新しく作る回路と、sheet を持たない回路 (テストで作ったもの) の大きさ (横 300 マス、縦 200 マス)。
  * 保存データでは sheet を省略できないので、この値を変えても古いデータの回路の大きさは変わらない
- * (一体の形式の、省略したときの大きさは、変換 (file/upgrade/module/v1.ts) が持つ)
+ * (一体の形式の、省略したときの大きさは、変換 (file/upgrade/circuit/v1.ts) が持つ)
  */
 export const DEFAULT_SHEET: CircuitSheet = { width: 300, height: 200 };
 
@@ -71,7 +71,7 @@ export function getCircuitSheet(def: CircuitDef): CircuitSheet {
 }
 
 /**
- * モジュールの形 (パッケージ)。形の種類 (kind) とピンの数 (pins) で、本体の大きさと、外側のピンを置ける辺と位置が決まる。
+ * 回路をモジュールとして置いたときの形 (パッケージ)。形の種類 (kind) とピンの数 (pins) で、本体の大きさと、外側のピンを置ける辺と位置が決まる。
  * dip は左右の 2 辺、qfp は 4 辺にピンを置く。split は入力を左、出力を右に置く (version 2 までの形)。
  * どのピンにどのポートをつなぐか (割り当て) は、中の INPUT / OUTPUT の pinNumber で決まる
  */
@@ -142,7 +142,7 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
 }
 
 /**
- * モジュールの回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
+ * メイン回路以外の回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
  * メイン回路は先頭に固定なので、メイン回路は動かさず、メイン回路より前にも置かない
  */
 export function moveCircuit(project: Project, id: string, index: number): Project {
@@ -199,11 +199,11 @@ export type ProjectError =
   | { code: 'NOT_PROJECT' }
   | { code: 'NO_FOLDERS' }
   | { code: 'BAD_FOLDER'; folder: string }
-  | { code: 'NO_MODULES' }
+  | { code: 'NO_CIRCUITS' }
   | { code: 'BAD_ENTRY' }
   | { code: 'MISSING_FOLDER'; folder: string }
   | { code: 'NO_CIRCUIT_ID_OR_NAME' }
-  | { code: 'NOT_MODULE'; circuit: string; circuitId: string }
+  | { code: 'NOT_CIRCUIT'; circuit: string; circuitId: string }
   | { code: 'EMPTY_NAME'; circuit: string; circuitId: string }
   | { code: 'AUTHOR_NOT_STRING'; circuit: string; circuitId: string }
   | { code: 'NO_PACKAGE'; circuit: string; circuitId: string }
@@ -215,7 +215,7 @@ export type ProjectError =
   | { code: 'NO_MAIN' }
   | { code: 'DUPLICATE_ID'; id: string }
   | { code: 'DUPLICATE_NAME'; name: string; folder: string }
-  | { code: 'MISSING_MODULE'; circuit: string; circuitId: string };
+  | { code: 'MISSING_CIRCUIT'; circuit: string; circuitId: string };
 
 /** 版の番号として正しい形か (1 以上の整数)。今の版以下かは、読み込みの入口 (file/upgrade/index.ts) が確かめる */
 function isVersion(v: unknown): boolean {
@@ -240,10 +240,10 @@ function hasDuplicatePortNumber(elements: readonly Record<string, unknown>[]): b
 }
 
 /**
- * モジュール (モジュールの形式のデータ) 1 つの形を確かめる。メイン回路は id が MAIN_ID のもの。
+ * 回路 (回路の形式のデータ) 1 つの形を確かめる。メイン回路は id が MAIN_ID のもの。
  * 名前はメイン回路以外が持ち、空にできない。メイン回路の名前は見ない (あっても読み込むときに捨てる)
  */
-function checkModule(def: unknown): ProjectError | undefined {
+function checkCircuit(def: unknown): ProjectError | undefined {
   if (!isObject(def) || typeof def.id !== 'string') {
     return { code: 'NO_CIRCUIT_ID_OR_NAME' };
   }
@@ -252,8 +252,8 @@ function checkModule(def: unknown): ProjectError | undefined {
     return { code: 'NO_CIRCUIT_ID_OR_NAME' };
   }
   const at = { circuit: isMain ? '' : (def.name as string), circuitId: def.id };
-  if (def.format !== 'sazanka-module' || !isVersion(def.version)) {
-    return { code: 'NOT_MODULE', ...at };
+  if (def.format !== 'sazanka-circuit' || !isVersion(def.version)) {
+    return { code: 'NOT_CIRCUIT', ...at };
   }
   if (!isMain && (def.name as string).trim() === '') {
     return { code: 'EMPTY_NAME', ...at };
@@ -307,11 +307,11 @@ function checkFolders(folders: unknown): ProjectError | undefined {
   return undefined;
 }
 
-/** 保存データのモジュールのうち、検証のあとに見るところ (checkModule で形を確かめたもの) */
-interface CheckedModule {
+/** 保存データの回路のうち、検証のあとに見るところ (checkCircuit で形を確かめたもの) */
+interface CheckedCircuit {
   id: string;
   name?: string;
-  elements: { kind: string; moduleId?: string }[];
+  elements: { kind: string; circuitId?: string }[];
 }
 
 /**
@@ -343,10 +343,10 @@ export function checkProject(project: unknown): ProjectError | undefined {
     return folderError;
   }
   const folders = new Set(project.folders as string[]);
-  if (!Array.isArray(project.modules)) {
-    return { code: 'NO_MODULES' };
+  if (!Array.isArray(project.circuits)) {
+    return { code: 'NO_CIRCUITS' };
   }
-  const entries = project.modules as unknown[];
+  const entries = project.circuits as unknown[];
   for (const entry of entries) {
     if (!isObject(entry) || typeof entry.path !== 'string') {
       return { code: 'BAD_ENTRY' };
@@ -354,13 +354,13 @@ export function checkProject(project: unknown): ProjectError | undefined {
     if (entry.path !== '' && !folders.has(entry.path)) {
       return { code: 'MISSING_FOLDER', folder: entry.path };
     }
-    const error = checkModule(entry.module);
+    const error = checkCircuit(entry.circuit);
     if (error) {
       return error;
     }
   }
-  const placed = entries as { path: string; module: CheckedModule }[];
-  const defs = placed.map((e) => e.module);
+  const placed = entries as { path: string; circuit: CheckedCircuit }[];
+  const defs = placed.map((e) => e.circuit);
   if (!defs.some((d) => d.id === MAIN_ID)) {
     return { code: 'NO_MAIN' };
   }
@@ -371,12 +371,12 @@ export function checkProject(project: unknown): ProjectError | undefined {
   }
   // 同じフォルダの中で名前が重なるものを断る (大文字と小文字は区別する)。メイン回路は名前を持たないので比べない
   const names = new Map<string, Set<string>>();
-  for (const { path, module } of placed) {
-    if (module.id === MAIN_ID) {
+  for (const { path, circuit } of placed) {
+    if (circuit.id === MAIN_ID) {
       continue;
     }
     const inFolder = names.get(path) ?? new Set<string>();
-    const name = module.name ?? '';
+    const name = circuit.name ?? '';
     if (inFolder.has(name)) {
       return { code: 'DUPLICATE_NAME', name, folder: path };
     }
@@ -385,9 +385,9 @@ export function checkProject(project: unknown): ProjectError | undefined {
   }
   const circuitIds = new Set(defs.map((d) => d.id));
   for (const def of defs) {
-    if (def.elements.some((c) => c.kind === 'module' && !circuitIds.has(c.moduleId ?? ''))) {
+    if (def.elements.some((c) => c.kind === 'module' && !circuitIds.has(c.circuitId ?? ''))) {
       return {
-        code: 'MISSING_MODULE',
+        code: 'MISSING_CIRCUIT',
         circuit: def.id === MAIN_ID ? '' : (def.name ?? ''),
         circuitId: def.id,
       };

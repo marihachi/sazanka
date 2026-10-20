@@ -204,12 +204,12 @@ export const ja = {
       NOT_PROJECT: 'プロジェクトのデータの形式ではありません',
       NO_FOLDERS: 'フォルダの一覧がありません',
       BAD_FOLDER: (e) => `フォルダ「${e.folder}」が不正です`,
-      NO_MODULES: 'モジュールの一覧がありません',
-      BAD_ENTRY: 'モジュールの一覧に不正な項目があります',
+      NO_CIRCUITS: '回路の一覧がありません',
+      BAD_ENTRY: '回路の一覧に不正な項目があります',
       MISSING_FOLDER: (e) => `フォルダ「${e.folder}」がフォルダの一覧にありません`,
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
-      NOT_MODULE: (e) => `「${e.circuit}」がモジュールのデータの形式ではありません`,
-      EMPTY_NAME: '名前のないモジュールがあります',
+      NOT_CIRCUIT: (e) => `「${e.circuit}」が回路のデータの形式ではありません`,
+      EMPTY_NAME: '名前のない回路があります',
       AUTHOR_NOT_STRING: (e) => `「${e.circuit}」の作者名が文字列ではありません`,
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
@@ -221,16 +221,16 @@ export const ja = {
       DUPLICATE_ID: (e) => `ID が重複しています: ${e.id}`,
       DUPLICATE_NAME: (e) =>
         e.folder === ''
-          ? `同じ名前のモジュールがあります: ${e.name}`
-          : `フォルダ「${e.folder}」に同じ名前のモジュールがあります: ${e.name}`,
-      MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
+          ? `同じ名前の回路があります: ${e.name}`
+          : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
+      MISSING_CIRCUIT: (e) => `「${e.circuit}」に、存在しない回路のモジュールがあります`,
     } satisfies ErrorTexts<ProjectError>,
     /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
     projectFile: {
       NOT_JSON: 'JSON として読み取れません',
       NOT_SAZANKA: 'sazanka のプロジェクトファイルではありません',
       NEWER_VERSION: '新しい版の sazanka で作られたデータです',
-      MODULE_FILE: 'これはモジュールファイルです。プロジェクトファイルを選んでください',
+      CIRCUIT_FILE: 'これは回路ファイルです。プロジェクトファイルを選んでください',
       BROKEN: (detail: string) => `プロジェクトファイルが壊れています (${detail})`,
     } satisfies ErrorTexts<Exclude<ProjectFileError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;

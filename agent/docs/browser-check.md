@@ -9,23 +9,23 @@
 
 ## 状態の用意
 
-- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と、`docs/format/project/v1.md`、`docs/format/module/v1.md` にある。一体の形式 v4（`docs/format/integrated/v4.md`）で書いても読める（開くと新しい形式に変えて保存し直す）。
+- 確かめるための回路は、画面で組み立てるより、保存データ（localStorage の `sazanka.project`）に直接書いて用意する方が速い。形は[保存データ](persistence.md)と、`docs/format/project/v1.md`、`docs/format/circuit/v1.md` にある。一体の形式 v4（`docs/format/integrated/v4.md`）で書いても読める（開くと新しい形式に変えて保存し直す）。
   - アプリはプロジェクトが変わるたびに自動で保存するので、書いた値が上書きされることがある。書き方は Skill の `browser-check` の「ハマりやすい点」に従う。
   - 位置はマス単位の整数で書く（アプリの中の px の 1/20）。
-  - 部品と配線は、モジュールの `elements` に 1 つの一覧で並べる。ID を書くのはモジュールだけ。確かめるためのデータは別のプロジェクトへ持ち込まないので、読める短い名前でよい。部品と配線は ID を持たず、配線には `kind: 'wire'` を書く。
-  - 省略できない項目を忘れない: モジュールの `format`、`version`、`author`、`package`（メイン回路も）、`sheet`、INPUT / OUTPUT の `portNumber`、CLOCK の `period`、モジュールの部品の `moduleId` と `moduleName`。抜けていると、壊れたデータとして空のプロジェクトで開く。
-  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/module/v1.md` の「ピンの先の位置」）に合わせる:
+  - 部品と配線は、回路の `elements` に 1 つの一覧で並べる。ID を書くのは回路だけ。確かめるためのデータは別のプロジェクトへ持ち込まないので、読める短い名前でよい。部品と配線は ID を持たず、配線には `kind: 'wire'` を書く。
+  - 省略できない項目を忘れない: 回路の `format`、`version`、`author`、`package`（メイン回路も）、`sheet`、INPUT / OUTPUT の `portNumber`、CLOCK の `period`、モジュールの部品の `circuitId` と `circuitName`。抜けていると、壊れたデータとして空のプロジェクトで開く。
+  - 例（INPUT → AND → OUTPUT）。配線の点は、ピンの先の位置（`docs/format/circuit/v1.md` の「ピンの先の位置」）に合わせる:
 
     ```js
     const project = {
       format: 'sazanka-project',
       version: 1,
       folders: [],
-      modules: [
+      circuits: [
         {
           path: '',
-          module: {
-            format: 'sazanka-module',
+          circuit: {
+            format: 'sazanka-circuit',
             version: 1,
             id: 'main',
             author: '',
@@ -45,7 +45,7 @@
     ```
 
 - ほかのキー: 環境設定は `sazanka.preferences`、パレットの折り畳みは `sazanka.paletteCollapsed`、シートの表示は `sazanka.views`（`file/storage.ts`）。
-- 部品の座標は、シート（モジュールの `sheet` で決まる。300×200 マスなら、真ん中は (150, 100)）の中に置く。部品同士が重ならないよう、何マスかずつ離す。
+- 部品の座標は、シート（回路の `sheet` で決まる。300×200 マスなら、真ん中は (150, 100)）の中に置く。部品同士が重ならないよう、何マスかずつ離す。
   - 表示（`sazanka.views`）を保存していない回路は、部品があれば回路全体が見える表示で開き、部品がなければシートの真ん中を等倍で開く（[シートの表示](view.md)）。
 - 発振する回路が要るときは、NOT の出力を自分の入力へつなぐ。
 - 部品の座標を読み書きして操作するときは、シートの `<g transform="translate(x y) scale(s)">` から、回路の座標を画面の座標に直す（画面の座標 = 回路の座標 × s + (x, y) + シートの左上）。ここでの回路の座標はアプリの中の px で、保存データのマスの 20 倍。

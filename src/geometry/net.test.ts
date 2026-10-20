@@ -178,7 +178,7 @@ describe('NC のピン', () => {
     };
     // モジュールを (200, 200) に置くと、1 番の先は (180, 220)、2 番 (NC) の先は (180, 260)
     const parts: Part[] = [
-      { id: 'u', kind: 'module', moduleId: 'm', x: 200, y: 200 },
+      { id: 'u', kind: 'module', circuitId: 'm', x: 200, y: 200 },
       { id: 'b', kind: 'input', x: 0, y: 200 },
     ];
     const toPin1 = computeNets({ parts, wires: [wire('w', [60, 220], [180, 220])] }, project);
@@ -210,7 +210,7 @@ describe('上下の辺のピン', () => {
     // モジュールを (200, 200) に置くと、8 番の先は (240, 180)、3 番の先は (240, 340)。
     // INPUT b の出力ピンの先は (60, 20)、OUTPUT o の入力ピンの先は (380, 320)
     const parts: Part[] = [
-      { id: 'u', kind: 'module', moduleId: 'm', x: 200, y: 200 },
+      { id: 'u', kind: 'module', circuitId: 'm', x: 200, y: 200 },
       { id: 'b', kind: 'input', x: 0, y: 0 },
       { id: 'o', kind: 'output', x: 400, y: 300 },
     ];

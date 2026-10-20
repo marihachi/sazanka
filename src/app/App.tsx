@@ -380,8 +380,8 @@ export function App() {
   }
 
   function onCompDoubleClick(c: Part) {
-    if (c.kind === 'module' && c.moduleId && findDef(project, c.moduleId)) {
-      openCircuit(c.moduleId);
+    if (c.kind === 'module' && c.circuitId && findDef(project, c.circuitId)) {
+      openCircuit(c.circuitId);
     }
   }
 
@@ -575,9 +575,9 @@ export function App() {
           />
           <PropertyPanel
             part={selectedPart}
-            moduleName={
+            circuitName={
               selectedPart?.kind === 'module'
-                ? findDef(project, selectedPart.moduleId)?.name
+                ? findDef(project, selectedPart.circuitId)?.name
                 : undefined
             }
             otherPortNames={circuit.parts

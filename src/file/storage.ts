@@ -22,7 +22,7 @@ import { DEFAULT_CLOCK_PERIOD, type Part, type PlaceablePartKind } from '../circ
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
 import { newId } from '../circuit/circuit';
-import { MODULE_FORMAT_VERSION, PROJECT_FORMAT_VERSION, upgradeStoredProject } from './upgrade';
+import { CIRCUIT_FORMAT_VERSION, PROJECT_FORMAT_VERSION, upgradeStoredProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
 
@@ -37,9 +37,9 @@ export interface StoredWire {
 
 /**
  * 保存データとプロジェクトファイルの中の部品。ID と ON/OFF を持たない。
- * モジュールの部品は、指すモジュールの名前の写し (moduleName) を持つ (保存するたびに今の名前を写す。読み込むときは使わない)
+ * モジュールの部品は、指す回路の名前の写し (circuitName) を持つ (保存するたびに今の名前を写す。読み込むときは使わない)
  */
-export type StoredPart = Omit<Part, 'id' | 'on'> & { moduleName?: string };
+export type StoredPart = Omit<Part, 'id' | 'on'> & { circuitName?: string };
 
 /**
  * 回路に置いた要素 (部品と配線)。種類 (kind) で見分ける。配線の種類は wire、それ以外は部品の種類。
@@ -47,9 +47,9 @@ export type StoredPart = Omit<Part, 'id' | 'on'> & { moduleName?: string };
  */
 export type StoredElement = StoredPart | StoredWire;
 
-/** 保存データとプロジェクトファイルの中のモジュール (モジュールの形式のデータ)。メイン回路は名前を持たない */
-export interface StoredModule {
-  format: 'sazanka-module';
+/** 保存データとプロジェクトファイルの中の回路 (回路の形式のデータ)。メイン回路は名前を持たない */
+export interface StoredCircuit {
+  format: 'sazanka-circuit';
   version: number;
   id: string;
   name?: string;
@@ -59,26 +59,26 @@ export interface StoredModule {
   elements: StoredElement[];
 }
 
-/** プロジェクトの要素。モジュールを置くフォルダのパス (フォルダなしは空文字) と、モジュールのデータの組 */
+/** プロジェクトの要素。回路を置くフォルダのパス (フォルダなしは空文字) と、回路のデータの組 */
 export interface StoredProjectEntry {
   path: string;
-  module: StoredModule;
+  circuit: StoredCircuit;
 }
 
 /**
  * 保存データとプロジェクトファイルの形 (プロジェクトの形式のデータ)。アプリの中の形 (Project) とは、次のところが違う。
- * - 回路は、フォルダのパスと組にした要素の並び (modules) に並べる (アプリの中は、回路に path を持たせた circuits)。
+ * - 回路は、フォルダのパスと組にした要素の並び (circuits) に並べる (アプリの中は、回路に path を持たせた circuits)。
  * - 部品と配線を、1 つの一覧 (elements) に並べる (アプリの中は parts と wires に分ける)。
  * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
  * - メイン回路は名前を持たない (アプリの中は空文字)。
  * - 部品と配線は ID を持たない。どこからも参照されないので保存せず、読み込むたびに付ける。保存する ID は回路の ID だけ。
- * - 配線は種類を持つ (StoredWire)。モジュールの部品は、指すモジュールの名前の写し (moduleName) を持つ。
+ * - 配線は種類を持つ (StoredWire)。モジュールの部品は、指す回路の名前の写し (circuitName) を持つ。
  */
 export interface StoredProject {
   format: 'sazanka-project';
   version: number;
   folders: string[];
-  modules: StoredProjectEntry[];
+  circuits: StoredProjectEntry[];
 }
 
 /**
@@ -125,19 +125,19 @@ function scalePoint<T extends Point>(p: T, scale: number): T {
 }
 
 /**
- * アプリの中の回路 1 つを、保存データの形のモジュールにする。
+ * アプリの中の回路 1 つを、保存データの形の回路にする。
  * 部品と配線を 1 つの一覧にまとめ (種類の順 ELEMENT_ORDER。同じ種類の中はアプリの中の順)、位置を px からマスに直し、
- * メイン回路の名前と部品と配線の ID を外し、配線に種類を書き、モジュールの部品に指すモジュールの今の名前を写す。
+ * メイン回路の名前と部品と配線の ID を外し、配線に種類を書き、モジュールの部品に指す回路の今の名前を写す。
  * パッケージ、シートの大きさ、作者名を持たない回路 (テストで作ったものなど) には、split、DEFAULT_SHEET、空文字を書く。
  * 周期を持たない CLOCK には DEFAULT_CLOCK_PERIOD を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
  */
-function toStoredModule(def: CircuitDef, project: Project): StoredModule {
+function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
   const { id, name, author, parts, wires } = def;
   const toStoredPart = ({ id: _, on: __, ...c }: Part): StoredElement => {
     const cells = scalePoint(c, 1 / GRID);
     if (c.kind === 'module') {
-      return { ...cells, moduleName: findDef(project, c.moduleId)?.name ?? '' };
+      return { ...cells, circuitName: findDef(project, c.circuitId)?.name ?? '' };
     }
     // 置いたばかりの CLOCK は周期を持たない (既定の周期で動く)。保存データでは省略できないので書く
     if (c.kind === 'clock' && c.period === undefined) {
@@ -146,8 +146,8 @@ function toStoredModule(def: CircuitDef, project: Project): StoredModule {
     return cells;
   };
   return {
-    format: 'sazanka-module',
-    version: MODULE_FORMAT_VERSION,
+    format: 'sazanka-circuit',
+    version: CIRCUIT_FORMAT_VERSION,
     id,
     ...(id === MAIN_ID ? {} : { name }),
     author: author ?? '',
@@ -175,9 +175,9 @@ export function toStoredProject(project: Project): StoredProject {
     format: 'sazanka-project',
     version: PROJECT_FORMAT_VERSION,
     folders: [...(project.folders ?? [])],
-    modules: project.circuits.map((def) => ({
+    circuits: project.circuits.map((def) => ({
       path: def.path ?? '',
-      module: toStoredModule(def, project),
+      circuit: toStoredCircuit(def, project),
     })),
   };
 }
@@ -187,18 +187,18 @@ export function toStoredProject(project: Project): StoredProject {
  * 要素の並びを、同じ並びのまま回路の並びにし、フォルダのパスを回路に持たせる。
  * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
- * 部品の名前の写し (moduleName) は使わない (指すモジュールの名前を引く)。
+ * 部品の名前の写し (circuitName) は使わない (指す回路の名前を引く)。
  * 部品と配線には newId で新しい ID を付ける (回路ごとに部品、配線の順)。データに ID があっても使わない
  */
 export function fromStoredProject(project: StoredProject, newId: () => string): Project {
   return {
     folders: [...project.folders],
-    circuits: project.modules.map(({ path, module }) => {
-      const { format: _, version: __, name, elements, ...def } = module;
+    circuits: project.circuits.map(({ path, circuit }) => {
+      const { format: _, version: __, name, elements, ...def } = circuit;
       // データにある ID (id) は捨てて、新しい ID を付ける
       const parts = elements
         .filter((e): e is StoredPart => !isStoredWire(e))
-        .map(({ id: _, moduleName: __, ...c }: StoredPart & { id?: unknown }) => ({
+        .map(({ id: _, circuitName: __, ...c }: StoredPart & { id?: unknown }) => ({
           id: newId(),
           ...scalePoint(c, GRID),
         }));
