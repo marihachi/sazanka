@@ -89,6 +89,12 @@
    - 画面の文言（日本語と英語）: 定義を指す「モジュール」を「回路」にする（例: 「モジュールの追加」→「回路の追加」、「同じ名前のモジュールがあります」→「同じ名前の回路があります」、「モジュールを削除」→「回路を削除」）。パレットの「モジュール」のグループと、置いたものを指す所はそのまま。どの文言をどう変えるかは、始める前に一覧にして開発者に見せる。
    - コードの名前: 定義を指す `module` の付く名前（`useModules`、`ModuleSettingsDialog` など）をどうするかも、一覧にして開発者に見せる（ファイル名とフォルダ名の変更を含むため）。
    - 操作マニュアル、[UI](../../docs/ui.md)、[画面操作](../../docs/interaction.md)など、エージェント向けのドキュメントの言い方もそろえる。
+   - 済み（2026-10-21）。開発者が一覧を了承した（2026-10-21）。
+     - 画面の文言: 「回路を追加」「回路を削除」、既定の名前「回路<n>」（英語は「Circuit<n>」）、削除の確認、自分自身を置けないときのエラー、新規作成の確認、ポート名の説明、配線の注意、ヒント、INPUT / OUTPUT の説明を直した。置いたものを指す文言（パレットの「モジュール」のグループ、「モジュールはまだありません」、「モジュールのプレビュー」など）はそのまま。
+     - コードの名前: `src/modules/` を `src/circuits/` に、`useModules` を `useCircuits` にした。`createCircuit`、`onAddCircuit`、`onDeleteCircuit`、`applyCircuitSettings`。文言のキーは `m.circuits`、`tabs.addCircuit`、`tabs.circuitTabTooltip`、`toolbar.deleteCircuit`、`hints.nonMain`、`hints.splitPackage`、`hints.numberedPackage`（`HintContext.numberedPackage` も）。`moduleSettings` は `circuitSettings` にまとめた。`circuit/module.ts`、`PaletteModule`、`ModulePorts`、古い形式の変換（`file/upgrade/`）は変えていない。
+     - 定義を指していたコメントとドキュメントの言い方も直した。
+   - 確かめたこと: ブラウザで、日本語と英語の両方で、回路の追加（既定の名前「回路1」「Circuit1」）、タブ、ヒント、「回路を削除」と削除の確認の文言。コンソールのエラーなし。
+   - 残したこと（開発者に確かめる）: 開発者からの指示の行にある古い言い方（`coding-style.md` の例の `useModules.ts`、`interaction.md` の「モジュールのタブを並べ替えても」、`persistence.md` の「モジュールの追加」）。古い形式の変換で名前の空の回路に付ける「モジュール<n>」（`file/upgrade/project/v1.ts`）。
 
 実装は Skill の `modify` で進める。
 
