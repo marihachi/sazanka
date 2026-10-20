@@ -250,8 +250,9 @@ export const en: Messages = {
       'Drag module tabs to reorder them (Main stays first)',
       'Placing an INPUT / OUTPUT adds a pin to the module',
       'While a module tab is open, the main circuit simulation is paused',
-      '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
     ],
+    circuitSettings:
+      '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
     splitModule: [
       'Moving INPUT / OUTPUT up or down changes the pin order, so outer wires may connect to different pins',
     ],

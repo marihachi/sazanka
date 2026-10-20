@@ -453,7 +453,7 @@ export function App() {
       multipleSelected: !!selection && selection.comps.length + selection.wires.length > 1,
       unstable,
       conflict,
-      inModule: circuit.id !== MAIN_ID,
+      inMain: circuit.id === MAIN_ID,
       numberedModule: usesPinNumbers(circuit.package),
       selectedPortProblem: selectedPart && problems.get(selectedPart.id),
       unexposedPorts: problems.size > 0,

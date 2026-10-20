@@ -27,13 +27,13 @@ export interface HintContext {
   unstable: boolean;
   /** 出力ピンが 2 つ以上つながったネットがある */
   conflict: boolean;
-  /** モジュールのタブを開いている */
-  inModule: boolean;
-  /** 開いているモジュールが、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
+  /** メイン回路のタブを開いている。モジュールのタブ (タブの改名や並べ替え、split の並び順の注意など) のヒントを出さない */
+  inMain: boolean;
+  /** 開いている回路が、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
   numberedModule: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;
-  /** 開いているモジュールに、外側のピンに出せないポートがある */
+  /** 開いている回路に、外側のピンに出せないポートがある (メイン回路では警告しないので false) */
   unexposedPorts: boolean;
   /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒で示すのに使う */
   ticksPerSecond: number;
@@ -95,9 +95,8 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   if (ctx.unexposedPorts) {
     return [m.unexposedPorts];
   }
-  if (!ctx.inModule) {
-    return m.idle;
-  }
-  const own = ctx.numberedModule ? m.numberedModule : m.splitModule;
-  return [...m.module, ...own, ...m.idle];
+  // 回路設定とピン番号の割り当ては、メイン回路でも使える。split の並び順の注意は外側の配線のことなので、モジュールだけ
+  const own = ctx.numberedModule ? m.numberedModule : ctx.inMain ? [] : m.splitModule;
+  const moduleOnly = ctx.inMain ? [] : m.module;
+  return [...moduleOnly, m.circuitSettings, ...own, ...m.idle];
 }
