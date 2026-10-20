@@ -40,8 +40,8 @@ import { DialogFrame } from '../ui/DialogFrame';
 
 type PackageKind = Package['kind'];
 
-/** 回路設定のタブ。基本 (作者名、シートの大きさ) と、ポート (パッケージ、ポートの名前、ピンの割り当て、プレビュー) */
-type SettingsTab = 'basic' | 'ports';
+/** 回路設定のタブ。全般 (作者名、シートの大きさ) と、モジュール (モジュールとして置いたときの設定。パッケージ、ポートの名前、ピンの割り当て、プレビュー) */
+type SettingsTab = 'general' | 'module';
 
 /** 形の種類の選択肢の並び。選択肢の文言は、言語ごとの文言の表 (i18n/) にある */
 const PACKAGE_KINDS: PackageKind[] = ['dip', 'qfp', 'split'];
@@ -79,7 +79,7 @@ export function CircuitSettingsDialog({
 }) {
   const m = useMessages();
   const widthRef = useRef<HTMLInputElement>(null);
-  const [tab, setTab] = useState<SettingsTab>('basic');
+  const [tab, setTab] = useState<SettingsTab>('general');
   const isMain = def.id === MAIN_ID;
   const [author, setAuthor] = useState(def.author ?? '');
   const currentSheet = getCircuitSheet(def);
@@ -219,17 +219,17 @@ export function CircuitSettingsDialog({
         >
           <Tabs.List>
             <SettingsTabTrigger
-              value="basic"
-              label={m.circuitSettings.tabs.basic}
+              value="general"
+              label={m.circuitSettings.tabs.general}
               invalid={!sheetCheck.valid}
             />
             <SettingsTabTrigger
-              value="ports"
-              label={m.circuitSettings.tabs.ports}
+              value="module"
+              label={m.circuitSettings.tabs.module}
               invalid={!valid || duplicates.size > 0}
             />
           </Tabs.List>
-          <Tabs.Content value="basic">
+          <Tabs.Content value="general">
             <Stack gap="5" maxW="sm">
               <Field.Root>
                 <Field.Label>{m.circuitSettings.author}</Field.Label>
@@ -246,7 +246,7 @@ export function CircuitSettingsDialog({
             </Stack>
           </Tabs.Content>
           {/* 中で Flex を高さいっぱいに広げる。Tabs.Content に display を書くと、選んでいないときに隠れなくなる */}
-          <Tabs.Content value="ports" flex={{ md: '1' }} minH="0">
+          <Tabs.Content value="module" flex={{ md: '1' }} minH="0">
             <Flex direction={{ base: 'column', md: 'row' }} gap="6" h={{ md: 'full' }}>
               <Stack gap="5" flex="1" minW="0" minH="0">
                 <HStack gap="3" align="start">
