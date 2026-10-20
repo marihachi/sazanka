@@ -1,17 +1,20 @@
+import { useRef } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
-import type { TextRequest } from '../ui/TextDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
 import { parseProject, serializeProject } from './share';
-import { getExportFileName, readTextFile, saveJsonFile } from './localFile';
-import { describeShareError, type Messages } from '../i18n/messages';
+import { getExportFileName, pickFile, readTextFile, saveJsonFile } from './localFile';
+import { describeProjectFileError, type Messages } from '../i18n/messages';
 
-/** プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作) */
+/**
+ * プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作)。
+ * 書き出しと読み込みは、アプリのダイアログを出さず、ブラウザの保存の画面とファイルを選ぶ画面だけを使う
+ */
 export function useProjectFile({
   project,
   replaceProject,
+  openProject,
   showConfirm,
-  showText,
   m,
 }: {
   /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
@@ -19,9 +22,18 @@ export function useProjectFile({
   project: Project;
   /** プロジェクト全体を置き換える (元に戻すで戻せる)。開いている回路や表示も初めからにする */
   replaceProject: (next: Project) => void;
+  /** 別のプロジェクトを開く。元に戻す・やり直しの履歴を消す (履歴はプロジェクトごとのもの)。開いている回路や表示も初めからにする */
+  openProject: (next: Project) => void;
   showConfirm: (request: ConfirmRequest) => void;
-  showText: (request: TextRequest) => void;
 }) {
+  /**
+   * 書き出しの途中 (保存の画面を開いてから書き終えるまで) か。途中で押されても、もう一度は保存しない
+   * (保存の画面は、開いている間にもう一度開こうとすると例外になる)。
+   * 読み込みには使わない。取り消したことを知らせない (cancel イベントのない) ブラウザでは、取り消すと終わりが分からず、
+   * 読み込めないままになるため。ファイルを選ぶ画面は開いている間ほかの操作を受け付けないので、重ねて開くことはない
+   */
+  const exporting = useRef(false);
+
   function newProject() {
     showConfirm({
       message: m.file.confirmNew,
@@ -31,66 +43,42 @@ export function useProjectFile({
     });
   }
 
-  function exportProject() {
-    showText({
-      title: m.file.exportTitle,
-      message: m.file.exportMessage,
-      initial: serializeProject(project),
-      readOnly: true,
-      extraAction: {
-        label: m.file.saveFile,
-        onClick: (text) => saveJsonFile(getExportFileName(new Date()), text),
-      },
-      confirmLabel: m.file.copy,
-      doneMessage: m.file.copied,
-      onSubmit: async (text) => {
-        try {
-          await navigator.clipboard.writeText(text);
-          return undefined;
-        } catch {
-          // 安全でない接続 (http) などでは、クリップボードに書き込めない
-          return m.file.copyFailed;
-        }
-      },
-    });
+  /** プロジェクトファイルとして保存する。保存の画面で取り消したら何もしない */
+  async function exportProject() {
+    if (exporting.current) {
+      return;
+    }
+    exporting.current = true;
+    try {
+      await saveJsonFile(getExportFileName(new Date()), serializeProject(project));
+    } catch {
+      // 書き込みの許可がない、空き容量がないなど
+      showConfirm({ message: m.file.saveFailed });
+    } finally {
+      exporting.current = false;
+    }
   }
 
-  function importProject() {
-    /** 読み込んだ文字列でプロジェクトを置き換える。読めなければエラーの文を返す */
-    function load(text: string) {
-      const result = parseProject(text.trim(), newId);
-      if (!result.ok) {
-        return describeShareError(m, result.error);
-      }
-      replaceProject(result.project);
-      return undefined;
+  /** ファイルを選ぶ画面を開き、選んだプロジェクトファイルを開く。読めなければ理由を知らせる */
+  async function importProject() {
+    const file = await pickFile('.json,application/json');
+    if (!file) {
+      return;
     }
-
-    showText({
-      title: m.file.importTitle,
-      message: m.file.importMessage,
-      initial: '',
-      confirmLabel: m.file.importConfirm,
-      onSubmit: load,
-      fileInput: {
-        accept: '.json,application/json',
-        sourceLabel: m.file.source,
-        fileLabel: m.file.sourceFile,
-        textLabel: m.file.sourceText,
-        chooseLabel: m.file.chooseFile,
-        noFileLabel: m.file.noFile,
-        onSubmit: async (file) => {
-          let text: string;
-          try {
-            text = await readTextFile(file);
-          } catch {
-            // 選んだあとにファイルが消された・動かされたときなど
-            return m.file.readFailed;
-          }
-          return load(text);
-        },
-      },
-    });
+    let text: string;
+    try {
+      text = await readTextFile(file);
+    } catch {
+      // 選んだあとにファイルが消された・動かされたときなど
+      showConfirm({ message: m.file.readFailed });
+      return;
+    }
+    const result = parseProject(text.trim(), newId);
+    if (!result.ok) {
+      showConfirm({ message: m.file.importFailed(describeProjectFileError(m, result.error)) });
+      return;
+    }
+    openProject(result.project);
   }
 
   return { newProject, exportProject, importProject };

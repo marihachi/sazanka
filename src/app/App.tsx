@@ -220,19 +220,27 @@ export function App() {
     showPrompt: dialogs.showPrompt,
   });
 
+  /** プロジェクトを丸ごと入れ替えたあと、開いている回路と表示を初めからにする */
+  function startOver() {
+    forget();
+    // 回路の ID が同じでも中身は別物なので、表示は初めから
+    setViews({});
+    openCircuit(MAIN_ID);
+    setEditing(null);
+  }
+
   const file = useProjectFile({
     m,
     project,
     replaceProject: (next: Project) => {
       setProject(() => next);
-      forget();
-      // 回路の ID が同じでも中身は別物なので、表示は初めから
-      setViews({});
-      openCircuit(MAIN_ID);
-      setEditing(null);
+      startOver();
+    },
+    openProject: (next: Project) => {
+      history.reset(next);
+      startOver();
     },
     showConfirm: dialogs.showConfirm,
-    showText: dialogs.showText,
   });
 
   /** 部品を追加する。位置を省略すると、表示している範囲の真ん中あたりに、重ならないよう少しずつずらして置く */

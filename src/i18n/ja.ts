@@ -2,7 +2,7 @@
 // 部品の種類ごとの文言は、種類のフォルダの view.ts に言語ごとに書く
 import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
-import type { ShareError } from '../file/share';
+import type { ProjectFileError } from '../file/share';
 import type { StoredError } from '../file/storage';
 import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';
@@ -24,9 +24,9 @@ export const ja = {
     newProject: '新規作成',
     newProjectTitle: '空のプロジェクトを新しく作る',
     importProject: '読み込み',
-    importProjectTitle: 'JSON の文字列かファイルからプロジェクトを読み込む',
+    importProjectTitle: 'プロジェクトファイルを選んで読み込む',
     exportProject: '書き出し',
-    exportProjectTitle: 'プロジェクト全体を JSON にして共有する',
+    exportProjectTitle: 'プロジェクト全体をファイルに保存する',
     undo: '元に戻す',
     undoTitle: '元に戻す (Ctrl+Z)',
     redo: 'やり直し',
@@ -190,23 +190,10 @@ export const ja = {
     confirmNew:
       '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
     newProject: '新規作成',
-    exportTitle: '書き出し',
-    exportMessage:
-      'プロジェクト全体を書き出します。コピーするか、ファイルに保存してください。「読み込み」で取り込めます。',
-    saveFile: 'ファイルに保存',
-    copy: 'コピー',
-    copied: 'コピーしました',
-    copyFailed: 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください',
-    importTitle: '読み込み',
-    importMessage:
-      '書き出したファイルを選択するか、データを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
-    source: '読み込み元',
-    sourceFile: 'ファイル',
-    sourceText: 'テキスト',
-    chooseFile: 'ファイルを選択',
-    noFile: '選択されていません',
+    saveFailed: 'ファイルに保存できませんでした',
     readFailed: 'ファイルを読み取れませんでした',
-    importConfirm: '読み込む',
+    /** プロジェクトファイルを読み込めなかったときのお知らせ。reason は errors.projectFile の文 */
+    importFailed: (reason: string) => `読み込めませんでした。${reason}`,
     /** 保存データを読み込めなかったときのお知らせ。reason は errors.stored の文 */
     openedEmpty: (reason: string) => `${reason}空のプロジェクトで開きます。`,
   },
@@ -238,14 +225,14 @@ export const ja = {
           : `フォルダ「${e.folder}」に同じ名前のモジュールがあります: ${e.name}`,
       MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
     } satisfies ErrorTexts<ProjectError>,
-    /** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
-    share: {
+    /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
+    projectFile: {
       NOT_JSON: 'JSON として読み取れません',
-      NOT_SAZANKA: 'sazanka の回路データではありません',
-      NEWER_VERSION: '新しい版の sazanka で作られたデータのため読み込めません',
-      MODULE_FILE: 'これはモジュールのファイルのため、プロジェクトとしては読み込めません',
-      BROKEN: (detail: string) => `回路データが壊れています (${detail})`,
-    } satisfies ErrorTexts<Exclude<ShareError, { code: 'BROKEN' }>> & {
+      NOT_SAZANKA: 'sazanka のプロジェクトファイルではありません',
+      NEWER_VERSION: '新しい版の sazanka で作られたデータです',
+      MODULE_FILE: 'これはモジュールファイルです。プロジェクトファイルを選んでください',
+      BROKEN: (detail: string) => `プロジェクトファイルが壊れています (${detail})`,
+    } satisfies ErrorTexts<Exclude<ProjectFileError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;
     },
     /** 保存データを読み込めなかった理由。このあとに file.openedEmpty で「空のプロジェクトで開きます。」を続ける */

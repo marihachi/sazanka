@@ -59,7 +59,7 @@ const projectV2 = {
   ],
 };
 
-/** 一体の形式 version 4 の共有用 JSON。p は保存の形 (位置はマス) で渡す */
+/** 一体の形式 version 4 のプロジェクトファイル。p は保存の形 (位置はマス) で渡す */
 function integratedV4(p: unknown): string {
   return JSON.stringify({ app: 'sazanka', version: 4, project: p });
 }
@@ -270,7 +270,7 @@ describe('配線の点', () => {
 });
 
 describe('一体の形式のデータ', () => {
-  it('version 4 の共有用 JSON は、新しい形式に変えて読み込む', () => {
+  it('version 4 のプロジェクトファイルは、新しい形式に変えて読み込む', () => {
     // biome-ignore format: 表形式を維持するため
     const v4 = {
       circuits: [

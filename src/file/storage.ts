@@ -27,7 +27,7 @@ import { MODULE_FORMAT_VERSION, PROJECT_FORMAT_VERSION, upgradeStoredProject } f
 const STORAGE_KEY = 'sazanka.project';
 
 /**
- * 保存データと共有用 JSON の中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
+ * 保存データとプロジェクトファイルの中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
  * 種類は今は普通の配線 (wire) だけ
  */
 export interface StoredWire {
@@ -36,7 +36,7 @@ export interface StoredWire {
 }
 
 /**
- * 保存データと共有用 JSON の中の部品。ID と ON/OFF を持たない。
+ * 保存データとプロジェクトファイルの中の部品。ID と ON/OFF を持たない。
  * モジュールの部品は、指すモジュールの名前の写し (moduleName) を持つ (保存するたびに今の名前を写す。読み込むときは使わない)
  */
 export type StoredPart = Omit<Part, 'id' | 'on'> & { moduleName?: string };
@@ -47,7 +47,7 @@ export type StoredPart = Omit<Part, 'id' | 'on'> & { moduleName?: string };
  */
 export type StoredElement = StoredPart | StoredWire;
 
-/** 保存データと共有用 JSON の中のモジュール (モジュールの形式のデータ)。メイン回路は名前を持たない */
+/** 保存データとプロジェクトファイルの中のモジュール (モジュールの形式のデータ)。メイン回路は名前を持たない */
 export interface StoredModule {
   format: 'sazanka-module';
   version: number;
@@ -66,7 +66,7 @@ export interface StoredProjectEntry {
 }
 
 /**
- * 保存データと共有用 JSON の形 (プロジェクトの形式のデータ)。アプリの中の形 (Project) とは、次のところが違う。
+ * 保存データとプロジェクトファイルの形 (プロジェクトの形式のデータ)。アプリの中の形 (Project) とは、次のところが違う。
  * - 回路は、フォルダのパスと組にした要素の並び (modules) に並べる (アプリの中は、回路に path を持たせた circuits)。
  * - 部品と配線を、1 つの一覧 (elements) に並べる (アプリの中は parts と wires に分ける)。
  * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
@@ -167,7 +167,7 @@ function toStoredModule(def: CircuitDef, project: Project): StoredModule {
 }
 
 /**
- * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
+ * アプリの中のプロジェクトを、保存データとプロジェクトファイルの形にする。
  * 回路の並びを、同じ並びのまま要素の並びにする (フォルダのパスを持たない回路はフォルダなし)
  */
 export function toStoredProject(project: Project): StoredProject {
@@ -183,7 +183,7 @@ export function toStoredProject(project: Project): StoredProject {
 }
 
 /**
- * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。
+ * 保存データとプロジェクトファイルの形のプロジェクトを、アプリの中の形にする。
  * 要素の並びを、同じ並びのまま回路の並びにし、フォルダのパスを回路に持たせる。
  * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
