@@ -2,7 +2,7 @@
 // 部品の種類ごとの文言は、種類のフォルダの view.ts に言語ごとに書く
 import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
-import type { ProjectFileError } from '../file/share';
+import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
 import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';

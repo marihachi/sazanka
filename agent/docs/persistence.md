@@ -74,7 +74,7 @@
 
 ## 保存の形とアプリの中の形
 
-保存データとプロジェクトファイルの中のプロジェクト（`file/storage.ts` の `StoredProject`。プロジェクトの形式のデータ）は、アプリの中の形（`Project`）と次のところが違う。読み書きのときに `storage.ts` の `toStoredProject` / `fromStoredProject` で変える。プロジェクトファイル（`share.ts`）も同じ関数を使う。
+保存データとプロジェクトファイルの中のプロジェクト（`file/storage.ts` の `StoredProject`。プロジェクトの形式のデータ）は、アプリの中の形（`Project`）と次のところが違う。読み書きのときに `storage.ts` の `toStoredProject` / `fromStoredProject` で変える。プロジェクトファイル（`projectFile.ts`）も同じ関数を使う。
 
 - 回路は、保存の形ではプロジェクトの要素（フォルダのパス `path` と回路のデータ `circuit` の組）の並び（`circuits`）に並べ、アプリの中では回路にパスを持たせた並び（`circuits`）にする。並びは同じ順のまま変える。アプリの中もプロジェクトの形式と同じ形にするかは、未解決のモジュール（[計画 20](../plans/unresolved-module/plan.md)）を作るときに見直す（描画、ネット、シミュレーションが回路の並びを前提にしているため）。
 - モジュールの部品は、保存の形では指す回路の名前の写し（`circuitName`）を持ち、アプリの中では持たない。保存するたびに今の名前を写し、読み込むときは使わない（回路の名前を引く）。未解決のモジュールで、何が足りないかを見せるためのもの（計画 20）。
@@ -109,7 +109,7 @@
 
 ## プロジェクトファイル
 
-- ヘッダーの「書き出し」「読み込み」で使う（`file/share.ts`、操作は `file/useProjectFile.ts`）。形はプロジェクトの形式のデータそのもの（保存データと同じ。外側の包みはない）。一体の形式で書き出したもの（`{ app: 'sazanka', version, project }`）も読める。
+- ヘッダーの「書き出し」「読み込み」で使う（`file/projectFile.ts`、操作は `file/useProjectFile.ts`）。形はプロジェクトの形式のデータそのもの（保存データと同じ。外側の包みはない）。一体の形式で書き出したもの（`{ app: 'sazanka', version, project }`）も読める。
 - 受け渡しはファイルだけ（文字列のコピーと貼り付けはしない）。書き出しと読み込みは、アプリのダイアログを出さずに直接行う。
   - 書き出しは、`project-YYYY-MM-DD.sazanka.json`（端末の日付）を既定の名前にして保存する。
   - 手元のファイルとのやりとりは `file/localFile.ts` にまとめている（保存の `saveJsonFile`、ファイルを選ぶ `pickFile`、読む `readTextFile`）。

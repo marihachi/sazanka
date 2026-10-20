@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import { newId } from '../circuit/circuit';
 import { emptyProject, type Project } from '../circuit/project';
-import { parseProject, serializeProject } from './share';
+import { parseProject, serializeProject } from './projectFile';
 import { getExportFileName, pickFile, readTextFile, saveJsonFile } from './localFile';
 import { describeProjectFileError, type Messages } from '../i18n/messages';
 

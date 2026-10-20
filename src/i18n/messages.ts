@@ -1,7 +1,7 @@
 // 言語ごとの文言の表の一覧と、その形。表の中身は言語ごとのファイル (ja.ts) に置く。
 // 計算の側が返すエラーを、表の文にする処理もここに置く (言語によらない)
 import { type CircuitDef, MAIN_ID, type ProjectError } from '../circuit/project';
-import type { ProjectFileError } from '../file/share';
+import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
 import { en } from './en';
 import { ja } from './ja';

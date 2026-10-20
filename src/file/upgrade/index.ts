@@ -1,5 +1,5 @@
 // 保存データとプロジェクトファイルの読み込みの入口。一体の形式 (version 1〜4) か新しい形式 (プロジェクトの形式) かを見分けて、
-// 今の版のプロジェクトの形式の形にする。保存データ (storage.ts) とプロジェクトファイル (share.ts) の両方で使う。
+// 今の版のプロジェクトの形式の形にする。保存データ (storage.ts) とプロジェクトファイル (projectFile.ts) の両方で使う。
 // 一体の形式は、1 版分の変換 (integrated/upgradeV<N>: version N → N+1) を順に通して version 4 にしてから、
 // プロジェクトの形式 v1 に変える (project/v1.ts)。形の検証は、このあとに今の版の形で行う (circuit/project.ts の checkProject)。
 // 各変換は今のアプリのコードに頼らない (決まりは agent/docs/persistence.md の「形式を変えるとき」)

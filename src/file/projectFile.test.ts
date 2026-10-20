@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyProject, MAIN_ID, type Project, withoutSwitchStates } from '../circuit/project';
-import { parseProject, serializeProject } from './share';
+import { parseProject, serializeProject } from './projectFile';
 import { type StoredProject, toStoredProject } from './storage';
 
 /** アプリの中の形のプロジェクト。位置は px で、メイン回路の名前は空文字 */
@@ -86,7 +86,7 @@ function parse(text: string) {
   return parseProject(text, counter());
 }
 
-describe('share', () => {
+describe('projectFile', () => {
   it('書き出すと、プロジェクトの形式のデータそのものになる (外側の包みはない)', () => {
     const data = JSON.parse(serializeProject(project));
     expect(data).toEqual(toStoredProject(withoutSwitchStates(project)));
