@@ -25,6 +25,7 @@ import type { Part } from '../circuit/part';
 import {
   type CircuitDef,
   type CircuitSheet,
+  checkCircuitName,
   getCircuitSheet,
   isPackage,
   MAIN_ID,
@@ -37,6 +38,7 @@ import { useMessages } from '../i18n/useMessages';
 import { SheetPart } from '../sheet/SheetPart';
 import { checkSheetSize, SheetSizeFields } from '../sheet/SheetSizeFields';
 import { DialogFrame } from '../ui/DialogFrame';
+import { describeNameProblem } from './useCircuits';
 
 type PackageKind = Package['kind'];
 
@@ -85,15 +87,10 @@ export function CircuitSettingsDialog({
   const isMain = def.id === MAIN_ID;
   const [name, setName] = useState(def.name);
   const nameText = name.trim();
-  // 回路の追加と同じく、空の名前と、ほかの回路やメイン回路の表示名と同じ名前は断る (タブで見分けられなくなるため)
+  // 回路の追加と同じく、空の名前と、ほかの回路やメイン回路の表示名と同じ名前は断る
   const nameError = isMain
     ? undefined
-    : !nameText
-      ? m.circuits.nameRequired
-      : project.circuits.some((d) => d.id !== def.id && d.name === nameText) ||
-          nameText === m.common.mainCircuit
-        ? m.circuits.nameTaken
-        : undefined;
+    : describeNameProblem(checkCircuitName(project, nameText, m.common.mainCircuit, def.id), m);
   const [author, setAuthor] = useState(def.author ?? '');
   const currentSheet = getCircuitSheet(def);
   const [widthText, setWidthText] = useState(String(currentSheet.width));

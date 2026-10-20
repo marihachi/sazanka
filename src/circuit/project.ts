@@ -142,6 +142,27 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
 }
 
 /**
+ * 回路の名前 name (前後の空白を除いたもの) が使えない理由。使えれば undefined。
+ * 空の名前は 'EMPTY'。ほかの回路 (exceptId の回路を除く) と同じ名前と、メイン回路の表示名 mainName は 'TAKEN'
+ * (タブで見分けられなくなるため。保存データの検証も、同じフォルダに同じ名前の回路があると断る)。
+ * 回路の追加、タブでの改名、回路設定で使う
+ */
+export function checkCircuitName(
+  project: Project,
+  name: string,
+  mainName: string,
+  exceptId?: string,
+): 'EMPTY' | 'TAKEN' | undefined {
+  if (!name) {
+    return 'EMPTY';
+  }
+  if (name === mainName || project.circuits.some((d) => d.id !== exceptId && d.name === name)) {
+    return 'TAKEN';
+  }
+  return undefined;
+}
+
+/**
  * メイン回路以外の回路を、回路の一覧の index 番目に移す (タブの並べ替え)。
  * メイン回路は先頭に固定なので、メイン回路は動かさず、メイン回路より前にも置かない
  */

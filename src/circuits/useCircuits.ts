@@ -4,7 +4,13 @@ import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import { circuitsUsing, dependsOn } from '../circuit/module';
-import { type CircuitDef, DEFAULT_SHEET, MAIN_ID, type Project } from '../circuit/project';
+import {
+  type CircuitDef,
+  checkCircuitName,
+  DEFAULT_SHEET,
+  MAIN_ID,
+  type Project,
+} from '../circuit/project';
 import { getCircuitName, type Messages } from '../i18n/messages';
 
 /** 回路の追加・改名・削除と、パレットに並べるモジュールの一覧 */
@@ -65,7 +71,7 @@ export function useCircuits({
 
   /** 名前を入力するウィンドウを開き、確定したら回路を作成して開く */
   function createCircuit() {
-    // メイン回路は表示言語の名前で出すので、その名前も使えないようにする (タブで見分けられなくなるため)
+    // 既定の名前は、ほかの回路の名前とメイン回路の表示名を避ける
     const names = new Set([...project.circuits.map((d) => d.name), m.common.mainCircuit]);
     // 既定の名前の番号は、メイン回路以外の回路の数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
     let n = project.circuits.length;
@@ -78,7 +84,7 @@ export function useCircuits({
       initial: m.circuits.defaultName(n),
       confirmLabel: m.circuits.add,
       validate: (name) =>
-        !name ? m.circuits.nameRequired : names.has(name) ? m.circuits.nameTaken : undefined,
+        describeNameProblem(checkCircuitName(project, name, m.common.mainCircuit), m),
       onSubmit: (name) => {
         const def: CircuitDef = {
           id: newId(),
@@ -96,10 +102,18 @@ export function useCircuits({
     });
   }
 
-  /** 名前を変える。空の名前なら変えない */
+  /**
+   * 名前を変える。空の名前なら変えない。ほかの回路と同じ名前なら、変えずにそのことを知らせる
+   * (同じフォルダに同じ名前の回路があると、保存データが検証を通らず、次に開くときに読み込めなくなるため)
+   */
   function renameCircuit(id: string, value: string) {
     const name = value.trim();
-    if (!name) {
+    const problem = checkCircuitName(project, name, m.common.mainCircuit, id);
+    if (problem === 'EMPTY') {
+      return;
+    }
+    if (problem === 'TAKEN') {
+      showConfirm({ message: m.circuits.nameTaken });
       return;
     }
     setProject((p) => ({
@@ -137,4 +151,16 @@ export function useCircuits({
   }
 
   return { paletteModules, createCircuit, renameCircuit, deleteCircuit };
+}
+
+/** 回路の名前が使えない理由 (checkCircuitName) を、欄の下に出す文にする */
+export function describeNameProblem(
+  problem: ReturnType<typeof checkCircuitName>,
+  m: Messages,
+): string | undefined {
+  return problem === 'EMPTY'
+    ? m.circuits.nameRequired
+    : problem === 'TAKEN'
+      ? m.circuits.nameTaken
+      : undefined;
 }
