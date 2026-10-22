@@ -1,6 +1,7 @@
 import { Badge, Box, Flex } from '@chakra-ui/react';
 import { memo, useEffect, useState } from 'react';
 import { useMessages } from '../i18n/useMessages';
+import { ProblemsToggle } from '../problems/ProblemsPanel';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -16,28 +17,27 @@ function hintDuration(hint: string, msPerChar: number): number {
 interface StatusBarProps {
   /** 表示するヒント。複数あれば時間で切り替える */
   hints: string[];
-  unstable: boolean;
-  /** 出力ピンが 2 つ以上つながったネットがある */
-  conflict: boolean;
-  /** 開いている回路に、外側のピンに出せないポートがある */
-  unexposedPorts: boolean;
-  /** 開いている回路に、シートに収まっていない部品や配線がある */
-  outsideSheet: boolean;
   /** 回そうとしたが、シートからはみ出すため回せなかった (App が少しのあいだだけ true にする) */
   cannotRotate: boolean;
+  /** 開いている回路の問題の数 (右端の「問題」に出す) */
+  errors: number;
+  warnings: number;
+  /** 問題パネルを開いているか */
+  problemsOpen: boolean;
+  onToggleProblems: () => void;
 }
 
 /**
- * 画面下のステータスバー。使い方のヒントと、発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品の警告、
- * 回せなかったことのお知らせを出す
+ * 画面下のステータスバー。使い方のヒントと、回せなかったことのお知らせを出す。
+ * 右端に、問題の数と問題パネルの開閉 (problems/ProblemsPanel.tsx の ProblemsToggle) を置く。問題の中身はパネルに出す
  */
 export const StatusBar = memo(function StatusBar({
   hints,
-  unstable,
-  conflict,
-  unexposedPorts,
-  outsideSheet,
   cannotRotate,
+  errors,
+  warnings,
+  problemsOpen,
+  onToggleProblems,
 }: StatusBarProps) {
   const m = useMessages();
   const hintKey = hints.join('|');
@@ -83,26 +83,12 @@ export const StatusBar = memo(function StatusBar({
           {m.status.cannotRotate}
         </Badge>
       )}
-      {outsideSheet && (
-        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
-          {m.status.outsideSheet}
-        </Badge>
-      )}
-      {unexposedPorts && (
-        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
-          {m.status.unexposedPorts}
-        </Badge>
-      )}
-      {conflict && (
-        <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          {m.status.conflict}
-        </Badge>
-      )}
-      {unstable && (
-        <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          {m.status.unstable}
-        </Badge>
-      )}
+      <ProblemsToggle
+        errors={errors}
+        warnings={warnings}
+        open={problemsOpen}
+        onToggle={onToggleProblems}
+      />
     </Flex>
   );
 }, sameStatus);
@@ -110,11 +96,11 @@ export const StatusBar = memo(function StatusBar({
 /** 描き直すかの判定。ヒントは描き直しのたびに新しい配列で届くので、中身の文で比べる */
 function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
   return (
-    a.unstable === b.unstable &&
-    a.conflict === b.conflict &&
-    a.unexposedPorts === b.unexposedPorts &&
-    a.outsideSheet === b.outsideSheet &&
     a.cannotRotate === b.cannotRotate &&
+    a.errors === b.errors &&
+    a.warnings === b.warnings &&
+    a.problemsOpen === b.problemsOpen &&
+    a.onToggleProblems === b.onToggleProblems &&
     a.hints.length === b.hints.length &&
     a.hints.every((h, i) => h === b.hints[i])
   );

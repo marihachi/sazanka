@@ -144,6 +144,7 @@
 | -------------------------- | --------------------------------------------------------- | ------------------------------------ |
 | `sazanka.preferences`      | 環境設定（1 秒に進める tick 数、方眼、角の丸め、アクセントカラー、表示言語） | 項目ごとに既定値（表示言語は `auto`） |
 | `sazanka.paletteCollapsed` | パレットで折り畳んでいるグループの ID                     | 空（すべて開く）。知らない ID は無視 |
+| `sazanka.problemsPanel`    | 問題パネルを開いているかと、高さ（px）                     | 閉じていて 140px                     |
 | `sazanka.views`            | 回路 ID ごとの表示（位置と倍率）                          | 回路ごとに捨て、既定の表示で開く     |
 
 - 環境設定の 1 秒に進める tick 数（`ticksPerSecond`）は、前は 1 tick を進める間隔（`tickMs`、ms）で保存していた。`ticksPerSecond` がなく `tickMs` があれば、`1000 / tickMs` を丸めて読む（`storage.ts` の `readTicksPerSecond`）。保存し直すと `tickMs` は消える。

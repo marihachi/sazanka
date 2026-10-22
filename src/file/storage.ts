@@ -296,6 +296,44 @@ export function saveCollapsedGroups(ids: string[]) {
   }
 }
 
+const PROBLEMS_PANEL_KEY = 'sazanka.problemsPanel';
+
+/** 問題パネルを開いているかと、開いたときの高さ (px) */
+export interface ProblemsPanelState {
+  open: boolean;
+  height: number;
+}
+
+export const DEFAULT_PROBLEMS_PANEL: ProblemsPanelState = { open: false, height: 140 };
+
+/** 問題パネルの状態。保存がないか、形が違えば既定の状態 */
+export function loadProblemsPanel(): ProblemsPanelState {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PROBLEMS_PANEL_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return DEFAULT_PROBLEMS_PANEL;
+    }
+    const { open, height } = value as Record<string, unknown>;
+    return {
+      open: typeof open === 'boolean' ? open : DEFAULT_PROBLEMS_PANEL.open,
+      height:
+        typeof height === 'number' && Number.isFinite(height) && height > 0
+          ? height
+          : DEFAULT_PROBLEMS_PANEL.height,
+    };
+  } catch {
+    return DEFAULT_PROBLEMS_PANEL;
+  }
+}
+
+export function saveProblemsPanel(state: ProblemsPanelState) {
+  try {
+    localStorage.setItem(PROBLEMS_PANEL_KEY, JSON.stringify(state));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
 const VIEWS_KEY = 'sazanka.views';
 
 /** 回路ごとの表示位置と倍率 (回路 ID → 表示)。読めないものは捨て、その回路は既定の表示で開く */

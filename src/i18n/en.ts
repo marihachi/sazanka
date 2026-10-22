@@ -99,11 +99,24 @@ export const en: Messages = {
       `Ticks for one ON-OFF cycle. At the current speed (${ticksPerSecond} ticks/s), ${seconds} s`,
   },
   status: {
-    unexposedPorts: 'Some INPUT / OUTPUT are not on any pin',
-    outsideSheet: 'Parts or wires outside the sheet',
-    conflict: 'Outputs are in conflict',
-    unstable: 'Oscillating',
     cannotRotate: "Can't rotate: off the sheet",
+  },
+  problems: {
+    title: 'Problems',
+    countLabel: (errors, warnings) =>
+      `${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`,
+    empty: 'No problems',
+    error: 'Error',
+    warning: 'Warning',
+    count: (n) => (n === 1 ? '1 place' : `${n} places`),
+    resize: 'Resize the problems panel',
+    close: 'Close the problems panel',
+    messages: {
+      UNSTABLE: 'Oscillating',
+      CONFLICT: 'Outputs are in conflict',
+      UNEXPOSED_PORTS: 'Some INPUT / OUTPUT are not on any pin',
+      OUTSIDE_SHEET: 'Parts or wires outside the sheet',
+    },
   },
   preferences: {
     title: 'Preferences',
