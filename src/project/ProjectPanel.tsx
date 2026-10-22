@@ -27,6 +27,8 @@ interface ProjectPanelProps {
   onRemoveFolder: (path: string) => void;
   /** 回路のフォルダを変える (ダイアログは呼ぶ側が出す) */
   onMoveToFolder: (id: string) => void;
+  /** 回路を置いている部品を、別の回路に差し替える (ダイアログは呼ぶ側が出す) */
+  onReplace: (id: string) => void;
   /** フォルダ folder に回路を追加する (ダイアログで、folder を選んだ状態で始める) */
   onNewCircuit: (folder: string) => void;
   /** フォルダ parent の中にフォルダを作る */
@@ -191,6 +193,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
             open: () => props.onOpen(id),
             rename: () => props.onStartRenameCircuit(id),
             moveToFolder: () => props.onMoveToFolder(id),
+            replace: () => props.onReplace(id),
             remove: () => props.onRemove(id),
           };
           pending.current = actions[e.value] ?? null;
@@ -215,6 +218,8 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
                 {/* メイン回路は、名前を変えられず、プロジェクトから削除できない */}
                 {!menuIsMain && <Menu.Item value="rename">{m.project.rename}</Menu.Item>}
                 <Menu.Item value="moveToFolder">{m.project.moveToFolder}</Menu.Item>
+                {/* メイン回路はほかの回路に置けないので、差し替えるものもない */}
+                {!menuIsMain && <Menu.Item value="replace">{m.project.replace}</Menu.Item>}
                 {!menuIsMain && (
                   <>
                     <Menu.Separator />

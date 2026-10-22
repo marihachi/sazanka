@@ -81,6 +81,7 @@ export const ja = {
     remove: 'プロジェクトから削除…',
     newFolder: '新しいフォルダ…',
     moveToFolder: 'フォルダを変える…',
+    replace: '別のモジュールに差し替える…',
     removeFolder: 'フォルダを削除',
     /** メイン回路の印 (★) の読み上げ用 */
     main: 'メイン回路',
@@ -107,6 +108,15 @@ export const ja = {
     move: '移す',
     notEmpty: (name: string) =>
       `「${name}」の中に回路かフォルダがあるため、削除できません。先に中のものを動かすか、削除してください。`,
+  },
+  replace: {
+    title: (name: string) => `「${name}」を別のモジュールに差し替える`,
+    target: '差し替え先',
+    none: '差し替えられる回路がありません',
+    pinsDiffer:
+      'ピンの数か並びが違うため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。差し替えたあとに確かめてください。',
+    removeSource: (name: string) => `差し替えたあと、「${name}」をプロジェクトから削除する`,
+    apply: '差し替える',
   },
   palette: {
     groups: {

@@ -17,6 +17,8 @@ import {
 } from './folders';
 import type { MoveToFolderRequest } from './MoveToFolderDialog';
 import type { NewCircuitRequest } from './NewCircuitDialog';
+import type { ReplaceCircuitRequest } from './ReplaceCircuitDialog';
+import { replaceCircuit as replaceIn, replaceTargets, samePins } from './replace';
 
 /**
  * プロジェクトパネルでのフォルダの操作 (作る・名前を変える・削除) と、回路やフォルダを移す操作、
@@ -32,7 +34,9 @@ export function useFolders({
   showPrompt,
   showNewCircuit,
   showMoveToFolder,
+  showReplace,
   onFolderMoved,
+  onRemoved,
 }: {
   /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
   m: Messages;
@@ -47,8 +51,11 @@ export function useFolders({
   showPrompt: (request: PromptRequest) => void;
   showNewCircuit: (request: NewCircuitRequest) => void;
   showMoveToFolder: (request: MoveToFolderRequest) => void;
+  showReplace: (request: ReplaceCircuitRequest) => void;
   /** フォルダのパスが from から to に変わった (改名と移動)。折り畳みの記録を付け替えるのに使う */
   onFolderMoved: (from: string, to: string) => void;
+  /** 差し替えたあと、元の回路をプロジェクトから削除した (タブを閉じ、覚えている結果と表示を捨てる) */
+  onRemoved: (id: string) => void;
 }) {
   /** フォルダの名前が使えない理由の文 */
   function describeFolderProblem(problem: ReturnType<typeof checkFolderName>): string | undefined {
@@ -158,8 +165,31 @@ export function useFolders({
     }
   }
 
+  /**
+   * 回路 id を置いている部品を、別の回路に差し替えるダイアログを開く。差し替えは 1 回の編集にする
+   * (元の回路を削除するなら、それも同じ 1 回に入れる)
+   */
+  function replace(id: string) {
+    const def = findDef(project, id);
+    if (!def) {
+      return;
+    }
+    showReplace({
+      name: getCircuitName(def, m),
+      targets: replaceTargets(project, id),
+      pinsDiffer: (target) => !samePins(project, id, target),
+      onSubmit: (target, removeSource) => {
+        setProject((p) => replaceIn(p, id, target, removeSource));
+        if (removeSource) {
+          onRemoved(id);
+        }
+      },
+    });
+  }
+
   return {
     newCircuit,
+    replace,
     newFolder,
     renameFolder,
     removeFolder,

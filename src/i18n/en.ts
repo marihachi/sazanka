@@ -69,6 +69,7 @@ export const en: Messages = {
     remove: 'Remove from project…',
     newFolder: 'New folder…',
     moveToFolder: 'Move to folder…',
+    replace: 'Replace with another module…',
     removeFolder: 'Delete folder',
     main: 'Main circuit',
     usedIn: 'Used in',
@@ -92,6 +93,15 @@ export const en: Messages = {
     move: 'Move',
     notEmpty: (name) =>
       `"${name}" cannot be deleted because it contains circuits or folders. Move or delete them first.`,
+  },
+  replace: {
+    title: (name) => `Replace "${name}" with another module`,
+    target: 'Replace with',
+    none: 'No circuit can be used instead',
+    pinsDiffer:
+      'The pin count or order differs, so wires where it is placed may be disconnected or connect to different pins. Check them after replacing.',
+    removeSource: (name) => `Remove "${name}" from the project after replacing`,
+    apply: 'Replace',
   },
   palette: {
     groups: {

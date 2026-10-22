@@ -294,6 +294,12 @@ export function App() {
     showPrompt: dialogs.showPrompt,
     showNewCircuit: dialogs.showNewCircuit,
     showMoveToFolder: dialogs.showMoveToFolder,
+    showReplace: dialogs.showReplace,
+    onRemoved: (id) => {
+      closeTab(id);
+      forget(id);
+      setViews(({ [id]: _, ...rest }) => rest);
+    },
     // フォルダの改名と移動では、折り畳みの記録も新しいパスに付け替える
     onFolderMoved: (from, to) =>
       setTreeCollapsed((cs) =>
@@ -624,6 +630,7 @@ export function App() {
     newFolder: folders.newFolder,
     removeFolder: folders.removeFolder,
     moveToFolder: folders.moveToFolder,
+    replace: folders.replace,
     dropCircuit: folders.dropCircuit,
     dropFolder: folders.dropFolder,
     toggleRunning,
@@ -675,6 +682,7 @@ export function App() {
               onRemove={on.removeCircuit}
               onRemoveFolder={on.removeFolder}
               onMoveToFolder={on.moveToFolder}
+              onReplace={on.replace}
               onNewCircuit={on.newCircuit}
               onNewFolder={on.newFolder}
               onDropCircuit={on.dropCircuit}
