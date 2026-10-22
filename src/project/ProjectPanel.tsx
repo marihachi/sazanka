@@ -172,7 +172,13 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
             setRowMenu(null);
           }
         }}
-        anchorPoint={rowMenu?.at}
+        // 押した位置に出す。トリガーのないメニューでは anchorPoint が効かず、画面の左上に出てしまうので、
+        // 位置の基準 (getAnchorRect) を、押した点の大きさのない四角にする
+        positioning={{
+          placement: 'bottom-start',
+          getAnchorRect: () =>
+            rowMenu ? { x: rowMenu.at.x, y: rowMenu.at.y, width: 0, height: 0 } : null,
+        }}
         onSelect={(e) => {
           if (!menuRow) {
             return;
