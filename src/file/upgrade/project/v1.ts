@@ -7,7 +7,7 @@
 // 今のアプリのコードには頼らない。今のコードが変わっても、この変換の結果が変わらないようにするため
 
 import { isObject } from '../../../util';
-import { upgradeToCircuitV1 } from '../circuit/v1';
+import { upgradeToCircuitV1, type V1CircuitSize, v4ModuleSize } from '../circuit/v1';
 
 /** メイン回路の ID。プロジェクトの形式 v1 でも変えない */
 const MAIN_ID = 'main';
@@ -82,10 +82,15 @@ export function upgradeToProjectV1(project: unknown): unknown {
   const circuits = project.circuits;
   const names = decideNames(circuits);
   const circuitNames = new Map<string, string>();
+  const circuitSizes = new Map<string, V1CircuitSize>();
   circuits.forEach((c, i) => {
     const name = names[i];
     if (isObject(c) && typeof c.id === 'string' && typeof name === 'string') {
       circuitNames.set(c.id, name);
+    }
+    const size = v4ModuleSize(c);
+    if (isObject(c) && typeof c.id === 'string' && size) {
+      circuitSizes.set(c.id, size);
     }
   });
   const author = project.author === undefined ? '' : project.author;
@@ -95,7 +100,7 @@ export function upgradeToProjectV1(project: unknown): unknown {
     folders: [],
     circuits: circuits.map((c, i) => ({
       path: '',
-      circuit: upgradeToCircuitV1(c, { author, name: names[i], circuitNames }),
+      circuit: upgradeToCircuitV1(c, { author, name: names[i], circuitNames, circuitSizes }),
     })),
   };
 }

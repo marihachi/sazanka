@@ -153,7 +153,11 @@ export const ProblemsPanel = memo(function ProblemsPanel({
           ) : (
             <Box as="ul" py="1">
               {problems.map((p) => (
-                <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
+                <ProblemRow
+                  key={`${p.code}:${p.circuitId ?? ''}`}
+                  problem={p}
+                  onSelect={onSelect}
+                />
               ))}
             </Box>
           )}
@@ -182,6 +186,8 @@ function samePanel(a: ProblemsPanelProps, b: ProblemsPanelProps): boolean {
       return (
         p.code === q.code &&
         p.count === q.count &&
+        p.circuitId === q.circuitId &&
+        p.name === q.name &&
         sameIds(p.parts, q.parts) &&
         sameIds(p.wires, q.wires)
       );
@@ -268,7 +274,7 @@ function ProblemRow({
         role="img"
       />
       <Text as="span" truncate>
-        {m.problems.messages[problem.code]}
+        {describeProblem(problem, m.problems.messages)}
       </Text>
       {problem.count !== undefined && (
         <Text as="span" color="fg.muted" flexShrink={0}>
@@ -301,4 +307,13 @@ function ProblemRow({
       )}
     </Box>
   );
+}
+
+/** 問題の文。見つからない回路は、回路の名前を入れる */
+function describeProblem(
+  problem: Problem,
+  messages: Record<Problem['code'], string | ((name: string) => string)>,
+): string {
+  const text = messages[problem.code];
+  return typeof text === 'function' ? text(problem.name ?? '') : text;
 }

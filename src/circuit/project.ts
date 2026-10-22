@@ -235,8 +235,7 @@ export type ProjectError =
   | { code: 'DUPLICATE_PORT_NUMBER'; circuit: string; circuitId: string }
   | { code: 'NO_MAIN' }
   | { code: 'DUPLICATE_ID'; id: string }
-  | { code: 'DUPLICATE_NAME'; name: string; folder: string }
-  | { code: 'MISSING_CIRCUIT'; circuit: string; circuitId: string };
+  | { code: 'DUPLICATE_NAME'; name: string; folder: string };
 
 /** 版の番号として正しい形か (1 以上の整数)。今の版以下かは、読み込みの入口 (file/upgrade/index.ts) が確かめる */
 function isVersion(v: unknown): boolean {
@@ -403,16 +402,6 @@ export function checkProject(project: unknown): ProjectError | undefined {
     }
     inFolder.add(name);
     names.set(path, inFolder);
-  }
-  const circuitIds = new Set(defs.map((d) => d.id));
-  for (const def of defs) {
-    if (def.elements.some((c) => c.kind === 'module' && !circuitIds.has(c.circuitId ?? ''))) {
-      return {
-        code: 'MISSING_CIRCUIT',
-        circuit: def.id === MAIN_ID ? '' : (def.name ?? ''),
-        circuitId: def.id,
-      };
-    }
   }
   return undefined;
 }

@@ -101,7 +101,7 @@ describe('toStoredProject / fromStoredProject', () => {
             // biome-ignore format: 表形式を維持するため
             elements: [
               { ...withoutId(main.parts[0]), x: 0, y: 1 },
-              { ...withoutId(main.parts[1]), x: 5, y: 0, circuitName: 'M' },
+              { ...withoutId(main.parts[1]), x: 5, y: 0, circuitName: 'M', circuitSize: { width: 4, height: 2 } }, // 大きさは回していない向き
               { kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] },
             ],
           },
@@ -489,5 +489,31 @@ describe('readTicksPerSecond', () => {
     ]) {
       expect(readTicksPerSecond(value)).toBe(100);
     }
+  });
+
+  it('指す回路がない (見つからないモジュールの) 部品は、名前の写しを残し、保存するときもそのまま書く', () => {
+    const stored = toStoredProject(withModule);
+    const [main] = stored.circuits;
+    const missing = {
+      ...stored,
+      circuits: [
+        {
+          ...main,
+          circuit: {
+            ...main.circuit,
+            elements: main.circuit.elements.map((e) =>
+              e.kind === 'module' ? { ...e, circuitId: 'gone', circuitName: '消えた回路' } : e,
+            ),
+          },
+        },
+      ],
+    };
+    const app = fromStoredProject(missing, counter());
+    const part = app.circuits[0].parts.find((c) => c.kind === 'module');
+    expect(part).toMatchObject({ circuitId: 'gone', circuitName: '消えた回路' });
+    const again = toStoredProject(app).circuits[0].circuit.elements.find(
+      (e) => e.kind === 'module',
+    );
+    expect(again).toMatchObject({ circuitId: 'gone', circuitName: '消えた回路' });
   });
 });

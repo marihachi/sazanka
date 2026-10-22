@@ -57,7 +57,7 @@ export const en: Messages = {
     circuitSettings: 'Circuit settings',
     circuitSettingsTitle:
       'Circuit settings: change the sheet size, package, port names, and pin assignment',
-    deleteCircuit: 'Delete circuit',
+    removeCircuit: 'Remove from project',
   },
   palette: {
     groups: {
@@ -77,6 +77,8 @@ export const en: Messages = {
   },
   sheet: {
     unknownModule: '(unknown)',
+    missing: 'Not found',
+    missingName: (name) => `${name || '(unknown)'} (not found)`,
     zoomOut: 'Zoom out',
     zoomReset: 'Reset to 100%',
     zoomIn: 'Zoom in',
@@ -116,6 +118,7 @@ export const en: Messages = {
       CONFLICT: 'Outputs are in conflict',
       UNEXPOSED_PORTS: 'Some INPUT / OUTPUT are not on any pin',
       OUTSIDE_SHEET: 'Parts or wires outside the sheet',
+      MISSING_CIRCUIT: (name) => `Circuit not found: ${name || '(unknown)'}`,
     },
   },
   preferences: {
@@ -182,10 +185,10 @@ export const en: Messages = {
     add: 'Add',
     nameRequired: 'Enter a name',
     nameTaken: 'A circuit with this name already exists',
-    inUse: (name, users) =>
-      `"${name}" cannot be deleted because it is used in: ${users.join(', ')}`,
-    confirmDelete: (name) => `Delete circuit "${name}"?`,
-    delete: 'Delete',
+    confirmRemove: (name) => `Remove "${name}" from the project?`,
+    confirmRemoveUsed: (name, first, circuits, count) =>
+      `Remove "${name}" from the project. Its contents will be removed from the project, and the parts placed (${count} ${count === 1 ? 'place' : 'places'} in ${first}${circuits === 1 ? '' : ' and others'}) will remain as missing modules.`,
+    remove: 'Remove',
     cannotPaste: (name) => `"${name}" cannot be pasted here because it contains this circuit`,
   },
   file: {
@@ -221,7 +224,6 @@ export const en: Messages = {
         e.folder === ''
           ? `There are circuits with the same name: ${e.name}`
           : `The folder "${e.folder}" has circuits with the same name: ${e.name}`,
-      MISSING_CIRCUIT: (e) => `"${e.circuit}" has a module of a circuit that does not exist`,
     },
     projectFile: {
       NOT_JSON: 'Cannot be read as JSON',
@@ -275,6 +277,8 @@ export const en: Messages = {
       'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
+    unresolvedModule:
+      'This circuit is not in the project. It has no pins and outputs nothing in the simulation',
     portProblems: {
       unassigned: 'This INPUT / OUTPUT has no pin number, so it is not on an outer pin',
       outOfRange:

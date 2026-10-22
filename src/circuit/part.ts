@@ -21,6 +21,17 @@ export interface Part {
   portName?: string;
   /** モジュールの部品が指している回路の ID (どの回路をモジュールとして置いたか) */
   circuitId?: string;
+  /**
+   * 指している回路の名前の写し。指す回路がプロジェクトにない (見つからない) モジュールの部品だけが持つ。
+   * 指す回路があるときは回路の名前を使うので持たせない (改名のたびに書き換えずに済むように)。
+   * 読み込んだときに指す回路がなかった部品と、指す回路をプロジェクトから削除した部品に付ける
+   */
+  circuitName?: string;
+  /**
+   * 指している回路をモジュールとして置いたときの、本体の大きさの写し (マス、回していない向き)。circuitName と同じく、
+   * 見つからないモジュールの部品だけが持ち、元の大きさの箱で描くのに使う
+   */
+  circuitSize?: CircuitSize;
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
   period?: number;
   /**
@@ -44,7 +55,7 @@ export interface Part {
 /**
  * 保存データ (回路の形式) の部品として正しい形か。
  * ID は保存しないので見ない (あっても読み込むときに捨てる)。位置はマス単位なので整数。
- * INPUT / OUTPUT のポート番号、CLOCK の周期、モジュールの部品の circuitId と名前の写し circuitName は省略できない
+ * INPUT / OUTPUT のポート番号、CLOCK の周期、モジュールの部品の circuitId と名前の写し circuitName と大きさの写し circuitSize は省略できない
  * (省略したときの意味を既定値にすると、既定値を変えたときに古いデータの意味が変わるため)
  */
 export function isPart(c: unknown): boolean {
@@ -64,8 +75,27 @@ export function isPart(c: unknown): boolean {
       ? isPortNumber(c.portNumber)
       : c.portNumber === undefined || isPortNumber(c.portNumber)) &&
     (c.kind !== 'module' ||
-      (typeof c.circuitId === 'string' && typeof c.circuitName === 'string')) &&
+      (typeof c.circuitId === 'string' &&
+        typeof c.circuitName === 'string' &&
+        isCircuitSize(c.circuitSize))) &&
     (c.rotation === undefined || isRotation(c.rotation))
+  );
+}
+
+/** 回路をモジュールとして置いたときの本体の大きさ (マス) */
+export interface CircuitSize {
+  width: number;
+  height: number;
+}
+
+/** 本体の大きさの写しとして正しい形か (幅と高さが 1 以上の整数) */
+export function isCircuitSize(v: unknown): v is CircuitSize {
+  return (
+    isObject(v) &&
+    Number.isInteger(v.width) &&
+    (v.width as number) >= 1 &&
+    Number.isInteger(v.height) &&
+    (v.height as number) >= 1
   );
 }
 

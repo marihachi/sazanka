@@ -280,6 +280,7 @@ function samePinNames(
     a.kind === b.kind &&
     sameArray(p.inputs, q.inputs) &&
     sameArray(p.outputs, q.outputs) &&
+    p.unresolved === q.unresolved &&
     p.package?.kind === q.package?.kind &&
     pinsOf(p.package) === pinsOf(q.package) &&
     sameArray(p.pinNumbers?.inputs ?? [], q.pinNumbers?.inputs ?? []) &&
@@ -299,7 +300,7 @@ function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
 interface SheetPartProps {
   comp: Part;
   pinout: Pinout;
-  /** モジュールの表示名 */
+  /** モジュールの表示名。見つからないモジュールでは、部品が持つ名前の写し */
   name?: string;
   /** 出力ピンの値 (OUTPUT は表示する入力値) */
   outputValues: boolean[];
@@ -340,7 +341,8 @@ export function SheetPart({
       y={c.y}
       w={w}
       h={h}
-      problem={portProblem !== undefined}
+      // 見つからないモジュールも、外側のピンに出せないポートと同じ赤い破線で囲む
+      problem={portProblem !== undefined || pinout.unresolved === true}
     />
   );
   const value = outputValues[0];
@@ -430,7 +432,17 @@ export function SheetPart({
     body = (
       <>
         {outline}
-        {OwnBody ? (
+        {pinout.unresolved ? (
+          // 見つからないモジュールは、本体の中に名前の写しと「見つからない」を 2 行で書く
+          <>
+            <text className={styles.label} x={c.x + w / 2} y={c.y + h / 2 - 3}>
+              {name || m.sheet.unknownModule}
+            </text>
+            <text className={styles.missing} x={c.x + w / 2} y={c.y + h / 2 + 13}>
+              {m.sheet.missing}
+            </text>
+          </>
+        ) : OwnBody ? (
           <g transform={`translate(${c.x} ${c.y})`}>
             <OwnBody w={w} h={h} layout={layout} inputValues={inputValues} />
           </g>

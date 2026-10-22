@@ -88,6 +88,52 @@ describe('collectProblems', () => {
   });
 });
 
+describe('見つからない回路', () => {
+  const missing = (id: string, circuitId: string, circuitName?: string): Part => ({
+    id,
+    kind: 'module',
+    x: 100,
+    y: 100,
+    circuitId,
+    ...(circuitName === undefined ? {} : { circuitName }),
+  });
+  const main = circuitOf({
+    id: MAIN_ID,
+    parts: [missing('u1', 'gone', '全加算器'), missing('u2', 'gone')],
+  });
+  const other = circuitOf({
+    id: 'o',
+    name: 'O',
+    parts: [missing('u3', 'gone', '全加算器'), missing('u4', 'lost')],
+  });
+  const project = { circuits: [main, other] } as Project;
+  const of = (def: CircuitDef) => collectProblems(def, project, computeNets(def, project), false);
+
+  it('見つからない回路ごとに 1 つ。か所はすべての回路に置いている数、選ぶのは開いている回路の部品だけ', () => {
+    expect(of(main)).toEqual([
+      {
+        code: 'MISSING_CIRCUIT',
+        severity: 'error',
+        count: 3,
+        circuitId: 'gone',
+        name: '全加算器',
+        parts: ['u1', 'u2'],
+        wires: [],
+      },
+      {
+        code: 'MISSING_CIRCUIT',
+        severity: 'error',
+        count: 1,
+        circuitId: 'lost',
+        name: '',
+        parts: [],
+        wires: [],
+      },
+    ]);
+    expect(of(other).map((p) => p.parts)).toEqual([['u3'], ['u4']]);
+  });
+});
+
 describe('countProblems', () => {
   it('エラーと警告に分けて数える', () => {
     const def = circuitOf({

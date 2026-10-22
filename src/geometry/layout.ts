@@ -1,9 +1,10 @@
 // シート上の配置: グリッド、部品の大きさとピンの座標 (種類ごとの配置をマスから px に直す)、シートからはみ出さない位置、範囲選択、配線中の点の置き方と配線の端のドラッグ。
 // 部品の種類ごとの配置 (大きさ、輪郭、ピンの置き方) は parts/layouts.ts
 
-import type { Part } from '../circuit/part';
+import type { CircuitSize, Part } from '../circuit/part';
 import type { Pinout } from '../circuit/module';
-import type { CircuitSheet } from '../circuit/project';
+import type { CircuitSheet, Project } from '../circuit/project';
+import { getPinout } from '../circuit/module';
 import {
   type PartLayout,
   type PinPlacement,
@@ -35,6 +36,15 @@ export function getPartLayout(c: Part, pinout: Pinout): PartLayout {
 }
 
 /** 部品本体のサイズ。部品の配置 (getPartLayout) のマスを px に直す。回した部品は、回した後の幅と高さ */
+/**
+ * モジュールの部品 c が指す回路の、本体の大きさ (マス、回していない向き)。保存データの大きさの写し (circuitSize) に使う。
+ * 見つからないモジュールの部品なら、持っている写し (なければ決まった大きさ)
+ */
+export function moduleSizeOf(c: Part, project: Project): CircuitSize {
+  const { w, h } = getLayout('module', getPinout(c, project));
+  return { width: w, height: h };
+}
+
 export function bodySize(c: Part, pinout: Pinout): { w: number; h: number } {
   const { w, h } = getPartLayout(c, pinout);
   return { w: w * GRID, h: h * GRID };

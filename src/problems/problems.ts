@@ -10,8 +10,14 @@ import { findOutsideSheet } from '../geometry/view';
  * - CONFLICT: 1 つのネットに出力ピンが 2 つ以上ある
  * - UNEXPOSED_PORTS: 外側のピンに出せないポートがある (メイン回路では出さない)
  * - OUTSIDE_SHEET: シートの外に部品か配線がある
+ * - MISSING_CIRCUIT: 指す回路がプロジェクトにないモジュール (見つからないモジュール) がある。プロジェクト全体の問題で、見つからない回路ごとに 1 つ
  */
-export type ProblemCode = 'UNSTABLE' | 'CONFLICT' | 'UNEXPOSED_PORTS' | 'OUTSIDE_SHEET';
+export type ProblemCode =
+  | 'UNSTABLE'
+  | 'CONFLICT'
+  | 'UNEXPOSED_PORTS'
+  | 'OUTSIDE_SHEET'
+  | 'MISSING_CIRCUIT';
 
 /** エラーは回路が正しく動かないもの、警告は動くが直した方がよいもの */
 export type ProblemSeverity = 'error' | 'warning';
@@ -21,6 +27,9 @@ export interface Problem {
   severity: ProblemSeverity;
   /** 起きているか所の数。数えられないもの (発振) は undefined */
   count?: number;
+  /** 見つからない回路の ID と名前の写し (MISSING_CIRCUIT だけ)。名前が分からなければ空文字 */
+  circuitId?: string;
+  name?: string;
   /** 元になっている部品と配線の ID。行を押したときに選ぶ。どちらも空なら、押しても何もしない */
   parts: string[];
   wires: string[];
@@ -32,10 +41,12 @@ export const PROBLEM_SEVERITY: Record<ProblemCode, ProblemSeverity> = {
   CONFLICT: 'error',
   UNEXPOSED_PORTS: 'warning',
   OUTSIDE_SHEET: 'warning',
+  MISSING_CIRCUIT: 'error',
 };
 
 /**
- * 開いている回路 circuit の問題を集める。エラーを先に、そのあとに警告を並べる。
+ * 開いている回路 circuit の問題と、プロジェクト全体の問題 (見つからない回路) を集める。エラーを先に、そのあとに警告を並べる。
+ * プロジェクト全体の問題を先に置く。
  * nets は開いている回路のネット (画面の描画と同じものを渡し、計算し直さない)。
  * unstable は、開いている回路のシミュレーションが発振しているか (シミュレーションでしか分からないため、呼ぶ側が渡す)
  */
@@ -45,7 +56,7 @@ export function collectProblems(
   nets: Nets,
   unstable: boolean,
 ): Problem[] {
-  const problems: Problem[] = [];
+  const problems: Problem[] = [...findMissingCircuits(circuit, project)];
   const add = (code: ProblemCode, parts: string[], wires: string[], count?: number) => {
     problems.push({ code, severity: PROBLEM_SEVERITY[code], count, parts, wires });
   };
@@ -82,6 +93,40 @@ export function collectProblems(
   return problems.sort(
     (a, b) => Number(a.severity === 'warning') - Number(b.severity === 'warning'),
   );
+}
+
+/**
+ * 見つからない回路 (見つからないモジュールが指している、プロジェクトにない回路)。見つからない回路ごとに 1 つ。
+ * か所の数は、すべての回路に置いている数。選ぶのは、開いている回路 circuit に置いている部品だけ (なければ押せない)。
+ * 名前は、部品が持つ写しのうち、空でない最初のもの
+ */
+function findMissingCircuits(circuit: CircuitDef, project: Project): Problem[] {
+  const ids = new Set(project.circuits.map((d) => d.id));
+  const found = new Map<string, Problem>();
+  for (const def of project.circuits) {
+    for (const c of def.parts) {
+      if (c.kind !== 'module' || ids.has(c.circuitId ?? '')) {
+        continue;
+      }
+      const id = c.circuitId ?? '';
+      const p = found.get(id) ?? {
+        code: 'MISSING_CIRCUIT',
+        severity: PROBLEM_SEVERITY.MISSING_CIRCUIT,
+        count: 0,
+        circuitId: id,
+        name: '',
+        parts: [],
+        wires: [],
+      };
+      p.count = (p.count ?? 0) + 1;
+      p.name ||= c.circuitName ?? '';
+      if (def.id === circuit.id) {
+        p.parts.push(c.id);
+      }
+      found.set(id, p);
+    }
+  }
+  return [...found.values()];
 }
 
 /** 問題の数をエラーと警告に分けて数える (タブに出す数) */

@@ -105,7 +105,7 @@ describe('projectFile', () => {
       // biome-ignore format: 表形式を維持するため
       elements: [
         { kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
-        { kind: 'module', x: 5, y: 0, circuitId: 'mod', circuitName: 'モジュール1' },
+        { kind: 'module', x: 5, y: 0, circuitId: 'mod', circuitName: 'モジュール1', circuitSize: { width: 4, height: 2 } },
         { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
       ],
     });
@@ -203,8 +203,6 @@ describe('projectFile', () => {
           { path: '', circuit: { ...storedMain, elements: [{ kind: 'and', x: '0', y: 0 }] } },
         ],
       },
-      // 存在しないモジュールへの参照
-      { ...stored, circuits: [stored.circuits[0]] },
       // 知らない種類の要素
       JSON.parse(withMainElements([input, module, { ...wire, kind: 'bus' }])),
       // 回路 ID の重複
@@ -374,5 +372,13 @@ describe('CLOCK の周期', () => {
     const v4 = { circuits: [{ id: MAIN_ID, elements: [{ kind: 'clock', x: 1, y: 0 }] }] };
     const result = parse(integratedV4(v4));
     expect(result.ok && result.project.circuits[0].parts[0].period).toBe(100);
+  });
+
+  it('指す回路がないモジュール (見つからないモジュール) があっても読み込む', () => {
+    const result = parseProject(
+      JSON.stringify({ ...stored, circuits: [stored.circuits[0]] }),
+      counter(),
+    );
+    expect(result.ok).toBe(true);
   });
 });

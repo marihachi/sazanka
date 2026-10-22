@@ -17,7 +17,7 @@ import {
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
-import { GRID, type Point } from '../geometry/layout';
+import { GRID, moduleSizeOf, type Point } from '../geometry/layout';
 import { DEFAULT_CLOCK_PERIOD, type Part, type PlaceablePartKind } from '../circuit/part';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
@@ -37,7 +37,7 @@ export interface StoredWire {
 
 /**
  * 保存データとプロジェクトファイルの中の部品。ID と ON/OFF を持たない。
- * モジュールの部品は、指す回路の名前の写し (circuitName) を持つ (保存するたびに今の名前を写す。読み込むときは使わない)
+ * モジュールの部品は、指す回路の名前と本体の大きさの写し (circuitName、circuitSize) を持つ (保存するたびに今の値を写す。指す回路がない部品は、持っている写しのまま)
  */
 export type StoredPart = Omit<Part, 'id' | 'on'> & { circuitName?: string };
 
@@ -137,7 +137,12 @@ function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
   const toStoredPart = ({ id: _, on: __, ...c }: Part): StoredElement => {
     const cells = scalePoint(c, 1 / GRID);
     if (c.kind === 'module') {
-      return { ...cells, circuitName: findDef(project, c.circuitId)?.name ?? '' };
+      // 指す回路がない (見つからないモジュールの) 部品は、持っている写しをそのまま書く
+      return {
+        ...cells,
+        circuitName: findDef(project, c.circuitId)?.name ?? c.circuitName ?? '',
+        circuitSize: moduleSizeOf({ id: '', ...c }, project),
+      };
     }
     // 置いたばかりの CLOCK は周期を持たない (既定の周期で動く)。保存データでは省略できないので書く
     if (c.kind === 'clock' && c.period === undefined) {
@@ -187,10 +192,11 @@ export function toStoredProject(project: Project): StoredProject {
  * 要素の並びを、同じ並びのまま回路の並びにし、フォルダのパスを回路に持たせる。
  * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
- * 部品の名前の写し (circuitName) は使わない (指す回路の名前を引く)。
+ * 部品の名前と大きさの写し (circuitName、circuitSize) は、指す回路がプロジェクトにない (見つからないモジュールの) 部品にだけ残す。指す回路がある部品は、回路から引くので捨てる。
  * 部品と配線には newId で新しい ID を付ける (回路ごとに部品、配線の順)。データに ID があっても使わない
  */
 export function fromStoredProject(project: StoredProject, newId: () => string): Project {
+  const circuitIds = new Set(project.circuits.map(({ circuit }) => circuit.id));
   return {
     folders: [...project.folders],
     circuits: project.circuits.map(({ path, circuit }) => {
@@ -198,9 +204,13 @@ export function fromStoredProject(project: StoredProject, newId: () => string): 
       // データにある ID (id) は捨てて、新しい ID を付ける
       const parts = elements
         .filter((e): e is StoredPart => !isStoredWire(e))
-        .map(({ id: _, circuitName: __, ...c }: StoredPart & { id?: unknown }) => ({
+        .map(({ id: _, circuitName, circuitSize, ...c }: StoredPart & { id?: unknown }) => ({
           id: newId(),
           ...scalePoint(c, GRID),
+          // 見つからないモジュールの部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
+          ...(c.kind === 'module' && !circuitIds.has(c.circuitId ?? '')
+            ? { circuitName, circuitSize }
+            : {}),
         }));
       const wires = elements.filter(isStoredWire).map((w) => ({
         id: newId(),

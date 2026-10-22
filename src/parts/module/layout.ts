@@ -3,6 +3,13 @@ import type { Pinout } from '../../circuit/module';
 
 /** モジュール。配置はモジュールの形 (pinout.package) で決まる */
 export const module: PartLayoutOf = (pinout) => {
+  if (pinout.unresolved) {
+    return {
+      ...UNRESOLVED_LAYOUT,
+      w: pinout.size?.width ?? UNRESOLVED_LAYOUT.w,
+      h: pinout.size?.height ?? UNRESOLVED_LAYOUT.h,
+    };
+  }
   const pkg = pinout.package;
   if (pkg?.kind === 'dip' && pinout.pinNumbers) {
     return makeDipLayout(pinout.pinNumbers, pkg.pins);
@@ -11,6 +18,20 @@ export const module: PartLayoutOf = (pinout) => {
     return makeQfpLayout(pinout.pinNumbers, pkg.pins);
   }
   return makeSplitLayout(pinout);
+};
+
+/**
+ * 見つからないモジュール (指す回路がプロジェクトにない) の配置。ピンは分からないので、ピンのない箱にする。
+ * 大きさは、部品が持つ大きさの写し (Pinout.size) にする (元と同じ大きさで描くため)。写しがなければ、この決まった大きさ。
+ * 名前の写しと「見つからない」を、本体の中に 2 行で書く (SheetPart.tsx)
+ */
+const UNRESOLVED_LAYOUT: PartLayout = {
+  w: 6,
+  h: 3,
+  body: 'rect',
+  inputs: [],
+  outputs: [],
+  nameAbove: false,
 };
 
 /**

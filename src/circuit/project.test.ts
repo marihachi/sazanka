@@ -81,6 +81,7 @@ describe('checkProject', () => {
   const moduleOf = (id: string, circuitId: string, circuitName: string) => ({
     ...comp(id, 'module', { circuitId }),
     circuitName,
+    circuitSize: { width: 4, height: 2 },
   });
   const 点 = (x: number, y: number) => ({ x, y });
   const empty = main([]);
@@ -267,7 +268,9 @@ describe('checkProject', () => {
     ['CLOCK に周期がない', main([comp('c', 'clock')]), 'BAD_ELEMENT'],
     ['モジュールの部品に circuitId がない', withModule([{ ...comp('u', 'module'), circuitName: 'M' }], []), 'BAD_ELEMENT'],
     ['モジュールの部品に名前の写しがない', withModule([comp('u', 'module', { circuitId: 'm' })], []), 'BAD_ELEMENT'],
-    ['存在しないモジュールを参照', main([moduleOf('u', 'ない', 'X')]), 'MISSING_CIRCUIT'],
+    ['モジュールの部品に大きさの写しがない', withModule([{ ...comp('u', 'module', { circuitId: 'm' }), circuitName: 'M' }], []), 'BAD_ELEMENT'],
+    ['大きさの写しが 0', withModule([{ ...moduleOf('u', 'm', 'M'), circuitSize: { width: 0, height: 2 } }], []), 'BAD_ELEMENT'],
+    ['大きさの写しが整数でない', withModule([{ ...moduleOf('u', 'm', 'M'), circuitSize: { width: 4, height: 1.5 } }], []), 'BAD_ELEMENT'],
     ['ピン番号が整数でない', main([{ ...port('i', 'input', 1), pinNumber: 1.5 }]), 'BAD_ELEMENT'],
     ['ピン番号が数値でない', main([{ ...port('i', 'input', 1), pinNumber: '1' }]), 'BAD_ELEMENT'],
     ['向きが 90 度の倍数でない', main([{ ...comp('a', 'and'), rotation: 45 }]), 'BAD_ELEMENT'],

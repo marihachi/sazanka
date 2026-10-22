@@ -67,7 +67,7 @@ export const ja = {
     circuitSettings: '回路設定',
     circuitSettingsTitle:
       '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
-    deleteCircuit: '回路を削除',
+    removeCircuit: 'プロジェクトから削除',
   },
   palette: {
     groups: {
@@ -87,6 +87,10 @@ export const ja = {
   },
   sheet: {
     unknownModule: '(不明)',
+    /** 見つからないモジュールの本体に書く */
+    missing: '見つからない',
+    /** 見つからないモジュールを選んだときに、プロパティ欄に出す名前 */
+    missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
     zoomReset: '等倍に戻す',
     zoomIn: '拡大',
@@ -127,7 +131,8 @@ export const ja = {
       CONFLICT: '出力がぶつかっています',
       UNEXPOSED_PORTS: 'ピンに出ていない INPUT / OUTPUT があります',
       OUTSIDE_SHEET: 'シートの外に部品か配線があります',
-    } satisfies Record<ProblemCode, string>,
+      MISSING_CIRCUIT: (name: string) => `見つからない回路: ${name || '(不明)'}`,
+    } satisfies Record<ProblemCode, string | ((name: string) => string)>,
   },
   preferences: {
     title: '環境設定',
@@ -198,10 +203,14 @@ export const ja = {
     add: '追加',
     nameRequired: '名前を入力してください',
     nameTaken: '同じ名前の回路がすでにあります',
-    inUse: (name: string, users: string[]) =>
-      `「${name}」は次の回路で使われているため削除できません: ${users.join(', ')}`,
-    confirmDelete: (name: string) => `回路「${name}」を削除しますか？`,
-    delete: '削除',
+    confirmRemove: (name: string) => `「${name}」をプロジェクトから削除しますか？`,
+    /**
+     * ほかの回路に置かれている回路を削除するときの確認。first は置いている最初の回路、
+     * circuits は置いている回路の数、count は置いている部品の数
+     */
+    confirmRemoveUsed: (name: string, first: string, circuits: number, count: number) =>
+      `「${name}」をプロジェクトから削除します。中身はプロジェクトからなくなり、置いている部品（${first}${circuits === 1 ? 'の' : 'など'} ${count} か所）は見つからないモジュールとして残ります。`,
+    remove: '削除',
     cannotPaste: (name: string) =>
       `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
   },
@@ -242,7 +251,6 @@ export const ja = {
         e.folder === ''
           ? `同じ名前の回路があります: ${e.name}`
           : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
-      MISSING_CIRCUIT: (e) => `「${e.circuit}」に、存在しない回路のモジュールがあります`,
     } satisfies ErrorTexts<ProjectError>,
     /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
     projectFile: {
@@ -305,6 +313,9 @@ export const ja = {
     /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
+    /** 見つからないモジュール (指す回路がプロジェクトにない) を選んだとき */
+    unresolvedModule:
+      'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {
       unassigned: 'この INPUT / OUTPUT はピン番号がないため、外側のピンに出ていない',
       outOfRange:

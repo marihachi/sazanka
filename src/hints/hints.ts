@@ -33,6 +33,8 @@ export interface HintContext {
   numberedPackage: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;
+  /** 選んでいる部品が、見つからないモジュール (指す回路がプロジェクトにない) */
+  selectedUnresolved?: boolean;
   /** 開いている回路に、外側のピンに出せないポートがある (メイン回路では警告しないので false) */
   unexposedPorts: boolean;
   /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒で示すのに使う */
@@ -73,6 +75,10 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
     return m.multipleSelected;
   }
   const c = ctx.selectedPart;
+  if (c && ctx.selectedUnresolved) {
+    // 見つからないモジュールは開けないので、モジュールのヒント (ダブルクリックで開く) は出さない
+    return [m.unresolvedModule, ...m.partSelected];
+  }
   if (c) {
     // ヒントの文は、種類ごとの見せ方 (parts/) にある
     const own = partViewOf(c.kind)?.hints?.[lang] ?? [];

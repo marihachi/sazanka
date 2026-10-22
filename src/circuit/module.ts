@@ -1,7 +1,7 @@
 // モジュール: 回路を部品として使うときのピンの決め方と、回路同士の依存。
 // 展開 (シミュレーション用に1つの回路にする) は simulation/flatten.ts にある
 
-import { inputPinNames, outputPinNames, type Part } from './part';
+import { type CircuitSize, inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
 import {
   findDef,
@@ -29,6 +29,12 @@ export interface Pinout {
    * パッケージが dip / qfp のモジュールだけが持つ
    */
   pinNumbers?: { inputs: number[]; outputs: number[] };
+  /**
+   * 指す回路がプロジェクトにない (見つからない) モジュール。ピンはなく、部品が持つ大きさの写し (size) の箱で描く。
+   * 写しがなければ決まった大きさ
+   */
+  unresolved?: boolean;
+  size?: CircuitSize;
 }
 
 /** ピン番号で外側のピンを決める形か (dip / qfp)。split はポート番号の順で決める */
@@ -121,7 +127,12 @@ export function getPinout(c: Part, project: Project): Pinout {
     const def = findDef(project, c.circuitId);
 
     if (!def) {
-      return { inputs: [], outputs: [], package: { kind: 'split' } };
+      return {
+        inputs: [],
+        outputs: [],
+        unresolved: true,
+        ...(c.circuitSize ? { size: c.circuitSize } : {}),
+      };
     }
 
     const { inputs, outputs } = getPortsInPinOrder(def);
