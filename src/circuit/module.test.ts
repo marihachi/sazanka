@@ -11,7 +11,6 @@ import {
   listPortsInNumberOrder,
   listPortsInPositionOrder,
   renumberPortsByPosition,
-  swapPortNumbers,
   circuitsUsing,
   dependsOn,
   getPortsInPinOrder,
@@ -523,50 +522,6 @@ describe('ポート番号を変える計算', () => {
     { ...comp('g', 'and'), y: 0 },
   ];
   const def: CircuitDef = { id: 'm', name: 'M', package: { kind: 'split' }, parts, wires: [] };
-  const ports = listPortsInNumberOrder(def);
-  const numbers = new Map(ports.map((c) => [c.id, c.portNumber ?? 0]));
-
-  it('同じ種類で、番号の順の隣のポートと番号を入れ替える', () => {
-    expect(swapPortNumbers(ports, numbers, 'i2', -1)).toEqual(
-      new Map([
-        ['i1', 2],
-        ['i2', 1],
-        ['i3', 3],
-        ['o1', 1],
-        ['o2', 2],
-      ]),
-    );
-    expect(swapPortNumbers(ports, numbers, 'o1', 1)).toEqual(
-      new Map([
-        ['i1', 1],
-        ['i2', 2],
-        ['i3', 3],
-        ['o1', 2],
-        ['o2', 1],
-      ]),
-    );
-  });
-
-  it('同じ種類の先頭は前へ、末尾は後へ動かない (種類をまたがない)', () => {
-    expect(swapPortNumbers(ports, numbers, 'i1', -1)).toBe(numbers);
-    expect(swapPortNumbers(ports, numbers, 'i3', 1)).toBe(numbers);
-    expect(swapPortNumbers(ports, numbers, 'o1', -1)).toBe(numbers);
-  });
-
-  it('番号に抜けがあっても、番号どうしを入れ替える', () => {
-    const gap = new Map([
-      ['i1', 1],
-      ['i3', 5],
-    ]);
-    const two = ports.filter((c) => c.id === 'i1' || c.id === 'i3');
-    expect(swapPortNumbers(two, gap, 'i3', -1)).toEqual(
-      new Map([
-        ['i1', 5],
-        ['i3', 1],
-      ]),
-    );
-  });
-
   it('種類ごとに、位置の順 (上から) で 1 から番号を振り直す', () => {
     expect(renumberPortsByPosition(def)).toEqual(
       new Map([

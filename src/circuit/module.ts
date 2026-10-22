@@ -328,30 +328,6 @@ export function renumberPortsByPosition(def: Circuit): Map<string, number> {
   return numbers;
 }
 
-/**
- * ポート id のポート番号を、同じ種類 (入力どうし、出力どうし) で番号の順の隣のポートと入れ替えたもの (部品 ID → 番号)。
- * direction が -1 なら前 (番号の小さい方)、1 なら後。ports は番号の順に並べたポート (listPortsInNumberOrder)、
- * numbers は今の番号。隣がなければ (先頭か末尾なら)、numbers をそのまま返す。
- * 番号に抜けがあっても、番号どうしを入れ替えるので、使っている番号の組は変わらない
- */
-export function swapPortNumbers(
-  ports: readonly Part[],
-  numbers: ReadonlyMap<string, number>,
-  id: string,
-  direction: -1 | 1,
-): ReadonlyMap<string, number> {
-  const kind = ports.find((c) => c.id === id)?.kind;
-  const same = ports.filter((c) => c.kind === kind);
-  const i = same.findIndex((c) => c.id === id);
-  const other = same[i + direction];
-  const a = numbers.get(id);
-  const b = other && numbers.get(other.id);
-  if (i < 0 || a === undefined || b === undefined) {
-    return numbers;
-  }
-  return new Map(numbers).set(id, b).set(other.id, a);
-}
-
 /** ポートの並び ports の先頭から、1 から pins までの番号を順に割り当てる (部品 ID → 番号)。番号が足りなければ、残りは割り当てない */
 export function assignInOrder(ports: readonly Part[], pins: number): Map<string, number> {
   return new Map(ports.slice(0, pins).map((c, i) => [c.id, i + 1]));

@@ -146,8 +146,6 @@ export const en: Messages = {
     assignment: 'Pin assignment',
     assignInOrder: 'Reassign from the top',
     renumberPorts: 'Renumber from the top',
-    moveUp: (heading) => `Move ${heading} up (swap its number with the previous port)`,
-    moveDown: (heading) => `Move ${heading} down (swap its number with the next port)`,
     unassigned: 'Unassigned ports (not on any outer pin):',
     listSeparator: ', ',
     wiringWarning:
@@ -261,7 +259,7 @@ export const en: Messages = {
       '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
     splitPackage: [
       'Pins follow the port numbers of INPUT / OUTPUT. Moving an INPUT / OUTPUT does not change the pin order',
-      'Swapping port numbers in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
+      'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
     portProblems: {

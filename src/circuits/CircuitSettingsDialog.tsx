@@ -5,7 +5,6 @@ import {
   Field,
   Flex,
   HStack,
-  IconButton,
   Input,
   NativeSelect,
   Stack,
@@ -22,7 +21,6 @@ import {
   listPortsInNumberOrder,
   listPortsInPositionOrder,
   renumberPortsByPosition,
-  swapPortNumbers,
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
 import {
@@ -40,9 +38,7 @@ import { getCircuitName, type Messages } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
 import { SheetPart } from '../sheet/SheetPart';
 import { checkSheetSize, SheetSizeFields } from '../sheet/SheetSizeFields';
-import chevronIcon from '../assets/icons/chevron.svg';
 import { DialogFrame } from '../ui/DialogFrame';
-import { MaskIcon } from '../ui/Icons';
 import { describeNameProblem } from './useCircuits';
 
 type PackageKind = Package['kind'];
@@ -109,7 +105,7 @@ export function CircuitSettingsDialog({
   const sheetChanged =
     sheetCheck.draft.width !== currentSheet.width ||
     sheetCheck.draft.height !== currentSheet.height;
-  // ポート番号の下書き (部品 ID → 番号)。「上へ」「下へ」と「上から順に番号を振り直す」で変える
+  // ポート番号の下書き (部品 ID → 番号)。「上から順に番号を振り直す」で変える
   const [portNumbers, setPortNumbers] = useState<ReadonlyMap<string, number>>(
     () =>
       new Map(
@@ -118,7 +114,7 @@ export function CircuitSettingsDialog({
           .flatMap((c) => (c.portNumber === undefined ? [] : [[c.id, c.portNumber] as const])),
       ),
   );
-  // ポートの並び。一覧と選択肢は、下書きのポート番号の順 (見出しが番号のため。番号を入れ替えると行も入れ替わる)。
+  // ポートの並び。一覧と選択肢は、下書きのポート番号の順 (見出しが番号のため。番号を振り直すと行も並び直す)。
   // 「上から順に割り当て直す」は位置の順 (上から順に振るため)
   const ports = useMemo(
     () => listPortsInNumberOrder(withPortNumbers(def, portNumbers)),
@@ -166,19 +162,6 @@ export function CircuitSettingsDialog({
   }, []);
 
   /**
-   * ポート id の番号を、同じ種類で隣のポートと入れ替える (direction が -1 なら上へ、1 なら下へ)。
-   * 行 (PortRow) の描き直しを省けるよう、同じ関数を渡し続ける。並びは今の番号から引くので、関数の中で作る
-   */
-  const movePort = useCallback(
-    (id: string, direction: -1 | 1) => {
-      setPortNumbers((cur) =>
-        swapPortNumbers(listPortsInNumberOrder(withPortNumbers(def, cur)), cur, id, direction),
-      );
-    },
-    [def],
-  );
-
-  /**
    * 形の種類を変える。ピン数は、新しい種類で使える数に直す。
    * split から変えるときは、ポート番号の順に番号を割り当てる (split のときのピンの順を、そのまま引き継ぐため)
    */
@@ -209,7 +192,7 @@ export function CircuitSettingsDialog({
     });
   }, []);
   // ポートの名前と、行の選択肢。どの行でも同じなので 1 回だけ作り、行どうしで使い回す。
-  // 番号を入れ替えると名前 (「入力 1 A」) が変わり、選択肢を全部の行で作り直すので、名前と同じく入力より遅れてよい
+  // 番号を振り直すと名前 (「入力 1 A」) が変わり、選択肢を全部の行で作り直すので、名前と同じく入力より遅れてよい
   const deferredPorts = useDeferredValue(ports);
   const names = useMemo(
     () =>
@@ -382,17 +365,14 @@ export function CircuitSettingsDialog({
                     overflowY="auto"
                     pe="1"
                   >
-                    {ports.map((c, i) => (
+                    {ports.map((c) => (
                       <PortRow
                         key={c.id}
                         id={c.id}
                         heading={m.common.portName(c.kind, c.portNumber ?? '')}
                         value={portNames.get(c.id) ?? ''}
                         duplicate={duplicates.has(c.id)}
-                        canMoveUp={ports[i - 1]?.kind === c.kind}
-                        canMoveDown={ports[i + 1]?.kind === c.kind}
                         onChange={changePortName}
-                        onMove={movePort}
                       />
                     ))}
                   </Stack>
@@ -511,7 +491,7 @@ const PinRow = memo(function PinRow({
 });
 
 /**
- * ポートの 1 行。入力か出力かとポート番号と、名前の入力欄と、番号を入れ替える「上へ」「下へ」。
+ * ポートの 1 行。入力か出力かとポート番号と、名前の入力欄。
  * ポートが多いと、1 文字打つたびに全部の行を描き直すと重いので、memo で変わった行だけを描き直す
  */
 const PortRow = memo(function PortRow({
@@ -519,10 +499,7 @@ const PortRow = memo(function PortRow({
   heading,
   value,
   duplicate,
-  canMoveUp,
-  canMoveDown,
   onChange,
-  onMove,
 }: {
   id: string;
   /** 「入力 1」の形の見出し */
@@ -531,12 +508,7 @@ const PortRow = memo(function PortRow({
   value: string;
   /** ほかのポートと名前が重なっているか */
   duplicate: boolean;
-  /** 同じ種類の中で、前 (番号の小さい方) / 後のポートがあるか */
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onChange: (id: string, text: string) => void;
-  /** 番号を、同じ種類で隣のポートと入れ替える (-1 は上へ、1 は下へ) */
-  onMove: (id: string, direction: -1 | 1) => void;
 }) {
   const m = useMessages();
   return (
@@ -553,28 +525,6 @@ const PortRow = memo(function PortRow({
           onChange={(e) => onChange(id, e.target.value)}
         />
       </Field.Root>
-      <IconButton
-        size="xs"
-        variant="ghost"
-        colorPalette="gray"
-        aria-label={m.circuitSettings.moveUp(heading)}
-        title={m.circuitSettings.moveUp(heading)}
-        disabled={!canMoveUp}
-        onClick={() => onMove(id, -1)}
-      >
-        <MaskIcon src={chevronIcon} boxSize="3" transform="rotate(180deg)" />
-      </IconButton>
-      <IconButton
-        size="xs"
-        variant="ghost"
-        colorPalette="gray"
-        aria-label={m.circuitSettings.moveDown(heading)}
-        title={m.circuitSettings.moveDown(heading)}
-        disabled={!canMoveDown}
-        onClick={() => onMove(id, 1)}
-      >
-        <MaskIcon src={chevronIcon} boxSize="3" />
-      </IconButton>
     </HStack>
   );
 });

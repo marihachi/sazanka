@@ -157,8 +157,6 @@ export const ja = {
     assignment: 'ピンの割り当て',
     assignInOrder: '上から順に割り当て直す',
     renumberPorts: '上から順に番号を振り直す',
-    moveUp: (heading: string) => `${heading} を上へ (番号を前のポートと入れ替える)`,
-    moveDown: (heading: string) => `${heading} を下へ (番号を後のポートと入れ替える)`,
     unassigned: '割り当てのないポート (外側のピンに出ない):',
     listSeparator: '、',
     wiringWarning:
@@ -287,7 +285,7 @@ export const ja = {
     /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で足すヒント。メイン回路では出さない (外側の配線がないため) */
     splitPackage: [
       'ピンは INPUT / OUTPUT のポート番号の順に並ぶ。INPUT / OUTPUT を動かしても、ピンの順は変わらない',
-      '「回路設定」でポート番号を入れ替えるとピンの順も変わり、外側の配線が別のピンにつながるので注意',
+      '「回路設定」の「上から順に番号を振り直す」でポート番号を変えるとピンの順も変わり、外側の配線が別のピンにつながるので注意',
     ],
     /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
