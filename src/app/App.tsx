@@ -73,7 +73,8 @@ import { LanguageContext } from '../i18n/useMessages';
 import { resolveLanguage } from '../i18n/language';
 
 /** その場で編集中の名前 (タブの回路名) */
-type Editing = { type: 'tab'; id: string } | null;
+/** 名前を変えている回路 (プロジェクトパネルの行) */
+type Editing = { type: 'circuit'; id: string } | null;
 
 /**
  * 画面全体の組み立てと、状態のつなぎ役。
@@ -300,10 +301,6 @@ export function App() {
   const file = useProjectFile({
     m,
     project,
-    replaceProject: (next: Project) => {
-      setProject(() => next);
-      startOver();
-    },
     openProject: (next: Project) => {
       history.reset(next);
       startOver();
@@ -576,6 +573,8 @@ export function App() {
       }
     },
     closeTab,
+    // パネルで作った回路はタブで開くので、すぐ部品を置けるよう、サイドパネルを部品に移す
+    newCircuitFromPanel: () => circuits.createCircuit(() => setSidePanel('parts')),
     reorderTabs: (id: string, index: number) =>
       setTabs((t) => {
         const rest = t.open.filter((x) => x !== id);
@@ -594,7 +593,7 @@ export function App() {
     openPreferences: dialogs.openPreferences,
     openAbout: dialogs.openAbout,
     openCircuit,
-    startRename: (id: string) => setEditing({ type: 'tab', id }),
+    startRename: (id: string) => setEditing({ type: 'circuit', id }),
     renameCircuit: (id: string, value: string) => {
       setEditing(null);
       circuits.renameCircuit(id, value);
@@ -620,9 +619,6 @@ export function App() {
     <LanguageContext.Provider value={lang}>
       <Flex direction="column" h="full">
         <Header
-          onNew={on.newProject}
-          onExport={on.exportProject}
-          onImport={on.importProject}
           canUndo={history.canUndo}
           canRedo={history.canRedo}
           onUndo={on.undoEdit}
@@ -637,7 +633,16 @@ export function App() {
               project={project}
               collapsed={treeCollapsed}
               onCollapsedChange={setTreeCollapsed}
+              renamingId={editing?.type === 'circuit' ? editing.id : undefined}
               onOpen={on.openFromPanel}
+              onStartRename={on.startRename}
+              onRename={on.renameCircuit}
+              onCancelRename={on.cancelRename}
+              onRemove={on.removeCircuit}
+              onNewCircuit={on.newCircuitFromPanel}
+              onNewProject={on.newProject}
+              onOpenProject={on.importProject}
+              onSaveProjectAs={on.exportProject}
             />
           ) : (
             <Palette
@@ -651,13 +656,8 @@ export function App() {
             <TabBar
               circuits={openCircuits}
               currentId={current?.id}
-              renamingId={editing?.type === 'tab' ? editing.id : undefined}
               onOpen={on.openCircuit}
               onClose={on.closeTab}
-              onStartRename={on.startRename}
-              onRename={on.renameCircuit}
-              onCancelRename={on.cancelRename}
-              onAddCircuit={on.createCircuit}
               onReorder={on.reorderTabs}
             />
             <SheetToolbar
@@ -671,7 +671,6 @@ export function App() {
               onStepBack={on.stepBack}
               canStepBack={canStepBack}
               onCircuitSettings={on.openCircuitSettings}
-              onRemoveCircuit={!noCircuit && circuit.id !== MAIN_ID ? on.removeCircuit : undefined}
               disabled={noCircuit}
             />
             <Flex flex="1" minH="0">

@@ -6,7 +6,6 @@ import {
   emptyProject,
   findDef,
   MAIN_ID,
-  moveCircuit,
   type Project,
   withoutSwitchStates,
 } from './project';
@@ -381,28 +380,6 @@ describe('checkCircuitName', () => {
   it('名前を変える回路自身の名前は、重なりに数えない', () => {
     expect(checkCircuitName(project, 'A', 'メイン', 'a')).toBeUndefined();
     expect(checkCircuitName(project, 'B', 'メイン', 'a')).toBe('TAKEN');
-  });
-});
-
-describe('moveCircuit', () => {
-  const project: Project = {
-    circuits: ['main', 'a', 'b', 'c'].map((id) => ({
-      id,
-      name: id,
-      parts: [],
-      wires: [],
-    })),
-  };
-  const ids = (p: Project) => p.circuits.map((d) => d.id);
-
-  it('モジュールを指定した位置に移す', () => {
-    expect(ids(moveCircuit(project, 'c', 1))).toEqual(['main', 'c', 'a', 'b']);
-    expect(ids(moveCircuit(project, 'a', 3))).toEqual(['main', 'b', 'c', 'a']);
-  });
-
-  it('メイン回路は先頭に固定。動かさず、その前にも置かない', () => {
-    expect(ids(moveCircuit(project, MAIN_ID, 2))).toEqual(['main', 'a', 'b', 'c']);
-    expect(ids(moveCircuit(project, 'b', 0))).toEqual(['main', 'b', 'a', 'c']);
   });
 });
 

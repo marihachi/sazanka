@@ -1,21 +1,15 @@
 import { memo } from 'react';
 import { Flex, Heading, VisuallyHidden } from '@chakra-ui/react';
-import exportIcon from '../assets/icons/export.svg';
-import importIcon from '../assets/icons/import.svg';
 import infoIcon from '../assets/icons/info.svg';
 import preferencesIcon from '../assets/icons/preferences.svg';
 import logoMark from '../assets/logo-mark.svg';
-import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
 import { MaskIcon } from '../ui/Icons';
-import { ToolButton, ToolDivider } from '../ui/ToolButton';
+import { ToolButton } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
 
 interface HeaderProps {
-  onNew: () => void;
-  onExport: () => void;
-  onImport: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -25,13 +19,11 @@ interface HeaderProps {
 }
 
 /**
- * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、読み込み、書き出し、元に戻す、やり直し)。
- * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーにある
+ * 最上部のヘッダー。ロゴと、元に戻す・やり直し、環境設定、このアプリについて。
+ * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーに、
+ * プロジェクトの操作 (新規作成、開く、保存) はプロジェクトパネルの「⋯」にある
  */
 export const Header = memo(function Header({
-  onNew,
-  onExport,
-  onImport,
   canUndo,
   canRedo,
   onUndo,
@@ -55,25 +47,6 @@ export const Header = memo(function Header({
         overflowX="auto"
         aria-label={m.header.toolbar}
       >
-        <ToolButton
-          icon={newIcon}
-          label={m.header.newProject}
-          title={m.header.newProjectTitle}
-          onClick={onNew}
-        />
-        <ToolButton
-          icon={importIcon}
-          label={m.header.importProject}
-          title={m.header.importProjectTitle}
-          onClick={onImport}
-        />
-        <ToolButton
-          icon={exportIcon}
-          label={m.header.exportProject}
-          title={m.header.exportProjectTitle}
-          onClick={onExport}
-        />
-        <ToolDivider />
         <ToolButton
           icon={undoIcon}
           label={m.header.undo}

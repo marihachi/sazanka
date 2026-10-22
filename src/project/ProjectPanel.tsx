@@ -1,9 +1,11 @@
-import { Box, Flex, Text } from '@chakra-ui/react';
-import { memo, useMemo, useState } from 'react';
-import type { Project } from '../circuit/project';
+import { Box, Flex, IconButton, Menu, Portal, Text } from '@chakra-ui/react';
+import { memo, useMemo, useRef, useState } from 'react';
+import moreIcon from '../assets/icons/more.svg';
+import { MAIN_ID, type Project } from '../circuit/project';
 import { getCircuitName } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
-import { CircuitTree, rowKey } from './CircuitTree';
+import { MaskIcon } from '../ui/Icons';
+import { CircuitTree, type MenuPoint, rowKey } from './CircuitTree';
 import { type TreeRow, treeRows, usagesOf } from './folders';
 
 interface ProjectPanelProps {
@@ -11,22 +13,61 @@ interface ProjectPanelProps {
   /** 折り畳んでいるフォルダのパス */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
-  /** 回路を開く (行のダブルクリックか Enter) */
+  /** 名前を変えている回路の ID */
+  renamingId?: string;
+  /** 回路を開く (行のダブルクリック、Enter、行のメニューの「開く」) */
   onOpen: (id: string) => void;
+  onStartRename: (id: string) => void;
+  onRename: (id: string, name: string) => void;
+  onCancelRename: () => void;
+  /** プロジェクトから削除する (確認は呼ぶ側が出す) */
+  onRemove: (id: string) => void;
+  /** パネルの上の「⋯」のメニュー */
+  onNewCircuit: () => void;
+  onNewProject: () => void;
+  onOpenProject: () => void;
+  onSaveProjectAs: () => void;
+}
+
+/** 行のメニュー。どの行で、画面のどこに出すか */
+interface RowMenu {
+  row: TreeRow;
+  at: MenuPoint;
 }
 
 /**
  * 左のサイドパネルに出すプロジェクトパネル。プロジェクトの中の回路を、フォルダの木で並べる。
- * 行を押すと選び、下に、選んだ回路が使われている所を出す。ダブルクリックか Enter で開く
+ * 行を押すと選び、下に、選んだ回路が使われている所を出す。ダブルクリックか Enter で開く。
+ * パネルの上の「⋯」にプロジェクト全体の操作を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる
  */
 export const ProjectPanel = memo(function ProjectPanel({
   project,
   collapsed,
   onCollapsedChange,
+  renamingId,
   onOpen,
+  onStartRename,
+  onRename,
+  onCancelRename,
+  onRemove,
+  onNewCircuit,
+  onNewProject,
+  onOpenProject,
+  onSaveProjectAs,
 }: ProjectPanelProps) {
   const m = useMessages();
   const [selected, setSelected] = useState<string | undefined>(undefined);
+  const [rowMenu, setRowMenu] = useState<RowMenu | null>(null);
+  /**
+   * メニューで選んだ操作。メニューが閉じ終わってから行う (onExitComplete)。閉じている途中に確認のダイアログを開くと、
+   * メニューがフォーカスを戻すときに、ダイアログが外を触られたとみなして閉じてしまうため
+   */
+  const pending = useRef<(() => void) | null>(null);
+  const runPending = () => {
+    const action = pending.current;
+    pending.current = null;
+    action?.();
+  };
   const collapsedSet = useMemo(() => new Set(collapsed), [collapsed]);
   const rows = useMemo(() => treeRows(project, collapsedSet), [project, collapsedSet]);
   const toggleFolder = (path: string) =>
@@ -35,26 +76,114 @@ export const ProjectPanel = memo(function ProjectPanel({
     );
   const selectedRow = rows.find((r) => rowKey(r) === selected);
   const usages = selectedRow?.kind === 'circuit' ? usagesOf(project, selectedRow.def.id) : [];
+  const menuRow = rowMenu?.row;
+  const menuIsMain = menuRow?.kind === 'circuit' && menuRow.def.id === MAIN_ID;
 
   return (
     <Flex direction="column" w="176px" flexShrink={0} bg="bg.panel" borderRightWidth="1px">
-      <Flex h="9" px="3" align="center" borderBottomWidth="1px">
-        <Text textStyle="sm" fontWeight="medium">
+      <Flex h="9" ps="3" pe="1" align="center" borderBottomWidth="1px">
+        <Text textStyle="sm" fontWeight="medium" flex="1">
           {m.project.title}
         </Text>
+        <Menu.Root
+          onSelect={(e) => {
+            // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
+            if (e.value === 'openProject') {
+              onOpenProject();
+            } else if (e.value === 'saveProjectAs') {
+              onSaveProjectAs();
+            }
+            // ダイアログを出す操作は、閉じ終わってから行う
+            const later: Record<string, () => void> = {
+              newCircuit: onNewCircuit,
+              newProject: onNewProject,
+            };
+            pending.current = later[e.value] ?? null;
+          }}
+          onExitComplete={runPending}
+        >
+          <Menu.Trigger asChild>
+            <IconButton size="xs" variant="ghost" colorPalette="gray" aria-label={m.project.menu}>
+              <MaskIcon src={moreIcon} boxSize="4" />
+            </IconButton>
+          </Menu.Trigger>
+          <Portal>
+            <Menu.Positioner>
+              <Menu.Content>
+                <Menu.Item value="newCircuit">{m.project.newCircuit}</Menu.Item>
+                <Menu.Separator />
+                <Menu.Item value="newProject">{m.project.newProject}</Menu.Item>
+                <Menu.Item value="openProject">{m.project.openProject}</Menu.Item>
+                <Menu.Item value="saveProjectAs">{m.project.saveProjectAs}</Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Portal>
+        </Menu.Root>
       </Flex>
       <Box as="aside" flex="1" minH="0" overflowY="auto">
         <CircuitTree
           rows={rows}
           selected={selected}
           collapsed={collapsedSet}
-          onSelect={(row: TreeRow) => setSelected(rowKey(row))}
-          onActivate={(row: TreeRow) =>
+          renaming={renamingId === undefined ? undefined : `circuit:${renamingId}`}
+          // フォルダの行の操作は、フォルダを作れるようになってから足す
+          hasMenu={(row) => row.kind === 'circuit'}
+          onSelect={(row) => setSelected(rowKey(row))}
+          onActivate={(row) =>
             row.kind === 'folder' ? toggleFolder(row.path) : onOpen(row.def.id)
           }
           onToggleFolder={toggleFolder}
+          onMenu={(row, at) => setRowMenu({ row, at })}
+          onStartRename={(row) => {
+            if (row.kind === 'circuit' && row.def.id !== MAIN_ID) {
+              onStartRename(row.def.id);
+            }
+          }}
+          onRename={(row, name) => row.kind === 'circuit' && onRename(row.def.id, name)}
+          onCancelRename={onCancelRename}
         />
       </Box>
+      {/* 行のメニュー。行ごとに持たず、押した行と位置を覚えて 1 つだけ出す */}
+      <Menu.Root
+        open={rowMenu !== null}
+        onOpenChange={(e) => {
+          if (!e.open) {
+            setRowMenu(null);
+          }
+        }}
+        anchorPoint={rowMenu?.at}
+        onSelect={(e) => {
+          if (menuRow?.kind !== 'circuit') {
+            return;
+          }
+          const id = menuRow.def.id;
+          const actions: Record<string, () => void> = {
+            open: () => onOpen(id),
+            rename: () => onStartRename(id),
+            remove: () => onRemove(id),
+          };
+          pending.current = actions[e.value] ?? null;
+        }}
+        onExitComplete={runPending}
+      >
+        <Portal>
+          <Menu.Positioner>
+            <Menu.Content>
+              <Menu.Item value="open">{m.project.open}</Menu.Item>
+              {/* メイン回路は、名前を変えられず、プロジェクトから削除できない */}
+              {!menuIsMain && <Menu.Item value="rename">{m.project.rename}</Menu.Item>}
+              {!menuIsMain && (
+                <>
+                  <Menu.Separator />
+                  <Menu.Item value="remove" color="fg.error">
+                    {m.project.remove}
+                  </Menu.Item>
+                </>
+              )}
+            </Menu.Content>
+          </Menu.Positioner>
+        </Portal>
+      </Menu.Root>
       {selectedRow?.kind === 'circuit' && (
         <Box px="3" py="2" borderTopWidth="1px" textStyle="xs">
           <Text fontWeight="medium" truncate>
@@ -76,14 +205,15 @@ export const ProjectPanel = memo(function ProjectPanel({
 
 /**
  * 描き直すかの判定。プロジェクトは部品を動かすたびに新しくなるが、パネルに出すのは
- * フォルダ、回路の ID と名前とパス、どの回路をどこに置いているかだけなので、それで比べる (パネルを描き直すとドラッグが重くなるため)
+ * フォルダ、回路の ID と名前とパス、どの回路をどこに置いているかだけなので、それで比べる (パネルを描き直すとドラッグが重くなるため)。
+ * そのほかの props は、そのまま比べる (App は同じ関数を渡し続ける)
  */
 function samePanel(a: ProjectPanelProps, b: ProjectPanelProps): boolean {
+  const { project: pa, ...ra } = a;
+  const { project: pb, ...rb } = b;
   return (
-    a.collapsed === b.collapsed &&
-    a.onCollapsedChange === b.onCollapsedChange &&
-    a.onOpen === b.onOpen &&
-    projectKey(a.project) === projectKey(b.project)
+    projectKey(pa) === projectKey(pb) &&
+    (Object.keys(ra) as (keyof typeof ra)[]).every((k) => ra[k] === rb[k])
   );
 }
 

@@ -13,12 +13,6 @@ export const en: Messages = {
   },
   header: {
     toolbar: 'Project actions',
-    newProject: 'New',
-    newProjectTitle: 'Start a new empty project',
-    importProject: 'Import',
-    importProjectTitle: 'Choose a project file to import',
-    exportProject: 'Export',
-    exportProjectTitle: 'Save the whole project to a file',
     undo: 'Undo',
     undoTitle: 'Undo (Ctrl+Z)',
     redo: 'Redo',
@@ -34,9 +28,8 @@ export const en: Messages = {
     license: 'Available under the MIT License. The logo uses the Inter SemiBold font (SIL OFL).',
   },
   tabs: {
-    addCircuit: 'Add circuit',
     close: (name) => `Close ${name}`,
-    circuitTabTooltip: 'Double-click to rename, drag to reorder.',
+    circuitTabTooltip: 'Drag to reorder.',
   },
   toolbar: {
     select: 'Select',
@@ -58,7 +51,6 @@ export const en: Messages = {
     circuitSettings: 'Circuit settings',
     circuitSettingsTitle:
       'Circuit settings: change the sheet size, package, port names, and pin assignment',
-    removeCircuit: 'Remove from project',
   },
   sidePanel: {
     project: 'Project',
@@ -66,6 +58,15 @@ export const en: Messages = {
   },
   project: {
     title: 'Project',
+    menu: 'Project actions',
+    newCircuit: 'New circuit…',
+    newProject: 'New project…',
+    openProject: 'Open…',
+    saveProjectAs: 'Save as…',
+    rowMenu: (name) => `Actions for ${name}`,
+    open: 'Open',
+    rename: 'Rename',
+    remove: 'Remove from project…',
     main: 'Main circuit',
     usedIn: 'Used in',
     notUsed: 'Not placed anywhere',
@@ -209,7 +210,7 @@ export const en: Messages = {
   },
   file: {
     confirmNew:
-      'Create a new project? The current project (all circuits) will be cleared (you can undo this).',
+      'Create a new project? The current project (all circuits) will be cleared. This cannot be undone.',
     newProject: 'New',
     saveFailed: 'Could not save the file',
     readFailed: 'Could not read the file',
@@ -276,13 +277,13 @@ export const en: Messages = {
       'RS Latch has no clock: Q changes as soon as S / R change',
       'Parts have delay. Signals travel 1 tick at a time',
       'Pause, then use "Forward 1 tick" and "Back 1 tick" to step through signals 1 tick at a time',
-      'Add a circuit with "+" on the tabs to place it in other circuits as a module',
-      '"Export" copies the whole project as JSON. Paste it into "Import" to open the same circuit',
+      'Add a circuit with "New circuit" in the project panel "⋯" menu to place it in other circuits as a module',
+      'Save the project to a file with "Save as" in the project panel "⋯" menu, and open it with "Open"',
       'Naming an INPUT / OUTPUT sets the pin name when the circuit is placed as a module',
     ],
     nonMain: [
-      'Double-click a tab to rename the circuit',
-      'Drag tabs to reorder them (Main stays first)',
+      'Rename a circuit from its row "⋯" in the project panel, or with F2',
+      'Drag tabs to reorder them, and close them with "×"',
       'Placing an INPUT / OUTPUT adds a pin to the module',
       'While another circuit tab is open, the main circuit simulation is paused',
     ],

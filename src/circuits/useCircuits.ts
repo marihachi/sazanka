@@ -71,8 +71,8 @@ export function useCircuits({
     [modulesKey, m],
   );
 
-  /** 名前を入力するウィンドウを開き、確定したら回路を作成して開く */
-  function createCircuit() {
+  /** 名前を入力するウィンドウを開き、確定したら回路を作成して開く。onCreated は作成したあとに呼ぶ */
+  function createCircuit(onCreated?: () => void) {
     // 既定の名前は、ほかの回路の名前とメイン回路の表示名を避ける
     const names = new Set([...project.circuits.map((d) => d.name), m.common.mainCircuit]);
     // 既定の名前の番号は、メイン回路以外の回路の数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
@@ -100,6 +100,7 @@ export function useCircuits({
         };
         setProject((p) => ({ ...p, circuits: [...p.circuits, def] }));
         openCircuit(def.id);
+        onCreated?.();
       },
     });
   }
@@ -125,14 +126,17 @@ export function useCircuits({
   }
 
   /**
-   * 開いている回路をプロジェクトから削除する (確認を出してから)。ほかの回路に置かれていても削除できる。
+   * 回路 id をプロジェクトから削除する (確認を出してから)。メイン回路は削除できない。ほかの回路に置かれていても削除できる。
    * 置いている部品は残り、指す回路がなくなるので見つからないモジュールになる。何が足りないかを見せるため、
    * その部品に今の名前の写し (circuitName) を持たせる。元に戻す 1 回で、回路も部品も戻る
    */
-  function removeCircuit() {
-    const users = circuitsUsing(project, circuit.id);
-    const id = circuit.id;
-    const name = circuit.name;
+  function removeCircuit(id: string) {
+    const target = project.circuits.find((d) => d.id === id);
+    if (!target || id === MAIN_ID) {
+      return;
+    }
+    const users = circuitsUsing(project, id);
+    const name = target.name;
     const placed = project.circuits
       .flatMap((d) => d.parts)
       .filter((c) => c.kind === 'module' && c.circuitId === id).length;

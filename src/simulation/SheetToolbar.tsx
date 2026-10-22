@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Box, Flex } from '@chakra-ui/react';
+import { Flex } from '@chakra-ui/react';
 import selectIcon from '../assets/icons/select.svg';
 import wireIcon from '../assets/icons/wire.svg';
 import splitIcon from '../assets/icons/split.svg';
@@ -8,7 +8,6 @@ import pauseIcon from '../assets/icons/pause.svg';
 import playIcon from '../assets/icons/play.svg';
 import stepBackIcon from '../assets/icons/step-back.svg';
 import stepIcon from '../assets/icons/step.svg';
-import trashIcon from '../assets/icons/trash.svg';
 import packageIcon from '../assets/icons/package.svg';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
@@ -33,8 +32,6 @@ interface SheetToolbarProps {
   canStepBack: boolean;
   /** 開いている回路の回路設定 (作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て) を開く。メイン回路でも出す */
   onCircuitSettings: () => void;
-  /** 開いている回路がメイン回路以外なら、それを削除する。メイン回路では出さない (場所は空けておく) */
-  onRemoveCircuit?: () => void;
   /** 開いている回路がない (タブがない)。ボタンはすべて押せない */
   disabled?: boolean;
 }
@@ -54,7 +51,6 @@ export const SheetToolbar = memo(function SheetToolbar({
   onStepBack,
   canStepBack,
   onCircuitSettings,
-  onRemoveCircuit,
   disabled = false,
 }: SheetToolbarProps) {
   const m = useMessages();
@@ -123,16 +119,6 @@ export const SheetToolbar = memo(function SheetToolbar({
           onClick={onCircuitSettings}
           disabled={disabled}
         />
-        {/* メイン回路では削除のボタンを出さないが、タブを切り替えても「回路設定」の位置が動かないよう、場所は空けておく */}
-        <Box visibility={onRemoveCircuit ? undefined : 'hidden'} aria-hidden={!onRemoveCircuit}>
-          <ToolButton
-            icon={trashIcon}
-            label={m.toolbar.removeCircuit}
-            onClick={onRemoveCircuit ?? (() => {})}
-            disabled={!onRemoveCircuit}
-            danger
-          />
-        </Box>
       </Flex>
     </Flex>
   );

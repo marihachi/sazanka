@@ -7,12 +7,11 @@ import { getExportFileName, pickFile, readTextFile, saveJsonFile } from './local
 import { describeProjectFileError, type Messages } from '../i18n/messages';
 
 /**
- * プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作)。
+ * プロジェクト全体の新規作成・書き出し・読み込み (プロジェクトパネルの「⋯」の操作)。
  * 書き出しと読み込みは、アプリのダイアログを出さず、ブラウザの保存の画面とファイルを選ぶ画面だけを使う
  */
 export function useProjectFile({
   project,
-  replaceProject,
   openProject,
   showConfirm,
   m,
@@ -20,8 +19,6 @@ export function useProjectFile({
   /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
   m: Messages;
   project: Project;
-  /** プロジェクト全体を置き換える (元に戻すで戻せる)。開いている回路や表示も初めからにする */
-  replaceProject: (next: Project) => void;
   /** 別のプロジェクトを開く。元に戻す・やり直しの履歴を消す (履歴はプロジェクトごとのもの)。開いている回路や表示も初めからにする */
   openProject: (next: Project) => void;
   showConfirm: (request: ConfirmRequest) => void;
@@ -39,7 +36,8 @@ export function useProjectFile({
       message: m.file.confirmNew,
       confirmLabel: m.file.newProject,
       danger: true,
-      onConfirm: () => replaceProject(emptyProject()),
+      // 新規作成は元に戻せない。履歴はプロジェクトごとのもので、別のプロジェクトを開けば前の履歴はなくなるため (開発者が決めた)
+      onConfirm: () => openProject(emptyProject()),
     });
   }
 
