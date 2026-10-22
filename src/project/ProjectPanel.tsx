@@ -40,10 +40,15 @@ interface ProjectPanelProps {
   onSaveProjectAs: () => void;
 }
 
-/** 行のメニュー。どの行で、画面のどこに出すか */
+/**
+ * 行のメニュー。どの行で、画面のどこに出すか。open は開いているか。
+ * 閉じ始めても、閉じ終わるまで行を覚えておく (すぐ忘れると、閉じる間の表示で項目が変わってしまうため。
+ * メイン回路の行で、出さない項目が一瞬出ていた)
+ */
 interface RowMenu {
   row: TreeRow;
   at: MenuPoint;
+  open: boolean;
 }
 
 /**
@@ -140,7 +145,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
             row.kind === 'folder' ? toggleFolder(row.path) : props.onOpen(row.def.id)
           }
           onToggleFolder={toggleFolder}
-          onMenu={(row, at) => setRowMenu({ row, at })}
+          onMenu={(row, at) => setRowMenu({ row, at, open: true })}
           onStartRename={(row) => {
             if (row.kind === 'folder') {
               props.onStartRenameFolder(row.path);
@@ -166,10 +171,10 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
       </Box>
       {/* 行のメニュー。行ごとに持たず、押した行と位置を覚えて 1 つだけ出す */}
       <Menu.Root
-        open={rowMenu !== null}
+        open={rowMenu?.open ?? false}
         onOpenChange={(e) => {
           if (!e.open) {
-            setRowMenu(null);
+            setRowMenu((cur) => cur && { ...cur, open: false });
           }
         }}
         // 押した位置に出す。トリガーのないメニューでは anchorPoint が効かず、画面の左上に出てしまうので、
@@ -204,7 +209,10 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
           };
           pending.current = actions[e.value] ?? null;
         }}
-        onExitComplete={runPending}
+        onExitComplete={() => {
+          setRowMenu(null);
+          runPending();
+        }}
       >
         <Portal>
           <Menu.Positioner>
