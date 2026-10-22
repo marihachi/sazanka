@@ -105,7 +105,7 @@ describe('projectFile', () => {
       // biome-ignore format: 表形式を維持するため
       elements: [
         { kind: 'input', x: 0, y: 0, portNumber: 1 }, // ON/OFF (on) は書き出さない
-        { kind: 'module', x: 5, y: 0, circuitId: 'mod', circuitName: 'モジュール1' },
+        { kind: 'module', x: 5, y: 0, circuitId: 'mod', circuitName: 'モジュール1', circuitSize: { width: 4, height: 2 } },
         { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
       ],
     });

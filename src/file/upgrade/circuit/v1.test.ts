@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { upgradeToCircuitV1 } from './v1';
+import { upgradeToCircuitV1, v4ModuleSize } from './v1';
 
-const options = { author: 'さざんか', name: 'M', circuitNames: new Map([['sub', 'サブ']]) };
+const options = {
+  author: 'さざんか',
+  name: 'M',
+  circuitSizes: new Map([['sub', { width: 4, height: 3 }]]),
+  circuitNames: new Map([['sub', 'サブ']]),
+};
 
 /** 要素の INPUT / OUTPUT のポート番号を、並びの順に取り出す */
 function portNumbers(module: unknown): unknown[] {
@@ -51,7 +56,7 @@ describe('upgradeToCircuitV1', () => {
     expect(module).not.toHaveProperty('name');
   });
 
-  it('モジュールの部品の module を circuitId に移し、指す回路の名前を circuitName に写す', () => {
+  it('モジュールの部品の module を circuitId に移し、指す回路の名前と大きさを circuitName と circuitSize に写す', () => {
     const v4 = {
       id: 'main',
       elements: [
@@ -60,9 +65,23 @@ describe('upgradeToCircuitV1', () => {
       ],
     };
     expect((upgradeToCircuitV1(v4, options) as { elements: unknown[] }).elements).toEqual([
-      { kind: 'module', x: 0, y: 0, circuitId: 'sub', circuitName: 'サブ' },
-      // 指す先の回路がないモジュールは、写す名前がない (検証で断る)
-      { kind: 'module', x: 0, y: 5, circuitId: 'ない', circuitName: '' },
+      {
+        kind: 'module',
+        x: 0,
+        y: 0,
+        circuitId: 'sub',
+        circuitName: 'サブ',
+        circuitSize: { width: 4, height: 3 },
+      },
+      // 指す先の回路がないモジュールは、写す名前と大きさがない (未解決のモジュールとして、空の名前と決まった大きさで読む)
+      {
+        kind: 'module',
+        x: 0,
+        y: 5,
+        circuitId: 'ない',
+        circuitName: '',
+        circuitSize: { width: 6, height: 3 },
+      },
     ]);
   });
 
@@ -142,5 +161,32 @@ describe('upgradeToCircuitV1', () => {
         options,
       ),
     ).toMatchObject({ elements: [null, 1, { kind: 'input', x: 'a', portNumber: 1 }] });
+  });
+});
+
+describe('v4ModuleSize', () => {
+  const ports = (n: number, m: number) => [
+    ...Array.from({ length: n }, () => ({ kind: 'input' })),
+    ...Array.from({ length: m }, () => ({ kind: 'output' })),
+  ];
+
+  it('split は幅 4、高さは入力と出力の多い方の数 + 1 (ポートがなくても 2)', () => {
+    expect(v4ModuleSize({ package: { kind: 'split' }, elements: ports(3, 1) })).toEqual({
+      width: 4,
+      height: 4,
+    });
+    expect(v4ModuleSize({ package: { kind: 'split' }, elements: [] })).toEqual({
+      width: 4,
+      height: 2,
+    });
+  });
+
+  it('dip は幅 3、高さはピン数。qfp は 1 辺が (ピン数 / 4 - 1) × 2 + 4', () => {
+    expect(v4ModuleSize({ package: { kind: 'dip', pins: 8 } })).toEqual({ width: 3, height: 8 });
+    expect(v4ModuleSize({ package: { kind: 'qfp', pins: 8 } })).toEqual({ width: 6, height: 6 });
+  });
+
+  it('パッケージの形が正しくなければ undefined', () => {
+    expect(v4ModuleSize({ id: 'main' })).toBeUndefined();
   });
 });

@@ -80,17 +80,23 @@ function withPortNumbers(elements: unknown[], renumber: boolean): unknown[] {
 }
 
 /**
- * 部品 1 つの、ポート番号以外の項目を変える。module を circuitId に移して名前の写し circuitName を書き、
- * CLOCK の周期がなければ書き込む。circuitNames は、回路の ID から、変換後の名前への対応
+ * 部品 1 つの、ポート番号以外の項目を変える。module を circuitId に移して名前と大きさの写し (circuitName、circuitSize) を書き、
+ * CLOCK の周期がなければ書き込む。circuitNames と circuitSizes は、回路の ID から、変換後の名前と本体の大きさへの対応
  */
-function upgradeElement(e: Element, circuitNames: ReadonlyMap<string, string>): Element {
+function upgradeElement(
+  e: Element,
+  circuitNames: ReadonlyMap<string, string>,
+  circuitSizes: ReadonlyMap<string, V1CircuitSize>,
+): Element {
   if (e.kind === 'module') {
     const { module, ...rest } = e;
     return {
       ...rest,
       circuitId: module,
-      // 指す先の回路がないモジュールは、写す名前がない。未解決のモジュールとして、空の写しで読む
+      // 指す先の回路がないモジュールは、写す名前と大きさがない。未解決のモジュールとして、空の名前と決まった大きさで読む
       circuitName: typeof module === 'string' ? (circuitNames.get(module) ?? '') : '',
+      circuitSize:
+        (typeof module === 'string' ? circuitSizes.get(module) : undefined) ?? UNRESOLVED_SIZE,
     };
   }
   if (e.kind === 'clock' && e.period === undefined) {
@@ -106,6 +112,43 @@ export interface CircuitV1Options {
   name: unknown;
   /** 回路の ID から、変換後の名前への対応。モジュールの部品の名前の写し (circuitName) に使う */
   circuitNames: ReadonlyMap<string, string>;
+  /** 回路の ID から、モジュールとして置いたときの本体の大きさへの対応 (v4ModuleSize)。大きさの写し (circuitSize) に使う */
+  circuitSizes: ReadonlyMap<string, V1CircuitSize>;
+}
+
+/** 本体の大きさ (マス) */
+export interface V1CircuitSize {
+  width: number;
+  height: number;
+}
+
+/** 指す先の回路がないモジュールの部品に書く大きさ (アプリの、写しのない未解決のモジュールと同じ) */
+const UNRESOLVED_SIZE: V1CircuitSize = { width: 6, height: 3 };
+
+/**
+ * 一体の形式 version 4 の回路を、モジュールとして置いたときの本体の大きさ (マス)。回路の形式 version 1 の配置の決まりで求める
+ * (split は幅 4・高さは入力と出力の多い方の数 + 1、dip は幅 3・高さはピン数、qfp は 1 辺が (ピン数 / 4 - 1) × 2 + 4)。
+ * 変換は、あとでアプリの配置が変わっても同じ結果になるよう、アプリの配置のコードを使わずにここで求める。
+ * パッケージの形が正しくなければ undefined (検証で断る)
+ */
+export function v4ModuleSize(circuit: unknown): V1CircuitSize | undefined {
+  if (!isObject(circuit) || !isObject(circuit.package)) {
+    return undefined;
+  }
+  const { kind, pins } = circuit.package;
+  if (kind === 'dip' && typeof pins === 'number') {
+    return { width: 3, height: pins };
+  }
+  if (kind === 'qfp' && typeof pins === 'number') {
+    const side = (pins / 4 - 1) * 2 + 4;
+    return { width: side, height: side };
+  }
+  if (kind === 'split') {
+    const elements = Array.isArray(circuit.elements) ? circuit.elements : [];
+    const count = (k: string) => elements.filter((e) => isObject(e) && e.kind === k).length;
+    return { width: 4, height: Math.max(count('input'), count('output'), 1) + 1 };
+  }
+  return undefined;
 }
 
 /**
@@ -133,7 +176,9 @@ export function upgradeToCircuitV1(circuit: unknown, options: CircuitV1Options):
     sheet: sheet === undefined ? V4_DEFAULT_SHEET : sheet,
     elements: Array.isArray(elements)
       ? withPortNumbers(
-          elements.map((e) => (isObject(e) ? upgradeElement(e, options.circuitNames) : e)),
+          elements.map((e) =>
+            isObject(e) ? upgradeElement(e, options.circuitNames, options.circuitSizes) : e,
+          ),
           renumber,
         )
       : elements,

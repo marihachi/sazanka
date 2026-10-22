@@ -22,14 +22,16 @@ describe('removeCircuitFrom', () => {
     ],
   } as unknown as Project;
 
-  it('回路を消し、置いていた部品は名前の写しを持って残る (未解決のモジュール)', () => {
+  it('回路を消し、置いていた部品は名前と大きさの写しを持って残る (未解決のモジュール)', () => {
     const result = removeCircuitFrom(project, 'a', 'A');
     expect(result.circuits.map((d) => d.id)).toEqual([MAIN_ID, 'o', 'b']);
     expect(result.circuits[0].parts).toEqual([
-      { ...mod('u1', 'a'), circuitName: 'A' },
+      { ...mod('u1', 'a'), circuitName: 'A', circuitSize: { width: 4, height: 2 } },
       mod('u2', 'o'),
     ]);
-    expect(result.circuits[1].parts).toEqual([{ ...mod('u3', 'a'), circuitName: 'A' }]);
+    expect(result.circuits[1].parts).toEqual([
+      { ...mod('u3', 'a'), circuitName: 'A', circuitSize: { width: 4, height: 2 } },
+    ]);
   });
 
   it('部品を書き換えない回路は、同じものを使う', () => {

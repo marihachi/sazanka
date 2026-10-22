@@ -101,7 +101,7 @@ describe('toStoredProject / fromStoredProject', () => {
             // biome-ignore format: 表形式を維持するため
             elements: [
               { ...withoutId(main.parts[0]), x: 0, y: 1 },
-              { ...withoutId(main.parts[1]), x: 5, y: 0, circuitName: 'M' },
+              { ...withoutId(main.parts[1]), x: 5, y: 0, circuitName: 'M', circuitSize: { width: 4, height: 2 } }, // 大きさは回していない向き
               { kind: 'wire', points: [{ x: 3, y: 2 }, { x: 4, y: 2 }] },
             ],
           },

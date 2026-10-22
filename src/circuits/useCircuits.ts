@@ -4,6 +4,7 @@ import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import type { Part } from '../circuit/part';
+import { moduleSizeOf } from '../geometry/layout';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import {
   type CircuitDef,
@@ -166,7 +167,8 @@ export function describeNameProblem(
 }
 
 /**
- * 回路 id をプロジェクトから削除したプロジェクト。id を指していた部品は残し、名前の写し name を持たせる (未解決のモジュールになる)。
+ * 回路 id をプロジェクトから削除したプロジェクト。id を指していた部品は残し、名前の写し name と、削除する前の本体の大きさの写しを
+ * 持たせる (未解決のモジュールになり、元と同じ大きさの箱で描かれる)。
  * 部品を書き換えない回路は、同じものを使う
  */
 export function removeCircuitFrom(project: Project, id: string, name: string): Project {
@@ -177,7 +179,12 @@ export function removeCircuitFrom(project: Project, id: string, name: string): P
       .filter((d) => d.id !== id)
       .map((d) =>
         d.parts.some(points)
-          ? { ...d, parts: d.parts.map((c) => (points(c) ? { ...c, circuitName: name } : c)) }
+          ? {
+              ...d,
+              parts: d.parts.map((c) =>
+                points(c) ? { ...c, circuitName: name, circuitSize: moduleSizeOf(c, project) } : c,
+              ),
+            }
           : d,
       ),
   };
