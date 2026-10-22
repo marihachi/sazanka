@@ -22,7 +22,7 @@ describe('removeCircuitFrom', () => {
     ],
   } as unknown as Project;
 
-  it('回路を消し、置いていた部品は名前と大きさの写しを持って残る (未解決のモジュール)', () => {
+  it('回路を消し、置いていた部品は名前と大きさの写しを持って残る (見つからないモジュール)', () => {
     const result = removeCircuitFrom(project, 'a', 'A');
     expect(result.circuits.map((d) => d.id)).toEqual([MAIN_ID, 'o', 'b']);
     expect(result.circuits[0].parts).toEqual([

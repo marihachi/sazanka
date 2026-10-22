@@ -87,9 +87,9 @@ export const ja = {
   },
   sheet: {
     unknownModule: '(不明)',
-    /** 未解決のモジュールの本体に書く */
+    /** 見つからないモジュールの本体に書く */
     missing: '見つからない',
-    /** 未解決のモジュールを選んだときに、プロパティ欄に出す名前 */
+    /** 見つからないモジュールを選んだときに、プロパティ欄に出す名前 */
     missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
     zoomReset: '等倍に戻す',
@@ -209,7 +209,7 @@ export const ja = {
      * circuits は置いている回路の数、count は置いている部品の数
      */
     confirmRemoveUsed: (name: string, first: string, circuits: number, count: number) =>
-      `「${name}」をプロジェクトから削除します。中身はプロジェクトからなくなり、置いている部品（${first}${circuits === 1 ? 'の' : 'など'} ${count} か所）は未解決のモジュールとして残ります。`,
+      `「${name}」をプロジェクトから削除します。中身はプロジェクトからなくなり、置いている部品（${first}${circuits === 1 ? 'の' : 'など'} ${count} か所）は見つからないモジュールとして残ります。`,
     remove: '削除',
     cannotPaste: (name: string) =>
       `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
@@ -313,7 +313,7 @@ export const ja = {
     /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
-    /** 未解決のモジュール (指す回路がプロジェクトにない) を選んだとき */
+    /** 見つからないモジュール (指す回路がプロジェクトにない) を選んだとき */
     unresolvedModule:
       'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {

@@ -33,7 +33,7 @@ export interface HintContext {
   numberedPackage: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;
-  /** 選んでいる部品が、未解決のモジュール (指す回路がプロジェクトにない) */
+  /** 選んでいる部品が、見つからないモジュール (指す回路がプロジェクトにない) */
   selectedUnresolved?: boolean;
   /** 開いている回路に、外側のピンに出せないポートがある (メイン回路では警告しないので false) */
   unexposedPorts: boolean;
@@ -76,7 +76,7 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   }
   const c = ctx.selectedPart;
   if (c && ctx.selectedUnresolved) {
-    // 未解決のモジュールは開けないので、モジュールのヒント (ダブルクリックで開く) は出さない
+    // 見つからないモジュールは開けないので、モジュールのヒント (ダブルクリックで開く) は出さない
     return [m.unresolvedModule, ...m.partSelected];
   }
   if (c) {

@@ -126,7 +126,7 @@ describe('モジュールのピン', () => {
       outputs: ['S'],
       package: { kind: 'split' },
     });
-    // 参照先がなければ (未解決のモジュール) ピンなし
+    // 参照先がなければ (見つからないモジュール) ピンなし
     expect(getPinout(comp('u', 'module', { circuitId: 'ない' }), project)).toEqual({
       inputs: [],
       outputs: [],

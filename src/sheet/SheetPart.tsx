@@ -300,7 +300,7 @@ function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
 interface SheetPartProps {
   comp: Part;
   pinout: Pinout;
-  /** モジュールの表示名。未解決のモジュールでは、部品が持つ名前の写し */
+  /** モジュールの表示名。見つからないモジュールでは、部品が持つ名前の写し */
   name?: string;
   /** 出力ピンの値 (OUTPUT は表示する入力値) */
   outputValues: boolean[];
@@ -341,7 +341,7 @@ export function SheetPart({
       y={c.y}
       w={w}
       h={h}
-      // 未解決のモジュールも、外側のピンに出せないポートと同じ赤い破線で囲む
+      // 見つからないモジュールも、外側のピンに出せないポートと同じ赤い破線で囲む
       problem={portProblem !== undefined || pinout.unresolved === true}
     />
   );
@@ -433,7 +433,7 @@ export function SheetPart({
       <>
         {outline}
         {pinout.unresolved ? (
-          // 未解決のモジュールは、本体の中に名前の写しと「見つからない」を 2 行で書く
+          // 見つからないモジュールは、本体の中に名前の写しと「見つからない」を 2 行で書く
           <>
             <text className={styles.label} x={c.x + w / 2} y={c.y + h / 2 - 3}>
               {name || m.sheet.unknownModule}

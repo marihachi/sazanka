@@ -38,7 +38,7 @@ export function getPartLayout(c: Part, pinout: Pinout): PartLayout {
 /** 部品本体のサイズ。部品の配置 (getPartLayout) のマスを px に直す。回した部品は、回した後の幅と高さ */
 /**
  * モジュールの部品 c が指す回路の、本体の大きさ (マス、回していない向き)。保存データの大きさの写し (circuitSize) に使う。
- * 未解決の部品なら、持っている写し (なければ決まった大きさ)
+ * 見つからないモジュールの部品なら、持っている写し (なければ決まった大きさ)
  */
 export function moduleSizeOf(c: Part, project: Project): CircuitSize {
   const { w, h } = getLayout('module', getPinout(c, project));

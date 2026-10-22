@@ -374,7 +374,7 @@ describe('CLOCK の周期', () => {
     expect(result.ok && result.project.circuits[0].parts[0].period).toBe(100);
   });
 
-  it('指す回路がないモジュール (未解決のモジュール) があっても読み込む', () => {
+  it('指す回路がないモジュール (見つからないモジュール) があっても読み込む', () => {
     const result = parseProject(
       JSON.stringify({ ...stored, circuits: [stored.circuits[0]] }),
       counter(),

@@ -30,7 +30,7 @@ export interface Pinout {
    */
   pinNumbers?: { inputs: number[]; outputs: number[] };
   /**
-   * 指す回路がプロジェクトにない (未解決の) モジュール。ピンはなく、部品が持つ大きさの写し (size) の箱で描く。
+   * 指す回路がプロジェクトにない (見つからない) モジュール。ピンはなく、部品が持つ大きさの写し (size) の箱で描く。
    * 写しがなければ決まった大きさ
    */
   unresolved?: boolean;

@@ -131,7 +131,7 @@ describe('statusHints', () => {
     expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);
   });
 
-  it('未解決のモジュールを選ぶと、開けないことと、ピンがないことを出す (モジュールのヒントは出さない)', () => {
+  it('見つからないモジュールを選ぶと、開けないことと、ピンがないことを出す (モジュールのヒントは出さない)', () => {
     const result = hints({ selectedPart: comp('module'), selectedUnresolved: true });
     expect(result[0]).toContain('プロジェクトにない');
     expect(result.some((h) => h.includes('ダブルクリックでモジュールの回路を開く'))).toBe(false);

@@ -93,7 +93,7 @@ function upgradeElement(
     return {
       ...rest,
       circuitId: module,
-      // 指す先の回路がないモジュールは、写す名前と大きさがない。未解決のモジュールとして、空の名前と決まった大きさで読む
+      // 指す先の回路がないモジュールは、写す名前と大きさがない。見つからないモジュールとして、空の名前と決まった大きさで読む
       circuitName: typeof module === 'string' ? (circuitNames.get(module) ?? '') : '',
       circuitSize:
         (typeof module === 'string' ? circuitSizes.get(module) : undefined) ?? UNRESOLVED_SIZE,
@@ -122,7 +122,7 @@ export interface V1CircuitSize {
   height: number;
 }
 
-/** 指す先の回路がないモジュールの部品に書く大きさ (アプリの、写しのない未解決のモジュールと同じ) */
+/** 指す先の回路がないモジュールの部品に書く大きさ (アプリの、写しのない見つからないモジュールと同じ) */
 const UNRESOLVED_SIZE: V1CircuitSize = { width: 6, height: 3 };
 
 /**

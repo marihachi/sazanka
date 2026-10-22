@@ -137,7 +137,7 @@ function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
   const toStoredPart = ({ id: _, on: __, ...c }: Part): StoredElement => {
     const cells = scalePoint(c, 1 / GRID);
     if (c.kind === 'module') {
-      // 指す回路がない (未解決の) 部品は、持っている写しをそのまま書く
+      // 指す回路がない (見つからないモジュールの) 部品は、持っている写しをそのまま書く
       return {
         ...cells,
         circuitName: findDef(project, c.circuitId)?.name ?? c.circuitName ?? '',
@@ -192,7 +192,7 @@ export function toStoredProject(project: Project): StoredProject {
  * 要素の並びを、同じ並びのまま回路の並びにし、フォルダのパスを回路に持たせる。
  * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
- * 部品の名前と大きさの写し (circuitName、circuitSize) は、指す回路がプロジェクトにない (未解決の) 部品にだけ残す。指す回路がある部品は、回路から引くので捨てる。
+ * 部品の名前と大きさの写し (circuitName、circuitSize) は、指す回路がプロジェクトにない (見つからないモジュールの) 部品にだけ残す。指す回路がある部品は、回路から引くので捨てる。
  * 部品と配線には newId で新しい ID を付ける (回路ごとに部品、配線の順)。データに ID があっても使わない
  */
 export function fromStoredProject(project: StoredProject, newId: () => string): Project {
@@ -207,7 +207,7 @@ export function fromStoredProject(project: StoredProject, newId: () => string): 
         .map(({ id: _, circuitName, circuitSize, ...c }: StoredPart & { id?: unknown }) => ({
           id: newId(),
           ...scalePoint(c, GRID),
-          // 未解決の部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
+          // 見つからないモジュールの部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
           ...(c.kind === 'module' && !circuitIds.has(c.circuitId ?? '')
             ? { circuitName, circuitSize }
             : {}),

@@ -187,7 +187,7 @@ export const en: Messages = {
     nameTaken: 'A circuit with this name already exists',
     confirmRemove: (name) => `Remove "${name}" from the project?`,
     confirmRemoveUsed: (name, first, circuits, count) =>
-      `Remove "${name}" from the project. Its contents will be removed from the project, and the parts placed (${count} ${count === 1 ? 'place' : 'places'} in ${first}${circuits === 1 ? '' : ' and others'}) will remain as unresolved modules.`,
+      `Remove "${name}" from the project. Its contents will be removed from the project, and the parts placed (${count} ${count === 1 ? 'place' : 'places'} in ${first}${circuits === 1 ? '' : ' and others'}) will remain as missing modules.`,
     remove: 'Remove',
     cannotPaste: (name) => `"${name}" cannot be pasted here because it contains this circuit`,
   },

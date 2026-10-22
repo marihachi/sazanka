@@ -491,7 +491,7 @@ describe('readTicksPerSecond', () => {
     }
   });
 
-  it('指す回路がない (未解決の) 部品は、名前の写しを残し、保存するときもそのまま書く', () => {
+  it('指す回路がない (見つからないモジュールの) 部品は、名前の写しを残し、保存するときもそのまま書く', () => {
     const stored = toStoredProject(withModule);
     const [main] = stored.circuits;
     const missing = {
