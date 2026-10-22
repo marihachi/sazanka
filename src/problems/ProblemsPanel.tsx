@@ -4,7 +4,7 @@ import errorIcon from '../assets/icons/error.svg';
 import warningIcon from '../assets/icons/warning.svg';
 import { useMessages } from '../i18n/useMessages';
 import { MaskIcon } from '../ui/Icons';
-import { countProblems, type Problem, type ProblemSeverity } from './problems';
+import type { Problem, ProblemSeverity } from './problems';
 
 /** パネルの高さの下限 (px)。これより低いと、1 行も見えなくなる */
 const MIN_HEIGHT = 48;
@@ -30,7 +30,8 @@ interface ProblemsPanelProps {
   open: boolean;
   /** 開いたときの高さ (px) */
   height: number;
-  onToggle: () => void;
+  /** 閉じるボタンを押した */
+  onClose: () => void;
   /** 高さを変え終えた (ドラッグを離した、キーで変えた) */
   onHeightChange: (height: number) => void;
   /** 行を押した。元になっている部品や配線がある行だけ */
@@ -38,130 +39,104 @@ interface ProblemsPanelProps {
 }
 
 /**
- * シートとステータスバーの間に置く、「問題」のタブの列と問題パネル。
- * タブを押すたびに、タブの上にパネルを開閉する。開いているときは、タブとパネルを同じ背景にしてつなげて見せる。
- * パネルの右上の閉じるボタンでも閉じられる。パネルの上の端をドラッグすると、高さを変えられる
+ * シートとステータスバーの間に開く問題パネル。開閉は、ステータスバーの右端の「問題」(ProblemsToggle) と、
+ * パネルの右上の閉じるボタンで行う。パネルの上の端をドラッグすると、高さを変えられる
  */
 export const ProblemsPanel = memo(function ProblemsPanel({
   problems,
   open,
   height,
-  onToggle,
+  onClose,
   onHeightChange,
   onSelect,
 }: ProblemsPanelProps) {
   const m = useMessages();
-  const { errors, warnings } = countProblems(problems);
   // ドラッグ中の高さ。離すまでは保存せず、ここだけで変える
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const drag = useRef<{ y: number; height: number } | null>(null);
   const shown = dragHeight ?? height;
-  // エラーがあれば赤、警告だけならオレンジ、なければ灰色
-  const tabColor = errors > 0 ? 'fg.error' : warnings > 0 ? 'fg.warning' : 'fg.muted';
+  if (!open) {
+    return null;
+  }
 
   return (
-    <Box flexShrink={0}>
-      {open && (
-        <Box position="relative" h={`${shown}px`} bg="bg.panel" borderTopWidth="1px" textStyle="sm">
-          {/* 高さを変える取っ手。パネルの上の端 */}
-          <Box
-            role="separator"
-            aria-orientation="horizontal"
-            aria-label={m.problems.resize}
-            aria-valuenow={shown}
-            tabIndex={0}
-            position="absolute"
-            top="0"
-            insetX="0"
-            h="1.5"
-            cursor="ns-resize"
-            zIndex="1"
-            _hover={{ bg: 'border.emphasized' }}
-            _focusVisible={{ bg: 'accent.solid', outline: 'none' }}
-            onPointerDown={(e) => {
-              e.currentTarget.setPointerCapture(e.pointerId);
-              drag.current = { y: e.clientY, height: shown };
-            }}
-            onPointerMove={(e) => {
-              if (drag.current) {
-                setDragHeight(clampHeight(drag.current.height + drag.current.y - e.clientY));
-              }
-            }}
-            onPointerUp={() => {
-              if (drag.current && dragHeight !== null) {
-                onHeightChange(dragHeight);
-              }
-              drag.current = null;
-              setDragHeight(null);
-            }}
-            onPointerCancel={() => {
-              drag.current = null;
-              setDragHeight(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                e.preventDefault();
-                onHeightChange(clampHeight(height + (e.key === 'ArrowUp' ? KEY_STEP : -KEY_STEP)));
-              }
-            }}
-          />
-          {/* 閉じるボタン。タブを押しても閉じるが、パネルの中からも閉じられるように。一覧をスクロールしても動かない */}
-          <CloseButton
-            size="xs"
-            variant="ghost"
-            colorPalette="gray"
-            position="absolute"
-            top="1.5"
-            right="2"
-            zIndex="1"
-            aria-label={m.problems.close}
-            title={m.problems.close}
-            onClick={onToggle}
-          />
-          {/* 閉じるボタンと重ならないよう、右を空ける */}
-          <Box h="full" overflowY="auto" pe="10">
-            {problems.length === 0 ? (
-              <Text px="3" py="2" color="fg.muted">
-                {m.problems.empty}
-              </Text>
-            ) : (
-              <Box as="ul" py="1">
-                {problems.map((p) => (
-                  <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
-                ))}
-              </Box>
-            )}
-          </Box>
-        </Box>
-      )}
-      {/* タブの列。タブは左に寄せ、開いているときはパネルと同じ背景にして、下に垂れ下がる取っ手に見せる */}
-      <Flex h="6" px="2" bg="bg.subtle" borderTopWidth={open ? '0' : '1px'} align="stretch">
-        <Flex
-          as="button"
-          align="center"
-          gap="1.5"
-          px="2.5"
-          textStyle="xs"
-          bg={open ? 'bg.panel' : 'transparent'}
-          roundedBottom="l2"
-          borderWidth={open ? '0 1px 1px' : '0'}
-          cursor="pointer"
-          _hover={{ bg: open ? 'bg.panel' : 'bg.muted' }}
-          aria-expanded={open}
-          aria-label={`${m.problems.tab} (${m.problems.tabCount(errors, warnings)})`}
-          onClick={onToggle}
-        >
-          <Text as="span" fontWeight="medium">
-            {m.problems.tab}
+    <Box
+      flexShrink={0}
+      position="relative"
+      h={`${shown}px`}
+      bg="bg.panel"
+      borderTopWidth="1px"
+      textStyle="sm"
+    >
+      {/* 高さを変える取っ手。パネルの上の端 */}
+      <Box
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label={m.problems.resize}
+        aria-valuenow={shown}
+        tabIndex={0}
+        position="absolute"
+        top="0"
+        insetX="0"
+        h="1.5"
+        cursor="ns-resize"
+        zIndex="1"
+        _hover={{ bg: 'border.emphasized' }}
+        _focusVisible={{ bg: 'accent.solid', outline: 'none' }}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { y: e.clientY, height: shown };
+        }}
+        onPointerMove={(e) => {
+          if (drag.current) {
+            setDragHeight(clampHeight(drag.current.height + drag.current.y - e.clientY));
+          }
+        }}
+        onPointerUp={() => {
+          if (drag.current && dragHeight !== null) {
+            onHeightChange(dragHeight);
+          }
+          drag.current = null;
+          setDragHeight(null);
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+          setDragHeight(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            onHeightChange(clampHeight(height + (e.key === 'ArrowUp' ? KEY_STEP : -KEY_STEP)));
+          }
+        }}
+      />
+      {/* 閉じるボタン。ステータスバーの「問題」を押しても閉じるが、パネルの中からも閉じられるように。一覧をスクロールしても動かない */}
+      <CloseButton
+        size="xs"
+        variant="ghost"
+        colorPalette="gray"
+        position="absolute"
+        top="1.5"
+        right="2"
+        zIndex="1"
+        aria-label={m.problems.close}
+        title={m.problems.close}
+        onClick={onClose}
+      />
+      {/* 閉じるボタンと重ならないよう、右を空ける */}
+      <Box h="full" overflowY="auto" pe="10">
+        {problems.length === 0 ? (
+          <Text px="3" py="2" color="fg.muted">
+            {m.problems.empty}
           </Text>
-          <Flex as="span" align="center" gap="1" color={tabColor}>
-            <MaskIcon src={errorIcon} boxSize="3" />
-            {errors}
-            <MaskIcon src={warningIcon} boxSize="3" ms="1" />
-            {warnings}
-          </Flex>
-        </Flex>
-      </Flex>
+        ) : (
+          <Box as="ul" py="1">
+            {problems.map((p) => (
+              <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
+            ))}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }, samePanel);
@@ -175,7 +150,7 @@ function samePanel(a: ProblemsPanelProps, b: ProblemsPanelProps): boolean {
   return (
     a.open === b.open &&
     a.height === b.height &&
-    a.onToggle === b.onToggle &&
+    a.onClose === b.onClose &&
     a.onHeightChange === b.onHeightChange &&
     a.onSelect === b.onSelect &&
     a.problems.length === b.problems.length &&
@@ -188,6 +163,52 @@ function samePanel(a: ProblemsPanelProps, b: ProblemsPanelProps): boolean {
         sameIds(p.wires, q.wires)
       );
     })
+  );
+}
+
+/**
+ * ステータスバーの右端に置く「問題」のボタン。エラーと警告の数を出し、押すたびに問題パネルを開閉する。
+ * 色は、エラーがあれば赤、警告だけならオレンジ、なければ灰色
+ */
+export function ProblemsToggle({
+  errors,
+  warnings,
+  open,
+  onToggle,
+}: {
+  errors: number;
+  warnings: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const m = useMessages();
+  const color = errors > 0 ? 'fg.error' : warnings > 0 ? 'fg.warning' : 'fg.muted';
+  return (
+    <Flex
+      as="button"
+      align="center"
+      alignSelf="stretch"
+      gap="1.5"
+      px="2"
+      flexShrink={0}
+      rounded="l1"
+      bg={open ? 'bg.muted' : 'transparent'}
+      cursor="pointer"
+      _hover={{ bg: 'bg.muted' }}
+      aria-expanded={open}
+      aria-label={`${m.problems.title} (${m.problems.countLabel(errors, warnings)})`}
+      onClick={onToggle}
+    >
+      <Text as="span" fontWeight="medium">
+        {m.problems.title}
+      </Text>
+      <Flex as="span" align="center" gap="1" color={color}>
+        <MaskIcon src={errorIcon} boxSize="3" />
+        {errors}
+        <MaskIcon src={warningIcon} boxSize="3" ms="1" />
+        {warnings}
+      </Flex>
+    </Flex>
   );
 }
 

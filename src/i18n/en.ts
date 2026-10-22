@@ -102,8 +102,8 @@ export const en: Messages = {
     cannotRotate: "Can't rotate: off the sheet",
   },
   problems: {
-    tab: 'Problems',
-    tabCount: (errors, warnings) =>
+    title: 'Problems',
+    countLabel: (errors, warnings) =>
       `${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`,
     empty: 'No problems',
     error: 'Error',

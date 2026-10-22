@@ -112,9 +112,9 @@ export const ja = {
     cannotRotate: 'はみ出すため回転できません',
   },
   problems: {
-    tab: '問題',
-    /** タブの数の読み上げ用 */
-    tabCount: (errors: number, warnings: number) => `エラー ${errors} 件、警告 ${warnings} 件`,
+    title: '問題',
+    /** 数の読み上げ用 */
+    countLabel: (errors: number, warnings: number) => `エラー ${errors} 件、警告 ${warnings} 件`,
     empty: '問題はありません',
     error: 'エラー',
     warning: '警告',

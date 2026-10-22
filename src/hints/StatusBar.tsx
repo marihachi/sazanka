@@ -1,6 +1,7 @@
 import { Badge, Box, Flex } from '@chakra-ui/react';
 import { memo, useEffect, useState } from 'react';
 import { useMessages } from '../i18n/useMessages';
+import { ProblemsToggle } from '../problems/ProblemsPanel';
 
 const HINT_MIN_DURATION = 6000;
 
@@ -18,13 +19,26 @@ interface StatusBarProps {
   hints: string[];
   /** 回そうとしたが、シートからはみ出すため回せなかった (App が少しのあいだだけ true にする) */
   cannotRotate: boolean;
+  /** 開いている回路の問題の数 (右端の「問題」に出す) */
+  errors: number;
+  warnings: number;
+  /** 問題パネルを開いているか */
+  problemsOpen: boolean;
+  onToggleProblems: () => void;
 }
 
 /**
  * 画面下のステータスバー。使い方のヒントと、回せなかったことのお知らせを出す。
- * 回路の問題 (発振、出力のぶつかりなど) は、ここではなく問題パネル (problems/ProblemsPanel.tsx) に出す
+ * 右端に、問題の数と問題パネルの開閉 (problems/ProblemsPanel.tsx の ProblemsToggle) を置く。問題の中身はパネルに出す
  */
-export const StatusBar = memo(function StatusBar({ hints, cannotRotate }: StatusBarProps) {
+export const StatusBar = memo(function StatusBar({
+  hints,
+  cannotRotate,
+  errors,
+  warnings,
+  problemsOpen,
+  onToggleProblems,
+}: StatusBarProps) {
   const m = useMessages();
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
@@ -69,6 +83,12 @@ export const StatusBar = memo(function StatusBar({ hints, cannotRotate }: Status
           {m.status.cannotRotate}
         </Badge>
       )}
+      <ProblemsToggle
+        errors={errors}
+        warnings={warnings}
+        open={problemsOpen}
+        onToggle={onToggleProblems}
+      />
     </Flex>
   );
 }, sameStatus);
@@ -77,6 +97,10 @@ export const StatusBar = memo(function StatusBar({ hints, cannotRotate }: Status
 function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
   return (
     a.cannotRotate === b.cannotRotate &&
+    a.errors === b.errors &&
+    a.warnings === b.warnings &&
+    a.problemsOpen === b.problemsOpen &&
+    a.onToggleProblems === b.onToggleProblems &&
     a.hints.length === b.hints.length &&
     a.hints.every((h, i) => h === b.hints[i])
   );

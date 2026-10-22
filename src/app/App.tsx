@@ -10,7 +10,7 @@ import { TabBar } from '../circuits/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
 import { circuitBounds, overview, revealView, toWorld } from '../geometry/view';
 import { ProblemsPanel } from '../problems/ProblemsPanel';
-import { collectProblems, type Problem } from '../problems/problems';
+import { collectProblems, countProblems, type Problem } from '../problems/problems';
 import * as edit from '../editing/edit';
 import {
   clampPosition,
@@ -453,6 +453,7 @@ export function App() {
     () => collectProblems(circuit, project, nets, unstable),
     [circuit, project, nets, unstable],
   );
+  const problemCounts = countProblems(problemList);
 
   /**
    * 問題パネルの行を押した: 元になっている部品と配線を選び、画面の外にあれば映るように表示を動かす。
@@ -507,6 +508,7 @@ export function App() {
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
   const on = useStableCallbacks({
     toggleProblems: () => setProblemsPanel((s) => ({ ...s, open: !s.open })),
+    closeProblems: () => setProblemsPanel((s) => ({ ...s, open: false })),
     resizeProblems: (height: number) => setProblemsPanel((s) => ({ ...s, height })),
     selectProblem,
     newProject: file.newProject,
@@ -642,11 +644,18 @@ export function App() {
           problems={problemList}
           open={problemsPanel.open}
           height={problemsPanel.height}
-          onToggle={on.toggleProblems}
+          onClose={on.closeProblems}
           onHeightChange={on.resizeProblems}
           onSelect={on.selectProblem}
         />
-        <StatusBar hints={hints} cannotRotate={cannotRotate} />
+        <StatusBar
+          hints={hints}
+          cannotRotate={cannotRotate}
+          errors={problemCounts.errors}
+          warnings={problemCounts.warnings}
+          problemsOpen={problemsPanel.open}
+          onToggleProblems={on.toggleProblems}
+        />
         {dialogs.element}
       </Flex>
     </LanguageContext.Provider>
