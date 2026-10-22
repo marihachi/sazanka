@@ -23,7 +23,10 @@
 - `app/` … 画面全体の組み立てと、状態のつなぎ役。
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
+  - `ActivityBar.tsx` … 左端のアイコンの列（サイドパネルにプロジェクトパネルとパレットのどちらを出すかを切り替える）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
+- `project/` … プロジェクトパネル（[UI](ui.md)の「プロジェクトパネル」）。
+  - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木。`folders.ts` … 木の組み立てと、使われている所の計算。
 - `circuits/` … 回路の追加・改名・削除・設定と、回路の切り替え。
   - `useCircuits.ts` … 回路の操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
@@ -83,7 +86,7 @@
 
 今のフォルダ同士の依存は、次の向きになっている（左が右を使う）。依存の向きについての方針は[コードの置き場所の決め方](code-placement.md)の「依存の向き」。
 
-`app` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `problems` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
+`app` → `project` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `problems` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
 
 - この向きになる主な理由: モジュールの一覧はパレットに出す（`circuits` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
 - 逆向きに、`i18n/ja.ts` は、エラーと問題を文にするために `circuit/` と `file/` のエラーの型と、`problems/` の問題の種類を型だけ import する。

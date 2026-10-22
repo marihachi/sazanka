@@ -69,6 +69,22 @@ export const ja = {
       '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
     removeCircuit: 'プロジェクトから削除',
   },
+  sidePanel: {
+    project: 'プロジェクト',
+    parts: '部品',
+  },
+  project: {
+    title: 'プロジェクト',
+    /** メイン回路の印 (★) の読み上げ用 */
+    main: 'メイン回路',
+    usedIn: '使われている所',
+    notUsed: 'どこにも置かれていません',
+    /** 使われている所の 1 つ。name は回路の名前、count は置いている数 */
+    usage: (name: string, count: number) => `${name} (${count})`,
+    usageSeparator: '、',
+    expand: (name: string) => `${name} を開く`,
+    collapse: (name: string) => `${name} を閉じる`,
+  },
   palette: {
     groups: {
       io: '入出力',

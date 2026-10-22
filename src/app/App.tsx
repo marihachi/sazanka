@@ -4,6 +4,8 @@ import { Sheet, type SheetSize, type DragMode } from '../sheet/Sheet';
 import type { Selection } from '../editing/edit';
 import { Header } from './Header';
 import { Palette } from '../palette/Palette';
+import { ActivityBar } from './ActivityBar';
+import { ProjectPanel } from '../project/ProjectPanel';
 import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
 import { TabBar } from '../circuits/TabBar';
@@ -43,11 +45,15 @@ import { computeNets, isConflict, mergeWiresAt, pinTipsOf, wireEndsOf } from '..
 import {
   DEFAULT_PROBLEMS_PANEL,
   loadCollapsedGroups,
+  loadSidePanel,
+  loadTreeCollapsed,
   loadProblemsPanel,
   loadProject,
   loadPreferences,
   loadViews,
   saveCollapsedGroups,
+  saveSidePanel,
+  saveTreeCollapsed,
   saveProblemsPanel,
   saveProject,
   savePreferences,
@@ -98,6 +104,10 @@ export function App() {
   const [views, setViews] = useState(loadViews);
   const [editing, setEditing] = useState<Editing>(null);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
+  /** 左のサイドパネルに出すもの (プロジェクトパネルかパレット)。画面の状態なので、元に戻す対象にはしない */
+  const [sidePanel, setSidePanel] = useState(loadSidePanel);
+  /** プロジェクトパネルで折り畳んでいるフォルダ */
+  const [treeCollapsed, setTreeCollapsed] = useState(loadTreeCollapsed);
   /** 問題パネルを開いているかと高さ。画面の状態なので、元に戻す対象にはしない */
   const [problemsPanel, setProblemsPanel] = useState(loadProblemsPanel);
   // 開いていた回路がなくなったら、メイン回路を開く (メイン回路は必ずある)
@@ -148,6 +158,8 @@ export function App() {
     useSimulation(project, circuit.id, preferences.ticksPerSecond);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
+  useEffect(() => saveSidePanel(sidePanel), [sidePanel]);
+  useEffect(() => saveTreeCollapsed(treeCollapsed), [treeCollapsed]);
   useEffect(() => saveProblemsPanel(problemsPanel), [problemsPanel]);
   useEffect(() => saveViews(views), [views]);
   useEffect(() => savePreferences(preferences), [preferences]);
@@ -510,6 +522,11 @@ export function App() {
   // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
   const on = useStableCallbacks({
+    // プロジェクトパネルから回路を開いたら、すぐ部品を置けるよう、サイドパネルを部品に移す
+    openFromPanel: (id: string) => {
+      openCircuit(id);
+      setSidePanel('parts');
+    },
     toggleProblems: () => setProblemsPanel((s) => ({ ...s, open: !s.open })),
     closeProblems: () => setProblemsPanel((s) => ({ ...s, open: false })),
     resizeProblems: (height: number) => setProblemsPanel((s) => ({ ...s, height })),
@@ -560,89 +577,103 @@ export function App() {
           onPreferences={on.openPreferences}
           onAbout={on.openAbout}
         />
-        <TabBar
-          circuits={project.circuits}
-          currentId={circuit.id}
-          renamingId={editing?.type === 'tab' ? editing.id : undefined}
-          onOpen={on.openCircuit}
-          onStartRename={on.startRename}
-          onRename={on.renameCircuit}
-          onCancelRename={on.cancelRename}
-          onAddCircuit={on.createCircuit}
-          onReorder={on.reorder}
-        />
-        <SheetToolbar
-          tool={tool}
-          onToolChange={on.changeTool}
-          onRotate={on.rotate}
-          canRotate={canRotate}
-          running={running}
-          onToggleRunning={on.toggleRunning}
-          onStep={on.stepOnce}
-          onStepBack={on.stepBack}
-          canStepBack={canStepBack}
-          onCircuitSettings={on.openCircuitSettings}
-          onRemoveCircuit={circuit.id !== MAIN_ID ? on.removeCircuit : undefined}
-        />
         <Flex flex="1" minH="0">
-          <Palette
-            modules={circuits.paletteModules}
-            collapsed={collapsedGroups}
-            onCollapsedChange={setCollapsedGroups}
-            onAdd={on.addFromPalette}
-          />
-          <Sheet
-            project={project}
-            circuit={circuit}
-            nets={nets}
-            tool={tool}
-            simStore={simStore}
-            selection={selection}
-            onSelect={setSelection}
-            pending={pending}
-            onPendingChange={setPending}
-            dragMode={dragMode}
-            onDragModeChange={setDragMode}
-            onResize={setSheetSize}
-            view={view}
-            showGrid={preferences.showGrid}
-            roundWires={preferences.roundWires}
-            onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
-            onAdd={addPart}
-            onMoveStart={startMove}
-            onMove={moveParts}
-            onWireReshapeEnd={finishReshapeWire}
-            onSplitWire={splitWireAt}
-            // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
-            onDropOnTrash={(moved) => deleteSelection(!moved)}
-            onToggle={toggleInput}
-            onAddWire={addWire}
-            onPartDoubleClick={onCompDoubleClick}
-            placing={clipboard.placing}
-            onPlace={clipboard.paste}
-          />
-          <PropertyPanel
-            part={selectedPart}
-            circuitName={
-              selectedPart?.kind === 'module'
-                ? (findDef(project, selectedPart.circuitId)?.name ??
-                  m.sheet.missingName(selectedPart.circuitName ?? ''))
-                : undefined
-            }
-            otherPortNames={circuit.parts
-              .filter(
-                (c) =>
-                  (c.kind === 'input' || c.kind === 'output') &&
-                  c.id !== selectedPart?.id &&
-                  c.portName !== undefined,
-              )
-              .map((c) => c.portName)
-              .join('\n')}
-            ticksPerSecond={preferences.ticksPerSecond}
-            onEditStart={history.checkpoint}
-            onClockPeriodChange={on.setClockPeriod}
-            onPortNameChange={on.setPortName}
-          />
+          <ActivityBar panel={sidePanel} onChange={setSidePanel} />
+          {sidePanel === 'project' ? (
+            <ProjectPanel
+              project={project}
+              collapsed={treeCollapsed}
+              onCollapsedChange={setTreeCollapsed}
+              onOpen={on.openFromPanel}
+            />
+          ) : (
+            <Palette
+              modules={circuits.paletteModules}
+              collapsed={collapsedGroups}
+              onCollapsedChange={setCollapsedGroups}
+              onAdd={on.addFromPalette}
+            />
+          )}
+          <Flex direction="column" flex="1" minW="0">
+            <TabBar
+              circuits={project.circuits}
+              currentId={circuit.id}
+              renamingId={editing?.type === 'tab' ? editing.id : undefined}
+              onOpen={on.openCircuit}
+              onStartRename={on.startRename}
+              onRename={on.renameCircuit}
+              onCancelRename={on.cancelRename}
+              onAddCircuit={on.createCircuit}
+              onReorder={on.reorder}
+            />
+            <SheetToolbar
+              tool={tool}
+              onToolChange={on.changeTool}
+              onRotate={on.rotate}
+              canRotate={canRotate}
+              running={running}
+              onToggleRunning={on.toggleRunning}
+              onStep={on.stepOnce}
+              onStepBack={on.stepBack}
+              canStepBack={canStepBack}
+              onCircuitSettings={on.openCircuitSettings}
+              onRemoveCircuit={circuit.id !== MAIN_ID ? on.removeCircuit : undefined}
+            />
+            <Flex flex="1" minH="0">
+              <Sheet
+                project={project}
+                circuit={circuit}
+                nets={nets}
+                tool={tool}
+                simStore={simStore}
+                selection={selection}
+                onSelect={setSelection}
+                pending={pending}
+                onPendingChange={setPending}
+                dragMode={dragMode}
+                onDragModeChange={setDragMode}
+                onResize={setSheetSize}
+                view={view}
+                showGrid={preferences.showGrid}
+                roundWires={preferences.roundWires}
+                onViewChange={(v) => setViews((vs) => ({ ...vs, [circuit.id]: v }))}
+                onAdd={addPart}
+                onMoveStart={startMove}
+                onMove={moveParts}
+                onWireReshapeEnd={finishReshapeWire}
+                onSplitWire={splitWireAt}
+                // 移動してから削除エリアに来た場合は、移動と削除をまとめて1回の操作にする
+                onDropOnTrash={(moved) => deleteSelection(!moved)}
+                onToggle={toggleInput}
+                onAddWire={addWire}
+                onPartDoubleClick={onCompDoubleClick}
+                placing={clipboard.placing}
+                onPlace={clipboard.paste}
+              />
+              <PropertyPanel
+                part={selectedPart}
+                circuitName={
+                  selectedPart?.kind === 'module'
+                    ? (findDef(project, selectedPart.circuitId)?.name ??
+                      m.sheet.missingName(selectedPart.circuitName ?? ''))
+                    : undefined
+                }
+                otherPortNames={circuit.parts
+                  .filter(
+                    (c) =>
+                      (c.kind === 'input' || c.kind === 'output') &&
+                      c.id !== selectedPart?.id &&
+                      c.portName !== undefined,
+                  )
+                  .map((c) => c.portName)
+                  .join('\n')}
+                ticksPerSecond={preferences.ticksPerSecond}
+                onEditStart={history.checkpoint}
+                onClockPeriodChange={on.setClockPeriod}
+                onPortNameChange={on.setPortName}
+              />
+            </Flex>
+          </Flex>
         </Flex>
         <ProblemsPanel
           problems={problemList}

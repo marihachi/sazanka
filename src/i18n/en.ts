@@ -59,6 +59,20 @@ export const en: Messages = {
       'Circuit settings: change the sheet size, package, port names, and pin assignment',
     removeCircuit: 'Remove from project',
   },
+  sidePanel: {
+    project: 'Project',
+    parts: 'Parts',
+  },
+  project: {
+    title: 'Project',
+    main: 'Main circuit',
+    usedIn: 'Used in',
+    notUsed: 'Not placed anywhere',
+    usage: (name, count) => `${name} (${count})`,
+    usageSeparator: ', ',
+    expand: (name) => `Expand ${name}`,
+    collapse: (name) => `Collapse ${name}`,
+  },
   palette: {
     groups: {
       io: 'Input / Output',
