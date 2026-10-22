@@ -131,6 +131,29 @@ export function overview(
 }
 
 /**
+ * 部品と配線のうち、シート sheet に収まっていないもの (部品 ID と配線 ID)。見方は fitsInSheet と同じ。
+ * 問題パネルの「シートの外に部品か配線があります」で、元になっているものを選ぶのに使う
+ */
+export function findOutsideSheet(
+  circuit: CircuitDef,
+  project: Project,
+  sheet: CircuitSheet,
+): { parts: string[]; wires: string[] } {
+  const end = getSheetEnd(sheet);
+  const inside = (r: Rect) => r.left >= 0 && r.top >= 0 && r.right <= end.x && r.bottom <= end.y;
+  return {
+    parts: circuit.parts
+      .filter((c) => !inside(partBounds(c, getPinout(c, project))))
+      .map((c) => c.id),
+    wires: circuit.wires
+      .filter(
+        (w) => !w.points.every((p) => inside({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
+      )
+      .map((w) => w.id),
+  };
+}
+
+/**
  * 回路の部品と配線がすべて、シート sheet に収まっているか。部品も配線もなければ収まっている。
  * 部品はピンの先と上の名前まで (partBounds)、配線は点で見る。点がすべて収まれば、縦と横の区間も収まる
  */

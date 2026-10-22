@@ -44,6 +44,8 @@
   - `preferences.ts` … 型、既定値、選択肢。`PreferencesDialog.tsx` … 環境設定のダイアログ。
 - `hints/` … ヒント。
   - `hints.ts` … 状況に応じたヒントの選び方（文は `i18n/` の表と、部品の種類の `view.ts` にある）。`StatusBar.tsx` … ステータスバー。
+- `problems/` … 問題パネル（[UI](ui.md)の「問題パネル」）。
+  - `problems.ts` … 開いている回路の問題（発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品）を集める計算（`collectProblems`）。文は `i18n/` の表にある。
 - `editing/` … 回路の編集と元に戻す（[編集と元に戻す](editing.md)）。
   - `edit.ts` … 回路の編集（新しい回路を返すだけ）と、選択の型（`Selection`）。
   - `history.ts` … 履歴の計算。`useProjectHistory.ts` … 元に戻せるプロジェクトの状態。`switchStates.ts` … 元に戻すときに INPUT の ON/OFF を引き継ぐ。
@@ -81,7 +83,7 @@
 
 今のフォルダ同士の依存は、次の向きになっている（左が右を使う）。依存の向きについての方針は[コードの置き場所の決め方](code-placement.md)の「依存の向き」。
 
-`app` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
+`app` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `problems` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
 
 - この向きになる主な理由: モジュールの一覧はパレットに出す（`circuits` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
 - 逆向きに、`i18n/ja.ts` は、エラーを文にするために `circuit/` と `file/` のエラーの型を型だけ import する。
