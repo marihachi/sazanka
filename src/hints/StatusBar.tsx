@@ -16,29 +16,15 @@ function hintDuration(hint: string, msPerChar: number): number {
 interface StatusBarProps {
   /** 表示するヒント。複数あれば時間で切り替える */
   hints: string[];
-  unstable: boolean;
-  /** 出力ピンが 2 つ以上つながったネットがある */
-  conflict: boolean;
-  /** 開いている回路に、外側のピンに出せないポートがある */
-  unexposedPorts: boolean;
-  /** 開いている回路に、シートに収まっていない部品や配線がある */
-  outsideSheet: boolean;
   /** 回そうとしたが、シートからはみ出すため回せなかった (App が少しのあいだだけ true にする) */
   cannotRotate: boolean;
 }
 
 /**
- * 画面下のステータスバー。使い方のヒントと、発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品の警告、
- * 回せなかったことのお知らせを出す
+ * 画面下のステータスバー。使い方のヒントと、回せなかったことのお知らせを出す。
+ * 回路の問題 (発振、出力のぶつかりなど) は、ここではなく問題パネル (problems/ProblemsPanel.tsx) に出す
  */
-export const StatusBar = memo(function StatusBar({
-  hints,
-  unstable,
-  conflict,
-  unexposedPorts,
-  outsideSheet,
-  cannotRotate,
-}: StatusBarProps) {
+export const StatusBar = memo(function StatusBar({ hints, cannotRotate }: StatusBarProps) {
   const m = useMessages();
   const hintKey = hints.join('|');
   const [index, setIndex] = useState(0);
@@ -83,26 +69,6 @@ export const StatusBar = memo(function StatusBar({
           {m.status.cannotRotate}
         </Badge>
       )}
-      {outsideSheet && (
-        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
-          {m.status.outsideSheet}
-        </Badge>
-      )}
-      {unexposedPorts && (
-        <Badge colorPalette="orange" variant="subtle" flexShrink={0}>
-          {m.status.unexposedPorts}
-        </Badge>
-      )}
-      {conflict && (
-        <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          {m.status.conflict}
-        </Badge>
-      )}
-      {unstable && (
-        <Badge colorPalette="red" variant="subtle" flexShrink={0}>
-          {m.status.unstable}
-        </Badge>
-      )}
     </Flex>
   );
 }, sameStatus);
@@ -110,10 +76,6 @@ export const StatusBar = memo(function StatusBar({
 /** 描き直すかの判定。ヒントは描き直しのたびに新しい配列で届くので、中身の文で比べる */
 function sameStatus(a: StatusBarProps, b: StatusBarProps): boolean {
   return (
-    a.unstable === b.unstable &&
-    a.conflict === b.conflict &&
-    a.unexposedPorts === b.unexposedPorts &&
-    a.outsideSheet === b.outsideSheet &&
     a.cannotRotate === b.cannotRotate &&
     a.hints.length === b.hints.length &&
     a.hints.every((h, i) => h === b.hints[i])

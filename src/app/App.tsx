@@ -8,7 +8,9 @@ import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
 import { TabBar } from '../circuits/TabBar';
 import { SheetToolbar, type Tool } from '../simulation/SheetToolbar';
-import { fitsInSheet, overview, toWorld } from '../geometry/view';
+import { circuitBounds, overview, revealView, toWorld } from '../geometry/view';
+import { ProblemsPanel } from '../problems/ProblemsPanel';
+import { collectProblems, type Problem } from '../problems/problems';
 import * as edit from '../editing/edit';
 import {
   clampPosition,
@@ -40,10 +42,12 @@ import { statusHints } from '../hints/hints';
 import { computeNets, isConflict, mergeWiresAt, pinTipsOf, wireEndsOf } from '../geometry/net';
 import {
   loadCollapsedGroups,
+  loadProblemsPanel,
   loadProject,
   loadPreferences,
   loadViews,
   saveCollapsedGroups,
+  saveProblemsPanel,
   saveProject,
   savePreferences,
   saveViews,
@@ -93,6 +97,8 @@ export function App() {
   const [views, setViews] = useState(loadViews);
   const [editing, setEditing] = useState<Editing>(null);
   const [collapsedGroups, setCollapsedGroups] = useState(loadCollapsedGroups);
+  /** 問題パネルを開いているかと高さ。画面の状態なので、元に戻す対象にはしない */
+  const [problemsPanel, setProblemsPanel] = useState(loadProblemsPanel);
   // 開いていた回路がなくなったら、メイン回路を開く (メイン回路は必ずある)
   const circuit = findDef(project, currentId) ?? findDef(project, MAIN_ID) ?? project.circuits[0];
   // 表示を保存していない回路は、回路全体が見える表示で開く
@@ -141,6 +147,7 @@ export function App() {
     useSimulation(project, circuit.id, preferences.ticksPerSecond);
   useEffect(() => saveProject(project), [project]);
   useEffect(() => saveCollapsedGroups(collapsedGroups), [collapsedGroups]);
+  useEffect(() => saveProblemsPanel(problemsPanel), [problemsPanel]);
   useEffect(() => saveViews(views), [views]);
   useEffect(() => savePreferences(preferences), [preferences]);
   // アクセントカラーは、ページ全体の色の変数を差し替えて反映する
@@ -441,11 +448,38 @@ export function App() {
   const conflict = nets.nets.some(isConflict);
   // 開いている回路の、外側のピンに出せないポート (ピン番号がない・範囲外・重なり)。メイン回路では知らせない
   const problems = useMemo(() => findUnexposedPortsToWarn(circuit), [circuit]);
-  // シートに収まっていない部品や配線 (座標が負のもの、大きさを変える前からはみ出しているものなど)
-  const outsideSheet = useMemo(
-    () => !fitsInSheet(circuit, project, getCircuitSheet(circuit)),
-    [circuit, project],
+  // 問題パネルに出す、開いている回路の問題 (発振、出力のぶつかり、ピンに出ていないポート、シートの外の部品と配線)
+  const problemList = useMemo(
+    () => collectProblems(circuit, project, nets, unstable),
+    [circuit, project, nets, unstable],
   );
+
+  /**
+   * 問題パネルの行を押した: 元になっている部品と配線を選び、画面の外にあれば映るように表示を動かす。
+   * 選ぶものがない行 (発振) では何もしない
+   */
+  function selectProblem(problem: Problem) {
+    const next = edit.selectionOf(problem.parts, problem.wires);
+    if (!next) {
+      return;
+    }
+    setSelection(next);
+    const parts = new Set(problem.parts);
+    const wires = new Set(problem.wires);
+    const bounds = circuitBounds(
+      {
+        parts: circuit.parts.filter((c) => parts.has(c.id)),
+        wires: circuit.wires.filter((w) => wires.has(w.id)),
+      },
+      project,
+    );
+    if (bounds) {
+      setViews((vs) => ({
+        ...vs,
+        [circuit.id]: revealView(view, bounds, sheetSize.width, sheetSize.height),
+      }));
+    }
+  }
 
   const hints = statusHints(
     {
@@ -472,6 +506,9 @@ export function App() {
   // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
   const on = useStableCallbacks({
+    toggleProblems: () => setProblemsPanel((s) => ({ ...s, open: !s.open })),
+    resizeProblems: (height: number) => setProblemsPanel((s) => ({ ...s, height })),
+    selectProblem,
     newProject: file.newProject,
     exportProject: file.exportProject,
     importProject: file.importProject,
@@ -601,14 +638,15 @@ export function App() {
             onPortNameChange={on.setPortName}
           />
         </Flex>
-        <StatusBar
-          hints={hints}
-          unstable={unstable}
-          conflict={conflict}
-          unexposedPorts={problems.size > 0}
-          outsideSheet={outsideSheet}
-          cannotRotate={cannotRotate}
+        <ProblemsPanel
+          problems={problemList}
+          open={problemsPanel.open}
+          height={problemsPanel.height}
+          onToggle={on.toggleProblems}
+          onHeightChange={on.resizeProblems}
+          onSelect={on.selectProblem}
         />
+        <StatusBar hints={hints} cannotRotate={cannotRotate} />
         {dialogs.element}
       </Flex>
     </LanguageContext.Provider>

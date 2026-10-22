@@ -4,6 +4,7 @@ import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
 import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
+import type { ProblemCode } from '../problems/problems';
 import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';
 
@@ -108,11 +109,24 @@ export const ja = {
       `ON と OFF を一往復する tick 数。今の速さ (${ticksPerSecond} tick/秒) では ${seconds} 秒`,
   },
   status: {
-    unexposedPorts: 'ピンに出ていない INPUT / OUTPUT があります',
-    outsideSheet: 'シートの外に部品か配線があります',
-    conflict: '出力がぶつかっています',
-    unstable: '発振しています',
     cannotRotate: 'はみ出すため回転できません',
+  },
+  problems: {
+    tab: '問題',
+    /** タブの数の読み上げ用 */
+    tabCount: (errors: number, warnings: number) => `エラー ${errors} 件、警告 ${warnings} 件`,
+    empty: '問題はありません',
+    error: 'エラー',
+    warning: '警告',
+    /** 起きているか所の数 */
+    count: (n: number) => `${n} か所`,
+    resize: '問題パネルの高さを変える',
+    messages: {
+      UNSTABLE: '発振しています',
+      CONFLICT: '出力がぶつかっています',
+      UNEXPOSED_PORTS: 'ピンに出ていない INPUT / OUTPUT があります',
+      OUTSIDE_SHEET: 'シートの外に部品か配線があります',
+    } satisfies Record<ProblemCode, string>,
   },
   preferences: {
     title: '環境設定',
