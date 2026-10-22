@@ -41,6 +41,7 @@ import {
 import { statusHints } from '../hints/hints';
 import { computeNets, isConflict, mergeWiresAt, pinTipsOf, wireEndsOf } from '../geometry/net';
 import {
+  DEFAULT_PROBLEMS_PANEL,
   loadCollapsedGroups,
   loadProblemsPanel,
   loadProject,
@@ -644,6 +645,7 @@ export function App() {
           problems={problemList}
           open={problemsPanel.open}
           height={problemsPanel.height}
+          defaultHeight={DEFAULT_PROBLEMS_PANEL.height}
           onClose={on.closeProblems}
           onHeightChange={on.resizeProblems}
           onSelect={on.selectProblem}

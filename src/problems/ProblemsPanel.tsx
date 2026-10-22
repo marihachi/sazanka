@@ -30,6 +30,8 @@ interface ProblemsPanelProps {
   open: boolean;
   /** 開いたときの高さ (px) */
   height: number;
+  /** 既定の高さ (px)。取っ手をダブルクリックすると、この高さに戻す */
+  defaultHeight: number;
   /** 閉じるボタンを押した */
   onClose: () => void;
   /** 高さを変え終えた (ドラッグを離した、キーで変えた) */
@@ -40,12 +42,13 @@ interface ProblemsPanelProps {
 
 /**
  * シートとステータスバーの間に開く問題パネル。開閉は、ステータスバーの右端の「問題」(ProblemsToggle) と、
- * パネルの右上の閉じるボタンで行う。パネルの上の端をドラッグすると、高さを変えられる
+ * パネルの右上の閉じるボタンで行う。パネルの上の端をドラッグすると高さを変えられ、ダブルクリックすると既定の高さに戻る
  */
 export const ProblemsPanel = memo(function ProblemsPanel({
   problems,
   open,
   height,
+  defaultHeight,
   onClose,
   onHeightChange,
   onSelect,
@@ -103,6 +106,7 @@ export const ProblemsPanel = memo(function ProblemsPanel({
           drag.current = null;
           setDragHeight(null);
         }}
+        onDoubleClick={() => onHeightChange(defaultHeight)}
         onKeyDown={(e) => {
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             e.preventDefault();
@@ -150,6 +154,7 @@ function samePanel(a: ProblemsPanelProps, b: ProblemsPanelProps): boolean {
   return (
     a.open === b.open &&
     a.height === b.height &&
+    a.defaultHeight === b.defaultHeight &&
     a.onClose === b.onClose &&
     a.onHeightChange === b.onHeightChange &&
     a.onSelect === b.onSelect &&
