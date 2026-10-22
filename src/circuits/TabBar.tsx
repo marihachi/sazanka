@@ -100,6 +100,9 @@ export const TabBar = memo(function TabBar({
         onValueChange={(e) => onOpen(e.value)}
         variant="outline"
         size="sm"
+        // 空いている幅いっぱいに広げる。中身の幅ちょうどにすると、幅の端数の丸めで 1px はみ出し、
+        // タブが少なくても横のスクロールバーが出てしまうため
+        flex="1"
         minW="0"
       >
         <Tabs.List
