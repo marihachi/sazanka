@@ -4,6 +4,8 @@ import type { TurnDirection } from './edit';
 export interface Shortcuts {
   /** false の間はキーを編集操作として扱わない (ダイアログ表示中など) */
   enabled: boolean;
+  /** false の間は、シートの操作 (選択、コピー、貼り付け、削除、モード、回転) のキーを効かせない (開いている回路がないとき) */
+  sheet: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onDelete: () => void;
@@ -50,6 +52,9 @@ export function useShortcuts(shortcuts: Shortcuts) {
         } else {
           s.onUndo();
         }
+        return;
+      }
+      if (!s.sheet) {
         return;
       }
       if (mod && key === 'a') {

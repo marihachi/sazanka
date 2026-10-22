@@ -46,6 +46,7 @@ export const ja = {
   tabs: {
     addCircuit: '回路を追加',
     circuitTabTooltip: 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。',
+    close: (name: string) => `${name} を閉じる`,
   },
   toolbar: {
     select: '選択',
@@ -105,6 +106,8 @@ export const ja = {
     unknownModule: '(不明)',
     /** 見つからないモジュールの本体に書く */
     missing: '見つからない',
+    /** タブがないときに、シートの所に出す */
+    noCircuit: '開いている回路はありません',
     /** 見つからないモジュールを選んだときに、プロパティ欄に出す名前 */
     missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
@@ -330,6 +333,8 @@ export const ja = {
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
     /** 見つからないモジュール (指す回路がプロジェクトにない) を選んだとき */
+    /** タブがないとき */
+    noCircuit: '左のプロジェクトパネルで、回路をダブルクリックすると開く',
     unresolvedModule:
       'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {

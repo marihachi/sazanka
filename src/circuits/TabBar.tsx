@@ -1,8 +1,8 @@
-import { Box, Flex, Tabs } from '@chakra-ui/react';
+import { Box, CloseButton, Flex, Tabs } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import plusIcon from '../assets/icons/plus.svg';
 import { shallowEqual } from '../util';
-import { MAIN_ID, moveCircuit, type CircuitDef } from '../circuit/project';
+import { MAIN_ID, type CircuitDef } from '../circuit/project';
 import { InlineInput } from '../ui/InlineInput';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
@@ -10,21 +10,25 @@ import { useMessages } from '../i18n/useMessages';
 import { getCircuitName } from '../i18n/messages';
 
 interface TabBarProps {
+  /** 開いている回路 (タブの並び) */
   circuits: CircuitDef[];
-  currentId: string;
+  /** 選んでいるタブ。タブがなければ undefined */
+  currentId: string | undefined;
   /** 名前を編集中のタブ */
   renamingId?: string;
   onOpen: (id: string) => void;
+  /** タブを閉じる (タブの「×」) */
+  onClose: (id: string) => void;
   onStartRename: (id: string) => void;
   onRename: (id: string, name: string) => void;
   onCancelRename: () => void;
   /** 回路を追加する (タブの末尾の「+」) */
   onAddCircuit: () => void;
-  /** メイン回路以外のタブを、回路の一覧の index 番目に移した */
+  /** タブを、タブの並びの index 番目に移した */
   onReorder: (id: string, index: number) => void;
 }
 
-/** タブのドラッグ。x は今のポインターの位置、index は落とす位置 (回路の一覧での番号) */
+/** タブのドラッグ。index は落とす位置 (タブの並びでの番号) */
 interface TabDrag {
   id: string;
   pointerId: number;
@@ -36,12 +40,16 @@ interface TabDrag {
 /** 押した位置からこれ以上動いたらドラッグとみなす (px)。それまではクリックやダブルクリックとして扱う */
 const DRAG_THRESHOLD = 4;
 
-/** 回路を切り替えるタブ。メイン回路以外のタブはダブルクリックで名前を変更でき、ドラッグで並べ替えられる */
+/**
+ * 開いている回路のタブ。タブを押すとその回路に切り替え、「×」で閉じる。ドラッグで並べ替えられる (タブの並びは画面の状態で、
+ * 回路の並びとは別)。メイン回路以外のタブはダブルクリックで名前を変更できる
+ */
 export const TabBar = memo(function TabBar({
   circuits,
   currentId,
   renamingId,
   onOpen,
+  onClose,
   onStartRename,
   onRename,
   onCancelRename,
@@ -53,11 +61,10 @@ export const TabBar = memo(function TabBar({
   const tabRefs = useRef(new Map<string, HTMLButtonElement>());
 
   /** ドラッグ中は、落とす位置に並べ替えて見せる */
-  const shown = drag?.started ? moveCircuit({ circuits }, drag.id, drag.index).circuits : circuits;
+  const shown = drag?.started ? moveItem(circuits, drag.id, drag.index) : circuits;
 
   function onPointerDown(e: React.PointerEvent, id: string) {
-    // メイン回路は先頭に固定なので動かさない
-    if (id === MAIN_ID || e.button !== 0) {
+    if (e.button !== 0) {
       return;
     }
     setDrag({
@@ -80,14 +87,14 @@ export const TabBar = memo(function TabBar({
     if (!drag.started) {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     }
-    // ドラッグ中のタブ以外で、中央がポインターより左にあるメイン回路以外のタブの数が、落とす位置
-    const others = circuits.filter((d) => d.id !== drag.id && d.id !== MAIN_ID);
-    const before = others.filter((d) => {
-      const rect = tabRefs.current.get(d.id)?.getBoundingClientRect();
-      return rect && rect.left + rect.width / 2 < e.clientX;
-    }).length;
-    // 回路の一覧の先頭はメイン回路なので、ほかの回路の番号は 1 から
-    setDrag({ ...drag, started: true, index: before + 1 });
+    // ドラッグ中のタブ以外で、中央がポインターより左にあるタブの数が、落とす位置
+    const before = circuits
+      .filter((d) => d.id !== drag.id)
+      .filter((d) => {
+        const rect = tabRefs.current.get(d.id)?.getBoundingClientRect();
+        return rect && rect.left + rect.width / 2 < e.clientX;
+      }).length;
+    setDrag({ ...drag, started: true, index: before });
   }
 
   function onPointerUp(e: React.PointerEvent) {
@@ -104,7 +111,7 @@ export const TabBar = memo(function TabBar({
     <Flex align="flex-end" gap="2" px="2" pt="1.5">
       {/* 選択中のタブは、下のシートのツールバーと同じ色にしてつながって見せる (SheetToolbar.tsx) */}
       <Tabs.Root
-        value={currentId}
+        value={currentId ?? ''}
         onValueChange={(e) => onOpen(e.value)}
         variant="outline"
         size="sm"
@@ -129,33 +136,48 @@ export const TabBar = memo(function TabBar({
               </Box>
             ) : (
               <TabTooltip key={d.id} show={d.id !== MAIN_ID && !drag?.started}>
-                <Tabs.Trigger
-                  value={d.id}
-                  ref={(el) => {
-                    if (el) {
-                      tabRefs.current.set(d.id, el);
-                    } else {
-                      tabRefs.current.delete(d.id);
-                    }
-                  }}
-                  flexShrink={0}
-                  maxW="200px"
-                  _selected={{ bg: 'bg.panel' }}
-                  // ドラッグして並べ替えている最中のタブ
-                  {...(drag?.started &&
-                    drag.id === d.id && {
-                      outline: '1px dashed',
-                      outlineColor: 'accent.solid',
-                      outlineOffset: '-2px',
-                      cursor: 'grabbing',
-                    })}
-                  onPointerDown={(e) => onPointerDown(e, d.id)}
-                  onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
-                >
-                  <Box as="span" truncate>
-                    {getCircuitName(d, m)}
-                  </Box>
-                </Tabs.Trigger>
+                {/* 閉じるボタンはタブ (ボタン) の中に入れられないので、タブに重ねて右端に置く */}
+                <Box position="relative" flexShrink={0}>
+                  <Tabs.Trigger
+                    value={d.id}
+                    ref={(el) => {
+                      if (el) {
+                        tabRefs.current.set(d.id, el);
+                      } else {
+                        tabRefs.current.delete(d.id);
+                      }
+                    }}
+                    flexShrink={0}
+                    maxW="200px"
+                    pe="7"
+                    _selected={{ bg: 'bg.panel' }}
+                    // ドラッグして並べ替えている最中のタブ
+                    {...(drag?.started &&
+                      drag.id === d.id && {
+                        outline: '1px dashed',
+                        outlineColor: 'accent.solid',
+                        outlineOffset: '-2px',
+                        cursor: 'grabbing',
+                      })}
+                    onPointerDown={(e) => onPointerDown(e, d.id)}
+                    onDoubleClick={() => d.id !== MAIN_ID && onStartRename(d.id)}
+                  >
+                    <Box as="span" truncate>
+                      {getCircuitName(d, m)}
+                    </Box>
+                  </Tabs.Trigger>
+                  <CloseButton
+                    size="2xs"
+                    variant="ghost"
+                    colorPalette="gray"
+                    position="absolute"
+                    right="1"
+                    top="50%"
+                    transform="translateY(-50%)"
+                    aria-label={m.tabs.close(getCircuitName(d, m))}
+                    onClick={() => onClose(d.id)}
+                  />
+                </Box>
               </TabTooltip>
             ),
           )}
@@ -190,4 +212,15 @@ function sameTabs(a: TabBarProps, b: TabBarProps): boolean {
     ca.every((d, i) => d.id === cb[i].id && d.name === cb[i].name) &&
     shallowEqual(ra, rb)
   );
+}
+
+/** 並び items の id のものを、index 番目に移した並び (タブのドラッグ中の見せ方) */
+function moveItem(items: CircuitDef[], id: string, index: number): CircuitDef[] {
+  const moving = items.find((d) => d.id === id);
+  if (!moving) {
+    return items;
+  }
+  const rest = items.filter((d) => d.id !== id);
+  const at = Math.min(Math.max(index, 0), rest.length);
+  return [...rest.slice(0, at), moving, ...rest.slice(at)];
 }

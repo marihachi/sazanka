@@ -286,6 +286,43 @@ export function saveProject(project: Project) {
   }
 }
 
+const TABS_KEY = 'sazanka.tabs';
+
+/** 開いているタブ (回路 ID。並びがタブの並び) と、選んでいるタブ。タブがなければ current は null */
+export interface OpenTabs {
+  open: string[];
+  current: string | null;
+}
+
+/**
+ * 開いていたタブ。保存がなければ、タブなし (初めて開いたとき)。
+ * 回路がプロジェクトにあるかは、使う側 (App) が確かめる
+ */
+export function loadTabs(): OpenTabs {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(TABS_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return { open: [], current: null };
+    }
+    const { open, current } = value as Record<string, unknown>;
+    const ids = Array.isArray(open) ? open.filter((v): v is string => typeof v === 'string') : [];
+    return {
+      open: ids,
+      current: typeof current === 'string' && ids.includes(current) ? current : null,
+    };
+  } catch {
+    return { open: [], current: null };
+  }
+}
+
+export function saveTabs(tabs: OpenTabs) {
+  try {
+    localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
 const SIDE_PANEL_KEY = 'sazanka.sidePanel';
 
 /** 左のサイドパネルに出すもの。project はプロジェクトパネル、parts はパレット (部品) */

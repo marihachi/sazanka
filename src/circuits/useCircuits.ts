@@ -34,7 +34,7 @@ export function useCircuits({
   /** 元に戻せる編集としてプロジェクトを更新する */
   setProject: (update: (p: Project) => Project) => void;
   openCircuit: (id: string) => void;
-  /** 回路を削除した。その回路について覚えているもの (シミュレーションの結果、表示) を捨てる */
+  /** 回路を削除した。その回路のタブを閉じ、その回路について覚えているもの (シミュレーションの結果、表示) を捨てる */
   onDeleted: (id: string) => void;
   showConfirm: (request: ConfirmRequest) => void;
   showPrompt: (request: PromptRequest) => void;
@@ -145,8 +145,8 @@ export function useCircuits({
       danger: true,
       onConfirm: () => {
         setProject((p) => removeCircuitFrom(p, id, name));
+        // 削除した回路のタブは、onDeleted で閉じる (メイン回路は開かない)
         onDeleted(id);
-        openCircuit(MAIN_ID);
       },
     });
   }

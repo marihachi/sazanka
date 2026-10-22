@@ -35,6 +35,7 @@ export const en: Messages = {
   },
   tabs: {
     addCircuit: 'Add circuit',
+    close: (name) => `Close ${name}`,
     circuitTabTooltip: 'Double-click to rename, drag to reorder.',
   },
   toolbar: {
@@ -92,6 +93,7 @@ export const en: Messages = {
   sheet: {
     unknownModule: '(unknown)',
     missing: 'Not found',
+    noCircuit: 'No circuit is open',
     missingName: (name) => `${name || '(unknown)'} (not found)`,
     zoomOut: 'Zoom out',
     zoomReset: 'Reset to 100%',
@@ -291,6 +293,7 @@ export const en: Messages = {
       'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
+    noCircuit: 'Double-click a circuit in the project panel on the left to open it',
     unresolvedModule:
       'This circuit is not in the project. It has no pins and outputs nothing in the simulation',
     portProblems: {

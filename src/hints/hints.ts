@@ -7,6 +7,8 @@ import type { Language } from '../i18n/language';
 import { getMessages } from '../i18n/messages';
 
 export interface HintContext {
+  /** 開いている回路がない (タブがない) */
+  noCircuit?: boolean;
   /** 部品をドラッグ中か。'trash' は削除エリアの上。'wireEnd' は配線の端のドラッグ中 */
   dragMode: 'none' | 'moving' | 'trash' | 'wireEnd';
   /** 配線モードか */
@@ -44,6 +46,9 @@ export interface HintContext {
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する。文は言語ごとの文言の表 (i18n/) にある */
 export function statusHints(ctx: HintContext, lang: Language): string[] {
   const m = getMessages(lang).hints;
+  if (ctx.noCircuit) {
+    return [m.noCircuit];
+  }
   if (ctx.dragMode === 'trash') {
     return [m.overTrash];
   }

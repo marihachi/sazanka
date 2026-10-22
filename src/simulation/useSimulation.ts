@@ -158,6 +158,8 @@ export function useSimulation(
   circuitId: string,
   /** 1 秒に進める tick 数 (環境設定)。画面の更新とは別で、1 フレームに何 tick 進めてもよい */
   ticksPerSecond: number,
+  /** 開いている回路があるか。タブがなければ (false)、時間を進めない */
+  active = true,
 ) {
   /** CLOCK の ON/OFF (回路 ID と部品 ID → ON か)。保存データに残っていた値から始める */
   const clockOn = useRef<Map<string, boolean> | null>(null);
@@ -310,7 +312,7 @@ export function useSimulation(
   // project と circuitId は中では使わないが、回路を触ったら止まったループを動かし直すために並べている
   // biome-ignore lint/correctness/useExhaustiveDependencies: 上の理由で依存を絞っている
   useEffect(() => {
-    if (!running) {
+    if (!running || !active) {
       frameTiming.current = null;
       return;
     }
@@ -360,7 +362,7 @@ export function useSimulation(
     };
     frame = requestAnimationFrame(onFrame);
     return () => cancelAnimationFrame(frame);
-  }, [running, hasClock, project, circuitId]);
+  }, [running, active, hasClock, project, circuitId]);
 
   // タブを切り替えたら、その回路の前回の結果から続ける
   // biome-ignore lint/correctness/useExhaustiveDependencies: 開いている回路が変わったときだけ入れ替える (project の変更では入れ替えない)
