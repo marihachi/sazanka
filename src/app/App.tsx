@@ -6,6 +6,7 @@ import { Header } from './Header';
 import { Palette } from '../palette/Palette';
 import { ActivityBar } from './ActivityBar';
 import { ProjectPanel } from '../project/ProjectPanel';
+import { useFolders } from '../project/useFolders';
 import { PropertyPanel } from './PropertyPanel';
 import { StatusBar } from '../hints/StatusBar';
 import { TabBar } from '../circuits/TabBar';
@@ -73,8 +74,8 @@ import { LanguageContext } from '../i18n/useMessages';
 import { resolveLanguage } from '../i18n/language';
 
 /** その場で編集中の名前 (タブの回路名) */
-/** 名前を変えている回路 (プロジェクトパネルの行) */
-type Editing = { type: 'circuit'; id: string } | null;
+/** 名前を変えている回路かフォルダ (プロジェクトパネルの行) */
+type Editing = { type: 'circuit'; id: string } | { type: 'folder'; path: string } | null;
 
 /**
  * 画面全体の組み立てと、状態のつなぎ役。
@@ -281,7 +282,23 @@ export function App() {
       setViews(({ [id]: _, ...rest }) => rest);
     },
     showConfirm: dialogs.showConfirm,
+  });
+
+  const folders = useFolders({
+    m,
+    project,
+    setProject,
+    defaultCircuitName: circuits.defaultCircuitName,
+    addCircuit: circuits.addCircuit,
+    showConfirm: dialogs.showConfirm,
     showPrompt: dialogs.showPrompt,
+    showNewCircuit: dialogs.showNewCircuit,
+    showMoveToFolder: dialogs.showMoveToFolder,
+    // フォルダの改名と移動では、折り畳みの記録も新しいパスに付け替える
+    onFolderMoved: (from, to) =>
+      setTreeCollapsed((cs) =>
+        cs.map((p) => (p === from || p.startsWith(`${from}/`) ? to + p.slice(from.length) : p)),
+      ),
   });
 
   /** プロジェクトを丸ごと入れ替えたあと、開いている回路と表示を初めからにする */
@@ -573,8 +590,6 @@ export function App() {
       }
     },
     closeTab,
-    // パネルで作った回路はタブで開くので、すぐ部品を置けるよう、サイドパネルを部品に移す
-    newCircuitFromPanel: () => circuits.createCircuit(() => setSidePanel('parts')),
     reorderTabs: (id: string, index: number) =>
       setTabs((t) => {
         const rest = t.open.filter((x) => x !== id);
@@ -594,12 +609,23 @@ export function App() {
     openAbout: dialogs.openAbout,
     openCircuit,
     startRename: (id: string) => setEditing({ type: 'circuit', id }),
+    startRenameFolder: (path: string) => setEditing({ type: 'folder', path }),
     renameCircuit: (id: string, value: string) => {
       setEditing(null);
       circuits.renameCircuit(id, value);
     },
+    renameFolder: (path: string, value: string) => {
+      setEditing(null);
+      folders.renameFolder(path, value);
+    },
     cancelRename: () => setEditing(null),
-    createCircuit: circuits.createCircuit,
+    // パネルで作った回路はタブで開くので、すぐ部品を置けるよう、サイドパネルを部品に移す
+    newCircuit: (folder: string) => folders.newCircuit(folder, () => setSidePanel('parts')),
+    newFolder: folders.newFolder,
+    removeFolder: folders.removeFolder,
+    moveToFolder: folders.moveToFolder,
+    dropCircuit: folders.dropCircuit,
+    dropFolder: folders.dropFolder,
     toggleRunning,
     stepOnce,
     stepBack,
@@ -633,13 +659,26 @@ export function App() {
               project={project}
               collapsed={treeCollapsed}
               onCollapsedChange={setTreeCollapsed}
-              renamingId={editing?.type === 'circuit' ? editing.id : undefined}
+              renaming={
+                editing?.type === 'circuit'
+                  ? `circuit:${editing.id}`
+                  : editing?.type === 'folder'
+                    ? `folder:${editing.path}`
+                    : undefined
+              }
               onOpen={on.openFromPanel}
-              onStartRename={on.startRename}
-              onRename={on.renameCircuit}
+              onStartRenameCircuit={on.startRename}
+              onStartRenameFolder={on.startRenameFolder}
+              onRenameCircuit={on.renameCircuit}
+              onRenameFolder={on.renameFolder}
               onCancelRename={on.cancelRename}
               onRemove={on.removeCircuit}
-              onNewCircuit={on.newCircuitFromPanel}
+              onRemoveFolder={on.removeFolder}
+              onMoveToFolder={on.moveToFolder}
+              onNewCircuit={on.newCircuit}
+              onNewFolder={on.newFolder}
+              onDropCircuit={on.dropCircuit}
+              onDropFolder={on.dropFolder}
               onNewProject={on.newProject}
               onOpenProject={on.importProject}
               onSaveProjectAs={on.exportProject}

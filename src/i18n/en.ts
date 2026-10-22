@@ -67,6 +67,9 @@ export const en: Messages = {
     open: 'Open',
     rename: 'Rename',
     remove: 'Remove from project…',
+    newFolder: 'New folder…',
+    moveToFolder: 'Move to folder…',
+    removeFolder: 'Delete folder',
     main: 'Main circuit',
     usedIn: 'Used in',
     notUsed: 'Not placed anywhere',
@@ -74,6 +77,21 @@ export const en: Messages = {
     usageSeparator: ', ',
     expand: (name) => `Expand ${name}`,
     collapse: (name) => `Collapse ${name}`,
+  },
+  folders: {
+    none: '(No folder)',
+    folder: 'Folder',
+    create: 'Create folder',
+    newTitle: 'New folder',
+    name: 'Folder name',
+    add: 'Create',
+    nameRequired: 'Enter a name',
+    nameBad: 'Names with "/" and "." or ".." cannot be used',
+    nameTaken: 'A folder with this name already exists',
+    moveTitle: (name) => `Move "${name}" to a folder`,
+    move: 'Move',
+    notEmpty: (name) =>
+      `"${name}" cannot be deleted because it contains circuits or folders. Move or delete them first.`,
   },
   palette: {
     groups: {

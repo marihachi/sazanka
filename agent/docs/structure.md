@@ -26,7 +26,8 @@
   - `ActivityBar.tsx` … 左端のアイコンの列（サイドパネルにプロジェクトパネルとパレットのどちらを出すかを切り替える）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
 - `project/` … プロジェクトパネル（[UI](ui.md)の「プロジェクトパネル」）。
-  - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木。`folders.ts` … 木の組み立てと、使われている所の計算。
+  - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木（ドラッグを含む）。`folders.ts` … 木の組み立て、使われている所、フォルダの操作と落とす先の計算。
+  - `useFolders.ts` … フォルダの操作、回路とフォルダを移す操作、フォルダを選んで回路を追加する操作（ダイアログの開閉は `app/useDialogs.tsx`）。`FolderPicker.tsx` … フォルダを選ぶ・作る木。`NewCircuitDialog.tsx` … 回路を追加するダイアログ。`MoveToFolderDialog.tsx` … フォルダを変えるダイアログ。
 - `circuits/` … 回路の追加・改名・削除・設定と、回路の切り替え。
   - `useCircuits.ts` … 回路の操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。

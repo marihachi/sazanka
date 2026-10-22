@@ -1,5 +1,5 @@
 import { Box, Flex, IconButton, Text } from '@chakra-ui/react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import chevronIcon from '../assets/icons/chevron.svg';
 import moreIcon from '../assets/icons/more.svg';
 import starIcon from '../assets/icons/star.svg';
@@ -8,7 +8,7 @@ import { getCircuitName } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
 import { MaskIcon } from '../ui/Icons';
 import { InlineInput } from '../ui/InlineInput';
-import type { TreeRow } from './folders';
+import type { DropTarget, TreeRow } from './folders';
 
 /** 行を見分ける値。フォルダは "folder:パス"、回路は "circuit:ID" */
 export function rowKey(row: TreeRow): string {
@@ -25,11 +25,27 @@ export interface MenuPoint {
 const LONG_PRESS_MS = 500;
 /** 長押しの間にこれ以上動いたら、長押しをやめる (px)。スクロールやドラッグと区別するため */
 const LONG_PRESS_SLOP = 8;
+/** 押した位置からこれ以上動いたら、行のドラッグとみなす (px)。タッチは長押しと区別するため大きめにする */
+const DRAG_THRESHOLD = { mouse: 4, touch: LONG_PRESS_SLOP } as const;
+
+/** 行のドラッグ。over はポインターの載っている行 (rows の番号)、zone はその行のどこか */
+interface RowDrag {
+  row: TreeRow;
+  pointerId: number;
+  x: number;
+  y: number;
+  touch: boolean;
+  started: boolean;
+  over?: number;
+  zone?: 'before' | 'into' | 'after';
+  target?: DropTarget;
+}
 
 /**
  * フォルダと回路の木。プロジェクトパネルで使う (あとでフォルダを選ぶダイアログでも使う)。
  * 行を押すと選び (onSelect)、ダブルクリックか Enter で開く (onActivate。フォルダは開閉)。F2 で名前を変え始める。
- * フォルダの矢印を押すと開閉する。行の操作のメニューは、右クリック、長押し (タッチ)、行の「⋯」で出す (onMenu)
+ * フォルダの矢印を押すと開閉する。行の操作のメニューは、右クリック、長押し (タッチ)、行の「⋯」で出す (onMenu)。
+ * 行をドラッグすると、フォルダの中へ移したり並べ替えたりできる (落とす先は dropTargetOf が決める)
  */
 export function CircuitTree({
   rows,
@@ -44,6 +60,8 @@ export function CircuitTree({
   onStartRename,
   onRename,
   onCancelRename,
+  dropTargetOf,
+  onDrop,
 }: {
   rows: TreeRow[];
   /** 選んでいる行 (rowKey) */
@@ -62,8 +80,35 @@ export function CircuitTree({
   onStartRename: (row: TreeRow) => void;
   onRename: (row: TreeRow, name: string) => void;
   onCancelRename: () => void;
+  /** 行 dragged を、行 over の zone に落としたときの落とす先。落とせなければ undefined */
+  dropTargetOf?: (
+    dragged: TreeRow,
+    over: number,
+    zone: 'before' | 'into' | 'after',
+  ) => DropTarget | undefined;
+  onDrop?: (dragged: TreeRow, target: DropTarget) => void;
 }) {
   const m = useMessages();
+  const [drag, setDrag] = useState<RowDrag | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLElement>());
+  /** ドラッグを終えた直後のクリック (同じ押し離しで起きる) で、行を選び直さないための印 */
+  const justDragged = useRef(false);
+
+  /** 画面の高さ y にある行と、その行のどこか (フォルダは上 1/4・真ん中・下 1/4、回路は上半分・下半分) */
+  function hitTest(y: number): { over: number; zone: 'before' | 'into' | 'after' } | undefined {
+    for (let i = 0; i < rows.length; i++) {
+      const rect = rowRefs.current.get(rowKey(rows[i]))?.getBoundingClientRect();
+      if (!rect || y < rect.top || y >= rect.bottom) {
+        continue;
+      }
+      const t = (y - rect.top) / rect.height;
+      if (rows[i].kind === 'folder') {
+        return { over: i, zone: t < 0.25 ? 'before' : t > 0.75 ? 'after' : 'into' };
+      }
+      return { over: i, zone: t < 0.5 ? 'before' : 'after' };
+    }
+    return undefined;
+  }
   const press = useRef<{ x: number; y: number; timer: number } | null>(null);
   const cancelPress = () => {
     if (press.current) {
@@ -81,6 +126,10 @@ export function CircuitTree({
         const open = isFolder && !collapsed.has(row.path);
         const name = isFolder ? row.name : getCircuitName(row.def, m);
         const menu = hasMenu(row);
+        // 落とす先の印。フォルダの中へなら行に色を付け、行の間なら線を引く
+        const here = drag?.started && drag.target && drag.over === rows.indexOf(row);
+        const dropInto = here && drag?.zone === 'into';
+        const dropLine = here && drag?.zone !== 'into' ? drag?.zone : undefined;
         return (
           <Box
             as="li"
@@ -90,7 +139,15 @@ export function CircuitTree({
             aria-selected={isSelected}
             aria-expanded={isFolder && row.hasChildren ? open : undefined}
             tabIndex={isSelected ? 0 : -1}
+            ref={(el: HTMLElement | null) => {
+              if (el) {
+                rowRefs.current.set(key, el);
+              } else {
+                rowRefs.current.delete(key);
+              }
+            }}
             listStyleType="none"
+            position="relative"
             display="flex"
             alignItems="center"
             gap="1"
@@ -102,10 +159,19 @@ export function CircuitTree({
             userSelect="none"
             // 長押しで、ブラウザの文字の選択やメニューを出さない
             css={{ WebkitTouchCallout: 'none' }}
-            bg={isSelected ? 'bg.emphasized' : undefined}
+            bg={dropInto ? 'accent.subtle' : isSelected ? 'bg.emphasized' : undefined}
+            opacity={drag?.started && rowKey(drag.row) === key ? 0.5 : undefined}
+            // タッチでは、縦の動きはパネルのスクロールに使い、横に動かし始めたらドラッグにする
+            touchAction="pan-y"
             className="group"
             _hover={{ bg: isSelected ? 'bg.emphasized' : 'bg.muted' }}
-            onClick={() => onSelect(row)}
+            onClick={() => {
+              if (justDragged.current) {
+                justDragged.current = false;
+                return;
+              }
+              onSelect(row);
+            }}
             onDoubleClick={() => onActivate(row)}
             onKeyDown={(e) => {
               if (renaming === key) {
@@ -127,6 +193,19 @@ export function CircuitTree({
               }
             }}
             onPointerDown={(e) => {
+              if (renaming === key || (e.pointerType === 'mouse' && e.button !== 0)) {
+                return;
+              }
+              if (dropTargetOf) {
+                setDrag({
+                  row,
+                  pointerId: e.pointerId,
+                  x: e.clientX,
+                  y: e.clientY,
+                  touch: e.pointerType !== 'mouse',
+                  started: false,
+                });
+              }
               if (e.pointerType === 'mouse' || !menu) {
                 return;
               }
@@ -145,10 +224,49 @@ export function CircuitTree({
               if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > LONG_PRESS_SLOP) {
                 cancelPress();
               }
+              if (!drag || e.pointerId !== drag.pointerId || !dropTargetOf) {
+                return;
+              }
+              const moved = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
+              if (!drag.started && moved < DRAG_THRESHOLD[drag.touch ? 'touch' : 'mouse']) {
+                return;
+              }
+              // 押した時点でキャプチャすると、クリックとダブルクリックが行に届かなくなるので、動き始めてから行う
+              if (!drag.started) {
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }
+              const hit = hitTest(e.clientY);
+              const target = hit && dropTargetOf(drag.row, hit.over, hit.zone);
+              setDrag({ ...drag, started: true, over: hit?.over, zone: hit?.zone, target });
             }}
-            onPointerUp={cancelPress}
-            onPointerCancel={cancelPress}
+            onPointerUp={(e) => {
+              cancelPress();
+              if (drag && e.pointerId === drag.pointerId) {
+                if (drag.started) {
+                  justDragged.current = true;
+                  if (drag.target) {
+                    onDrop?.(drag.row, drag.target);
+                  }
+                }
+                setDrag(null);
+              }
+            }}
+            onPointerCancel={() => {
+              cancelPress();
+              setDrag(null);
+            }}
           >
+            {dropLine && (
+              <Box
+                position="absolute"
+                insetX="0"
+                ms={`${8 + row.depth * 14}px`}
+                h="2px"
+                bg="accent.solid"
+                pointerEvents="none"
+                {...(dropLine === 'before' ? { top: '-1px' } : { bottom: '-1px' })}
+              />
+            )}
             {isFolder ? (
               // 開閉の矢印。行を押すのとは別に、矢印だけでも開閉できる
               <Flex

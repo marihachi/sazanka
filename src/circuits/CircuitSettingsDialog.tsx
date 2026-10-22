@@ -93,7 +93,10 @@ export function CircuitSettingsDialog({
   // 回路の追加と同じく、空の名前と、ほかの回路やメイン回路の表示名と同じ名前は断る
   const nameError = isMain
     ? undefined
-    : describeNameProblem(checkCircuitName(project, nameText, m.common.mainCircuit, def.id), m);
+    : describeNameProblem(
+        checkCircuitName(project, nameText, m.common.mainCircuit, def.path ?? '', def.id),
+        m,
+      );
   const [author, setAuthor] = useState(def.author ?? '');
   const currentSheet = getCircuitSheet(def);
   const [widthText, setWidthText] = useState(String(currentSheet.width));

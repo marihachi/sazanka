@@ -368,18 +368,22 @@ describe('checkCircuitName', () => {
   } as unknown as Project;
 
   it('空の名前は使えない', () => {
-    expect(checkCircuitName(project, '', 'メイン')).toBe('EMPTY');
+    expect(checkCircuitName(project, '', 'メイン', '')).toBe('EMPTY');
   });
 
   it('ほかの回路と同じ名前と、メイン回路の表示名は使えない', () => {
-    expect(checkCircuitName(project, 'A', 'メイン')).toBe('TAKEN');
-    expect(checkCircuitName(project, 'メイン', 'メイン')).toBe('TAKEN');
-    expect(checkCircuitName(project, 'C', 'メイン')).toBeUndefined();
+    expect(checkCircuitName(project, 'A', 'メイン', '')).toBe('TAKEN');
+    expect(checkCircuitName(project, 'メイン', 'メイン', '')).toBe('TAKEN');
+    expect(checkCircuitName(project, 'C', 'メイン', '')).toBeUndefined();
+  });
+
+  it('ほかのフォルダの回路とは、同じ名前でもよい', () => {
+    expect(checkCircuitName(project, 'A', 'メイン', 'lib')).toBeUndefined();
   });
 
   it('名前を変える回路自身の名前は、重なりに数えない', () => {
-    expect(checkCircuitName(project, 'A', 'メイン', 'a')).toBeUndefined();
-    expect(checkCircuitName(project, 'B', 'メイン', 'a')).toBe('TAKEN');
+    expect(checkCircuitName(project, 'A', 'メイン', '', 'a')).toBeUndefined();
+    expect(checkCircuitName(project, 'B', 'メイン', '', 'a')).toBe('TAKEN');
   });
 });
 

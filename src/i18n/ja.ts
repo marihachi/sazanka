@@ -79,6 +79,9 @@ export const ja = {
     open: '開く',
     rename: '名前を変える',
     remove: 'プロジェクトから削除…',
+    newFolder: '新しいフォルダ…',
+    moveToFolder: 'フォルダを変える…',
+    removeFolder: 'フォルダを削除',
     /** メイン回路の印 (★) の読み上げ用 */
     main: 'メイン回路',
     usedIn: '使われている所',
@@ -88,6 +91,22 @@ export const ja = {
     usageSeparator: '、',
     expand: (name: string) => `${name} を開く`,
     collapse: (name: string) => `${name} を閉じる`,
+  },
+  folders: {
+    /** フォルダに入れない (いちばん上) */
+    none: '(フォルダなし)',
+    folder: 'フォルダ',
+    create: 'フォルダを作る',
+    newTitle: '新しいフォルダ',
+    name: 'フォルダの名前',
+    add: '作成',
+    nameRequired: '名前を入力してください',
+    nameBad: '「/」を含む名前と、「.」「..」は使えません',
+    nameTaken: '同じ名前のフォルダがすでにあります',
+    moveTitle: (name: string) => `「${name}」のフォルダを変える`,
+    move: '移す',
+    notEmpty: (name: string) =>
+      `「${name}」の中に回路かフォルダがあるため、削除できません。先に中のものを動かすか、削除してください。`,
   },
   palette: {
     groups: {

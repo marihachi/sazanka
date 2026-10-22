@@ -142,24 +142,25 @@ export function findDef(project: Project, id: string | undefined): CircuitDef | 
 }
 
 /**
- * 回路の名前 name (前後の空白を除いたもの) が使えない理由。使えれば undefined。
- * 空の名前は 'EMPTY'。ほかの回路 (exceptId の回路を除く) と同じ名前と、メイン回路の表示名 mainName は 'TAKEN'
- * (タブで見分けられなくなるため。保存データの検証も、同じフォルダに同じ名前の回路があると断る)。
- * 回路の追加、タブでの改名、回路設定で使う
+ * フォルダ folder に置く回路の名前 name (前後の空白を除いたもの) が使えない理由。使えれば undefined。
+ * 空の名前は 'EMPTY'。同じフォルダのほかの回路 (exceptId の回路を除く) と同じ名前と、メイン回路の表示名 mainName は 'TAKEN'
+ * (保存データの検証が、同じフォルダに同じ名前の回路があると断るため。メイン回路の表示名は、どのフォルダでも使わない)。
+ * 回路の追加、パネルでの改名、回路設定で使う
  */
 export function checkCircuitName(
   project: Project,
   name: string,
   mainName: string,
+  folder: string,
   exceptId?: string,
 ): 'EMPTY' | 'TAKEN' | undefined {
   if (!name) {
     return 'EMPTY';
   }
-  if (name === mainName || project.circuits.some((d) => d.id !== exceptId && d.name === name)) {
-    return 'TAKEN';
-  }
-  return undefined;
+  const taken = project.circuits.some(
+    (d) => d.id !== exceptId && (d.path ?? '') === folder && d.name === name,
+  );
+  return name === mainName || taken ? 'TAKEN' : undefined;
 }
 
 /**

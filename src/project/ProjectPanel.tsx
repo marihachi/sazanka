@@ -6,24 +6,33 @@ import { getCircuitName } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
 import { MaskIcon } from '../ui/Icons';
 import { CircuitTree, type MenuPoint, rowKey } from './CircuitTree';
-import { type TreeRow, treeRows, usagesOf } from './folders';
+import { dropTarget, type TreeRow, treeRows, usagesOf } from './folders';
 
 interface ProjectPanelProps {
   project: Project;
   /** 折り畳んでいるフォルダのパス */
   collapsed: string[];
   onCollapsedChange: (collapsed: string[]) => void;
-  /** 名前を変えている回路の ID */
-  renamingId?: string;
+  /** 名前を変えている行 (CircuitTree の rowKey) */
+  renaming?: string;
   /** 回路を開く (行のダブルクリック、Enter、行のメニューの「開く」) */
   onOpen: (id: string) => void;
-  onStartRename: (id: string) => void;
-  onRename: (id: string, name: string) => void;
+  onStartRenameCircuit: (id: string) => void;
+  onStartRenameFolder: (path: string) => void;
+  onRenameCircuit: (id: string, name: string) => void;
+  onRenameFolder: (path: string, name: string) => void;
   onCancelRename: () => void;
   /** プロジェクトから削除する (確認は呼ぶ側が出す) */
   onRemove: (id: string) => void;
-  /** パネルの上の「⋯」のメニュー */
-  onNewCircuit: () => void;
+  onRemoveFolder: (path: string) => void;
+  /** 回路のフォルダを変える (ダイアログは呼ぶ側が出す) */
+  onMoveToFolder: (id: string) => void;
+  /** フォルダ folder に回路を追加する (ダイアログで、folder を選んだ状態で始める) */
+  onNewCircuit: (folder: string) => void;
+  /** フォルダ parent の中にフォルダを作る */
+  onNewFolder: (parent: string) => void;
+  onDropCircuit: (id: string, folder: string, index?: number) => void;
+  onDropFolder: (path: string, parent: string, index?: number) => void;
   onNewProject: () => void;
   onOpenProject: () => void;
   onSaveProjectAs: () => void;
@@ -38,23 +47,11 @@ interface RowMenu {
 /**
  * 左のサイドパネルに出すプロジェクトパネル。プロジェクトの中の回路を、フォルダの木で並べる。
  * 行を押すと選び、下に、選んだ回路が使われている所を出す。ダブルクリックか Enter で開く。
- * パネルの上の「⋯」にプロジェクト全体の操作を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる
+ * パネルの上の「⋯」にプロジェクト全体の操作を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる。
+ * 行をドラッグすると、並べ替えたりフォルダへ移したりできる
  */
-export const ProjectPanel = memo(function ProjectPanel({
-  project,
-  collapsed,
-  onCollapsedChange,
-  renamingId,
-  onOpen,
-  onStartRename,
-  onRename,
-  onCancelRename,
-  onRemove,
-  onNewCircuit,
-  onNewProject,
-  onOpenProject,
-  onSaveProjectAs,
-}: ProjectPanelProps) {
+export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps) {
+  const { project, collapsed, onCollapsedChange, renaming } = props;
   const m = useMessages();
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const [rowMenu, setRowMenu] = useState<RowMenu | null>(null);
@@ -76,6 +73,13 @@ export const ProjectPanel = memo(function ProjectPanel({
     );
   const selectedRow = rows.find((r) => rowKey(r) === selected);
   const usages = selectedRow?.kind === 'circuit' ? usagesOf(project, selectedRow.def.id) : [];
+  /** 追加するときに選んでおくフォルダ。フォルダの行を選んでいればそのフォルダ、回路の行ならその回路のフォルダ、なければフォルダなし */
+  const selectedFolder =
+    selectedRow?.kind === 'folder'
+      ? selectedRow.path
+      : selectedRow?.kind === 'circuit'
+        ? (selectedRow.def.path ?? '')
+        : '';
   const menuRow = rowMenu?.row;
   const menuIsMain = menuRow?.kind === 'circuit' && menuRow.def.id === MAIN_ID;
 
@@ -89,14 +93,15 @@ export const ProjectPanel = memo(function ProjectPanel({
           onSelect={(e) => {
             // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
             if (e.value === 'openProject') {
-              onOpenProject();
+              props.onOpenProject();
             } else if (e.value === 'saveProjectAs') {
-              onSaveProjectAs();
+              props.onSaveProjectAs();
             }
             // ダイアログを出す操作は、閉じ終わってから行う
             const later: Record<string, () => void> = {
-              newCircuit: onNewCircuit,
-              newProject: onNewProject,
+              newCircuit: () => props.onNewCircuit(selectedFolder),
+              newFolder: () => props.onNewFolder(selectedFolder),
+              newProject: props.onNewProject,
             };
             pending.current = later[e.value] ?? null;
           }}
@@ -111,6 +116,7 @@ export const ProjectPanel = memo(function ProjectPanel({
             <Menu.Positioner>
               <Menu.Content>
                 <Menu.Item value="newCircuit">{m.project.newCircuit}</Menu.Item>
+                <Menu.Item value="newFolder">{m.project.newFolder}</Menu.Item>
                 <Menu.Separator />
                 <Menu.Item value="newProject">{m.project.newProject}</Menu.Item>
                 <Menu.Item value="openProject">{m.project.openProject}</Menu.Item>
@@ -125,22 +131,35 @@ export const ProjectPanel = memo(function ProjectPanel({
           rows={rows}
           selected={selected}
           collapsed={collapsedSet}
-          renaming={renamingId === undefined ? undefined : `circuit:${renamingId}`}
-          // フォルダの行の操作は、フォルダを作れるようになってから足す
-          hasMenu={(row) => row.kind === 'circuit'}
+          renaming={renaming}
+          hasMenu={() => true}
           onSelect={(row) => setSelected(rowKey(row))}
           onActivate={(row) =>
-            row.kind === 'folder' ? toggleFolder(row.path) : onOpen(row.def.id)
+            row.kind === 'folder' ? toggleFolder(row.path) : props.onOpen(row.def.id)
           }
           onToggleFolder={toggleFolder}
           onMenu={(row, at) => setRowMenu({ row, at })}
           onStartRename={(row) => {
-            if (row.kind === 'circuit' && row.def.id !== MAIN_ID) {
-              onStartRename(row.def.id);
+            if (row.kind === 'folder') {
+              props.onStartRenameFolder(row.path);
+            } else if (row.def.id !== MAIN_ID) {
+              props.onStartRenameCircuit(row.def.id);
             }
           }}
-          onRename={(row, name) => row.kind === 'circuit' && onRename(row.def.id, name)}
-          onCancelRename={onCancelRename}
+          onRename={(row, name) =>
+            row.kind === 'folder'
+              ? props.onRenameFolder(row.path, name)
+              : props.onRenameCircuit(row.def.id, name)
+          }
+          onCancelRename={props.onCancelRename}
+          dropTargetOf={(dragged, over, zone) => dropTarget(project, rows, dragged, over, zone)}
+          onDrop={(dragged, target) => {
+            if (dragged.kind === 'circuit' && target.kind === 'circuit') {
+              props.onDropCircuit(dragged.def.id, target.folder, target.index);
+            } else if (dragged.kind === 'folder' && target.kind === 'folder') {
+              props.onDropFolder(dragged.path, target.parent, target.index);
+            }
+          }}
         />
       </Box>
       {/* 行のメニュー。行ごとに持たず、押した行と位置を覚えて 1 つだけ出す */}
@@ -153,14 +172,26 @@ export const ProjectPanel = memo(function ProjectPanel({
         }}
         anchorPoint={rowMenu?.at}
         onSelect={(e) => {
-          if (menuRow?.kind !== 'circuit') {
+          if (!menuRow) {
+            return;
+          }
+          if (menuRow.kind === 'folder') {
+            const path = menuRow.path;
+            const actions: Record<string, () => void> = {
+              newCircuit: () => props.onNewCircuit(path),
+              newFolder: () => props.onNewFolder(path),
+              rename: () => props.onStartRenameFolder(path),
+              removeFolder: () => props.onRemoveFolder(path),
+            };
+            pending.current = actions[e.value] ?? null;
             return;
           }
           const id = menuRow.def.id;
           const actions: Record<string, () => void> = {
-            open: () => onOpen(id),
-            rename: () => onStartRename(id),
-            remove: () => onRemove(id),
+            open: () => props.onOpen(id),
+            rename: () => props.onStartRenameCircuit(id),
+            moveToFolder: () => props.onMoveToFolder(id),
+            remove: () => props.onRemove(id),
           };
           pending.current = actions[e.value] ?? null;
         }}
@@ -168,19 +199,32 @@ export const ProjectPanel = memo(function ProjectPanel({
       >
         <Portal>
           <Menu.Positioner>
-            <Menu.Content>
-              <Menu.Item value="open">{m.project.open}</Menu.Item>
-              {/* メイン回路は、名前を変えられず、プロジェクトから削除できない */}
-              {!menuIsMain && <Menu.Item value="rename">{m.project.rename}</Menu.Item>}
-              {!menuIsMain && (
-                <>
-                  <Menu.Separator />
-                  <Menu.Item value="remove" color="fg.error">
-                    {m.project.remove}
-                  </Menu.Item>
-                </>
-              )}
-            </Menu.Content>
+            {menuRow?.kind === 'folder' ? (
+              <Menu.Content>
+                <Menu.Item value="newCircuit">{m.project.newCircuit}</Menu.Item>
+                <Menu.Item value="newFolder">{m.project.newFolder}</Menu.Item>
+                <Menu.Separator />
+                <Menu.Item value="rename">{m.project.rename}</Menu.Item>
+                <Menu.Item value="removeFolder" color="fg.error">
+                  {m.project.removeFolder}
+                </Menu.Item>
+              </Menu.Content>
+            ) : (
+              <Menu.Content>
+                <Menu.Item value="open">{m.project.open}</Menu.Item>
+                {/* メイン回路は、名前を変えられず、プロジェクトから削除できない */}
+                {!menuIsMain && <Menu.Item value="rename">{m.project.rename}</Menu.Item>}
+                <Menu.Item value="moveToFolder">{m.project.moveToFolder}</Menu.Item>
+                {!menuIsMain && (
+                  <>
+                    <Menu.Separator />
+                    <Menu.Item value="remove" color="fg.error">
+                      {m.project.remove}
+                    </Menu.Item>
+                  </>
+                )}
+              </Menu.Content>
+            )}
           </Menu.Positioner>
         </Portal>
       </Menu.Root>
@@ -219,7 +263,7 @@ function samePanel(a: ProjectPanelProps, b: ProjectPanelProps): boolean {
 
 function projectKey(project: Project): string {
   return [
-    (project.folders ?? []).join('/'),
+    (project.folders ?? []).join('\n'),
     ...project.circuits.map(
       (d) =>
         `${d.id}:${d.name}:${d.path ?? ''}:${d.parts
