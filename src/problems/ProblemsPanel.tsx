@@ -1,13 +1,13 @@
-import { Box, CloseButton, Flex, Text } from '@chakra-ui/react';
+import { Box, CloseButton, Flex, Tabs, Text } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import errorIcon from '../assets/icons/error.svg';
 import warningIcon from '../assets/icons/warning.svg';
 import { useMessages } from '../i18n/useMessages';
 import { MaskIcon } from '../ui/Icons';
-import type { Problem, ProblemSeverity } from './problems';
+import { countProblems, type Problem, type ProblemSeverity } from './problems';
 
-/** パネルの高さの下限 (px)。これより低いと、1 行も見えなくなる */
-const MIN_HEIGHT = 48;
+/** パネルの高さの下限 (px)。タブバーと 1 行が見える高さ。これより低いと、1 行も見えなくなる */
+const MIN_HEIGHT = 72;
 /** パネルの高さの上限の、画面の高さに対する割合。シートが見えなくならないように */
 const MAX_HEIGHT_RATIO = 0.6;
 /** キーボードで高さを変えるときの 1 回の量 (px) */
@@ -17,6 +17,9 @@ const KEY_STEP = 16;
 function clampHeight(h: number): number {
   return Math.round(Math.max(MIN_HEIGHT, Math.min(window.innerHeight * MAX_HEIGHT_RATIO, h)));
 }
+
+/** パネルのタブの値。同じ位置に出すパネルが増えたら、ここに足す */
+const PROBLEMS_TAB = 'problems';
 
 const SEVERITY_ICON: Record<ProblemSeverity, string> = { error: errorIcon, warning: warningIcon };
 const SEVERITY_COLOR: Record<ProblemSeverity, string> = {
@@ -41,8 +44,9 @@ interface ProblemsPanelProps {
 }
 
 /**
- * シートとステータスバーの間に開く問題パネル。開閉は、ステータスバーの右端の「問題」(ProblemsToggle) と、
- * パネルの右上の閉じるボタンで行う。パネルの上の端をドラッグすると高さを変えられ、ダブルクリックすると既定の高さに戻る
+ * シートとステータスバーの間に開く問題パネル。上にタブバーを置き、今は「問題」のタブだけを出す
+ * (同じ位置に出すパネルが増えたら、タブを足す)。開閉は、ステータスバーの右端の「問題」(ProblemsToggle) と、
+ * タブバーの右端の閉じるボタンで行う。パネルの上の端をドラッグすると高さを変えられ、ダブルクリックすると既定の高さに戻る
  */
 export const ProblemsPanel = memo(function ProblemsPanel({
   problems,
@@ -61,6 +65,7 @@ export const ProblemsPanel = memo(function ProblemsPanel({
   if (!open) {
     return null;
   }
+  const { errors, warnings } = countProblems(problems);
 
   return (
     <Box
@@ -114,33 +119,46 @@ export const ProblemsPanel = memo(function ProblemsPanel({
           }
         }}
       />
-      {/* 閉じるボタン。ステータスバーの「問題」を押しても閉じるが、パネルの中からも閉じられるように。一覧をスクロールしても動かない */}
-      <CloseButton
-        size="xs"
-        variant="ghost"
-        colorPalette="gray"
-        position="absolute"
-        top="1.5"
-        right="2"
-        zIndex="1"
-        aria-label={m.problems.close}
-        title={m.problems.close}
-        onClick={onClose}
-      />
-      {/* 閉じるボタンと重ならないよう、右を空ける */}
-      <Box h="full" overflowY="auto" pe="10">
-        {problems.length === 0 ? (
-          <Text px="3" py="2" color="fg.muted">
-            {m.problems.empty}
-          </Text>
-        ) : (
-          <Box as="ul" py="1">
-            {problems.map((p) => (
-              <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
-            ))}
-          </Box>
-        )}
-      </Box>
+      <Tabs.Root
+        value={PROBLEMS_TAB}
+        variant="line"
+        size="sm"
+        display="flex"
+        flexDirection="column"
+        h="full"
+      >
+        <Flex align="center" pe="2" borderBottomWidth="1px">
+          <Tabs.List px="1" borderBottomWidth="0" flex="1" minW="0">
+            <Tabs.Trigger value={PROBLEMS_TAB} gap="2">
+              {m.problems.title}
+              <ProblemCounts errors={errors} warnings={warnings} />
+            </Tabs.Trigger>
+          </Tabs.List>
+          {/* 閉じるボタン。ステータスバーの「問題」を押しても閉じるが、パネルの中からも閉じられるように */}
+          <CloseButton
+            size="xs"
+            variant="ghost"
+            colorPalette="gray"
+            aria-label={m.problems.close}
+            title={m.problems.close}
+            onClick={onClose}
+          />
+        </Flex>
+        {/* 一覧だけをスクロールする。Tabs.Content に display を書くと、選んでいないタブが隠れなくなるので書かない */}
+        <Tabs.Content value={PROBLEMS_TAB} flex="1" minH="0" overflowY="auto" p="0">
+          {problems.length === 0 ? (
+            <Text px="3" py="2" color="fg.muted">
+              {m.problems.empty}
+            </Text>
+          ) : (
+            <Box as="ul" py="1">
+              {problems.map((p) => (
+                <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
+              ))}
+            </Box>
+          )}
+        </Tabs.Content>
+      </Tabs.Root>
     </Box>
   );
 }, samePanel);
@@ -187,7 +205,6 @@ export function ProblemsToggle({
   onToggle: () => void;
 }) {
   const m = useMessages();
-  const color = errors > 0 ? 'fg.error' : warnings > 0 ? 'fg.warning' : 'fg.muted';
   return (
     <Flex
       as="button"
@@ -207,12 +224,23 @@ export function ProblemsToggle({
       <Text as="span" fontWeight="medium">
         {m.problems.title}
       </Text>
-      <Flex as="span" align="center" gap="1" color={color}>
-        <MaskIcon src={errorIcon} boxSize="3" />
-        {errors}
-        <MaskIcon src={warningIcon} boxSize="3" ms="1" />
-        {warnings}
-      </Flex>
+      <ProblemCounts errors={errors} warnings={warnings} />
+    </Flex>
+  );
+}
+
+/**
+ * エラーと警告のアイコンと数。ステータスバーの「問題」と、パネルの「問題」のタブに出す。
+ * 色は、エラーがあれば赤、警告だけならオレンジ、なければ灰色
+ */
+function ProblemCounts({ errors, warnings }: { errors: number; warnings: number }) {
+  const color = errors > 0 ? 'fg.error' : warnings > 0 ? 'fg.warning' : 'fg.muted';
+  return (
+    <Flex as="span" align="center" gap="1" color={color}>
+      <MaskIcon src={errorIcon} boxSize="3" />
+      {errors}
+      <MaskIcon src={warningIcon} boxSize="3" ms="1" />
+      {warnings}
     </Flex>
   );
 }
