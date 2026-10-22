@@ -103,7 +103,8 @@ export const en: Messages = {
   },
   problems: {
     tab: 'Problems',
-    tabCount: (errors, warnings) => `${errors} errors, ${warnings} warnings`,
+    tabCount: (errors, warnings) =>
+      `${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`,
     empty: 'No problems',
     error: 'Error',
     warning: 'Warning',

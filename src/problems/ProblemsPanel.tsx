@@ -155,7 +155,32 @@ export const ProblemsPanel = memo(function ProblemsPanel({
       </Flex>
     </Box>
   );
-});
+}, samePanel);
+
+/**
+ * 描き直すかの判定。問題の一覧は、回路が変わるたびに (部品のドラッグの一歩ごとにも) 新しい配列で届くので、中身で比べる
+ */
+function samePanel(a: ProblemsPanelProps, b: ProblemsPanelProps): boolean {
+  const sameIds = (x: readonly string[], y: readonly string[]) =>
+    x.length === y.length && x.every((id, i) => id === y[i]);
+  return (
+    a.open === b.open &&
+    a.height === b.height &&
+    a.onToggle === b.onToggle &&
+    a.onHeightChange === b.onHeightChange &&
+    a.onSelect === b.onSelect &&
+    a.problems.length === b.problems.length &&
+    a.problems.every((p, i) => {
+      const q = b.problems[i];
+      return (
+        p.code === q.code &&
+        p.count === q.count &&
+        sameIds(p.parts, q.parts) &&
+        sameIds(p.wires, q.wires)
+      );
+    })
+  );
+}
 
 /**
  * 問題の 1 行。種類のアイコン、文、か所の数。
