@@ -847,7 +847,11 @@ export function Sheet({
                 key={c.id}
                 comp={c}
                 pinout={pinout}
-                name={c.kind === 'module' ? findDef(project, c.circuitId)?.name : undefined}
+                name={
+                  c.kind === 'module'
+                    ? (findDef(project, c.circuitId)?.name ?? c.circuitName)
+                    : undefined
+                }
                 outputValues={Array.from(
                   { length: Math.max(pinout.outputs.length, 1) },
                   (_, i) => !!sim.values.get(pinKey(c.id, i)),
@@ -943,7 +947,11 @@ export function Sheet({
                         key={c.id}
                         comp={c}
                         pinout={pinout}
-                        name={c.kind === 'module' ? findDef(project, c.circuitId)?.name : undefined}
+                        name={
+                          c.kind === 'module'
+                            ? (findDef(project, c.circuitId)?.name ?? c.circuitName)
+                            : undefined
+                        }
                         outputValues={Array.from(
                           { length: Math.max(pinout.outputs.length, 1) },
                           () => false,

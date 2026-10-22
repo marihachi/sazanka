@@ -499,6 +499,8 @@ export function App() {
       inMain: circuit.id === MAIN_ID,
       numberedPackage: usesPinNumbers(circuit.package),
       selectedPortProblem: selectedPart && problems.get(selectedPart.id),
+      selectedUnresolved:
+        selectedPart?.kind === 'module' && !findDef(project, selectedPart.circuitId),
       unexposedPorts: problems.size > 0,
       ticksPerSecond: preferences.ticksPerSecond,
     },
@@ -623,7 +625,8 @@ export function App() {
             part={selectedPart}
             circuitName={
               selectedPart?.kind === 'module'
-                ? findDef(project, selectedPart.circuitId)?.name
+                ? (findDef(project, selectedPart.circuitId)?.name ??
+                  m.sheet.missingName(selectedPart.circuitName ?? ''))
                 : undefined
             }
             otherPortNames={circuit.parts

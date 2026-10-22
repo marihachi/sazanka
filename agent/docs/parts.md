@@ -62,6 +62,7 @@
 - ピンの線とピン名は、入力か出力かではなく辺で描き分ける（`sheet/SheetPart.tsx`）。
 - 配置は、部品のピンの割り当て（`circuit/module.ts` の `Pinout`。ピンの名前、モジュールのパッケージと外側のピン番号）を受け取って返す関数（`PartLayoutOf`）。モジュールは、パッケージとピンの数で形が変わるため。
 - モジュールの配置（`module/layout.ts`）は、パッケージで分かれる。`split` は今までの形（幅 4、ピンは 1 マスおき）、`dip` は幅 3 で左右に 2 マスおき（番号は左上から反時計回り）、`qfp` は正方形で 4 辺に 2 マスおき（角から 2 マスあける。名前は本体の中）。
+  - 未解決のモジュール（指す回路がプロジェクトにない。`Pinout.unresolved`）は、ピンのない幅 6・高さ 3 の箱にする（ピンの数が分からないため）。本体は赤い破線で囲み、中に名前の写し（`Part.circuitName`）と「見つからない」を 2 行で書く（`SheetPart.tsx`）。つながっていた配線は、外れて見える（[計画 20](../plans/unresolved-module/plan.md)）。
 - 上下の辺のピン名は、90 度回して本体の内側に縦に書く（`SheetPart.tsx` の `PinName`）。
 - 種類の `layout.ts` がなければ、動作の分類の既定の配置（`gateLayout`、`flipflopLayout`）になる。INPUT、OUTPUT、CLOCK、HIGH は、種類の `layout.ts` で小さな四角（`squareLayout`）にしている。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は小さな四角の配置の輪郭だけを円にしている）。
 - 本体の中の描き込み（ランプ、矩形波の絵、文字）は、配置ではなく `sheet/SheetPart.tsx` が種類ごとに描いている。

@@ -77,6 +77,8 @@ export const en: Messages = {
   },
   sheet: {
     unknownModule: '(unknown)',
+    missing: 'Not found',
+    missingName: (name) => `${name || '(unknown)'} (not found)`,
     zoomOut: 'Zoom out',
     zoomReset: 'Reset to 100%',
     zoomIn: 'Zoom in',
@@ -116,6 +118,7 @@ export const en: Messages = {
       CONFLICT: 'Outputs are in conflict',
       UNEXPOSED_PORTS: 'Some INPUT / OUTPUT are not on any pin',
       OUTSIDE_SHEET: 'Parts or wires outside the sheet',
+      MISSING_CIRCUIT: (name) => `Circuit not found: ${name || '(unknown)'}`,
     },
   },
   preferences: {
@@ -274,6 +277,8 @@ export const en: Messages = {
       'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
+    unresolvedModule:
+      'This circuit is not in the project. It has no pins and outputs nothing in the simulation',
     portProblems: {
       unassigned: 'This INPUT / OUTPUT has no pin number, so it is not on an outer pin',
       outOfRange:

@@ -29,6 +29,8 @@ export interface Pinout {
    * パッケージが dip / qfp のモジュールだけが持つ
    */
   pinNumbers?: { inputs: number[]; outputs: number[] };
+  /** 指す回路がプロジェクトにない (未解決の) モジュール。ピンはなく、決まった大きさの箱で描く */
+  unresolved?: boolean;
 }
 
 /** ピン番号で外側のピンを決める形か (dip / qfp)。split はポート番号の順で決める */
@@ -121,7 +123,7 @@ export function getPinout(c: Part, project: Project): Pinout {
     const def = findDef(project, c.circuitId);
 
     if (!def) {
-      return { inputs: [], outputs: [], package: { kind: 'split' } };
+      return { inputs: [], outputs: [], unresolved: true };
     }
 
     const { inputs, outputs } = getPortsInPinOrder(def);

@@ -87,6 +87,10 @@ export const ja = {
   },
   sheet: {
     unknownModule: '(不明)',
+    /** 未解決のモジュールの本体に書く */
+    missing: '見つからない',
+    /** 未解決のモジュールを選んだときに、プロパティ欄に出す名前 */
+    missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
     zoomReset: '等倍に戻す',
     zoomIn: '拡大',
@@ -127,7 +131,8 @@ export const ja = {
       CONFLICT: '出力がぶつかっています',
       UNEXPOSED_PORTS: 'ピンに出ていない INPUT / OUTPUT があります',
       OUTSIDE_SHEET: 'シートの外に部品か配線があります',
-    } satisfies Record<ProblemCode, string>,
+      MISSING_CIRCUIT: (name: string) => `見つからない回路: ${name || '(不明)'}`,
+    } satisfies Record<ProblemCode, string | ((name: string) => string)>,
   },
   preferences: {
     title: '環境設定',
@@ -304,6 +309,9 @@ export const ja = {
     /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
+    /** 未解決のモジュール (指す回路がプロジェクトにない) を選んだとき */
+    unresolvedModule:
+      'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {
       unassigned: 'この INPUT / OUTPUT はピン番号がないため、外側のピンに出ていない',
       outOfRange:
