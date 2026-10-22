@@ -140,11 +140,12 @@ export const en: Messages = {
     dipPinsError: 'DIP pin count must be an even number from 4 to 256',
     qfpPinsError: 'QFP pin count must be a multiple of 4 from 8 to 256',
     splitHelp:
-      'Inputs go on the left and outputs on the right, in order of position inside (top to bottom, then left to right). Pin numbers are not used.',
+      'Inputs go on the left and outputs on the right, in order of port number (input 1 and output 1 at the top). Pin numbers are not used.',
     ports: 'Ports',
     duplicatePortName: 'Another port already has this name',
     assignment: 'Pin assignment',
     assignInOrder: 'Reassign from the top',
+    renumberPorts: 'Renumber from the top',
     unassigned: 'Unassigned ports (not on any outer pin):',
     listSeparator: ', ',
     wiringWarning:
@@ -257,7 +258,8 @@ export const en: Messages = {
     circuitSettings:
       '"Circuit settings" in the toolbar changes the package (shape and pin count), port names, and pin assignment',
     splitPackage: [
-      'Moving INPUT / OUTPUT up or down changes the pin order, so outer wires may connect to different pins',
+      'Pins follow the port numbers of INPUT / OUTPUT. Moving an INPUT / OUTPUT does not change the pin order',
+      'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
     portProblems: {

@@ -10,6 +10,7 @@ import {
   calcFittingPins,
   listPortsInNumberOrder,
   listPortsInPositionOrder,
+  renumberPortsByPosition,
   circuitsUsing,
   dependsOn,
   getPortsInPinOrder,
@@ -506,5 +507,46 @@ describe('回路設定の計算', () => {
     const numbered: CircuitDef = { ...def, parts: [{ ...parts[0], pinNumber: 1 }] };
     const result = applyCircuitSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
     expect(result.parts[0]).not.toHaveProperty('pinNumber');
+  });
+});
+
+describe('ポート番号を変える計算', () => {
+  // 入力 1 を下、入力 2 を上、入力 3 を真ん中に置き、出力 1 を下、出力 2 を上に置いたもの
+  // biome-ignore format: 表形式を維持するため
+  const parts: Part[] = [
+    { ...comp('i1', 'input'), y: 80, portNumber: 1 },
+    { ...comp('o1', 'output'), y: 60, portNumber: 1 },
+    { ...comp('i2', 'input'), y: 0, portNumber: 2 },
+    { ...comp('o2', 'output'), y: 0, portNumber: 2 },
+    { ...comp('i3', 'input'), y: 40, portNumber: 3 },
+    { ...comp('g', 'and'), y: 0 },
+  ];
+  const def: CircuitDef = { id: 'm', name: 'M', package: { kind: 'split' }, parts, wires: [] };
+  it('種類ごとに、位置の順 (上から) で 1 から番号を振り直す', () => {
+    expect(renumberPortsByPosition(def)).toEqual(
+      new Map([
+        ['i2', 1],
+        ['i3', 2],
+        ['i1', 3],
+        ['o2', 1],
+        ['o1', 2],
+      ]),
+    );
+  });
+
+  it('ポート番号を当てはめると、split のピンの順が変わる', () => {
+    const result = applyCircuitSettings(
+      def,
+      { kind: 'split' },
+      new Map(),
+      new Map(),
+      new Map([
+        ['i1', 2],
+        ['i2', 1],
+      ]),
+    );
+    expect(getPortsInPinOrder(result).inputs.map((c) => c.id)).toEqual(['i2', 'i1', 'i3']);
+    // 番号を変えないポートは、同じ部品のまま
+    expect(result.parts[4]).toBe(parts[4]);
   });
 });

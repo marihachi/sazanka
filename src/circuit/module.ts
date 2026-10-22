@@ -311,6 +311,23 @@ export function listPortsInNumberOrder(def: Circuit): Part[] {
   ];
 }
 
+/**
+ * ポートのポート番号 (部品 ID → 番号) を、種類ごとに位置の順 (上から、同じ高さなら左から) で 1 から振り直したもの。
+ * 回路設定の「上から順に番号を振り直す」で使う (番号を振り直すときは位置の順、という取り決めのため)
+ */
+export function renumberPortsByPosition(def: Circuit): Map<string, number> {
+  const numbers = new Map<string, number>();
+  for (const kind of ['input', 'output'] as const) {
+    def.parts
+      .filter((c) => c.kind === kind)
+      .sort(byPosition)
+      .forEach((c, i) => {
+        numbers.set(c.id, i + 1);
+      });
+  }
+  return numbers;
+}
+
 /** ポートの並び ports の先頭から、1 から pins までの番号を順に割り当てる (部品 ID → 番号)。番号が足りなければ、残りは割り当てない */
 export function assignInOrder(ports: readonly Part[], pins: number): Map<string, number> {
   return new Map(ports.slice(0, pins).map((c, i) => [c.id, i + 1]));
@@ -328,20 +345,25 @@ export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
 /**
  * 回路設定 (パッケージ、ポートの名前、ピンの割り当て) を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
  * numbers にないポート、ピン数を超える番号、split の回路のポートからは、ピン番号を外す。
- * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
+ * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)。
+ * portNumbers (部品 ID → ポート番号) があるポートは、ポート番号も変える (split では、ピンの順が変わる)
  */
 export function applyCircuitSettings<T extends Circuit & { package?: Package }>(
   def: T,
   pkg: Package,
   numbers: ReadonlyMap<string, number>,
   portNames: ReadonlyMap<string, string> = new Map(),
+  portNumbers: ReadonlyMap<string, number> = new Map(),
 ): T {
   const parts = def.parts.map((c) => {
     if (!isPort(c)) {
       return c;
     }
     const text = portNames.get(c.id);
-    const named = text === undefined ? c : withPortName(c, text);
+    const portNumber = portNumbers.get(c.id);
+    const renumbered =
+      portNumber === undefined || portNumber === c.portNumber ? c : { ...c, portNumber };
+    const named = text === undefined ? renumbered : withPortName(renumbered, text);
     const n = numbers.get(c.id);
     if (!usesPinNumbers(pkg) || n === undefined || n < 1 || n > pkg.pins) {
       return named.pinNumber === undefined ? named : withoutPinNumber(named);
