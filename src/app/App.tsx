@@ -534,7 +534,7 @@ export function App() {
     toggleRunning,
     stepOnce,
     stepBack,
-    deleteCircuit: circuits.deleteCircuit,
+    removeCircuit: circuits.removeCircuit,
     openCircuitSettings: () => dialogs.openCircuitSettings(circuit.id),
     changeTool,
     rotate: () => rotate('cw'),
@@ -582,7 +582,7 @@ export function App() {
           onStepBack={on.stepBack}
           canStepBack={canStepBack}
           onCircuitSettings={on.openCircuitSettings}
-          onDeleteCircuit={circuit.id !== MAIN_ID ? on.deleteCircuit : undefined}
+          onRemoveCircuit={circuit.id !== MAIN_ID ? on.removeCircuit : undefined}
         />
         <Flex flex="1" minH="0">
           <Palette

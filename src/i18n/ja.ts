@@ -67,7 +67,7 @@ export const ja = {
     circuitSettings: '回路設定',
     circuitSettingsTitle:
       '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
-    deleteCircuit: '回路を削除',
+    removeCircuit: 'プロジェクトから削除',
   },
   palette: {
     groups: {
@@ -203,10 +203,14 @@ export const ja = {
     add: '追加',
     nameRequired: '名前を入力してください',
     nameTaken: '同じ名前の回路がすでにあります',
-    inUse: (name: string, users: string[]) =>
-      `「${name}」は次の回路で使われているため削除できません: ${users.join(', ')}`,
-    confirmDelete: (name: string) => `回路「${name}」を削除しますか？`,
-    delete: '削除',
+    confirmRemove: (name: string) => `「${name}」をプロジェクトから削除しますか？`,
+    /**
+     * ほかの回路に置かれている回路を削除するときの確認。first は置いている最初の回路、
+     * circuits は置いている回路の数、count は置いている部品の数
+     */
+    confirmRemoveUsed: (name: string, first: string, circuits: number, count: number) =>
+      `「${name}」をプロジェクトから削除します。中身はプロジェクトからなくなり、置いている部品（${first}${circuits === 1 ? 'の' : 'など'} ${count} か所）は未解決のモジュールとして残ります。`,
+    remove: '削除',
     cannotPaste: (name: string) =>
       `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
   },

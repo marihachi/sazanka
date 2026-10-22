@@ -3,6 +3,7 @@ import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
+import type { Part } from '../circuit/part';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import {
   type CircuitDef,
@@ -122,35 +123,34 @@ export function useCircuits({
     }));
   }
 
-  /** 開いている回路を削除する。ほかの回路で使われていれば断る */
-  function deleteCircuit() {
+  /**
+   * 開いている回路をプロジェクトから削除する (確認を出してから)。ほかの回路に置かれていても削除できる。
+   * 置いている部品は残り、指す回路がなくなるので未解決のモジュールになる。何が足りないかを見せるため、
+   * その部品に今の名前の写し (circuitName) を持たせる。元に戻す 1 回で、回路も部品も戻る
+   */
+  function removeCircuit() {
     const users = circuitsUsing(project, circuit.id);
-    if (users.length > 0) {
-      showConfirm({
-        message: m.circuits.inUse(
-          circuit.name,
-          users.map((d) => getCircuitName(d, m)),
-        ),
-      });
-      return;
-    }
     const id = circuit.id;
+    const name = circuit.name;
+    const placed = project.circuits
+      .flatMap((d) => d.parts)
+      .filter((c) => c.kind === 'module' && c.circuitId === id).length;
     showConfirm({
-      message: m.circuits.confirmDelete(circuit.name),
-      confirmLabel: m.circuits.delete,
+      message:
+        users.length > 0
+          ? m.circuits.confirmRemoveUsed(name, getCircuitName(users[0], m), users.length, placed)
+          : m.circuits.confirmRemove(name),
+      confirmLabel: m.circuits.remove,
       danger: true,
       onConfirm: () => {
-        setProject((p) => ({
-          ...p,
-          circuits: p.circuits.filter((d) => d.id !== id),
-        }));
+        setProject((p) => removeCircuitFrom(p, id, name));
         onDeleted(id);
         openCircuit(MAIN_ID);
       },
     });
   }
 
-  return { paletteModules, createCircuit, renameCircuit, deleteCircuit };
+  return { paletteModules, createCircuit, renameCircuit, removeCircuit };
 }
 
 /** 回路の名前が使えない理由 (checkCircuitName) を、欄の下に出す文にする */
@@ -163,4 +163,22 @@ export function describeNameProblem(
     : problem === 'TAKEN'
       ? m.circuits.nameTaken
       : undefined;
+}
+
+/**
+ * 回路 id をプロジェクトから削除したプロジェクト。id を指していた部品は残し、名前の写し name を持たせる (未解決のモジュールになる)。
+ * 部品を書き換えない回路は、同じものを使う
+ */
+export function removeCircuitFrom(project: Project, id: string, name: string): Project {
+  const points = (c: Part) => c.kind === 'module' && c.circuitId === id;
+  return {
+    ...project,
+    circuits: project.circuits
+      .filter((d) => d.id !== id)
+      .map((d) =>
+        d.parts.some(points)
+          ? { ...d, parts: d.parts.map((c) => (points(c) ? { ...c, circuitName: name } : c)) }
+          : d,
+      ),
+  };
 }

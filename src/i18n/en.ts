@@ -57,7 +57,7 @@ export const en: Messages = {
     circuitSettings: 'Circuit settings',
     circuitSettingsTitle:
       'Circuit settings: change the sheet size, package, port names, and pin assignment',
-    deleteCircuit: 'Delete circuit',
+    removeCircuit: 'Remove from project',
   },
   palette: {
     groups: {
@@ -185,10 +185,10 @@ export const en: Messages = {
     add: 'Add',
     nameRequired: 'Enter a name',
     nameTaken: 'A circuit with this name already exists',
-    inUse: (name, users) =>
-      `"${name}" cannot be deleted because it is used in: ${users.join(', ')}`,
-    confirmDelete: (name) => `Delete circuit "${name}"?`,
-    delete: 'Delete',
+    confirmRemove: (name) => `Remove "${name}" from the project?`,
+    confirmRemoveUsed: (name, first, circuits, count) =>
+      `Remove "${name}" from the project. Its contents will be removed from the project, and the parts placed (${count} ${count === 1 ? 'place' : 'places'} in ${first}${circuits === 1 ? '' : ' and others'}) will remain as unresolved modules.`,
+    remove: 'Remove',
     cannotPaste: (name) => `"${name}" cannot be pasted here because it contains this circuit`,
   },
   file: {

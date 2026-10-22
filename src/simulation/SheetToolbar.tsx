@@ -34,7 +34,7 @@ interface SheetToolbarProps {
   /** 開いている回路の回路設定 (作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て) を開く。メイン回路でも出す */
   onCircuitSettings: () => void;
   /** 開いている回路がメイン回路以外なら、それを削除する。メイン回路では出さない (場所は空けておく) */
-  onDeleteCircuit?: () => void;
+  onRemoveCircuit?: () => void;
 }
 
 /**
@@ -52,7 +52,7 @@ export const SheetToolbar = memo(function SheetToolbar({
   onStepBack,
   canStepBack,
   onCircuitSettings,
-  onDeleteCircuit,
+  onRemoveCircuit,
 }: SheetToolbarProps) {
   const m = useMessages();
   return (
@@ -116,12 +116,12 @@ export const SheetToolbar = memo(function SheetToolbar({
           onClick={onCircuitSettings}
         />
         {/* メイン回路では削除のボタンを出さないが、タブを切り替えても「回路設定」の位置が動かないよう、場所は空けておく */}
-        <Box visibility={onDeleteCircuit ? undefined : 'hidden'} aria-hidden={!onDeleteCircuit}>
+        <Box visibility={onRemoveCircuit ? undefined : 'hidden'} aria-hidden={!onRemoveCircuit}>
           <ToolButton
             icon={trashIcon}
-            label={m.toolbar.deleteCircuit}
-            onClick={onDeleteCircuit ?? (() => {})}
-            disabled={!onDeleteCircuit}
+            label={m.toolbar.removeCircuit}
+            onClick={onRemoveCircuit ?? (() => {})}
+            disabled={!onRemoveCircuit}
             danger
           />
         </Box>
