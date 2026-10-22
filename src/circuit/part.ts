@@ -21,6 +21,12 @@ export interface Part {
   portName?: string;
   /** モジュールの部品が指している回路の ID (どの回路をモジュールとして置いたか) */
   circuitId?: string;
+  /**
+   * 指している回路の名前の写し。指す回路がプロジェクトにない (未解決の) モジュールの部品だけが持つ。
+   * 指す回路があるときは回路の名前を使うので持たせない (改名のたびに書き換えずに済むように)。
+   * 読み込んだときに指す回路がなかった部品と、指す回路をプロジェクトから削除した部品に付ける
+   */
+  circuitName?: string;
   /** CLOCK が ON/OFF を一往復する tick 数。なければ DEFAULT_CLOCK_PERIOD */
   period?: number;
   /**

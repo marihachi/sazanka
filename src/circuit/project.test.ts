@@ -267,7 +267,6 @@ describe('checkProject', () => {
     ['CLOCK に周期がない', main([comp('c', 'clock')]), 'BAD_ELEMENT'],
     ['モジュールの部品に circuitId がない', withModule([{ ...comp('u', 'module'), circuitName: 'M' }], []), 'BAD_ELEMENT'],
     ['モジュールの部品に名前の写しがない', withModule([comp('u', 'module', { circuitId: 'm' })], []), 'BAD_ELEMENT'],
-    ['存在しないモジュールを参照', main([moduleOf('u', 'ない', 'X')]), 'MISSING_CIRCUIT'],
     ['ピン番号が整数でない', main([{ ...port('i', 'input', 1), pinNumber: 1.5 }]), 'BAD_ELEMENT'],
     ['ピン番号が数値でない', main([{ ...port('i', 'input', 1), pinNumber: '1' }]), 'BAD_ELEMENT'],
     ['向きが 90 度の倍数でない', main([{ ...comp('a', 'and'), rotation: 45 }]), 'BAD_ELEMENT'],

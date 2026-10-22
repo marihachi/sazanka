@@ -490,4 +490,30 @@ describe('readTicksPerSecond', () => {
       expect(readTicksPerSecond(value)).toBe(100);
     }
   });
+
+  it('指す回路がない (未解決の) 部品は、名前の写しを残し、保存するときもそのまま書く', () => {
+    const stored = toStoredProject(withModule);
+    const [main] = stored.circuits;
+    const missing = {
+      ...stored,
+      circuits: [
+        {
+          ...main,
+          circuit: {
+            ...main.circuit,
+            elements: main.circuit.elements.map((e) =>
+              e.kind === 'module' ? { ...e, circuitId: 'gone', circuitName: '消えた回路' } : e,
+            ),
+          },
+        },
+      ],
+    };
+    const app = fromStoredProject(missing, counter());
+    const part = app.circuits[0].parts.find((c) => c.kind === 'module');
+    expect(part).toMatchObject({ circuitId: 'gone', circuitName: '消えた回路' });
+    const again = toStoredProject(app).circuits[0].circuit.elements.find(
+      (e) => e.kind === 'module',
+    );
+    expect(again).toMatchObject({ circuitId: 'gone', circuitName: '消えた回路' });
+  });
 });

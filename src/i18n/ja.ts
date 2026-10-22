@@ -242,7 +242,6 @@ export const ja = {
         e.folder === ''
           ? `同じ名前の回路があります: ${e.name}`
           : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
-      MISSING_CIRCUIT: (e) => `「${e.circuit}」に、存在しない回路のモジュールがあります`,
     } satisfies ErrorTexts<ProjectError>,
     /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
     projectFile: {

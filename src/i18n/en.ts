@@ -221,7 +221,6 @@ export const en: Messages = {
         e.folder === ''
           ? `There are circuits with the same name: ${e.name}`
           : `The folder "${e.folder}" has circuits with the same name: ${e.name}`,
-      MISSING_CIRCUIT: (e) => `"${e.circuit}" has a module of a circuit that does not exist`,
     },
     projectFile: {
       NOT_JSON: 'Cannot be read as JSON',

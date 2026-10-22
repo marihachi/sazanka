@@ -89,7 +89,7 @@ function upgradeElement(e: Element, circuitNames: ReadonlyMap<string, string>): 
     return {
       ...rest,
       circuitId: module,
-      // 指す先の回路がないモジュールは、写す名前がない。検証で断る (見つからない回路)
+      // 指す先の回路がないモジュールは、写す名前がない。未解決のモジュールとして、空の写しで読む
       circuitName: typeof module === 'string' ? (circuitNames.get(module) ?? '') : '',
     };
   }
