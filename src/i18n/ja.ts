@@ -121,6 +121,7 @@ export const ja = {
     /** 起きているか所の数 */
     count: (n: number) => `${n} か所`,
     resize: '問題パネルの高さを変える',
+    close: '問題パネルを閉じる',
     messages: {
       UNSTABLE: '発振しています',
       CONFLICT: '出力がぶつかっています',

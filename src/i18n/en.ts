@@ -110,6 +110,7 @@ export const en: Messages = {
     warning: 'Warning',
     count: (n) => (n === 1 ? '1 place' : `${n} places`),
     resize: 'Resize the problems panel',
+    close: 'Close the problems panel',
     messages: {
       UNSTABLE: 'Oscillating',
       CONFLICT: 'Outputs are in conflict',

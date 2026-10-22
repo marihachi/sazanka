@@ -1,4 +1,4 @@
-import { Box, Flex, Text } from '@chakra-ui/react';
+import { Box, CloseButton, Flex, Text } from '@chakra-ui/react';
 import { memo, useRef, useState } from 'react';
 import errorIcon from '../assets/icons/error.svg';
 import warningIcon from '../assets/icons/warning.svg';
@@ -40,7 +40,7 @@ interface ProblemsPanelProps {
 /**
  * シートとステータスバーの間に置く、「問題」のタブの列と問題パネル。
  * タブを押すたびに、タブの上にパネルを開閉する。開いているときは、タブとパネルを同じ背景にしてつなげて見せる。
- * パネルの上の端をドラッグすると、高さを変えられる
+ * パネルの右上の閉じるボタンでも閉じられる。パネルの上の端をドラッグすると、高さを変えられる
  */
 export const ProblemsPanel = memo(function ProblemsPanel({
   problems,
@@ -62,14 +62,7 @@ export const ProblemsPanel = memo(function ProblemsPanel({
   return (
     <Box flexShrink={0}>
       {open && (
-        <Box
-          position="relative"
-          h={`${shown}px`}
-          bg="bg.panel"
-          borderTopWidth="1px"
-          overflowY="auto"
-          textStyle="sm"
-        >
+        <Box position="relative" h={`${shown}px`} bg="bg.panel" borderTopWidth="1px" textStyle="sm">
           {/* 高さを変える取っ手。パネルの上の端 */}
           <Box
             role="separator"
@@ -77,10 +70,10 @@ export const ProblemsPanel = memo(function ProblemsPanel({
             aria-label={m.problems.resize}
             aria-valuenow={shown}
             tabIndex={0}
-            position="sticky"
+            position="absolute"
             top="0"
+            insetX="0"
             h="1.5"
-            mb="-1.5"
             cursor="ns-resize"
             zIndex="1"
             _hover={{ bg: 'border.emphasized' }}
@@ -112,17 +105,33 @@ export const ProblemsPanel = memo(function ProblemsPanel({
               }
             }}
           />
-          {problems.length === 0 ? (
-            <Text px="3" py="2" color="fg.muted">
-              {m.problems.empty}
-            </Text>
-          ) : (
-            <Box as="ul" py="1">
-              {problems.map((p) => (
-                <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
-              ))}
-            </Box>
-          )}
+          {/* 閉じるボタン。タブを押しても閉じるが、パネルの中からも閉じられるように。一覧をスクロールしても動かない */}
+          <CloseButton
+            size="xs"
+            variant="ghost"
+            colorPalette="gray"
+            position="absolute"
+            top="1.5"
+            right="2"
+            zIndex="1"
+            aria-label={m.problems.close}
+            title={m.problems.close}
+            onClick={onToggle}
+          />
+          {/* 閉じるボタンと重ならないよう、右を空ける */}
+          <Box h="full" overflowY="auto" pe="10">
+            {problems.length === 0 ? (
+              <Text px="3" py="2" color="fg.muted">
+                {m.problems.empty}
+              </Text>
+            ) : (
+              <Box as="ul" py="1">
+                {problems.map((p) => (
+                  <ProblemRow key={p.code} problem={p} onSelect={onSelect} />
+                ))}
+              </Box>
+            )}
+          </Box>
         </Box>
       )}
       {/* タブの列。タブは左に寄せ、開いているときはパネルと同じ背景にして、下に垂れ下がる取っ手に見せる */}
