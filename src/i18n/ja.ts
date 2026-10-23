@@ -119,12 +119,13 @@ export const ja = {
   },
   /** 回路ファイルへの書き出しと、回路ファイルからの読み込み (計画 22) */
   exchange: {
-    /** ヘッダーの「ファイル」のメニュー */
-    importMenu: '回路を読み込む…',
-    exportMenu: '回路を書き出す…',
+    /** ヘッダーの「回路」のメニュー */
+    menu: '回路',
+    importMenu: '回路のインポート…',
+    exportMenu: '回路のエクスポート…',
     /** プロジェクトパネルの行のメニュー */
     exportRow: '書き出す…',
-    exportTitle: '回路を書き出す',
+    exportTitle: '回路のエクスポート',
     exportTarget: '書き出す回路',
     includeDependencies: '依存する回路も含める',
     exportList: (n: number) => `書き出すもの (${n} 個)`,
@@ -132,7 +133,7 @@ export const ja = {
     dependency: '依存',
     noExportable: '書き出せる回路がありません',
     save: 'ファイルに保存',
-    importTitle: '回路を読み込む',
+    importTitle: '回路のインポート',
     file: 'ファイル',
     pickFile: 'ファイルを選ぶ',
     noFile: 'まだ選んでいません',
@@ -368,7 +369,7 @@ export const ja = {
       PROJECT_FILE:
         'これはプロジェクトファイルです。プロジェクトを開くときは「ファイル」の「開く…」を使ってください',
       SINGLE_CIRCUIT:
-        '回路のデータだけのファイルは読み込めません。「回路を書き出す…」で保存した回路ファイルを選んでください',
+        '回路のデータだけのファイルは読み込めません。「回路のエクスポート…」で保存した回路ファイルを選んでください',
       BROKEN: (detail: string) => `回路ファイルが壊れています (${detail})`,
     } satisfies ErrorTexts<Exclude<CircuitsFileError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;

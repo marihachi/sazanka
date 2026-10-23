@@ -103,6 +103,7 @@ export const en: Messages = {
     apply: 'Replace',
   },
   exchange: {
+    menu: 'Circuits',
     importMenu: 'Import circuits…',
     exportMenu: 'Export circuits…',
     exportRow: 'Export…',
