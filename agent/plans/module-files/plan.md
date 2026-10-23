@@ -148,3 +148,17 @@
    - 読み込みのダイアログ（ファイルを選ぶ、読み込み先のフォルダ（新しいフォルダも作れる）、読み込む回路の一覧と扱い、⚠ の知らせ（ホバーと押す）、読み込む）。まとめて 1 回の編集で、元に戻せる。
    - 文言（日本語と英語）、[UI](../../docs/ui.md)、[用語](../../docs/glossary.md)、操作マニュアル。
 - 確かめること: テスト（入れ子、ぶつかり、ピンの変化、`id` が付け直されないこと、スキップで見つからなくなること）。ブラウザでの操作（書き出して読み込み直す、同じ `id` の置き換えとスキップ、名前の重なり、違う種類のファイル、元に戻す）と荒い操作。
+
+## 進み具合
+
+- 段階 1: 終えた（2026-10-23）。ドラフトの PR: #33。整形、Lint、型、テスト（520 件）、ビルドが通る。
+  - `file/circuitsFile.ts`: `serializeCircuits`、`parseCircuits`（`NOT_JSON`、`NOT_SAZANKA`、`NEWER_VERSION`、`PROJECT_FILE`、`SINGLE_CIRCUIT`、`BROKEN`）、`getCircuitsFileName`。検証は `circuit/project.ts` の `checkCircuitsFile`（中の回路は `checkCircuit`。メイン回路は `HAS_MAIN`）。版は `CIRCUITS_FILE_FORMAT_VERSION`（`file/upgrade/index.ts`）。
+  - `project/exchange.ts`: `withDependencies`、`defaultImportActions`、`planImport`（一覧の行: 選べる扱い、プロジェクトでの名前、名前が変わるか、ピンが変わるか、読み込まないと見つからなくなるか、循環するか）、`importCircuits`。
+  - 回路 1 つの変え方を `storage.ts` から切り出した（`toStoredCircuit` を公開、`fromStoredCircuit` を足した。プロジェクトの読み書きの結果は変えていない）。名前の重なりを避ける `uniqueName`（`folders.ts`）、外側のピンを比べる `samePinout`（`replace.ts`）も切り出した。
+  - 形式の文書 `docs/format/circuits/v1.md` を足し、[保存データ](../../docs/persistence.md)に版の状態と「回路ファイル」の節を足した。
+
+## 実装で変わったこと
+
+- 持ち込むとモジュールの置き方が循環する（同じ ID の回路を、別のプロジェクトで逆向きに置いた版に置き換えるなど）ことがあるので、そうなる行に印を付け、循環があるうちは読み込めないようにする（エージェントが決めた。計画になかった）。
+- 読み込むときは、モジュールの部品の名前と大きさの写しをいったんすべて残し、持ち込んだあとに、指す回路がある部品の写しを外す。今まで見つからなかったプロジェクトのモジュールも、持ち込んだ回路で見つかれば写しを外す。
+- 回路ファイルの中の名前の重なりは断らない（持ち込むときに名前を変えるため）。
