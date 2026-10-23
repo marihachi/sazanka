@@ -688,14 +688,16 @@ export function App() {
             />
           )}
           <Flex direction="column" flex="1" minW="0">
-            <TabBar
-              circuits={openCircuits}
-              currentId={current?.id}
-              onOpen={on.openCircuit}
-              onClose={on.closeTab}
-              onReorder={on.reorderTabs}
-            />
-            {/* タブがないときは、ツールバーも出さない (開発者が決めた) */}
+            {/* タブがないときは、タブバー (空の帯) もツールバーも出さない (開発者が決めた) */}
+            {openCircuits.length > 0 && (
+              <TabBar
+                circuits={openCircuits}
+                currentId={current?.id}
+                onOpen={on.openCircuit}
+                onClose={on.closeTab}
+                onReorder={on.reorderTabs}
+              />
+            )}
             {!noCircuit && (
               <SheetToolbar
                 tool={tool}
