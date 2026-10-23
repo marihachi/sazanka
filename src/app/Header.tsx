@@ -17,6 +17,10 @@ interface HeaderProps {
   onNewProject: () => void;
   onOpenProject: () => void;
   onSaveProjectAs: () => void;
+  /** 回路を読み込むダイアログを開く */
+  onImportCircuits: () => void;
+  /** 回路を書き出すダイアログを開く */
+  onExportCircuits: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -26,7 +30,7 @@ interface HeaderProps {
 }
 
 /**
- * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (「ファイル」のメニュー (新規作成、開く、名前を付けて保存)、元に戻す、やり直し)、
+ * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (「ファイル」のメニュー (新規作成、開く、名前を付けて保存、回路の読み込みと書き出し)、元に戻す、やり直し)、
  * 環境設定、このアプリについて。
  * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーに、
  * 回路とフォルダの操作はプロジェクトパネルにある
@@ -35,6 +39,8 @@ export const Header = memo(function Header({
   onNewProject,
   onOpenProject,
   onSaveProjectAs,
+  onImportCircuits,
+  onExportCircuits,
   canUndo,
   canRedo,
   onUndo,
@@ -80,8 +86,13 @@ export const Header = memo(function Header({
             } else if (e.value === 'saveAs') {
               onSaveProjectAs();
             }
-            // 確認のダイアログを出す新規作成は、閉じ終わってから行う
-            pending.current = e.value === 'new' ? onNewProject : null;
+            // ダイアログを出す操作 (新規作成の確認、回路の読み込みと書き出し) は、閉じ終わってから行う
+            const later: Record<string, () => void> = {
+              new: onNewProject,
+              importCircuits: onImportCircuits,
+              exportCircuits: onExportCircuits,
+            };
+            pending.current = later[e.value] ?? null;
           }}
           onExitComplete={() => {
             const action = pending.current;
@@ -110,6 +121,15 @@ export const Header = memo(function Header({
                 <Menu.Item value="saveAs">
                   <ToolIcon src={exportIcon} />
                   {m.header.saveProjectAs}
+                </Menu.Item>
+                <Menu.Separator />
+                {/* 回路の読み込みと書き出しは、プロジェクトの開く・保存と取り違えないよう、区切ってアイコンを付けない。
+                    文字の位置はほかの項目にそろえる */}
+                <Menu.Item value="importCircuits" ps="8">
+                  {m.exchange.importMenu}
+                </Menu.Item>
+                <Menu.Item value="exportCircuits" ps="8">
+                  {m.exchange.exportMenu}
                 </Menu.Item>
               </Menu.Content>
             </Menu.Positioner>

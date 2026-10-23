@@ -2,6 +2,7 @@
 // 部品の種類ごとの文言は、種類のフォルダの view.ts に言語ごとに書く
 import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
+import type { CircuitsFileError } from '../file/circuitsFile';
 import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
 import type { ProblemCode } from '../problems/problems';
@@ -115,6 +116,50 @@ export const ja = {
       'ピンの数か並びが違うため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。差し替えたあとに確かめてください。',
     removeSource: (name: string) => `差し替えたあと、「${name}」をプロジェクトから削除する`,
     apply: '差し替える',
+  },
+  /** 回路ファイルへの書き出しと、回路ファイルからの読み込み (計画 22) */
+  exchange: {
+    /** ヘッダーの「ファイル」のメニュー */
+    importMenu: '回路を読み込む…',
+    exportMenu: '回路を書き出す…',
+    /** プロジェクトパネルの行のメニュー */
+    exportRow: '書き出す…',
+    exportTitle: '回路を書き出す',
+    exportTarget: '書き出す回路',
+    includeDependencies: '依存する回路も含める',
+    exportList: (n: number) => `書き出すもの (${n} 個)`,
+    /** 依存する回路として加わったもの */
+    dependency: '依存',
+    noExportable: '書き出せる回路がありません',
+    save: 'ファイルに保存',
+    importTitle: '回路を読み込む',
+    file: 'ファイル',
+    pickFile: 'ファイルを選ぶ',
+    noFile: 'まだ選んでいません',
+    fileSummary: (name: string, n: number) => `${name} (${n} 個の回路)`,
+    targetFolder: '読み込み先のフォルダ',
+    circuits: '読み込む回路',
+    fileName: 'ファイルでの名前',
+    projectName: 'プロジェクトでの名前',
+    action: '扱い',
+    actions: {
+      add: '追加',
+      addRenamed: '追加（名前を変更）',
+      replace: '置き換える',
+      skip: 'スキップ',
+    },
+    /** 行の ⚠ の読み上げ名 */
+    warning: '注意',
+    pinsChange:
+      'ピンの数か並びが変わるため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。',
+    /** users は、使っている回路の名前を usersSeparator でつないだもの */
+    willBeMissing: (users: string) =>
+      `スキップすると見つからないモジュールになります（「${users}」が使っています）。`,
+    usersSeparator: '」「',
+    cycle:
+      '読み込むとモジュールの置き方が循環するため、読み込めません。この回路か、循環する相手をスキップしてください。',
+    empty: 'ファイルに回路が入っていません',
+    apply: '読み込む',
   },
   palette: {
     toolbar: '部品の操作',
@@ -315,6 +360,19 @@ export const ja = {
       BROKEN: (detail: string) => string;
     },
     /** 保存データを読み込めなかった理由。このあとに file.openedEmpty で「空のプロジェクトで開きます。」を続ける */
+    /** 回路ファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
+    circuitsFile: {
+      NOT_JSON: 'JSON として読み取れません',
+      NOT_SAZANKA: 'sazanka の回路ファイルではありません',
+      NEWER_VERSION: '新しい版の sazanka で作られたデータです',
+      PROJECT_FILE:
+        'これはプロジェクトファイルです。プロジェクトを開くときは「ファイル」の「開く…」を使ってください',
+      SINGLE_CIRCUIT:
+        '回路のデータだけのファイルは読み込めません。「回路を書き出す…」で保存した回路ファイルを選んでください',
+      BROKEN: (detail: string) => `回路ファイルが壊れています (${detail})`,
+    } satisfies ErrorTexts<Exclude<CircuitsFileError, { code: 'BROKEN' }>> & {
+      BROKEN: (detail: string) => string;
+    },
     stored: {
       BROKEN: '保存データが壊れていたため読み込めませんでした。',
       NEWER_VERSION: '新しい版の sazanka で保存されたデータのため読み込めませんでした。',

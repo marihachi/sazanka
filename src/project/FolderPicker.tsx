@@ -6,7 +6,7 @@ import { InlineInput } from '../ui/InlineInput';
 import { treeRows } from './folders';
 
 /**
- * フォルダを選ぶ木 (回路の追加のダイアログで使う。計画 22 の読み込みのダイアログでも使う)。
+ * フォルダを選ぶ木 (回路の追加のダイアログと、回路の読み込みのダイアログで使う)。
  * いちばん上に「(フォルダなし)」、その下にフォルダを木の形で並べる (回路は出さない)。
  * 「フォルダを作る」を押すと、選んでいるフォルダの中に入力欄を出し、確定するとフォルダを作って選ぶ
  * (ダイアログを重ねないため、入力欄は一覧の中に出す。開発者が決めた)
@@ -16,8 +16,11 @@ export function FolderPicker({
   value,
   onChange,
   onCreate,
+  label,
 }: {
   project: Project;
+  /** 一覧の見出し。省略すると「フォルダ」 */
+  label?: string;
   /** 選んでいるフォルダのパス。空ならフォルダなし */
   value: string;
   onChange: (path: string) => void;
@@ -122,7 +125,7 @@ export function FolderPicker({
     <Stack gap="2">
       <Flex align="center" justify="space-between">
         <Text textStyle="sm" fontWeight="medium">
-          {m.folders.folder}
+          {label ?? m.folders.folder}
         </Text>
         <Button
           size="xs"

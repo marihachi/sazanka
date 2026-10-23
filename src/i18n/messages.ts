@@ -1,6 +1,7 @@
 // 言語ごとの文言の表の一覧と、その形。表の中身は言語ごとのファイル (ja.ts) に置く。
 // 計算の側が返すエラーを、表の文にする処理もここに置く (言語によらない)
 import { type CircuitDef, MAIN_ID, type ProjectError } from '../circuit/project';
+import type { CircuitsFileError } from '../file/circuitsFile';
 import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
 import { en } from './en';
@@ -47,6 +48,14 @@ export function describeProjectFileError(m: Messages, e: ProjectFileError): stri
     return m.errors.projectFile.BROKEN(describeProjectError(m, e.detail));
   }
   return describeError(m.errors.projectFile, e);
+}
+
+/** 回路ファイルを読み込めなかった理由を文にする。壊れていたときは、検証で見つかった問題も添える */
+export function describeCircuitsFileError(m: Messages, e: CircuitsFileError): string {
+  if (e.code === 'BROKEN') {
+    return m.errors.circuitsFile.BROKEN(describeProjectError(m, e.detail));
+  }
+  return describeError(m.errors.circuitsFile, e);
 }
 
 /** 保存データを読み込めなかった理由を文にする */

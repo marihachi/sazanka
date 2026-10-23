@@ -31,6 +31,10 @@ interface ProjectPanelProps {
   onRemoveFolder: (path: string) => void;
   /** 回路を置いている部品を、別の回路に差し替える (ダイアログは呼ぶ側が出す) */
   onReplace: (id: string) => void;
+  /** 回路 id に印を付けて、回路を書き出すダイアログを開く */
+  onExport: (id: string) => void;
+  /** フォルダ path の中の回路に印を付けて、回路を書き出すダイアログを開く */
+  onExportFolder: (path: string) => void;
   /** フォルダ folder に回路を追加する (ダイアログで、folder を選んだ状態で始める) */
   onNewCircuit: (folder: string) => void;
   /** フォルダ parent の中にフォルダを作る */
@@ -197,6 +201,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
               newFolder: () => props.onNewFolder(path),
               rename: () => props.onStartRenameFolder(path),
               removeFolder: () => props.onRemoveFolder(path),
+              export: () => props.onExportFolder(path),
             };
             pending.current = actions[e.value] ?? null;
             return;
@@ -206,6 +211,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
             open: () => props.onOpen(id),
             rename: () => props.onStartRenameCircuit(id),
             replace: () => props.onReplace(id),
+            export: () => props.onExport(id),
             remove: () => props.onRemove(id),
           };
           pending.current = actions[e.value] ?? null;
@@ -223,6 +229,8 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
                 <Menu.Item value="newFolder">{m.project.newFolder}</Menu.Item>
                 <Menu.Separator />
                 <Menu.Item value="rename">{m.project.rename}</Menu.Item>
+                <Menu.Item value="export">{m.exchange.exportRow}</Menu.Item>
+                <Menu.Separator />
                 <Menu.Item value="removeFolder" color="fg.error">
                   {m.project.removeFolder}
                 </Menu.Item>
@@ -234,6 +242,8 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
                 {!menuIsMain && <Menu.Item value="rename">{m.project.rename}</Menu.Item>}
                 {/* メイン回路はほかの回路に置けないので、差し替えるものもない */}
                 {!menuIsMain && <Menu.Item value="replace">{m.project.replace}</Menu.Item>}
+                {/* メイン回路は書き出せない */}
+                {!menuIsMain && <Menu.Item value="export">{m.exchange.exportRow}</Menu.Item>}
                 {!menuIsMain && (
                   <>
                     <Menu.Separator />
