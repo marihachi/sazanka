@@ -21,6 +21,11 @@ export interface MenuPoint {
   y: number;
 }
 
+/**
+ * 選んでいる行をもう一度押してから、名前の変更を始めるまでの時間 (ms)。ダブルクリック (開く) と区別するため、
+ * ブラウザのダブルクリックの間隔 (多くの環境で 500ms ほど) より長くする
+ */
+const SLOW_CLICK_MS = 600;
 /** 長押しでメニューを出すまでの時間 (ms)。スマホのブラウザの長押しと同じくらい */
 const LONG_PRESS_MS = 500;
 /** 長押しの間にこれ以上動いたら、長押しをやめる (px)。スクロールやドラッグと区別するため */
@@ -93,6 +98,15 @@ export function CircuitTree({
   const rowRefs = useRef(new Map<string, HTMLElement>());
   /** ドラッグを終えた直後のクリック (同じ押し離しで起きる) で、行を選び直さないための印 */
   const justDragged = useRef(false);
+  /** ゆっくり 2 回押したときに名前の変更を始めるタイマー。押したときにその行を選んでいたかも覚える */
+  const slowClick = useRef<{ timer: number } | null>(null);
+  const wasSelected = useRef(false);
+  const cancelSlowClick = () => {
+    if (slowClick.current) {
+      window.clearTimeout(slowClick.current.timer);
+      slowClick.current = null;
+    }
+  };
 
   /**
    * 画面の高さ y にある行と、その行のどこか (フォルダは上 1/4・真ん中・下 1/4、回路は上半分・下半分)。
@@ -183,8 +197,22 @@ export function CircuitTree({
                 return;
               }
               onSelect(row);
+              // 選んでいる行をもう一度 (ゆっくり) 押したら、少し待って名前の変更を始める。
+              // 待つ間にダブルクリックになったら、開く方にする (onDoubleClick で取り消す)
+              cancelSlowClick();
+              if (wasSelected.current && renaming !== key) {
+                slowClick.current = {
+                  timer: window.setTimeout(() => {
+                    slowClick.current = null;
+                    onStartRename(row);
+                  }, SLOW_CLICK_MS),
+                };
+              }
             }}
-            onDoubleClick={() => onActivate(row)}
+            onDoubleClick={() => {
+              cancelSlowClick();
+              onActivate(row);
+            }}
             onKeyDown={(e) => {
               if (renaming === key) {
                 return;
@@ -205,6 +233,8 @@ export function CircuitTree({
               }
             }}
             onPointerDown={(e) => {
+              // 押したときに、この行をもう選んでいたか (ゆっくり 2 回押して名前を変える操作に使う)
+              wasSelected.current = isSelected;
               if (renaming === key || (e.pointerType === 'mouse' && e.button !== 0)) {
                 return;
               }
