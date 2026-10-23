@@ -15,6 +15,8 @@ interface ToolButtonProps {
   danger?: boolean;
   /** 切り替えのボタンで、今選ばれている (選択モード・配線モードなど)。地の色を付けて示す */
   active?: boolean;
+  /** アイコンの大きさ。既定は 16px ('4')。サイドパネルのツールバーは 20px ('5') */
+  iconSize?: '4' | '5';
 }
 
 /**
@@ -30,6 +32,7 @@ export function ToolButton({
   iconOnly,
   danger,
   active,
+  iconSize,
 }: ToolButtonProps) {
   const common = {
     variant: active ? 'subtle' : 'ghost',
@@ -43,11 +46,11 @@ export function ToolButton({
   } as const;
   const button = iconOnly ? (
     <IconButton {...common}>
-      <ToolIcon src={icon} />
+      <ToolIcon src={icon} size={iconSize} />
     </IconButton>
   ) : (
     <Button {...common} flexShrink={0} px={{ base: '2', md: '2.5' }}>
-      <ToolIcon src={icon} />
+      <ToolIcon src={icon} size={iconSize} />
       <Box as="span" display={{ base: 'none', md: 'inline' }}>
         {label}
       </Box>

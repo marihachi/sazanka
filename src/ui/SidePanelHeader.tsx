@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 /**
  * 左のサイドパネルの上の部分。上から、パネルの名前、ツールバー (アイコンのボタン) の順に並べる。
+ * ツールバーのボタンのアイコンは、ほかのツールバー (16px) より少し大きい 20px にする (ToolButton の iconSize="5"。開発者が求めた)。
  * この下に、パネルの中身を置く (開発者が決めた並び)
  */
 export function SidePanelHeader({
