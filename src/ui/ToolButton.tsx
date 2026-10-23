@@ -9,7 +9,7 @@ interface ToolButtonProps {
   title?: string;
   onClick: () => void;
   disabled?: boolean;
-  /** 文字を出さず、アイコンだけにする (アイコンの列、環境設定など) */
+  /** 文字を出さず、アイコンだけにする (環境設定など) */
   iconOnly?: boolean;
   /** 取り消しにくい危険な操作 (回路の削除など)。赤で表示する */
   danger?: boolean;
@@ -18,7 +18,7 @@ interface ToolButtonProps {
 }
 
 /**
- * アイコン付きのボタン (ヘッダー、シートのツールバー、アイコンの列で共有)。
+ * アイコン付きのボタン (ヘッダー、シートのツールバーで共有)。
  * 狭い画面 (Chakra の md 未満) では文字を隠してアイコンだけにする。文字は aria-label とツールチップに残す
  */
 export function ToolButton({

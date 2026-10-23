@@ -23,7 +23,7 @@
 - `app/` … 画面全体の組み立てと、状態のつなぎ役。
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
-  - `ActivityBar.tsx` … 左端のアイコンの列（サイドパネルにプロジェクトパネルとパレットのどちらを出すかを切り替える）。
+  - `ActivityBar.tsx` … 左端のアクティビティバー（サイドパネルにプロジェクトパネルとパレットのどちらを出すかを切り替える）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
 - `project/` … プロジェクトパネル（[UI](ui.md)の「プロジェクトパネル」）。
   - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木（ドラッグを含む）。`folders.ts` … 木の組み立て、使われている所、フォルダの操作と落とす先の計算。
