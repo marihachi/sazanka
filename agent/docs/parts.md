@@ -17,7 +17,7 @@
 
 1. `src/parts/<名前>/` に `spec.ts`、`view.ts`、`icon.svg` を作る。
 2. `parts/specs.ts` の `PART_SPECS` と、`parts/views.ts` の `PART_VIEWS` に 1 行ずつ足す。既定と違う配置にするなら、`layout.ts` も作って `parts/layouts.ts` の `PART_LAYOUTS` に足す。
-3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表に書き足す。今の版の文書は[回路の形式 version 1](../../docs/format/circuit/v1.md)（まだ公開していないので、表を直接直す。公開したあとは「version 1 の中で変えたもの」の節に書き足す）。種類を足すだけなら版は上げない。保存するときの要素の並び順（`file/storage.ts` の `ELEMENT_ORDER`）にも足す（足さないと型エラーになる。どこに入れるかは開発者に聞く）。
+3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表に書き足す。今の版の文書は[回路の形式 version 1](../../docs/format/circuit/v1.md)（公開したので、「version 1 の中で変えたもの」の節に書き足す。節がなければ作る）。種類を足すだけなら版は上げない。保存するときの要素の並び順（`file/storage.ts` の `ELEMENT_ORDER`）にも足す（足さないと型エラーになる。どこに入れるかは開発者に聞く）。
 
 - 種類の型（`PartKind`）は `PART_SPECS` から導いている。仕様の一覧にある種類だけの型は `SpecKind`。`PART_VIEWS` は置ける種類すべてをキーに持つ型なので、見せ方を書き忘れると型エラーになる。
 - 読み込みの検証、パレット、シートの描画、ヒントは一覧を見て動くので、ほかのファイルは直さなくてよい。
