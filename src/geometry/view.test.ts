@@ -13,6 +13,7 @@ import {
   minCircuitSheet,
   MIN_SCALE,
   overview,
+  revealView,
   toScreen,
   toWorld,
   zoomAt,
@@ -244,5 +245,28 @@ describe('circuitBounds', () => {
       right: 380,
       bottom: 240,
     });
+  });
+});
+
+describe('revealView', () => {
+  const v = { x: 0, y: 0, scale: 1 };
+
+  it('範囲がすべて画面に映っていれば、表示を変えない', () => {
+    expect(revealView(v, { left: 100, top: 100, right: 200, bottom: 200 }, 800, 600)).toBe(v);
+  });
+
+  it('映っていなければ、倍率はそのままで範囲の中心を画面の中心に置く', () => {
+    expect(revealView(v, { left: 1000, top: 1000, right: 1100, bottom: 1100 }, 800, 600)).toEqual({
+      x: 400 - 1050,
+      y: 300 - 1050,
+      scale: 1,
+    });
+  });
+
+  it('画面に収まらない大きさなら、倍率を下げる', () => {
+    const r = revealView(v, { left: -2000, top: 0, right: 2000, bottom: 100 }, 800, 600);
+    expect(r.scale).toBeLessThan(1);
+    expect(toScreen(r, { x: -2000, y: 0 }).x).toBeGreaterThanOrEqual(0);
+    expect(toScreen(r, { x: 2000, y: 0 }).x).toBeLessThanOrEqual(800);
   });
 });

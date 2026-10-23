@@ -9,16 +9,22 @@ interface ToolButtonProps {
   title?: string;
   onClick: () => void;
   disabled?: boolean;
-  /** 文字を出さず、アイコンだけにする (タブの「+」など) */
+  /** 文字を出さず、アイコンだけにする (環境設定など) */
   iconOnly?: boolean;
-  /** 取り消しにくい危険な操作 (モジュールの削除など)。赤で表示する */
+  /** 取り消しにくい危険な操作 (回路の削除など)。赤で表示する */
   danger?: boolean;
   /** 切り替えのボタンで、今選ばれている (選択モード・配線モードなど)。地の色を付けて示す */
   active?: boolean;
+  /** アイコンの大きさ。既定は 16px ('4')。サイドパネルのツールバーは 20px ('5') */
+  iconSize?: '4' | '5';
+  /** ボタンの大きさ。既定は sm (36px)。サイドパネルのツールバーは xs (32px) */
+  size?: 'xs' | 'sm';
+  /** アイコンだけの色 (テーマの色の名前)。省略するとボタンの文字色。押せないときは付けない */
+  iconColor?: string;
 }
 
 /**
- * アイコン付きのボタン (ヘッダー、シートのツールバー、タブの「+」で共有)。
+ * アイコン付きのボタン (ヘッダー、シートのツールバーで共有)。
  * 狭い画面 (Chakra の md 未満) では文字を隠してアイコンだけにする。文字は aria-label とツールチップに残す
  */
 export function ToolButton({
@@ -30,10 +36,13 @@ export function ToolButton({
   iconOnly,
   danger,
   active,
+  iconSize,
+  size = 'sm',
+  iconColor,
 }: ToolButtonProps) {
   const common = {
     variant: active ? 'subtle' : 'ghost',
-    size: 'sm',
+    size,
     // ボタンの文字はアクセントカラーにせず、灰色で出す
     colorPalette: danger ? 'red' : 'gray',
     onClick,
@@ -41,13 +50,14 @@ export function ToolButton({
     'aria-label': label,
     'aria-pressed': active,
   } as const;
+  const color = disabled ? undefined : iconColor;
   const button = iconOnly ? (
     <IconButton {...common}>
-      <ToolIcon src={icon} />
+      <ToolIcon src={icon} size={iconSize} color={color} />
     </IconButton>
   ) : (
     <Button {...common} flexShrink={0} px={{ base: '2', md: '2.5' }}>
-      <ToolIcon src={icon} />
+      <ToolIcon src={icon} size={iconSize} color={color} />
       <Box as="span" display={{ base: 'none', md: 'inline' }}>
         {label}
       </Box>

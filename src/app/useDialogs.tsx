@@ -6,9 +6,12 @@ import { PreferencesDialog } from '../preferences/PreferencesDialog';
 import { PromptDialog, type PromptRequest } from '../ui/PromptDialog';
 import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
-import { ModuleSettingsDialog } from '../modules/ModuleSettingsDialog';
-import { SheetSettingsDialog } from '../sheet/SheetSettingsDialog';
-import { findDef, type CircuitSheet, type Package, type Project } from '../circuit/project';
+import { CircuitSettingsDialog, type CircuitSettings } from '../circuits/CircuitSettingsDialog';
+import { findDef, type Project } from '../circuit/project';
+import { NewCircuitDialog, type NewCircuitRequest } from '../project/NewCircuitDialog';
+import { ReplaceCircuitDialog, type ReplaceCircuitRequest } from '../project/ReplaceCircuitDialog';
+import { ExportCircuitsDialog, type ExportCircuitsRequest } from '../project/ExportCircuitsDialog';
+import { ImportCircuitsDialog, type ImportCircuitsRequest } from '../project/ImportCircuitsDialog';
 
 /**
  * 画面内のダイアログの開閉と、描く部分。
@@ -19,30 +22,26 @@ export function useDialogs({
   preferences,
   onPreferencesChange,
   project,
-  onApplyModuleSettings,
-  onApplySheetSettings,
+  onApplyCircuitSettings,
 }: {
   /** 開いた直後に出すお知らせ (保存データが読めなかったときなど) */
   initialMessage?: string;
   preferences: Preferences;
   onPreferencesChange: (preferences: Preferences) => void;
-  /** モジュール設定のダイアログで、設定するモジュールを探し、プレビューを描くのに使う */
+  /** 回路設定のダイアログで、設定する回路を探し、プレビューを描くのに使う */
   project: Project;
-  /** モジュール設定を当てはめる (元に戻せる 1 回の編集にする) */
-  onApplyModuleSettings: (
-    id: string,
-    pkg: Package,
-    numbers: Map<string, number>,
-    labels: Map<string, string>,
-  ) => void;
-  /** 回路 id のシートの大きさを当てはめる (元に戻せる 1 回の編集にする) */
-  onApplySheetSettings: (id: string, sheet: CircuitSheet) => void;
+  /** 回路 id に回路設定を当てはめる (元に戻せる 1 回の編集にする) */
+  onApplyCircuitSettings: (id: string, settings: CircuitSettings) => void;
 }) {
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(() =>
     initialMessage ? { message: initialMessage } : null,
   );
   const [prompt, setPrompt] = useState<PromptRequest | null>(null);
   const [text, setText] = useState<TextRequest | null>(null);
+  const [newCircuit, setNewCircuit] = useState<NewCircuitRequest | null>(null);
+  const [replace, setReplace] = useState<ReplaceCircuitRequest | null>(null);
+  const [exportCircuits, setExportCircuits] = useState<ExportCircuitsRequest | null>(null);
+  const [importCircuits, setImportCircuits] = useState<ImportCircuitsRequest | null>(null);
   /**
    * 入力のダイアログが閉じ終わったか。閉じた Chakra (zag) のダイアログは、開く前の要素へのフォーカスの返しを
    * setTimeout(0) で遅らせて行い、ほかのダイアログの中にフォーカスがあっても返してしまう。
@@ -53,32 +52,56 @@ export function useDialogs({
    */
   const [inputClosed, setInputClosed] = useState(true);
   useEffect(() => {
-    if (text || prompt) {
+    if (text || prompt || newCircuit || replace || exportCircuits || importCircuits) {
       setInputClosed(false);
       return;
     }
     const timer = setTimeout(() => flushSync(() => setInputClosed(true)), 0);
     return () => clearTimeout(timer);
-  }, [text, prompt]);
+  }, [text, prompt, newCircuit, replace, exportCircuits, importCircuits]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
-  /** モジュール設定のダイアログで設定しているモジュールの ID */
-  const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null);
-  const moduleSettingsDef = moduleSettingsId ? findDef(project, moduleSettingsId) : undefined;
-  /** シート設定のダイアログで設定している回路の ID */
-  const [sheetSettingsId, setSheetSettingsId] = useState<string | null>(null);
-  const sheetSettingsDef = sheetSettingsId ? findDef(project, sheetSettingsId) : undefined;
+  /** 回路設定のダイアログで設定している回路の ID */
+  const [circuitSettingsId, setCircuitSettingsId] = useState<string | null>(null);
+  const circuitSettingsDef = circuitSettingsId ? findDef(project, circuitSettingsId) : undefined;
 
   const element = (
     <>
       {/* お知らせは、ほかのダイアログが閉じ終わってから出す (上の inputClosed)。閉じるダイアログと
           入れ替わりに開くと、閉じた方のフォーカスの返しで外へフォーカスを取られ、一緒に閉じてしまう
           (読み込みのあとのお知らせなど) */}
-      {confirm && !text && !prompt && inputClosed && (
-        <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
-      )}
+      {confirm &&
+        !text &&
+        !prompt &&
+        !newCircuit &&
+        !replace &&
+        !exportCircuits &&
+        !importCircuits &&
+        inputClosed && <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />}
       {prompt && <PromptDialog request={prompt} onClose={() => setPrompt(null)} />}
       {text && <TextDialog request={text} onClose={() => setText(null)} />}
+      {newCircuit && (
+        <NewCircuitDialog
+          request={newCircuit}
+          project={project}
+          onClose={() => setNewCircuit(null)}
+        />
+      )}
+      {replace && <ReplaceCircuitDialog request={replace} onClose={() => setReplace(null)} />}
+      {exportCircuits && (
+        <ExportCircuitsDialog
+          request={exportCircuits}
+          project={project}
+          onClose={() => setExportCircuits(null)}
+        />
+      )}
+      {importCircuits && (
+        <ImportCircuitsDialog
+          request={importCircuits}
+          project={project}
+          onClose={() => setImportCircuits(null)}
+        />
+      )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {preferencesOpen && (
         <PreferencesDialog
@@ -87,22 +110,12 @@ export function useDialogs({
           onClose={() => setPreferencesOpen(false)}
         />
       )}
-      {moduleSettingsDef && (
-        <ModuleSettingsDialog
-          def={moduleSettingsDef}
+      {circuitSettingsDef && (
+        <CircuitSettingsDialog
+          def={circuitSettingsDef}
           project={project}
-          onApply={(pkg, numbers, labels) =>
-            onApplyModuleSettings(moduleSettingsDef.id, pkg, numbers, labels)
-          }
-          onClose={() => setModuleSettingsId(null)}
-        />
-      )}
-      {sheetSettingsDef && (
-        <SheetSettingsDialog
-          def={sheetSettingsDef}
-          project={project}
-          onApply={(sheet) => onApplySheetSettings(sheetSettingsDef.id, sheet)}
-          onClose={() => setSheetSettingsId(null)}
+          onApply={(settings) => onApplyCircuitSettings(circuitSettingsDef.id, settings)}
+          onClose={() => setCircuitSettingsId(null)}
         />
       )}
     </>
@@ -115,21 +128,30 @@ export function useDialogs({
     showPrompt: setPrompt,
     /** 複数行の文字列を見せる・入力してもらう */
     showText: setText,
+    /** 回路を追加するダイアログ (名前とフォルダ) */
+    showNewCircuit: setNewCircuit,
+    /** 別のモジュールに差し替えるダイアログ */
+    showReplace: setReplace,
+    /** 回路を書き出すダイアログ */
+    showExportCircuits: setExportCircuits,
+    /** 回路を読み込むダイアログ */
+    showImportCircuits: setImportCircuits,
     openAbout: () => setAboutOpen(true),
     openPreferences: () => setPreferencesOpen(true),
-    /** モジュール id のモジュール設定を開く */
-    openModuleSettings: (id: string) => setModuleSettingsId(id),
-    /** 回路 id のシート設定を開く */
-    openSheetSettings: (id: string) => setSheetSettingsId(id),
+    /** 回路 id の回路設定を開く */
+    openCircuitSettings: (id: string) => setCircuitSettingsId(id),
     /** どれかのダイアログが開いているか */
     anyOpen:
       !!confirm ||
       !!prompt ||
       !!text ||
+      !!newCircuit ||
+      !!replace ||
+      !!exportCircuits ||
+      !!importCircuits ||
       aboutOpen ||
       preferencesOpen ||
-      !!moduleSettingsDef ||
-      !!sheetSettingsDef,
+      !!circuitSettingsDef,
     element,
   };
 }

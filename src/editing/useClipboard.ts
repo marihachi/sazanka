@@ -63,13 +63,13 @@ export function useClipboard({
     const blocked = clipboard.parts.find(
       (c) =>
         c.kind === 'module' &&
-        c.module &&
-        (c.module === circuit.id || dependsOn(project, c.module, circuit.id)),
+        c.circuitId &&
+        (c.circuitId === circuit.id || dependsOn(project, c.circuitId, circuit.id)),
     );
     if (blocked) {
-      const name = findDef(project, blocked.module)?.name ?? '';
+      const name = findDef(project, blocked.circuitId)?.name ?? '';
       showConfirm({
-        message: m.modules.cannotPaste(name),
+        message: m.circuits.cannotPaste(name),
       });
       return;
     }

@@ -7,6 +7,8 @@ import type { Language } from '../i18n/language';
 import { getMessages } from '../i18n/messages';
 
 export interface HintContext {
+  /** 開いている回路がない (タブがない) */
+  noCircuit?: boolean;
   /** 部品をドラッグ中か。'trash' は削除エリアの上。'wireEnd' は配線の端のドラッグ中 */
   dragMode: 'none' | 'moving' | 'trash' | 'wireEnd';
   /** 配線モードか */
@@ -27,13 +29,15 @@ export interface HintContext {
   unstable: boolean;
   /** 出力ピンが 2 つ以上つながったネットがある */
   conflict: boolean;
-  /** モジュールのタブを開いている */
-  inModule: boolean;
-  /** 開いているモジュールが、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
-  numberedModule: boolean;
+  /** メイン回路のタブを開いている。ほかの回路のタブのヒント (タブの改名や並べ替え、split の並び順の注意など) を出さない */
+  inMain: boolean;
+  /** 開いている回路が、ピン番号で外側のピンを決める (パッケージが dip / qfp) */
+  numberedPackage: boolean;
   /** 選んでいる部品が、外側のピンに出せないポートなら、その理由 */
   selectedPortProblem?: PortProblem;
-  /** 開いているモジュールに、外側のピンに出せないポートがある */
+  /** 選んでいる部品が、見つからないモジュール (指す回路がプロジェクトにない) */
+  selectedUnresolved?: boolean;
+  /** 開いている回路に、外側のピンに出せないポートがある (メイン回路では警告しないので false) */
   unexposedPorts: boolean;
   /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒で示すのに使う */
   ticksPerSecond: number;
@@ -42,6 +46,9 @@ export interface HintContext {
 /** 今の操作に応じたヒント。複数あれば時間で切り替えて表示する。文は言語ごとの文言の表 (i18n/) にある */
 export function statusHints(ctx: HintContext, lang: Language): string[] {
   const m = getMessages(lang).hints;
+  if (ctx.noCircuit) {
+    return [m.noCircuit];
+  }
   if (ctx.dragMode === 'trash') {
     return [m.overTrash];
   }
@@ -73,6 +80,10 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
     return m.multipleSelected;
   }
   const c = ctx.selectedPart;
+  if (c && ctx.selectedUnresolved) {
+    // 見つからないモジュールは開けないので、モジュールのヒント (ダブルクリックで開く) は出さない
+    return [m.unresolvedModule, ...m.partSelected];
+  }
   if (c) {
     // ヒントの文は、種類ごとの見せ方 (parts/) にある
     const own = partViewOf(c.kind)?.hints?.[lang] ?? [];
@@ -95,9 +106,8 @@ export function statusHints(ctx: HintContext, lang: Language): string[] {
   if (ctx.unexposedPorts) {
     return [m.unexposedPorts];
   }
-  if (!ctx.inModule) {
-    return m.idle;
-  }
-  const own = ctx.numberedModule ? m.numberedModule : m.splitModule;
-  return [...m.module, ...own, ...m.idle];
+  // 回路設定とピン番号の割り当ては、メイン回路でも使える。split の並び順の注意は外側の配線のことなので、モジュールだけ
+  const own = ctx.numberedPackage ? m.numberedPackage : ctx.inMain ? [] : m.splitPackage;
+  const moduleOnly = ctx.inMain ? [] : m.nonMain;
+  return [...moduleOnly, m.circuitSettings, ...own, ...m.idle];
 }

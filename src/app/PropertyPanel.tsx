@@ -16,7 +16,7 @@ interface PropertyPanelProps {
   /** 選んでいる部品。1つだけ選んでいるときだけ渡す */
   part?: Part;
   /** モジュールの名前 (モジュールのとき) */
-  moduleName?: string;
+  circuitName?: string;
   /** 1 秒に進める tick 数 (環境設定)。CLOCK の周期を秒でも示すのに使う */
   ticksPerSecond: number;
   /** 入力欄を触っている間の最初の変更の直前。欄を離れるまでの変更を、1回の操作として元に戻せるようにするために使う */
@@ -37,7 +37,7 @@ interface PropertyPanelProps {
  */
 export const PropertyPanel = memo(function PropertyPanel({
   part,
-  moduleName,
+  circuitName,
   otherPortNames = '',
   ticksPerSecond,
   onEditStart,
@@ -66,7 +66,7 @@ export const PropertyPanel = memo(function PropertyPanel({
       </Text>
       {part ? (
         <>
-          <Text fontWeight="semibold">{moduleName ?? labelOf(part.kind, lang)}</Text>
+          <Text fontWeight="semibold">{circuitName ?? labelOf(part.kind, lang)}</Text>
           {/* 部品を選び直したら (key が変わるので)、入力中の文字は捨てて、その部品の値から始める */}
           {part.kind === 'clock' ? (
             <ClockPeriodField
@@ -79,7 +79,7 @@ export const PropertyPanel = memo(function PropertyPanel({
           ) : part.kind === 'input' || part.kind === 'output' ? (
             <>
               {/* ポート番号は表示だけ (「入力 1」の形で、入力か出力かも示す)。置いたときに決まり、利用者は変えない。
-                  パッケージとピンの割り当てはモジュール設定で確かめるので、ここには出さない */}
+                  パッケージとピンの割り当ては回路設定で確かめるので、ここには出さない */}
               {part.portNumber !== undefined && (
                 <ReadOnlyRow
                   label={m.property.portNumber}
@@ -143,7 +143,7 @@ function ReadOnlyRow({ label, value }: { label: string; value: string }) {
 
 /**
  * INPUT / OUTPUT のポート名の入力欄。入力したらすぐに反映する。
- * 欄を離れるまでの変更は1回の操作として元に戻せる。モジュールの中では、外から見たピンの名前になる
+ * 欄を離れるまでの変更は1回の操作として元に戻せる。回路をモジュールとして置くと、外から見たピンの名前になる
  */
 function PortNameField({
   part,

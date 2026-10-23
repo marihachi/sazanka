@@ -10,6 +10,12 @@ export interface ConfirmRequest {
   /** 確定すると取り返しのつかない操作か (ボタンを赤くする) */
   danger?: boolean;
   onConfirm?: () => void;
+  /**
+   * 確定とキャンセルのほかの、3 つめの選択 (「保存しない」など)。キャンセルと確定のあいだに置く。
+   * onConfirm があるときだけ出す
+   */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
 }
 
 /** 画面内のモーダルダイアログ (確認とお知らせ) */
@@ -36,6 +42,17 @@ export function ConfirmDialog({
         {request.onConfirm && (
           <Button variant="outline" onClick={onClose}>
             {m.common.cancel}
+          </Button>
+        )}
+        {request.onConfirm && request.onSecondary && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              onClose();
+              request.onSecondary?.();
+            }}
+          >
+            {request.secondaryLabel}
           </Button>
         )}
         <Button

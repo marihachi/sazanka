@@ -2,8 +2,10 @@
 // 部品の種類ごとの文言は、種類のフォルダの view.ts に言語ごとに書く
 import type { PortProblem } from '../circuit/module';
 import type { ProjectError } from '../circuit/project';
-import type { ShareError } from '../file/share';
+import type { CircuitsFileError } from '../file/circuitsFile';
+import type { ProjectFileError } from '../file/projectFile';
 import type { StoredError } from '../file/storage';
+import type { ProblemCode } from '../problems/problems';
 import type { LanguageSetting } from './language';
 import type { ErrorTexts } from './messages';
 
@@ -21,18 +23,24 @@ export const ja = {
   },
   header: {
     toolbar: 'プロジェクトの操作',
-    newProject: '新規作成',
-    newProjectTitle: '空のプロジェクトを新しく作る',
-    importProject: '読み込み',
-    importProjectTitle: 'JSON の文字列かファイルからプロジェクトを読み込む',
-    exportProject: '書き出し',
-    exportProjectTitle: 'プロジェクト全体を JSON にして共有する',
+    /** ヘッダーの「ファイル」のメニュー */
+    file: 'ファイル',
+    newProject: '新規作成…',
+    openProject: '開く…',
+    saveProjectAs: '名前を付けて保存…',
     undo: '元に戻す',
     undoTitle: '元に戻す (Ctrl+Z)',
     redo: 'やり直し',
     redoTitle: 'やり直し (Ctrl+Shift+Z / Ctrl+Y)',
     preferences: '環境設定',
     about: 'このアプリについて',
+    /** 開いているファイルがないとき、ファイルの名前の代わりに出す */
+    unsaved: '（未保存）',
+    /** 保存していない変更の印 (●) の読み上げ名 */
+    dirty: '保存していない変更があります',
+    /** ● にポインターを載せる・押すと出す説明 */
+    dirtyDetail:
+      'ファイルに保存していない変更があります（作業中の内容は、このブラウザに自動で保存されています）',
   },
   about: {
     title: 'sazanka について',
@@ -43,8 +51,8 @@ export const ja = {
       'MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL) というフォントを使っています。',
   },
   tabs: {
-    addModule: 'モジュールを追加',
-    moduleTabTooltip: 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。',
+    circuitTabTooltip: 'ドラッグで並べ替えできます。',
+    close: (name: string) => `${name} を閉じる`,
   },
   toolbar: {
     select: '選択',
@@ -63,14 +71,106 @@ export const ja = {
     stepBackTitle: '1 tick だけ時間を戻す',
     stepForward: '1 tick 進める',
     stepForwardTitle: '1 tick だけ時間を進める',
-    sheetSettings: 'シート設定',
-    sheetSettingsTitle: 'シート設定: シートの大きさ (幅と高さ) を変える',
-    moduleSettings: 'モジュール設定',
-    moduleSettingsTitle:
-      'モジュール設定: パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変える',
-    deleteModule: 'モジュールを削除',
+    circuitSettings: '回路設定',
+    circuitSettingsTitle:
+      '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
+  },
+  sidePanel: {
+    project: 'プロジェクト',
+    parts: '部品',
+  },
+  project: {
+    title: 'プロジェクト',
+    toolbar: '回路とフォルダの操作',
+    newCircuit: '新しい回路…',
+    /** 行の「⋯」。name は行の名前 */
+    rowMenu: (name: string) => `${name} の操作`,
+    open: '開く',
+    rename: '名前の変更',
+    remove: 'プロジェクトから削除…',
+    newFolder: '新しいフォルダ…',
+    replace: '別のモジュールに差し替える…',
+    removeFolder: 'フォルダを削除',
+    /** メイン回路の印 (★) の読み上げ用 */
+    main: 'メイン回路',
+    usedIn: '使われている所',
+    notUsed: 'どこにも置かれていません',
+    /** 使われている所の 1 つ。name は回路の名前、count は置いている数 */
+    usage: (name: string, count: number) => `${name} (${count})`,
+    usageSeparator: '、',
+    expand: (name: string) => `${name} を開く`,
+    collapse: (name: string) => `${name} を閉じる`,
+  },
+  folders: {
+    /** フォルダに入れない (いちばん上) */
+    none: '(フォルダなし)',
+    folder: 'フォルダ',
+    create: 'フォルダを作る',
+    newTitle: '新しいフォルダ',
+    name: 'フォルダの名前',
+    add: '作成',
+    nameRequired: '名前を入力してください',
+    nameBad: '「/」を含む名前と、「.」「..」は使えません',
+    nameTaken: '同じ名前のフォルダがすでにあります',
+    notEmpty: (name: string) =>
+      `「${name}」の中に回路かフォルダがあるため、削除できません。先に中のものを動かすか、削除してください。`,
+  },
+  replace: {
+    title: (name: string) => `「${name}」を別のモジュールに差し替える`,
+    target: '差し替え先',
+    none: '差し替えられる回路がありません',
+    pinsDiffer:
+      'ピンの数か並びが違うため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。差し替えたあとに確かめてください。',
+    removeSource: (name: string) => `差し替えたあと、「${name}」をプロジェクトから削除する`,
+    apply: '差し替える',
+  },
+  /** 回路ファイルへの書き出しと、回路ファイルからの読み込み (計画 22) */
+  exchange: {
+    /** ヘッダーの「回路」のメニュー */
+    menu: '回路',
+    importMenu: '回路のインポート…',
+    exportMenu: '回路のエクスポート…',
+    /** プロジェクトパネルの行のメニュー */
+    exportRow: 'エクスポート…',
+    exportTitle: '回路のエクスポート',
+    exportTarget: '書き出す回路',
+    includeDependencies: '依存する回路も含める',
+    exportList: (n: number) => `書き出すもの (${n} 個)`,
+    /** 依存する回路として加わったもの */
+    dependency: '依存',
+    noExportable: '書き出せる回路がありません',
+    save: 'ファイルに保存',
+    importTitle: '回路のインポート',
+    file: 'ファイル',
+    pickFile: 'ファイルを選ぶ',
+    noFile: 'まだ選んでいません',
+    fileSummary: (name: string, n: number) => `${name} (${n} 個の回路)`,
+    targetFolder: '読み込み先のフォルダ',
+    circuits: '読み込む回路',
+    fileName: 'ファイルでの名前',
+    projectName: 'プロジェクトでの名前',
+    action: '扱い',
+    actions: {
+      add: '追加',
+      addRenamed: '追加（名前を変更）',
+      replace: '置き換える',
+      skip: 'スキップ',
+    },
+    /** 行の ⚠ の読み上げ名 */
+    warning: '注意',
+    pinsChange:
+      'ピンの数か並びが変わるため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。',
+    /** users は、使っている回路の名前を usersSeparator でつないだもの */
+    willBeMissing: (users: string) =>
+      `スキップすると見つからないモジュールになります（「${users}」が使っています）。`,
+    usersSeparator: '」「',
+    cycle:
+      '読み込むとモジュールの置き方が循環するため、読み込めません。この回路か、循環する相手をスキップしてください。',
+    empty: 'ファイルに回路が入っていません',
+    apply: '読み込む',
   },
   palette: {
+    toolbar: '部品の操作',
     groups: {
       io: '入出力',
       source: '信号源',
@@ -83,11 +183,17 @@ export const ja = {
     expandAll: 'すべて展開',
     collapseAll: 'すべて折りたたむ',
     noModules: 'モジュールはまだありません',
-    selfModule: 'モジュールの中に自分自身は置けません',
+    selfModule: '回路の中に自分自身は置けません',
     containsThis: (name: string) => `「${name}」はこの回路を含んでいるため置けません`,
   },
   sheet: {
     unknownModule: '(不明)',
+    /** 見つからないモジュールの本体に書く */
+    missing: '見つからない',
+    /** タブがないときに、シートの所に出す */
+    noCircuit: '開いている回路はありません',
+    /** 見つからないモジュールを選んだときに、プロパティ欄に出す名前 */
+    missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
     zoomReset: '等倍に戻す',
     zoomIn: '拡大',
@@ -102,7 +208,7 @@ export const ja = {
     portLabel: 'ポート名',
     noPortLabel: '名前未設定',
     duplicatePortName: 'ほかのポートと同じ名前は付けられません',
-    portNameHelp: 'モジュールの中では、ピンの名前になります',
+    portNameHelp: 'モジュールとして置くと、ピンの名前になります',
     noItems: 'この部品に設定できる項目はありません',
     selectOne: '部品を1つ選ぶと、その部品の項目を編集できます',
     clockPeriod: '周期 (tick)',
@@ -110,11 +216,26 @@ export const ja = {
       `ON と OFF を一往復する tick 数。今の速さ (${ticksPerSecond} tick/秒) では ${seconds} 秒`,
   },
   status: {
-    unexposedPorts: 'ピンに出ていない INPUT / OUTPUT があります',
-    outsideSheet: 'シートの外に部品か配線があります',
-    conflict: '出力がぶつかっています',
-    unstable: '発振しています',
     cannotRotate: 'はみ出すため回転できません',
+  },
+  problems: {
+    title: '問題',
+    /** 数の読み上げ用 */
+    countLabel: (errors: number, warnings: number) => `エラー ${errors} 件、警告 ${warnings} 件`,
+    empty: '問題はありません',
+    error: 'エラー',
+    warning: '警告',
+    /** 起きているか所の数 */
+    count: (n: number) => `${n} か所`,
+    resize: '問題パネルの高さを変える',
+    close: '問題パネルを閉じる',
+    messages: {
+      UNSTABLE: '発振しています',
+      CONFLICT: '出力がぶつかっています',
+      UNEXPOSED_PORTS: 'ピンに出ていない INPUT / OUTPUT があります',
+      OUTSIDE_SHEET: 'シートの外に部品か配線があります',
+      MISSING_CIRCUIT: (name: string) => `見つからない回路: ${name || '(不明)'}`,
+    } satisfies Record<ProblemCode, string | ((name: string) => string)>,
   },
   preferences: {
     title: '環境設定',
@@ -133,17 +254,16 @@ export const ja = {
       en: 'English',
     } satisfies Record<LanguageSetting, string>,
   },
-  sheetSettings: {
-    title: (name: string) => `シート設定: ${name}`,
-    width: '幅 (マス)',
-    height: '高さ (マス)',
-    /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
-    tooSmall: (width: number, height: number) =>
-      `部品と配線が収まるのは ${width} × ${height} マス以上です`,
+  circuitSettings: {
+    title: (name: string) => `回路設定: ${name}`,
+    author: '作者名 (省略可)',
+    tabs: {
+      general: '全般',
+      module: 'モジュール',
+      /** 使えない値があるタブの印 (読み上げ用) */
+      invalid: '使えない値があります',
+    },
     apply: '適用',
-  },
-  moduleSettings: {
-    title: (name: string) => `モジュール設定: ${name}`,
     packages: {
       dip: 'DIP (左右の 2 辺にピン)',
       qfp: 'QFP (4 辺にピン)',
@@ -154,61 +274,62 @@ export const ja = {
     dipPinsError: 'DIP のピン数は、4〜256 の偶数で入力してください',
     qfpPinsError: 'QFP のピン数は、8〜256 の 4 の倍数で入力してください',
     splitHelp:
-      '入力は左、出力は右に、中の位置の順 (上から、同じ高さなら左から) に並びます。ピン番号は使いません。',
+      '入力は左、出力は右に、ポート番号の順 (入力 1、出力 1 がいちばん上) に並びます。ピン番号は使いません。',
     ports: 'ポート',
     duplicatePortName: 'ほかのポートと同じ名前は付けられません',
     assignment: 'ピンの割り当て',
     assignInOrder: '上から順に割り当て直す',
+    renumberPorts: '上から順に番号を振り直す',
     unassigned: '割り当てのないポート (外側のピンに出ない):',
     listSeparator: '、',
     wiringWarning:
-      'パッケージやピンの割り当てを変更すると、このモジュールの配置先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。',
+      'パッケージやピンの割り当てを変更すると、この回路をモジュールとして置いた先で、配線の接続先が変わったり配線が切断されたりすることがあります。必ず状況を確認するようにしてください。',
     preview: 'プレビュー',
     previewLabel: 'モジュールのプレビュー',
-    apply: '適用',
     pinLabel: (n: number) => `${n} 番のピン`,
     portLabelOf: (heading: string) => `${heading} の名前`,
     noName: '名前未設定',
     /** 一覧に出すポートの名前。名前がなければ「(名前未設定)」 */
     portOption: (port: string, name: string) => `${port} ${name || '(名前未設定)'}`,
   },
-  modules: {
-    defaultName: (n: number) => `モジュール${n}`,
-    addTitle: 'モジュールを追加',
+  sheetSettings: {
+    width: '幅 (マス)',
+    height: '高さ (マス)',
+    /** 部品と配線が収まらない大きさのとき。width × height が収まるいちばん小さい大きさ */
+    tooSmall: (width: number, height: number) =>
+      `部品と配線が収まるのは ${width} × ${height} マス以上です`,
+  },
+  circuits: {
+    defaultName: (n: number) => `回路${n}`,
+    addTitle: '回路を追加',
     name: '名前',
     add: '追加',
     nameRequired: '名前を入力してください',
     nameTaken: '同じ名前の回路がすでにあります',
-    inUse: (name: string, users: string[]) =>
-      `「${name}」は次の回路で使われているため削除できません: ${users.join(', ')}`,
-    confirmDelete: (name: string) => `モジュール「${name}」を削除しますか？`,
-    delete: '削除',
+    confirmRemove: (name: string) => `「${name}」をプロジェクトから削除しますか？`,
+    /**
+     * ほかの回路に置かれている回路を削除するときの確認。first は置いている最初の回路、
+     * circuits は置いている回路の数、count は置いている部品の数
+     */
+    confirmRemoveUsed: (name: string, first: string, circuits: number, count: number) =>
+      `「${name}」をプロジェクトから削除します。中身はプロジェクトからなくなり、置いている部品（${first}${circuits === 1 ? 'の' : 'など'} ${count} か所）は見つからないモジュールとして残ります。`,
+    remove: '削除',
     cannotPaste: (name: string) =>
       `「${name}」はこの回路を含んでいるため、ここには貼り付けられません`,
   },
   file: {
-    confirmNew:
-      '新しいプロジェクトを作成しますか？今のプロジェクト (メイン回路とすべてのモジュール) は消えます (元に戻すで戻せます)。',
-    newProject: '新規作成',
-    exportTitle: '書き出し',
-    exportMessage:
-      'プロジェクト全体を書き出します。コピーするか、ファイルに保存してください。「読み込み」で取り込めます。',
-    author: '作者名 (省略可)',
-    saveFile: 'ファイルに保存',
-    copy: 'コピー',
-    copied: 'コピーしました',
-    copyFailed: 'コピーできませんでした。上の文字列を選択して、手動でコピーしてください',
-    importTitle: '読み込み',
-    importMessage:
-      '書き出したファイルを選択するか、データを貼り付けてください。今のプロジェクトは置き換わりますが、元に戻すこともできます。',
-    source: '読み込み元',
-    sourceFile: 'ファイル',
-    sourceText: 'テキスト',
-    chooseFile: 'ファイルを選択',
-    noFile: '選択されていません',
+    /** 開く前と新規作成の前に、ファイルに保存していない変更があるときの確認 */
+    confirmLeave:
+      '今のプロジェクトには、ファイルに保存していない変更があります。ファイルに保存しますか？保存しないで続けると、今のプロジェクトは消えます。',
+    saveFirst: '保存してから続ける',
+    discard: '保存しない',
+    /** 保存したあと、続けてファイルを選ぶ画面を開けないとき (保存の画面を使ったブラウザ) */
+    pickAfterSave: '保存しました。開くファイルを選んでください。',
+    pickFile: 'ファイルを選ぶ',
+    saveFailed: 'ファイルに保存できませんでした',
     readFailed: 'ファイルを読み取れませんでした',
-    importConfirm: '読み込む',
-    importedFrom: (author: string) => `「${author}」さんの回路を読み込みました。`,
+    /** プロジェクトファイルを読み込めなかったときのお知らせ。reason は errors.projectFile の文 */
+    importFailed: (reason: string) => `読み込めませんでした。${reason}`,
     /** 保存データを読み込めなかったときのお知らせ。reason は errors.stored の文 */
     openedEmpty: (reason: string) => `${reason}空のプロジェクトで開きます。`,
   },
@@ -216,28 +337,55 @@ export const ja = {
   errors: {
     /** 検証で見つかった、プロジェクトの形の問題 */
     project: {
+      NOT_PROJECT: 'プロジェクトのデータの形式ではありません',
+      NO_FOLDERS: 'フォルダの一覧がありません',
+      BAD_FOLDER: (e) => `フォルダ「${e.folder}」が不正です`,
       NO_CIRCUITS: '回路の一覧がありません',
-      AUTHOR_NOT_STRING: '作者名が文字列ではありません',
-      NO_MAIN: 'メイン回路がありません',
+      BAD_ENTRY: '回路の一覧に不正な項目があります',
+      MISSING_FOLDER: (e) => `フォルダ「${e.folder}」がフォルダの一覧にありません`,
       NO_CIRCUIT_ID_OR_NAME: '回路の ID か名前がありません',
+      NOT_CIRCUIT: (e) => `「${e.circuit}」が回路のデータの形式ではありません`,
+      EMPTY_NAME: '名前のない回路があります',
+      AUTHOR_NOT_STRING: (e) => `「${e.circuit}」の作者名が文字列ではありません`,
       NO_PACKAGE: (e) => `「${e.circuit}」にパッケージがありません`,
       BAD_PACKAGE: (e) => `「${e.circuit}」に不正なパッケージがあります`,
       BAD_SHEET: (e) => `「${e.circuit}」のシートの大きさが不正です`,
       NO_ELEMENTS: (e) => `「${e.circuit}」に要素の一覧がありません`,
       BAD_ELEMENT: (e) => `「${e.circuit}」に不正な要素があります`,
+      DUPLICATE_PORT_NUMBER: (e) => `「${e.circuit}」にポート番号が重複したポートがあります`,
+      NO_MAIN: 'メイン回路がありません',
       DUPLICATE_ID: (e) => `ID が重複しています: ${e.id}`,
-      MISSING_MODULE: (e) => `「${e.circuit}」が存在しないモジュールを参照しています`,
+      DUPLICATE_NAME: (e) =>
+        e.folder === ''
+          ? `同じ名前の回路があります: ${e.name}`
+          : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
+      NOT_CIRCUITS: '回路ファイルの形式ではありません',
+      HAS_MAIN: 'メイン回路が入っています (メイン回路は回路ファイルに入れられません)',
     } satisfies ErrorTexts<ProjectError>,
-    /** 共有用 JSON を読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
-    share: {
+    /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
+    projectFile: {
       NOT_JSON: 'JSON として読み取れません',
-      NOT_SAZANKA: 'sazanka の回路データではありません',
-      NEWER_VERSION: '新しい版の sazanka で作られたデータのため読み込めません',
-      BROKEN: (detail: string) => `回路データが壊れています (${detail})`,
-    } satisfies ErrorTexts<Exclude<ShareError, { code: 'BROKEN' }>> & {
+      NOT_SAZANKA: 'sazanka のプロジェクトファイルではありません',
+      NEWER_VERSION: '新しい版の sazanka で作られたデータです',
+      CIRCUIT_FILE: 'これは回路ファイルです。プロジェクトファイルを選んでください',
+      BROKEN: (detail: string) => `プロジェクトファイルが壊れています (${detail})`,
+    } satisfies ErrorTexts<Exclude<ProjectFileError, { code: 'BROKEN' }>> & {
       BROKEN: (detail: string) => string;
     },
     /** 保存データを読み込めなかった理由。このあとに file.openedEmpty で「空のプロジェクトで開きます。」を続ける */
+    /** 回路ファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
+    circuitsFile: {
+      NOT_JSON: 'JSON として読み取れません',
+      NOT_SAZANKA: 'sazanka の回路ファイルではありません',
+      NEWER_VERSION: '新しい版の sazanka で作られたデータです',
+      PROJECT_FILE:
+        'これはプロジェクトファイルです。プロジェクトを開くときは「ファイル」の「開く…」を使ってください',
+      SINGLE_CIRCUIT:
+        '回路のデータだけのファイルは読み込めません。「回路のエクスポート…」で保存した回路ファイルを選んでください',
+      BROKEN: (detail: string) => `回路ファイルが壊れています (${detail})`,
+    } satisfies ErrorTexts<Exclude<CircuitsFileError, { code: 'BROKEN' }>> & {
+      BROKEN: (detail: string) => string;
+    },
     stored: {
       BROKEN: '保存データが壊れていたため読み込めませんでした。',
       NEWER_VERSION: '新しい版の sazanka で保存されたデータのため読み込めませんでした。',
@@ -266,25 +414,33 @@ export const ja = {
       'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
       '部品には遅延がある。信号は 1 tick ずつ、時間をかけて伝わる',
       '「一時停止」してから「1 tick 進める」「1 tick 戻す」で、信号が伝わる様子を 1 tick ずつ行き来できる',
-      'タブの「+」でモジュールを追加すると、回路を部品としてまとめられる',
-      '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
-      'モジュールの中の INPUT / OUTPUT に名前を付けると、ピンの名前になる',
+      'プロジェクトパネルの「⋯」の「新しい回路」で回路を追加すると、モジュールとしてほかの回路に置ける',
+      'プロジェクトパネルの「⋯」の「名前を付けて保存」でプロジェクトをファイルに保存し、「開く」で開ける',
+      'INPUT / OUTPUT に名前を付けると、モジュールとして置いたときのピンの名前になる',
     ],
-    /** モジュールのタブを開いているときに追加で表示するヒント */
-    module: [
-      'タブをダブルクリックすると、モジュールの名前を変更できる',
-      'モジュールのタブはドラッグで並べ替えられる (メインは先頭に固定)',
+    /** モジュールのタブ (メイン回路でない回路) を開いているときに追加で表示するヒント */
+    nonMain: [
+      '回路の名前は、プロジェクトパネルの行の「⋯」か F2 で変えられる',
+      'タブはドラッグで並べ替えられ、「×」で閉じられる',
       'INPUT / OUTPUT を置くと、モジュールのピンが増える',
-      'モジュールのタブを開いている間は、メイン回路のシミュレーションは止まる',
-      'ツールバーの「モジュール設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
+      'ほかの回路のタブを開いている間は、メイン回路のシミュレーションは止まる',
     ],
-    /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で、module に足すヒント */
-    splitModule: [
-      'INPUT / OUTPUT の上下の並びを変えるとピンの順番も変わり、外側の配線が別のピンにつながるので注意',
+    /** どの回路のタブでも、nonMain のあと (メイン回路では先頭) に出すヒント */
+    circuitSettings:
+      'ツールバーの「回路設定」で、パッケージ (形とピン数)、ポートの名前、ピンの割り当てを変えられる',
+    /** パッケージが split のモジュール (ピンの順が中の位置で決まる) で足すヒント。メイン回路では出さない (外側の配線がないため) */
+    splitPackage: [
+      'ピンは INPUT / OUTPUT のポート番号の順に並ぶ。INPUT / OUTPUT を動かしても、ピンの順は変わらない',
+      '「回路設定」の「上から順に番号を振り直す」でポート番号を変えるとピンの順も変わり、外側の配線が別のピンにつながるので注意',
     ],
-    /** パッケージが dip / qfp のモジュール (ピン番号で外側のピンを決める) で、module に足すヒント */
-    numberedModule: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
+    /** パッケージが dip / qfp の回路 (ピン番号で外側のピンを決める) で足すヒント。メイン回路でも出す */
+    numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
+    /** 見つからないモジュール (指す回路がプロジェクトにない) を選んだとき */
+    /** タブがないとき */
+    noCircuit: '左のプロジェクトパネルで、回路をダブルクリックすると開く',
+    unresolvedModule:
+      'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {
       unassigned: 'この INPUT / OUTPUT はピン番号がないため、外側のピンに出ていない',
       outOfRange:
@@ -315,6 +471,6 @@ export const ja = {
     conflict:
       '赤い配線に出力ピンが2つ以上つながっていて、値が決まらない。つながる入力ピンは OFF になる',
     unexposedPorts:
-      '赤い INPUT / OUTPUT はピンに割り当てられていない。「モジュール設定」で割り当てられる',
+      '赤い INPUT / OUTPUT はピンに割り当てられていない。「回路設定」で割り当てられる',
   },
 };

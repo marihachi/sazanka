@@ -25,7 +25,7 @@
 | 回路の編集、元に戻す / やり直し                | [編集と元に戻す](agent/docs/editing.md)                  |
 | シートの操作の割り当て（選択、配線、削除など） | [画面操作](agent/docs/interaction.md)                    |
 | シートの大きさ、スクロール、拡大縮小           | [シートの表示](agent/docs/view.md)                       |
-| 保存データ、共有用 JSON                        | [保存データ](agent/docs/persistence.md)                  |
+| 保存データ、プロジェクトファイル               | [保存データ](agent/docs/persistence.md)                  |
 | 画面の配置、ボタン、ダイアログ、ヒント         | [UI](agent/docs/ui.md)                                   |
 | 画面の文言、表示言語（日本語と英語）           | [文言と表示言語](agent/docs/i18n.md)                     |
 | 見た目（Chakra UI、CSS Modules、色）           | [見た目](agent/docs/styling.md)                          |

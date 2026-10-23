@@ -2,19 +2,20 @@ import { describe, expect, it } from 'vitest';
 import type { Part } from './part';
 import { emptyProject, MAIN_ID, type Project } from './project';
 import {
-  applyModuleSettings,
+  applyCircuitSettings,
   assignInOrder,
   assignPinNumbers,
   assignPortNumbers,
-  fillPortNumbers,
   findDuplicatePortNames,
   calcFittingPins,
   listPortsInNumberOrder,
   listPortsInPositionOrder,
+  renumberPortsByPosition,
   circuitsUsing,
   dependsOn,
   getPortsInPinOrder,
   findUnexposedPorts,
+  findUnexposedPortsToWarn,
   getPinout,
 } from './module';
 import type { CircuitDef } from './project';
@@ -30,13 +31,13 @@ describe('circuitsUsing', () => {
         {
           id: MAIN_ID,
           name: 'メイン',
-          parts: [comp('m', 'module', { module: 'a' })],
+          parts: [comp('m', 'module', { circuitId: 'a' })],
           wires: [],
         },
         {
           id: 'a',
           name: 'A',
-          parts: [comp('n', 'module', { module: 'b' })],
+          parts: [comp('n', 'module', { circuitId: 'b' })],
           wires: [],
         },
         { id: 'b', name: 'B', parts: [], wires: [] },
@@ -49,7 +50,29 @@ describe('circuitsUsing', () => {
 });
 
 describe('モジュールのピン', () => {
-  it('ピンになるのは INPUT / OUTPUT で、上から順、同じ高さなら左から', () => {
+  it('split のピンは、入力は入力のポート番号の順、出力は出力のポート番号の順 (位置の順ではない)', () => {
+    const def = {
+      package: { kind: 'split' as const },
+      // biome-ignore format: 表形式を維持するため
+      parts: [
+        { id: 'a', kind: 'input' as const, x: 0, y: 0, portNumber: 3 },
+        { id: 'b', kind: 'input' as const, x: 0, y: 40, portNumber: 1 },
+        { id: 'c', kind: 'input' as const, x: 0, y: 80, portNumber: 2 },
+        { id: 'g', kind: 'and' as const, x: 0, y: 0 },
+        { id: 'p', kind: 'output' as const, x: 0, y: 0, portNumber: 2 },
+        { id: 'q', kind: 'output' as const, x: 0, y: 40, portNumber: 1 },
+      ],
+      wires: [],
+    };
+    const { inputs, outputs } = getPortsInPinOrder(def);
+    expect(inputs.map((k) => k.id)).toEqual(['b', 'c', 'a']);
+    expect(outputs.map((k) => k.id)).toEqual(['q', 'p']);
+    // ポートを動かしても、ピンの順は変わらない
+    const moved = { ...def, parts: def.parts.map((c) => (c.id === 'a' ? { ...c, y: 200 } : c)) };
+    expect(getPortsInPinOrder(moved).inputs.map((k) => k.id)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('ポート番号のないポート (テストで作るもの) は、番号のあるものの後に、上から順、同じ高さなら左から', () => {
     const def = {
       // biome-ignore format: 表形式を維持するため
       parts: [
@@ -73,7 +96,7 @@ describe('モジュールのピン', () => {
         { id: 'm', name: 'M', parts: [], wires: [] },
       ],
     };
-    expect(getPinout(comp('u', 'module', { module: 'm' }), project).package).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project).package).toEqual({
       kind: 'split',
     });
     // モジュール以外の部品は持たない
@@ -98,16 +121,16 @@ describe('モジュールのピン', () => {
         },
       ],
     };
-    expect(getPinout(comp('u', 'module', { module: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project)).toEqual({
       inputs: ['A', ''],
       outputs: ['S'],
       package: { kind: 'split' },
     });
-    // 参照先がなければピンなし
-    expect(getPinout(comp('u', 'module', { module: 'ない' }), project)).toEqual({
+    // 参照先がなければ (見つからないモジュール) ピンなし
+    expect(getPinout(comp('u', 'module', { circuitId: 'ない' }), project)).toEqual({
       inputs: [],
       outputs: [],
-      package: { kind: 'split' },
+      unresolved: true,
     });
   });
 
@@ -136,6 +159,24 @@ describe('モジュールのピン', () => {
   });
 });
 
+describe('findUnexposedPortsToWarn', () => {
+  // ピン番号のない INPUT を置いた dip の回路
+  const parts = [comp('a', 'input', { portNumber: 1 })];
+  const pkg = { kind: 'dip' as const, pins: 4 };
+
+  it('メイン回路以外では、外側のピンに出せないポートを知らせる', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: 'm', name: 'M', package: pkg, parts, wires: [] }),
+    ).toEqual(new Map([['a', 'unassigned']]));
+  });
+
+  it('メイン回路では知らせない (ピンがどこにもつながらないため)', () => {
+    expect(
+      findUnexposedPortsToWarn({ id: MAIN_ID, name: '', package: pkg, parts, wires: [] }).size,
+    ).toBe(0);
+  });
+});
+
 describe('dip のモジュールのピン番号', () => {
   /** 8 ピンの dip のモジュール */
   function dip(parts: Part[]): CircuitDef {
@@ -154,7 +195,7 @@ describe('dip のモジュールのピン番号', () => {
     expect(inputs.map((c) => c.id)).toEqual(['b', 'a']);
     expect(outputs.map((c) => c.id)).toEqual(['c', 's']);
     const project: Project = { circuits: [emptyProject().circuits[0], def] };
-    expect(getPinout(comp('u', 'module', { module: 'm' }), project)).toEqual({
+    expect(getPinout(comp('u', 'module', { circuitId: 'm' }), project)).toEqual({
       inputs: ['B', 'A'],
       outputs: ['C', 'S'],
       package: { kind: 'dip', pins: 8 },
@@ -283,20 +324,7 @@ describe('assignPortNumbers', () => {
   });
 });
 
-describe('fillPortNumbers', () => {
-  it('ないものと重なるものに番号を付け、重なりでは中の位置の順で先のポートが番号を持ち続ける', () => {
-    // biome-ignore format: 表形式を維持するため
-    const def = { ...emptyProject().circuits[0], parts: [
-      comp('a', 'input', { portNumber: 2, y: 100 }),
-      comp('b', 'input', { portNumber: 2, y: 0 }),
-      comp('c', 'input'),
-      comp('d', 'output', { portNumber: 2 }),
-    ] };
-    expect(fillPortNumbers(def).parts.map((c) => c.portNumber)).toEqual([3, 2, 1, 2]);
-  });
-});
-
-describe('applyModuleSettings の名前', () => {
+describe('applyCircuitSettings の名前', () => {
   const def: CircuitDef = {
     id: 'm',
     name: 'M',
@@ -310,7 +338,7 @@ describe('applyModuleSettings の名前', () => {
   };
 
   it('名前を変え、空白だけなら名前なしにし、portNames にないポートは変えない', () => {
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       def,
       { kind: 'split' },
       new Map(),
@@ -323,7 +351,7 @@ describe('applyModuleSettings の名前', () => {
     expect(result.parts.map((c) => c.portName)).toEqual(['X', 'Y', undefined]);
     expect(result.parts[2]).not.toHaveProperty('portName');
     expect(
-      applyModuleSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
+      applyCircuitSettings(def, { kind: 'split' }, new Map(), new Map([['b', 'Y']])).parts[0],
     ).toBe(def.parts[0]);
   });
 });
@@ -345,7 +373,7 @@ describe('getPinout の 7 セグメント', () => {
   it('モジュールの中の 7 セグメントは、モジュールのピンにならない', () => {
     const project: Project = {
       circuits: [
-        { ...emptyProject().circuits[0], parts: [comp('m', 'module', { module: 'mod' })] },
+        { ...emptyProject().circuits[0], parts: [comp('m', 'module', { circuitId: 'mod' })] },
         {
           id: 'mod',
           name: 'M',
@@ -364,8 +392,8 @@ describe('dependsOn', () => {
   // biome-ignore format: 表形式を維持するため
   const project: Project = {
     circuits: [
-      { id: MAIN_ID, name: 'メイン', parts: [comp('u', 'module', { module: 'a' })], wires: [] },
-      { id: 'a', name: 'A', parts: [comp('u', 'module', { module: 'b' })], wires: [] },
+      { id: MAIN_ID, name: 'メイン', parts: [comp('u', 'module', { circuitId: 'a' })], wires: [] },
+      { id: 'a', name: 'A', parts: [comp('u', 'module', { circuitId: 'b' })], wires: [] },
       { id: 'b', name: 'B', parts: [], wires: [] },
     ],
   };
@@ -377,7 +405,7 @@ describe('dependsOn', () => {
   });
 });
 
-describe('モジュール設定の計算', () => {
+describe('回路設定の計算', () => {
   // biome-ignore format: 表形式を維持するため
   const parts: Part[] = [
     { ...comp('o1', 'output'), y: 0 },
@@ -462,7 +490,7 @@ describe('モジュール設定の計算', () => {
       ...def,
       parts: [...parts.slice(0, 3).map((c) => ({ ...c, pinNumber: 9 })), parts[3]],
     };
-    const result = applyModuleSettings(
+    const result = applyCircuitSettings(
       numbered,
       { kind: 'dip', pins: 4 },
       new Map([
@@ -477,7 +505,48 @@ describe('モジュール設定の計算', () => {
 
   it('split にすると、ポートのピン番号を外す', () => {
     const numbered: CircuitDef = { ...def, parts: [{ ...parts[0], pinNumber: 1 }] };
-    const result = applyModuleSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
+    const result = applyCircuitSettings(numbered, { kind: 'split' }, new Map([['o1', 1]]));
     expect(result.parts[0]).not.toHaveProperty('pinNumber');
+  });
+});
+
+describe('ポート番号を変える計算', () => {
+  // 入力 1 を下、入力 2 を上、入力 3 を真ん中に置き、出力 1 を下、出力 2 を上に置いたもの
+  // biome-ignore format: 表形式を維持するため
+  const parts: Part[] = [
+    { ...comp('i1', 'input'), y: 80, portNumber: 1 },
+    { ...comp('o1', 'output'), y: 60, portNumber: 1 },
+    { ...comp('i2', 'input'), y: 0, portNumber: 2 },
+    { ...comp('o2', 'output'), y: 0, portNumber: 2 },
+    { ...comp('i3', 'input'), y: 40, portNumber: 3 },
+    { ...comp('g', 'and'), y: 0 },
+  ];
+  const def: CircuitDef = { id: 'm', name: 'M', package: { kind: 'split' }, parts, wires: [] };
+  it('種類ごとに、位置の順 (上から) で 1 から番号を振り直す', () => {
+    expect(renumberPortsByPosition(def)).toEqual(
+      new Map([
+        ['i2', 1],
+        ['i3', 2],
+        ['i1', 3],
+        ['o2', 1],
+        ['o1', 2],
+      ]),
+    );
+  });
+
+  it('ポート番号を当てはめると、split のピンの順が変わる', () => {
+    const result = applyCircuitSettings(
+      def,
+      { kind: 'split' },
+      new Map(),
+      new Map(),
+      new Map([
+        ['i1', 2],
+        ['i2', 1],
+      ]),
+    );
+    expect(getPortsInPinOrder(result).inputs.map((c) => c.id)).toEqual(['i2', 'i1', 'i3']);
+    // 番号を変えないポートは、同じ部品のまま
+    expect(result.parts[4]).toBe(parts[4]);
   });
 });

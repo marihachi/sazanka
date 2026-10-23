@@ -13,8 +13,8 @@ const base: HintContext = {
   multipleSelected: false,
   unstable: false,
   conflict: false,
-  inModule: false,
-  numberedModule: false,
+  inMain: false,
+  numberedPackage: false,
   unexposedPorts: false,
   ticksPerSecond: 100,
 };
@@ -89,13 +89,27 @@ describe('statusHints', () => {
     expect(hints({ unstable: true })[0]).toContain('発振');
   });
 
-  it('何もしていないときは、使い方のヒントを順に出す', () => {
-    const idle = hints({});
-    expect(idle.length).toBeGreaterThan(1);
-    // モジュールのタブでは、モジュール向けのヒントを先に出す
-    const inModule = hints({ inModule: true });
-    expect(inModule.length).toBeGreaterThan(idle.length);
-    expect(inModule.slice(-idle.length)).toEqual(idle);
+  it('何もしていないときは、使い方のヒントを順に出す。回路のヒントを先に出す', () => {
+    const main = hints({ inMain: true });
+    const module = hints({});
+    expect(main.length).toBeGreaterThan(1);
+    // モジュールのタブでは、モジュールだけのヒントの分、多い
+    expect(module.length).toBeGreaterThan(main.length);
+    // どちらも、使い方のヒントで終わる
+    const idle = main.slice(1);
+    expect(module.slice(-idle.length)).toEqual(idle);
+  });
+
+  it('メイン回路では、回路設定のヒントを出し、タブの操作と split の並び順のヒントは出さない', () => {
+    const main = hints({ inMain: true });
+    expect(main[0]).toContain('回路設定');
+    expect(main.some((h) => h.includes('回路の名前は'))).toBe(false);
+    expect(main.some((h) => h.includes('シミュレーションは止まる'))).toBe(false);
+    expect(main.some((h) => h.includes('ポート番号の順に並ぶ'))).toBe(false);
+    expect(main.some((h) => h.includes('ピンが増える'))).toBe(false);
+    // dip / qfp なら、空いているピンに割り当てられることは出す
+    const numbered = hints({ inMain: true, numberedPackage: true });
+    expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);
   });
 
   it('外側のピンに出せないポートを選ぶと、その理由を先頭に出す', () => {
@@ -105,17 +119,21 @@ describe('statusHints', () => {
   });
 
   it('外側のピンに出せないポートがあって何も選んでいなければ、そのことを出す', () => {
-    expect(hints({ inModule: true, unexposedPorts: true })).toHaveLength(1);
-    expect(hints({ inModule: true, unexposedPorts: true })[0]).toContain(
-      'ピンに割り当てられていない',
-    );
+    expect(hints({ unexposedPorts: true })).toHaveLength(1);
+    expect(hints({ unexposedPorts: true })[0]).toContain('ピンに割り当てられていない');
   });
 
   it('モジュールのヒントは、ピンの決め方 (split か、ピン番号か) で変える', () => {
-    const split = hints({ inModule: true });
-    const numbered = hints({ inModule: true, numberedModule: true });
-    expect(split.some((h) => h.includes('上下の並び'))).toBe(true);
-    expect(numbered.some((h) => h.includes('上下の並び'))).toBe(false);
+    const split = hints({});
+    const numbered = hints({ numberedPackage: true });
+    expect(split.some((h) => h.includes('ポート番号の順に並ぶ'))).toBe(true);
+    expect(numbered.some((h) => h.includes('ポート番号の順に並ぶ'))).toBe(false);
     expect(numbered.some((h) => h.includes('空いているピンに自動で割り当てられる'))).toBe(true);
+  });
+
+  it('見つからないモジュールを選ぶと、開けないことと、ピンがないことを出す (モジュールのヒントは出さない)', () => {
+    const result = hints({ selectedPart: comp('module'), selectedUnresolved: true });
+    expect(result[0]).toContain('プロジェクトにない');
+    expect(result.some((h) => h.includes('ダブルクリックでモジュールの回路を開く'))).toBe(false);
   });
 });

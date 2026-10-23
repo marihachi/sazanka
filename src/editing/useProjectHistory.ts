@@ -25,5 +25,7 @@ export function useProjectHistory(initial: () => Project) {
     checkpoint: useCallback(() => setHistory(checkpoint), []),
     undo: useCallback(() => setHistory((h) => undo(h, keepSwitchStates)), []),
     redo: useCallback(() => setHistory((h) => redo(h, keepSwitchStates)), []),
+    /** 別のプロジェクトにする。履歴は消す (履歴はプロジェクトごとのもの。読み込みで使う) */
+    reset: useCallback((next: Project) => setHistory(initHistory(next)), []),
   };
 }

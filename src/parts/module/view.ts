@@ -10,13 +10,10 @@ export const module: PartView = {
     en: 'A part made from a circuit. Its INPUT / OUTPUT become pins',
   },
   hints: {
-    ja: [
-      'ダブルクリックでモジュールの回路を開く',
-      '「モジュール設定」で、ピンの割り当てを確かめられる',
-    ],
+    ja: ['ダブルクリックでモジュールの回路を開く', '「回路設定」で、ピンの割り当てを確かめられる'],
     en: [
       "Double-click to open the module's circuit",
-      'Check the pin assignment in "Module settings"',
+      'Check the pin assignment in "Circuit settings"',
     ],
   },
 };

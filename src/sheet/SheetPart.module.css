@@ -86,6 +86,14 @@
   stroke: var(--chakra-colors-accent-solid);
 }
 
+/* 未解決のモジュールの「見つからない」 */
+.missing {
+  fill: var(--chakra-colors-red-solid);
+  font-size: 11px;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
 /* HIGH の記号「1」。HIGH は常に ON なので、ON の色で描く */
 .high-mark {
   fill: var(--chakra-colors-sheet-on);

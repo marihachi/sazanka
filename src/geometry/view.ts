@@ -93,6 +93,28 @@ export function fitView(bounds: Rect, width: number, height: number, sheet: Circ
   return hideOutside(centered, width, height, sheet);
 }
 
+/**
+ * 範囲 bounds が、幅 width・高さ height の画面に映るようにした表示。すべて映っていれば v のまま。
+ * 映っていなければ、bounds の中心を画面の中心に置く。倍率は v のままにし、余白を除いた画面に収まらないときだけ下げる。
+ * シートの外にあるもの (問題パネルの「シートの外に部品か配線があります」) も映せるよう、シートの外が映るのは構わない
+ */
+export function revealView(v: View, bounds: Rect, width: number, height: number): View {
+  const start = toScreen(v, { x: bounds.left, y: bounds.top });
+  const end = toScreen(v, { x: bounds.right, y: bounds.bottom });
+  if (start.x >= 0 && start.y >= 0 && end.x <= width && end.y <= height) {
+    return v;
+  }
+  const margin = GRID * 2;
+  const w = bounds.right - bounds.left;
+  const h = bounds.bottom - bounds.top;
+  const scale = clampScale(Math.min(v.scale, (width - margin * 2) / w, (height - margin * 2) / h));
+  return {
+    x: width / 2 - ((bounds.left + bounds.right) / 2) * scale,
+    y: height / 2 - ((bounds.top + bounds.bottom) / 2) * scale,
+    scale,
+  };
+}
+
 /** 回路全体 (部品と配線) が占める範囲。部品も配線もなければ undefined */
 export function circuitBounds(circuit: Circuit, project: Project): Rect | undefined {
   // 配線は部品と別に置けるので、配線の点も範囲に含める
@@ -128,6 +150,29 @@ export function overview(
   return bounds && width > 0 && height > 0
     ? fitView(bounds, width, height, sheet)
     : centerView(width, height, sheet);
+}
+
+/**
+ * 部品と配線のうち、シート sheet に収まっていないもの (部品 ID と配線 ID)。見方は fitsInSheet と同じ。
+ * 問題パネルの「シートの外に部品か配線があります」で、元になっているものを選ぶのに使う
+ */
+export function findOutsideSheet(
+  circuit: CircuitDef,
+  project: Project,
+  sheet: CircuitSheet,
+): { parts: string[]; wires: string[] } {
+  const end = getSheetEnd(sheet);
+  const inside = (r: Rect) => r.left >= 0 && r.top >= 0 && r.right <= end.x && r.bottom <= end.y;
+  return {
+    parts: circuit.parts
+      .filter((c) => !inside(partBounds(c, getPinout(c, project))))
+      .map((c) => c.id),
+    wires: circuit.wires
+      .filter(
+        (w) => !w.points.every((p) => inside({ left: p.x, top: p.y, right: p.x, bottom: p.y })),
+      )
+      .map((w) => w.id),
+  };
 }
 
 /**

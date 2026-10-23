@@ -1,9 +1,16 @@
 // モジュール: 回路を部品として使うときのピンの決め方と、回路同士の依存。
 // 展開 (シミュレーション用に1つの回路にする) は simulation/flatten.ts にある
 
-import { inputPinNames, outputPinNames, type Part } from './part';
+import { type CircuitSize, inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
-import { findDef, MAX_PACKAGE_PINS, type CircuitDef, type Package, type Project } from './project';
+import {
+  findDef,
+  MAIN_ID,
+  MAX_PACKAGE_PINS,
+  type CircuitDef,
+  type Package,
+  type Project,
+} from './project';
 
 /**
  * 部品のピンの割り当て (ピンの名前と、モジュールの外側のピン番号)。
@@ -22,9 +29,15 @@ export interface Pinout {
    * パッケージが dip / qfp のモジュールだけが持つ
    */
   pinNumbers?: { inputs: number[]; outputs: number[] };
+  /**
+   * 指す回路がプロジェクトにない (見つからない) モジュール。ピンはなく、部品が持つ大きさの写し (size) の箱で描く。
+   * 写しがなければ決まった大きさ
+   */
+  unresolved?: boolean;
+  size?: CircuitSize;
 }
 
-/** ピン番号で外側のピンを決める形か (dip / qfp)。split は中の位置の順で決める */
+/** ピン番号で外側のピンを決める形か (dip / qfp)。split はポート番号の順で決める */
 export function usesPinNumbers(
   pkg: Package | undefined,
 ): pkg is Extract<Package, { pins: number }> {
@@ -42,7 +55,7 @@ function isPort(c: Part): boolean {
 export type PortProblem = 'unassigned' | 'outOfRange' | 'duplicate';
 
 /**
- * 外側のピンに出せないポート (部品 ID → 理由)。dip / qfp のモジュールだけが持ちうる。
+ * 外側のピンに出せないポート (部品 ID → 理由)。dip / qfp の回路だけが持ちうる。
  * 重なりは、どれを出すか決められないので、同じ番号のポートをすべて出さない
  */
 export function findUnexposedPorts(def: Circuit & { package?: Package }): Map<string, PortProblem> {
@@ -73,8 +86,16 @@ export function findUnexposedPorts(def: Circuit & { package?: Package }): Map<st
 }
 
 /**
+ * 外側のピンに出せないポートのうち、利用者に知らせるもの (警告と、ポートの印)。
+ * メイン回路では知らせない。メイン回路のピンはどこにもつながらないので、割り当てていなくても困らないため (開発者が決めた)
+ */
+export function findUnexposedPortsToWarn(def: CircuitDef): Map<string, PortProblem> {
+  return def.id === MAIN_ID ? new Map() : findUnexposedPorts(def);
+}
+
+/**
  * モジュールのピンになる INPUT / OUTPUT。この並びが PinRef.pin の番号になる。
- * split は中の位置の順 (上から、同じ高さなら左から)。
+ * split はポート番号の順 (入力は入力のポート番号の順、出力は出力のポート番号の順)。
  * dip / qfp はピン番号の順で、外側のピンに出せないポート (findUnexposedPorts) は除く
  */
 export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
@@ -93,20 +114,25 @@ export function getPortsInPinOrder(def: Circuit & { package?: Package }): {
     };
   }
 
-  // 中の位置の順がピンの順になるので、byPosition を変えると既存の配線が別のピンにつながる
+  // ポート番号の順がピンの順になる。読み込んだデータとアプリで置いたポートの番号は、入力どうし・出力どうしで重ならない
   return {
-    inputs: def.parts.filter((c) => c.kind === 'input').sort(byPosition),
-    outputs: def.parts.filter((c) => c.kind === 'output').sort(byPosition),
+    inputs: def.parts.filter((c) => c.kind === 'input').sort(byPortNumber),
+    outputs: def.parts.filter((c) => c.kind === 'output').sort(byPortNumber),
   };
 }
 
 /** 部品のピン名。モジュールは中の INPUT / OUTPUT のポート名、ほかは種類で決まる */
 export function getPinout(c: Part, project: Project): Pinout {
   if (c.kind === 'module') {
-    const def = findDef(project, c.module);
+    const def = findDef(project, c.circuitId);
 
     if (!def) {
-      return { inputs: [], outputs: [], package: { kind: 'split' } };
+      return {
+        inputs: [],
+        outputs: [],
+        unresolved: true,
+        ...(c.circuitSize ? { size: c.circuitSize } : {}),
+      };
     }
 
     const { inputs, outputs } = getPortsInPinOrder(def);
@@ -133,7 +159,7 @@ export function getPinout(c: Part, project: Project): Pinout {
  * 回路に新しく置いたポート (added に ID がある INPUT / OUTPUT) に、ピン番号を割り当てる。置く操作と貼り付けで使う。
  * dip / qfp のモジュールでは、番号がない・範囲の外・ほかと重なるものに、空いているいちばん小さい番号を入れる。
  * 空きがなければ番号を外す (割り当てなしとして知らせる)。
- * メイン回路と split のモジュールでは番号を使わないので外す (貼り付けで持ち込んだものも)
+ * split の回路では番号を使わないので外す (貼り付けで持ち込んだものも)
  */
 export function assignPinNumbers<T extends Circuit & { package?: Package }>(
   def: T,
@@ -181,9 +207,20 @@ function withoutPinNumber(c: Part): Part {
   return rest;
 }
 
-/** 上から、同じ高さなら左から。split のピンの順でもあるので、変えると既存の配線が別のピンにつながる */
+/** 上から、同じ高さなら左から。番号を振り直す順に使う (ピンの順はポート番号の順で、位置の順ではない) */
 function byPosition(a: Part, b: Part): number {
   return a.y - b.y || a.x - b.x;
+}
+
+/**
+ * ポート番号の順。番号のないポート (テストで作ったものなど) は最後にし、番号が同じか、どちらも番号がなければ位置の順にする
+ * (読み込んだデータとアプリで置いたポートでは起きないが、並びが決まるように)
+ */
+function byPortNumber(a: Part, b: Part): number {
+  return (
+    (a.portNumber ?? Number.POSITIVE_INFINITY) - (b.portNumber ?? Number.POSITIVE_INFINITY) ||
+    byPosition(a, b)
+  );
 }
 
 /**
@@ -224,25 +261,6 @@ export function assignPortNumbers<T extends Circuit>(def: T, added: ReadonlySet<
   return { ...def, parts };
 }
 
-/**
- * 読み込んだ回路の、ポート番号がないポートと、ほかと重なるポートに番号を付ける。
- * 重なるときは、中の位置の順で先のポートが番号を持ち続ける
- */
-export function fillPortNumbers<T extends Circuit>(def: T): T {
-  const missing = new Set<string>();
-  for (const kind of ['input', 'output'] as const) {
-    const seen = new Set<number>();
-    for (const c of def.parts.filter((p) => p.kind === kind).sort(byPosition)) {
-      if (c.portNumber === undefined || seen.has(c.portNumber)) {
-        missing.add(c.id);
-      } else {
-        seen.add(c.portNumber);
-      }
-    }
-  }
-  return assignPortNumbers(def, missing);
-}
-
 /** 回路 a が (間接的にでも) 回路 b をモジュールとして含むか */
 export function dependsOn(
   project: Project,
@@ -266,43 +284,59 @@ export function dependsOn(
   return def.parts.some(
     (c) =>
       c.kind === 'module' &&
-      c.module !== undefined &&
-      (c.module === b || dependsOn(project, c.module, b, seen)),
+      c.circuitId !== undefined &&
+      (c.circuitId === b || dependsOn(project, c.circuitId, b, seen)),
   );
 }
 
 /** モジュール id を部品として直接置いている回路 */
 export function circuitsUsing(project: Project, id: string): CircuitDef[] {
   return project.circuits.filter((d) =>
-    d.parts.some((c) => c.kind === 'module' && c.module === id),
+    d.parts.some((c) => c.kind === 'module' && c.circuitId === id),
   );
 }
 
-// モジュール設定 (modules/ModuleSettingsDialog.tsx) で使う計算
+// 回路設定 (circuits/CircuitSettingsDialog.tsx) で使う計算
 
 /**
- * ポートを、split のピンの順 (入力を上から、続けて出力を上から) に並べる。
+ * ポートを、位置の順 (入力を上から、続けて出力を上から) に並べる。
  * split から dip / qfp に変えるときと、「上から順に割り当て直す」で、この順に番号を振る
  */
 export function listPortsInPositionOrder(def: Circuit): Part[] {
-  const { inputs, outputs } = getPortsInPinOrder({ ...def, package: { kind: 'split' } });
-  return [...inputs, ...outputs];
+  return [
+    ...def.parts.filter((c) => c.kind === 'input').sort(byPosition),
+    ...def.parts.filter((c) => c.kind === 'output').sort(byPosition),
+  ];
 }
 
 /**
- * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。モジュール設定の一覧と選択肢に使う
+ * ポートを、入力をポート番号の順に、続けて出力をポート番号の順に並べる。回路設定の一覧と選択肢に使う
  * (見出しがポート番号なので、番号の順に並べる)。番号を振る順は、位置の順 (listPortsInPositionOrder) を使う。
- * 番号がない・重なるポートは読み込みと置く操作で付け直すので、ふつうは起きない。それでも並びが決まるよう、
+ * 番号がない・重なるポートは、読み込みでは断り、置く操作では付け直すので、ふつうは起きない。それでも並びが決まるよう、
  * 番号が同じなら位置の順、番号のないものは最後にする
  */
 export function listPortsInNumberOrder(def: Circuit): Part[] {
-  const byNumber = (a: Part, b: Part) =>
-    (a.portNumber ?? Number.POSITIVE_INFINITY) - (b.portNumber ?? Number.POSITIVE_INFINITY) ||
-    byPosition(a, b);
   return [
-    ...def.parts.filter((c) => c.kind === 'input').sort(byNumber),
-    ...def.parts.filter((c) => c.kind === 'output').sort(byNumber),
+    ...def.parts.filter((c) => c.kind === 'input').sort(byPortNumber),
+    ...def.parts.filter((c) => c.kind === 'output').sort(byPortNumber),
   ];
+}
+
+/**
+ * ポートのポート番号 (部品 ID → 番号) を、種類ごとに位置の順 (上から、同じ高さなら左から) で 1 から振り直したもの。
+ * 回路設定の「上から順に番号を振り直す」で使う (番号を振り直すときは位置の順、という取り決めのため)
+ */
+export function renumberPortsByPosition(def: Circuit): Map<string, number> {
+  const numbers = new Map<string, number>();
+  for (const kind of ['input', 'output'] as const) {
+    def.parts
+      .filter((c) => c.kind === kind)
+      .sort(byPosition)
+      .forEach((c, i) => {
+        numbers.set(c.id, i + 1);
+      });
+  }
+  return numbers;
 }
 
 /** ポートの並び ports の先頭から、1 から pins までの番号を順に割り当てる (部品 ID → 番号)。番号が足りなければ、残りは割り当てない */
@@ -320,22 +354,27 @@ export function calcFittingPins(kind: 'dip' | 'qfp', count: number): number {
 }
 
 /**
- * モジュール設定を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
- * numbers にないポート、ピン数を超える番号、split のモジュールのポートからは、ピン番号を外す。
- * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)
+ * 回路設定 (パッケージ、ポートの名前、ピンの割り当て) を当てはめた回路。パッケージを pkg にし、ポートのピン番号を numbers (部品 ID → 番号) にする。
+ * numbers にないポート、ピン数を超える番号、split の回路のポートからは、ピン番号を外す。
+ * portNames (部品 ID → 入力した名前) があるポートは、名前も変える (空白だけなら名前なし)。
+ * portNumbers (部品 ID → ポート番号) があるポートは、ポート番号も変える (split では、ピンの順が変わる)
  */
-export function applyModuleSettings<T extends Circuit & { package?: Package }>(
+export function applyCircuitSettings<T extends Circuit & { package?: Package }>(
   def: T,
   pkg: Package,
   numbers: ReadonlyMap<string, number>,
   portNames: ReadonlyMap<string, string> = new Map(),
+  portNumbers: ReadonlyMap<string, number> = new Map(),
 ): T {
   const parts = def.parts.map((c) => {
     if (!isPort(c)) {
       return c;
     }
     const text = portNames.get(c.id);
-    const named = text === undefined ? c : withPortName(c, text);
+    const portNumber = portNumbers.get(c.id);
+    const renumbered =
+      portNumber === undefined || portNumber === c.portNumber ? c : { ...c, portNumber };
+    const named = text === undefined ? renumbered : withPortName(renumbered, text);
     const n = numbers.get(c.id);
     if (!usesPinNumbers(pkg) || n === undefined || n < 1 || n > pkg.pins) {
       return named.pinNumber === undefined ? named : withoutPinNumber(named);

@@ -4,6 +4,8 @@ import type { TurnDirection } from './edit';
 export interface Shortcuts {
   /** false の間はキーを編集操作として扱わない (ダイアログ表示中など) */
   enabled: boolean;
+  /** false の間は、シートの操作 (選択、コピー、貼り付け、削除、モード、回転) のキーを効かせない (開いている回路がないとき) */
+  sheet: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onDelete: () => void;
@@ -20,6 +22,10 @@ export interface Shortcuts {
   onSplitTool: () => void;
   /** 選んでいるもの (貼り付け中は貼り付けるもの) を回す。R は時計回り、Shift+R は反時計回り */
   onRotate: (direction: TurnDirection) => void;
+  /** プロジェクトを開く (Ctrl+O) */
+  onOpenProject: () => void;
+  /** 名前を付けて保存 (Ctrl+Shift+S) */
+  onSaveProjectAs: () => void;
 }
 
 /** 編集操作のキーボードショートカット */
@@ -50,6 +56,21 @@ export function useShortcuts(shortcuts: Shortcuts) {
         } else {
           s.onUndo();
         }
+        return;
+      }
+      // ブラウザのページを開く (Ctrl+O)・ページを保存 (Ctrl+Shift+S) より、アプリの操作を優先する。
+      // Ctrl+S は割り当てない (上書き保存のキーという印象が強いため。開発者が決めた)
+      if (mod && key === 'o' && !e.shiftKey) {
+        e.preventDefault();
+        s.onOpenProject();
+        return;
+      }
+      if (mod && key === 's' && e.shiftKey) {
+        e.preventDefault();
+        s.onSaveProjectAs();
+        return;
+      }
+      if (!s.sheet) {
         return;
       }
       if (mod && key === 'a') {

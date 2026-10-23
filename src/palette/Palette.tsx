@@ -8,6 +8,7 @@ import type { CircuitDef } from '../circuit/project';
 import { PartIcon } from '../parts/PartIcon';
 import { labelOf, PART_VIEWS, type PaletteGroupId, partViewOf } from '../parts/views';
 import { MaskIcon } from '../ui/Icons';
+import { SidePanelHeader } from '../ui/SidePanelHeader';
 import { ToolButton } from '../ui/ToolButton';
 import { HintTooltip } from '../ui/HintTooltip';
 import { useLanguage, useMessages } from '../i18n/useMessages';
@@ -53,7 +54,10 @@ interface PaletteProps {
   onAdd: (kind: PartKind, module?: string) => void;
 }
 
-/** 左側のパネル。置ける部品の一覧 (削除エリアはシートの右下、TrashZone.tsx) */
+/**
+ * 左側のパネル。置ける部品の一覧 (削除エリアはシートの右下、TrashZone.tsx)。
+ * 上から、パネルの名前、ツールバー (すべて折り畳む)、部品の一覧の順に並べる
+ */
 export const Palette = memo(function Palette({
   modules,
   collapsed,
@@ -71,14 +75,20 @@ export const Palette = memo(function Palette({
 
   return (
     <Flex direction="column" w="176px" flexShrink={0} bg="bg.panel" borderRightWidth="1px">
-      <Flex p="1" borderBottomWidth="1px">
-        <ToolButton
-          icon={allCollapsed ? expandAllIcon : collapseAllIcon}
-          label={toggleLabel}
-          onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_IDS)}
-          iconOnly
-        />
-      </Flex>
+      <SidePanelHeader
+        title={m.sidePanel.parts}
+        toolbarLabel={m.palette.toolbar}
+        toolbar={
+          <ToolButton
+            icon={allCollapsed ? expandAllIcon : collapseAllIcon}
+            label={toggleLabel}
+            onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_IDS)}
+            iconOnly
+            iconSize="5"
+            size="xs"
+          />
+        }
+      />
       <Box as="aside" flex="1" minH="0" overflowY="auto" p="2">
         {GROUPS.map((group) => (
           <PaletteGroup

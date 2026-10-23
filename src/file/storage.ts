@@ -1,10 +1,14 @@
 import {
   type CircuitDef,
+  type CircuitSheet,
   checkProject,
   emptyProject,
-  withCircuitSheet,
-  withoutSwitchStates,
+  findDef,
+  getCircuitSheet,
+  MAIN_ID,
+  type Package,
   type Project,
+  withoutSwitchStates,
 } from '../circuit/project';
 import {
   DEFAULT_PREFERENCES,
@@ -13,26 +17,17 @@ import {
   type Preferences,
 } from '../preferences/preferences';
 import { isView, type View } from '../geometry/view';
-import { GRID, type Point } from '../geometry/layout';
-import type { Part, PlaceablePartKind } from '../circuit/part';
+import { GRID, moduleSizeOf, type Point } from '../geometry/layout';
+import { DEFAULT_CLOCK_PERIOD, type Part, type PlaceablePartKind } from '../circuit/part';
 import { isObject } from '../util';
 import { isLanguageSetting } from '../i18n/language';
-import { fillPortNumbers } from '../circuit/module';
 import { newId } from '../circuit/circuit';
-import { upgradeProject } from './upgrade';
+import { CIRCUIT_FORMAT_VERSION, PROJECT_FORMAT_VERSION, upgradeStoredProject } from './upgrade';
 
 const STORAGE_KEY = 'sazanka.project';
 
-/** 保存データの形式の版。形式を変えたら上げて、古い版を変える処理を upgrade.ts に足す */
-const STORAGE_VERSION = 4;
-
-interface StoredData {
-  version: number;
-  project: StoredProject;
-}
-
 /**
- * 保存データと共有用 JSON の中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
+ * 保存データとプロジェクトファイルの中の配線。アプリの中の配線 (Wire) とは違い、ID を持たず、種類 (kind) を持つ。
  * 種類は今は普通の配線 (wire) だけ
  */
 export interface StoredWire {
@@ -40,8 +35,11 @@ export interface StoredWire {
   points: Point[];
 }
 
-/** 保存データと共有用 JSON の中の部品。ID を持たない */
-export type StoredPart = Omit<Part, 'id'>;
+/**
+ * 保存データとプロジェクトファイルの中の部品。ID と ON/OFF を持たない。
+ * モジュールの部品は、指す回路の名前と本体の大きさの写し (circuitName、circuitSize) を持つ (保存するたびに今の値を写す。指す回路がない部品は、持っている写しのまま)
+ */
+export type StoredPart = Omit<Part, 'id' | 'on'> & { circuitName?: string };
 
 /**
  * 回路に置いた要素 (部品と配線)。種類 (kind) で見分ける。配線の種類は wire、それ以外は部品の種類。
@@ -49,20 +47,38 @@ export type StoredPart = Omit<Part, 'id'>;
  */
 export type StoredElement = StoredPart | StoredWire;
 
+/** 保存データとプロジェクトファイルの中の回路 (回路の形式のデータ)。メイン回路は名前を持たない */
+export interface StoredCircuit {
+  format: 'sazanka-circuit';
+  version: number;
+  id: string;
+  name?: string;
+  author: string;
+  package: Package;
+  sheet: CircuitSheet;
+  elements: StoredElement[];
+}
+
+/** プロジェクトの要素。回路を置くフォルダのパス (フォルダなしは空文字) と、回路のデータの組 */
+export interface StoredProjectEntry {
+  path: string;
+  circuit: StoredCircuit;
+}
+
 /**
- * 保存データと共有用 JSON の中のプロジェクトの形。アプリの中の形 (Project) とは、次のところが違う。
+ * 保存データとプロジェクトファイルの形 (プロジェクトの形式のデータ)。アプリの中の形 (Project) とは、次のところが違う。
+ * - 回路は、フォルダのパスと組にした要素の並び (circuits) に並べる (アプリの中は、回路に path を持たせた circuits)。
  * - 部品と配線を、1 つの一覧 (elements) に並べる (アプリの中は parts と wires に分ける)。
  * - 部品の位置と配線の点がマス単位 (アプリの中は px)。
  * - メイン回路は名前を持たない (アプリの中は空文字)。
  * - 部品と配線は ID を持たない。どこからも参照されないので保存せず、読み込むたびに付ける。保存する ID は回路の ID だけ。
- * - 配線は種類を持つ (StoredWire)。
+ * - 配線は種類を持つ (StoredWire)。モジュールの部品は、指す回路の名前の写し (circuitName) を持つ。
  */
 export interface StoredProject {
-  author?: string;
-  circuits: (Omit<CircuitDef, 'name' | 'parts' | 'wires'> & {
-    name?: string;
-    elements: StoredElement[];
-  })[];
+  format: 'sazanka-project';
+  version: number;
+  folders: string[];
+  circuits: StoredProjectEntry[];
 }
 
 /**
@@ -109,55 +125,111 @@ function scalePoint<T extends Point>(p: T, scale: number): T {
 }
 
 /**
- * アプリの中のプロジェクトを、保存データと共有用 JSON の形にする。
+ * アプリの中の回路 1 つを、保存データの形の回路にする。
  * 部品と配線を 1 つの一覧にまとめ (種類の順 ELEMENT_ORDER。同じ種類の中はアプリの中の順)、位置を px からマスに直し、
- * メイン回路の名前と部品と配線の ID を外し、配線に種類を書く。
+ * メイン回路の名前と部品と配線の ID を外し、配線に種類を書き、モジュールの部品に指す回路の今の名前を写す。
+ * パッケージ、シートの大きさ、作者名を持たない回路 (テストで作ったものなど) には、split、DEFAULT_SHEET、空文字を書く。
+ * 周期を持たない CLOCK には DEFAULT_CLOCK_PERIOD を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
+ */
+export function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
+  const { id, name, author, parts, wires } = def;
+  const toStoredPart = ({ id: _, on: __, ...c }: Part): StoredElement => {
+    const cells = scalePoint(c, 1 / GRID);
+    if (c.kind === 'module') {
+      // 指す回路がない (見つからないモジュールの) 部品は、持っている写しをそのまま書く
+      return {
+        ...cells,
+        circuitName: findDef(project, c.circuitId)?.name ?? c.circuitName ?? '',
+        circuitSize: moduleSizeOf({ id: '', ...c }, project),
+      };
+    }
+    // 置いたばかりの CLOCK は周期を持たない (既定の周期で動く)。保存データでは省略できないので書く
+    if (c.kind === 'clock' && c.period === undefined) {
+      return { ...cells, period: DEFAULT_CLOCK_PERIOD };
+    }
+    return cells;
+  };
+  return {
+    format: 'sazanka-circuit',
+    version: CIRCUIT_FORMAT_VERSION,
+    id,
+    ...(id === MAIN_ID ? {} : { name }),
+    author: author ?? '',
+    package: def.package ?? { kind: 'split' },
+    sheet: getCircuitSheet(def),
+    // sort は安定なので、同じ種類の中はアプリの中の順のまま
+    elements: [
+      ...parts.map(toStoredPart),
+      ...wires.map(
+        (w): StoredElement => ({
+          kind: 'wire',
+          points: w.points.map((p) => scalePoint(p, 1 / GRID)),
+        }),
+      ),
+    ].sort((a, b) => elementOrderOf(a.kind) - elementOrderOf(b.kind)),
+  };
+}
+
+/**
+ * アプリの中のプロジェクトを、保存データとプロジェクトファイルの形にする。
+ * 回路の並びを、同じ並びのまま要素の並びにする (フォルダのパスを持たない回路はフォルダなし)
  */
 export function toStoredProject(project: Project): StoredProject {
   return {
-    ...project,
-    circuits: project.circuits.map(({ name, parts, wires, ...def }, i) => ({
-      ...def,
-      ...(i > 0 ? { name } : {}),
-      // sort は安定なので、同じ種類の中はアプリの中の順のまま
-      elements: [
-        ...parts.map(({ id: _, ...c }): StoredElement => scalePoint(c, 1 / GRID)),
-        ...wires.map(
-          (w): StoredElement => ({
-            kind: 'wire',
-            points: w.points.map((p) => scalePoint(p, 1 / GRID)),
-          }),
-        ),
-      ].sort((a, b) => elementOrderOf(a.kind) - elementOrderOf(b.kind)),
+    format: 'sazanka-project',
+    version: PROJECT_FORMAT_VERSION,
+    folders: [...(project.folders ?? [])],
+    circuits: project.circuits.map((def) => ({
+      path: def.path ?? '',
+      circuit: toStoredCircuit(def, project),
     })),
   };
 }
 
 /**
- * 保存データと共有用 JSON の形のプロジェクトを、アプリの中の形にする。
+ * 保存データとプロジェクトファイルの形のプロジェクトを、アプリの中の形にする。
+ * 要素の並びを、同じ並びのまま回路の並びにし、フォルダのパスを回路に持たせる。
  * 一覧の要素を種類で部品と配線に分け (それぞれの中の順は保つ)、位置をマスから px に直す。
  * メイン回路の名前は、あっても捨てて空文字にする (画面に出す名前は表示言語の文言から引く)。
+ * 部品の名前と大きさの写し (circuitName、circuitSize) は、指す回路がプロジェクトにない (見つからないモジュールの) 部品にだけ残す。指す回路がある部品は、回路から引くので捨てる。
  * 部品と配線には newId で新しい ID を付ける (回路ごとに部品、配線の順)。データに ID があっても使わない
  */
 export function fromStoredProject(project: StoredProject, newId: () => string): Project {
+  const circuitIds = new Set(project.circuits.map(({ circuit }) => circuit.id));
   return {
-    ...project,
-    circuits: project.circuits.map(({ name, elements, ...def }, i) => {
-      // データにある ID (id) は捨てて、新しい ID を付ける
-      const parts = elements
-        .filter((e): e is StoredPart => !isStoredWire(e))
-        .map(({ id: _, ...c }: StoredPart & { id?: unknown }) => ({
-          id: newId(),
-          ...scalePoint(c, GRID),
-        }));
-      const wires = elements.filter(isStoredWire).map((w) => ({
-        id: newId(),
-        points: w.points.map((p) => scalePoint(p, GRID)),
-      }));
-      return { ...def, name: i > 0 ? (name ?? '') : '', parts, wires };
-    }),
+    folders: [...project.folders],
+    circuits: project.circuits.map(({ path, circuit }) =>
+      fromStoredCircuit(circuit, path, (id) => !circuitIds.has(id), newId),
+    ),
   };
+}
+
+/**
+ * 保存データの形の回路 1 つを、アプリの中の形にし、フォルダのパス path を持たせる (書き方は fromStoredProject)。
+ * keepCopies(circuitId) が true のモジュールの部品にだけ、名前と大きさの写しを残す (指す回路がない部品)
+ */
+export function fromStoredCircuit(
+  circuit: StoredCircuit,
+  path: string,
+  keepCopies: (circuitId: string) => boolean,
+  newId: () => string,
+): CircuitDef {
+  const { format: _, version: __, name, elements, ...def } = circuit;
+  // データにある ID (id) は捨てて、新しい ID を付ける
+  const parts = elements
+    .filter((e): e is StoredPart => !isStoredWire(e))
+    .map(({ id: _, circuitName, circuitSize, ...c }: StoredPart & { id?: unknown }) => ({
+      id: newId(),
+      ...scalePoint(c, GRID),
+      // 見つからないモジュールの部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
+      ...(c.kind === 'module' && keepCopies(c.circuitId ?? '') ? { circuitName, circuitSize } : {}),
+    }));
+  const wires = elements.filter(isStoredWire).map((w) => ({
+    id: newId(),
+    points: w.points.map((p) => scalePoint(p, GRID)),
+  }));
+  return { ...def, name: def.id === MAIN_ID ? '' : (name ?? ''), path, parts, wires };
 }
 
 /** 保存データを読み込めなかった理由。BROKEN は形が壊れている、NEWER_VERSION は今より新しい版で保存された */
@@ -185,7 +257,8 @@ export function loadProject(): LoadResult {
 
 /**
  * 保存されていた文字列を読み込む (localStorage に触らない部分)。
- * newId は、古い版の ID を付け直す変換 (upgradeV3) が使う
+ * 一体の形式 (version 1〜4) で保存されたものも、読み込みの入口 (upgrade/index.ts) で新しい形式にしてから読む。
+ * newId は、古い版の ID を付け直す変換 (upgradeV3) と、部品と配線の ID に使う
  */
 export function readStored(raw: string | null, newId: () => string): LoadResult {
   if (!raw) {
@@ -195,53 +268,146 @@ export function readStored(raw: string | null, newId: () => string): LoadResult 
   try {
     data = JSON.parse(raw);
   } catch {
+    return { project: emptyProject(), error: { code: 'BROKEN' } };
+  }
+  const upgraded = upgradeStoredProject(data, newId);
+  if (!upgraded.ok) {
     return {
       project: emptyProject(),
-      error: { code: 'BROKEN' },
+      error: { code: upgraded.error.code === 'NEWER_VERSION' ? 'NEWER_VERSION' : 'BROKEN' },
     };
   }
-  if (!isObject(data) || typeof data.version !== 'number') {
-    return {
-      project: emptyProject(),
-      error: { code: 'BROKEN' },
-    };
-  }
-  if (data.version > STORAGE_VERSION) {
-    return {
-      project: emptyProject(),
-      error: { code: 'NEWER_VERSION' },
-    };
-  }
-  // 古い版は、今の版の形に変えてから確かめる
-  const project = upgradeProject(data.project, data.version, newId);
-  if (checkProject(project) !== undefined) {
-    return {
-      project: emptyProject(),
-      error: { code: 'BROKEN' },
-    };
+  if (checkProject(upgraded.project) !== undefined) {
+    return { project: emptyProject(), error: { code: 'BROKEN' } };
   }
   // 古いデータには ON/OFF が入っていることがあるが、使わない
-  const loaded = withoutSwitchStates(fromStoredProject(project as StoredProject, newId));
-  // version 3 を公開する前の保存データには、ポート番号がない。シートの大きさを足す前のデータには、大きさがない
   return {
-    project: {
-      ...loaded,
-      circuits: loaded.circuits.map((d) => withCircuitSheet(fillPortNumbers(d))),
-    },
+    project: withoutSwitchStates(fromStoredProject(upgraded.project as StoredProject, newId)),
   };
 }
 
 export function saveProject(project: Project) {
-  const unswitched = withoutSwitchStates(project);
-  const data: StoredData = {
-    version: STORAGE_VERSION,
-    project: toStoredProject({
-      ...unswitched,
-      circuits: unswitched.circuits.map(withCircuitSheet),
-    }),
-  };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(toStoredProject(withoutSwitchStates(project))),
+    );
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const TABS_KEY = 'sazanka.tabs';
+
+/** 開いているタブ (回路 ID。並びがタブの並び) と、選んでいるタブ。タブがなければ current は null */
+export interface OpenTabs {
+  open: string[];
+  current: string | null;
+}
+
+/**
+ * 開いていたタブ。保存がなければ、タブなし (初めて開いたとき)。
+ * 回路がプロジェクトにあるかは、使う側 (App) が確かめる
+ */
+export function loadTabs(): OpenTabs {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(TABS_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return { open: [], current: null };
+    }
+    const { open, current } = value as Record<string, unknown>;
+    const ids = Array.isArray(open) ? open.filter((v): v is string => typeof v === 'string') : [];
+    return {
+      open: ids,
+      current: typeof current === 'string' && ids.includes(current) ? current : null,
+    };
+  } catch {
+    return { open: [], current: null };
+  }
+}
+
+export function saveTabs(tabs: OpenTabs) {
+  try {
+    localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const FILE_KEY = 'sazanka.file';
+
+/**
+ * 今開いているプロジェクトのファイル。name は開いた・保存したファイルの名前 (なければ null。ヘッダーに「(未保存)」と出す)。
+ * savedHash は、そのとき (ファイルなしなら新規作成のとき) のプロジェクトの指紋 (projectFile.ts の projectHash)。
+ * 今のプロジェクトの指紋と違えば、ファイルに保存していない変更がある
+ */
+export interface FileState {
+  name: string | null;
+  savedHash: string;
+}
+
+/** 覚えていたファイルの状態。保存がないか、形が違えば undefined */
+export function loadFileState(): FileState | undefined {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(FILE_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return undefined;
+    }
+    const { name, savedHash } = value as Record<string, unknown>;
+    if ((typeof name !== 'string' && name !== null) || typeof savedHash !== 'string') {
+      return undefined;
+    }
+    return { name, savedHash };
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveFileState(state: FileState) {
+  try {
+    localStorage.setItem(FILE_KEY, JSON.stringify(state));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const SIDE_PANEL_KEY = 'sazanka.sidePanel';
+
+/** 左のサイドパネルに出すもの。project はプロジェクトパネル、parts はパレット (部品) */
+export type SidePanel = 'project' | 'parts';
+
+/** 最後に選んでいたサイドパネル。保存がなければプロジェクトパネル (初めて開いたとき) */
+export function loadSidePanel(): SidePanel {
+  try {
+    return localStorage.getItem(SIDE_PANEL_KEY) === 'parts' ? 'parts' : 'project';
+  } catch {
+    return 'project';
+  }
+}
+
+export function saveSidePanel(panel: SidePanel) {
+  try {
+    localStorage.setItem(SIDE_PANEL_KEY, panel);
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const TREE_COLLAPSED_KEY = 'sazanka.projectTreeCollapsed';
+
+/** プロジェクトパネルで折り畳んでいるフォルダのパス。知らないパスは無視される */
+export function loadTreeCollapsed(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(TREE_COLLAPSED_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveTreeCollapsed(paths: string[]) {
+  try {
+    localStorage.setItem(TREE_COLLAPSED_KEY, JSON.stringify(paths));
   } catch {
     // 保存できない環境では無視
   }
@@ -262,6 +428,44 @@ export function loadCollapsedGroups(): string[] {
 export function saveCollapsedGroups(ids: string[]) {
   try {
     localStorage.setItem(COLLAPSED_KEY, JSON.stringify(ids));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const PROBLEMS_PANEL_KEY = 'sazanka.problemsPanel';
+
+/** 問題パネルを開いているかと、開いたときの高さ (px) */
+export interface ProblemsPanelState {
+  open: boolean;
+  height: number;
+}
+
+export const DEFAULT_PROBLEMS_PANEL: ProblemsPanelState = { open: false, height: 140 };
+
+/** 問題パネルの状態。保存がないか、形が違えば既定の状態 */
+export function loadProblemsPanel(): ProblemsPanelState {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(PROBLEMS_PANEL_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return DEFAULT_PROBLEMS_PANEL;
+    }
+    const { open, height } = value as Record<string, unknown>;
+    return {
+      open: typeof open === 'boolean' ? open : DEFAULT_PROBLEMS_PANEL.open,
+      height:
+        typeof height === 'number' && Number.isFinite(height) && height > 0
+          ? height
+          : DEFAULT_PROBLEMS_PANEL.height,
+    };
+  } catch {
+    return DEFAULT_PROBLEMS_PANEL;
+  }
+}
+
+export function saveProblemsPanel(state: ProblemsPanelState) {
+  try {
+    localStorage.setItem(PROBLEMS_PANEL_KEY, JSON.stringify(state));
   } catch {
     // 保存できない環境では無視
   }

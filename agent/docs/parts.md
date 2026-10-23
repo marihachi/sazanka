@@ -17,7 +17,7 @@
 
 1. `src/parts/<名前>/` に `spec.ts`、`view.ts`、`icon.svg` を作る。
 2. `parts/specs.ts` の `PART_SPECS` と、`parts/views.ts` の `PART_VIEWS` に 1 行ずつ足す。既定と違う配置にするなら、`layout.ts` も作って `parts/layouts.ts` の `PART_LAYOUTS` に足す。
-3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表と、「version 4 の中で変えたもの」（なければ節を作る）に書き足す。種類を足すだけなら版は上げない。保存するときの要素の並び順（`file/storage.ts` の `ELEMENT_ORDER`）にも足す（足さないと型エラーになる。どこに入れるかは開発者に聞く）。
+3. [保存データ](persistence.md)の形式の文書（`docs/format/`）の「部品の種類とピン」の表に書き足す。今の版の文書は[回路の形式 version 1](../../docs/format/circuit/v1.md)（まだ公開していないので、表を直接直す。公開したあとは「version 1 の中で変えたもの」の節に書き足す）。種類を足すだけなら版は上げない。保存するときの要素の並び順（`file/storage.ts` の `ELEMENT_ORDER`）にも足す（足さないと型エラーになる。どこに入れるかは開発者に聞く）。
 
 - 種類の型（`PartKind`）は `PART_SPECS` から導いている。仕様の一覧にある種類だけの型は `SpecKind`。`PART_VIEWS` は置ける種類すべてをキーに持つ型なので、見せ方を書き忘れると型エラーになる。
 - 読み込みの検証、パレット、シートの描画、ヒントは一覧を見て動くので、ほかのファイルは直さなくてよい。
@@ -53,7 +53,7 @@
   - 本体の輪郭（`body`）: `rect`（角を 3px 丸めた四角）、`rounded`（角を 4px 丸めた四角）、`circle`（円）。四角の端子（INPUT、CLOCK など小さな四角）は `rounded`、それ以外の部品（ゲート、記憶素子、7 セグメント、モジュール）は `rect` にする
   - ピンの置き方（`inputs`、`outputs`）: 辺（`side`。`left` / `right` / `top` / `bottom`）と、辺の上の位置（`at`。左右の辺なら本体の上端から、上下の辺なら左端からのマス）。並び順がピン番号。ピンの先は辺から 1 マス外にある
   - 本体の上に名前を書くか（`nameAbove`）。部品の占める範囲に、その 1 マスを含める
-  - どのポートにもつながらないピン（`nc`。線と「NC」の文字だけを描く）と、外側のピン番号（`PinPlacement.number`）。dip / qfp のモジュールだけが使う。ピン番号は、シート上には書かず、モジュール設定のプレビューでだけピンの横に書く（`SheetPart` の `showPinNumbers`）
+  - どのポートにもつながらないピン（`nc`。線と「NC」の文字だけを描く）と、外側のピン番号（`PinPlacement.number`）。dip / qfp のモジュールだけが使う。ピン番号は、シート上には書かず、回路設定のプレビューでだけピンの横に書く（`SheetPart` の `showPinNumbers`）
   - ピンの線に、入力か出力かを示す向きの三角を付けるか（`directionMarks`）。辺から入力か出力かが分からない配置（dip / qfp のモジュール）で付ける
 - 部品の占める範囲（`geometry/layout.ts` の `calcMarginAroundBody`）: 左右は、ピンがなくても 1 マス取る。上下は、その辺にピンがあるときだけ 1 マス取る。本体の上に書く名前（`nameAbove`）の 1 マスは、回した後の辺で取る。
 - 部品の向き（`Part.rotation`。時計回りに 0 / 90 / 180 / 270 度）は、種類の配置を回して表す（`parts/layout.ts` の `rotateLayout`）。幅と高さが入れ替わり、ピンの辺と位置が移る。種類の `layout.ts` は、回していない向きだけを書く。
@@ -62,6 +62,7 @@
 - ピンの線とピン名は、入力か出力かではなく辺で描き分ける（`sheet/SheetPart.tsx`）。
 - 配置は、部品のピンの割り当て（`circuit/module.ts` の `Pinout`。ピンの名前、モジュールのパッケージと外側のピン番号）を受け取って返す関数（`PartLayoutOf`）。モジュールは、パッケージとピンの数で形が変わるため。
 - モジュールの配置（`module/layout.ts`）は、パッケージで分かれる。`split` は今までの形（幅 4、ピンは 1 マスおき）、`dip` は幅 3 で左右に 2 マスおき（番号は左上から反時計回り）、`qfp` は正方形で 4 辺に 2 マスおき（角から 2 マスあける。名前は本体の中）。
+  - 見つからないモジュール（指す回路がプロジェクトにない。`Pinout.unresolved`）は、ピンのない箱にする（ピンは分からないため）。大きさは、部品が持つ大きさの写し（`Part.circuitSize`。元の本体の大きさ）で、写しがなければ幅 6・高さ 3。本体は赤い破線で囲み、中に名前の写し（`Part.circuitName`）と「見つからない」を 2 行で書く（`SheetPart.tsx`）。つながっていた配線は、外れて見える（[計画 20](../plans/unresolved-module/plan.md)）。
 - 上下の辺のピン名は、90 度回して本体の内側に縦に書く（`SheetPart.tsx` の `PinName`）。
 - 種類の `layout.ts` がなければ、動作の分類の既定の配置（`gateLayout`、`flipflopLayout`）になる。INPUT、OUTPUT、CLOCK、HIGH は、種類の `layout.ts` で小さな四角（`squareLayout`）にしている。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は小さな四角の配置の輪郭だけを円にしている）。
 - 本体の中の描き込み（ランプ、矩形波の絵、文字）は、配置ではなく `sheet/SheetPart.tsx` が種類ごとに描いている。
