@@ -102,6 +102,44 @@ export const en: Messages = {
     removeSource: (name) => `Remove "${name}" from the project after replacing`,
     apply: 'Replace',
   },
+  exchange: {
+    menu: 'Circuits',
+    importMenu: 'Import circuits…',
+    exportMenu: 'Export circuits…',
+    exportRow: 'Export…',
+    exportTitle: 'Export circuits',
+    exportTarget: 'Circuits to export',
+    includeDependencies: 'Include dependencies',
+    exportList: (n) => `To export (${n})`,
+    dependency: 'dependency',
+    noExportable: 'There are no circuits to export',
+    save: 'Save to file',
+    importTitle: 'Import circuits',
+    file: 'File',
+    pickFile: 'Choose file',
+    noFile: 'No file chosen',
+    fileSummary: (name, n) => `${name} (${n} ${n === 1 ? 'circuit' : 'circuits'})`,
+    targetFolder: 'Destination folder',
+    circuits: 'Circuits to import',
+    fileName: 'Name in file',
+    projectName: 'Name in project',
+    action: 'Action',
+    actions: {
+      add: 'Add',
+      addRenamed: 'Add (renamed)',
+      replace: 'Replace',
+      skip: 'Skip',
+    },
+    warning: 'Warning',
+    pinsChange:
+      'The pin count or order changes, so wires where it is placed may be disconnected or connect to different pins.',
+    willBeMissing: (users) => `If skipped, it becomes a missing module (used by ${users}).`,
+    usersSeparator: ', ',
+    cycle:
+      'Importing would make modules contain themselves, so it cannot be imported. Skip this circuit or the one it loops with.',
+    empty: 'The file contains no circuits',
+    apply: 'Import',
+  },
   palette: {
     toolbar: 'Parts actions',
     groups: {
@@ -269,6 +307,8 @@ export const en: Messages = {
         e.folder === ''
           ? `There are circuits with the same name: ${e.name}`
           : `The folder "${e.folder}" has circuits with the same name: ${e.name}`,
+      NOT_CIRCUITS: 'This is not in the circuit file format',
+      HAS_MAIN: 'It contains the main circuit (a circuit file cannot contain the main circuit)',
     },
     projectFile: {
       NOT_JSON: 'Cannot be read as JSON',
@@ -276,6 +316,15 @@ export const en: Messages = {
       NEWER_VERSION: 'The data was made with a newer version of sazanka',
       CIRCUIT_FILE: 'This is a circuit file. Choose a project file',
       BROKEN: (detail) => `The project file is broken (${detail})`,
+    },
+    circuitsFile: {
+      NOT_JSON: 'Cannot be read as JSON',
+      NOT_SAZANKA: 'This is not a sazanka circuit file',
+      NEWER_VERSION: 'The data was made with a newer version of sazanka',
+      PROJECT_FILE: 'This is a project file. To open a project, use Open… in the File menu',
+      SINGLE_CIRCUIT:
+        'A file with only circuit data cannot be imported. Choose a circuit file saved with Export circuits…',
+      BROKEN: (detail) => `The circuit file is broken (${detail})`,
     },
     stored: {
       BROKEN: 'The saved data was broken and could not be loaded.',

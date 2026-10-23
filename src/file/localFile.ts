@@ -2,8 +2,13 @@
 
 /** 書き出すプロジェクトファイルの名前。日付は端末の時刻で、例: project-2026-10-11.sazanka.json */
 export function getExportFileName(date: Date): string {
+  return `project-${dateStamp(date)}.sazanka.json`;
+}
+
+/** ファイル名に入れる日付 (端末の時刻)。例: 2026-10-11 */
+export function dateStamp(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `project-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.sazanka.json`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 /** 保存先のファイル (File System Access API の FileSystemFileHandle のうち、使うところ) */

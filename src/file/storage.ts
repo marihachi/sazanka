@@ -132,7 +132,7 @@ function scalePoint<T extends Point>(p: T, scale: number): T {
  * 周期を持たない CLOCK には DEFAULT_CLOCK_PERIOD を書く。
  * アプリで置いた部品と引いた配線は GRID の倍数なので、割り切れる
  */
-function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
+export function toStoredCircuit(def: CircuitDef, project: Project): StoredCircuit {
   const { id, name, author, parts, wires } = def;
   const toStoredPart = ({ id: _, on: __, ...c }: Part): StoredElement => {
     const cells = scalePoint(c, 1 / GRID);
@@ -199,26 +199,37 @@ export function fromStoredProject(project: StoredProject, newId: () => string): 
   const circuitIds = new Set(project.circuits.map(({ circuit }) => circuit.id));
   return {
     folders: [...project.folders],
-    circuits: project.circuits.map(({ path, circuit }) => {
-      const { format: _, version: __, name, elements, ...def } = circuit;
-      // データにある ID (id) は捨てて、新しい ID を付ける
-      const parts = elements
-        .filter((e): e is StoredPart => !isStoredWire(e))
-        .map(({ id: _, circuitName, circuitSize, ...c }: StoredPart & { id?: unknown }) => ({
-          id: newId(),
-          ...scalePoint(c, GRID),
-          // 見つからないモジュールの部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
-          ...(c.kind === 'module' && !circuitIds.has(c.circuitId ?? '')
-            ? { circuitName, circuitSize }
-            : {}),
-        }));
-      const wires = elements.filter(isStoredWire).map((w) => ({
-        id: newId(),
-        points: w.points.map((p) => scalePoint(p, GRID)),
-      }));
-      return { ...def, name: def.id === MAIN_ID ? '' : (name ?? ''), path, parts, wires };
-    }),
+    circuits: project.circuits.map(({ path, circuit }) =>
+      fromStoredCircuit(circuit, path, (id) => !circuitIds.has(id), newId),
+    ),
   };
+}
+
+/**
+ * 保存データの形の回路 1 つを、アプリの中の形にし、フォルダのパス path を持たせる (書き方は fromStoredProject)。
+ * keepCopies(circuitId) が true のモジュールの部品にだけ、名前と大きさの写しを残す (指す回路がない部品)
+ */
+export function fromStoredCircuit(
+  circuit: StoredCircuit,
+  path: string,
+  keepCopies: (circuitId: string) => boolean,
+  newId: () => string,
+): CircuitDef {
+  const { format: _, version: __, name, elements, ...def } = circuit;
+  // データにある ID (id) は捨てて、新しい ID を付ける
+  const parts = elements
+    .filter((e): e is StoredPart => !isStoredWire(e))
+    .map(({ id: _, circuitName, circuitSize, ...c }: StoredPart & { id?: unknown }) => ({
+      id: newId(),
+      ...scalePoint(c, GRID),
+      // 見つからないモジュールの部品だけ、何が足りないかを見せ、元の大きさで描くために写しを残す
+      ...(c.kind === 'module' && keepCopies(c.circuitId ?? '') ? { circuitName, circuitSize } : {}),
+    }));
+  const wires = elements.filter(isStoredWire).map((w) => ({
+    id: newId(),
+    points: w.points.map((p) => scalePoint(p, GRID)),
+  }));
+  return { ...def, name: def.id === MAIN_ID ? '' : (name ?? ''), path, parts, wires };
 }
 
 /** 保存データを読み込めなかった理由。BROKEN は形が壊れている、NEWER_VERSION は今より新しい版で保存された */

@@ -1,6 +1,9 @@
-import { checkCircuitName, findDef, type Project } from '../circuit/project';
+import { newId } from '../circuit/circuit';
+import { checkCircuitName, findDef, MAIN_ID, type Project } from '../circuit/project';
 import { describeNameProblem } from '../circuits/useCircuits';
-import { getCircuitName, type Messages } from '../i18n/messages';
+import { getCircuitsFileName, parseCircuits, serializeCircuits } from '../file/circuitsFile';
+import { pickFile, readTextFile, saveJsonFile } from '../file/localFile';
+import { describeCircuitsFileError, getCircuitName, type Messages } from '../i18n/messages';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
 import type { PromptRequest } from '../ui/PromptDialog';
 import {
@@ -15,13 +18,16 @@ import {
   removeFolder as removeEmptyFolder,
   renameFolder as renameFolderIn,
 } from './folders';
+import { importCircuits as importInto, planImport } from './exchange';
+import type { ExportCircuitsRequest } from './ExportCircuitsDialog';
+import type { ImportCircuitsRequest, PickedCircuits } from './ImportCircuitsDialog';
 import type { NewCircuitRequest } from './NewCircuitDialog';
 import type { ReplaceCircuitRequest } from './ReplaceCircuitDialog';
 import { replaceCircuit as replaceIn, replaceTargets, samePins } from './replace';
 
 /**
  * プロジェクトパネルでのフォルダの操作 (作る・名前を変える・削除) と、回路やフォルダをドラッグで移す操作、
- * フォルダを選んで回路を追加する操作。どれも元に戻せる 1 回の編集にする
+ * フォルダを選んで回路を追加する操作、回路ファイルへの書き出しと読み込み。プロジェクトを変える操作は、どれも元に戻せる 1 回の編集にする
  */
 export function useFolders({
   m,
@@ -33,6 +39,8 @@ export function useFolders({
   showPrompt,
   showNewCircuit,
   showReplace,
+  showExportCircuits,
+  showImportCircuits,
   onFolderMoved,
   onRemoved,
 }: {
@@ -49,6 +57,8 @@ export function useFolders({
   showPrompt: (request: PromptRequest) => void;
   showNewCircuit: (request: NewCircuitRequest) => void;
   showReplace: (request: ReplaceCircuitRequest) => void;
+  showExportCircuits: (request: ExportCircuitsRequest) => void;
+  showImportCircuits: (request: ImportCircuitsRequest) => void;
   /** フォルダのパスが from から to に変わった (改名と移動)。折り畳みの記録を付け替えるのに使う */
   onFolderMoved: (from: string, to: string) => void;
   /** 差し替えたあと、元の回路をプロジェクトから削除した (タブを閉じ、覚えている結果と表示を捨てる) */
@@ -167,7 +177,65 @@ export function useFolders({
     });
   }
 
+  /**
+   * 回路を書き出すダイアログを開く。initial は、初めに印を付けておく回路 (行のメニューからなら、その回路かフォルダの中の回路)。
+   * 保存は、保存の画面を押した操作の中で開くため、ダイアログの「ファイルに保存」から直接呼ぶ
+   */
+  function exportCircuits(initial: string[] = []) {
+    showExportCircuits({
+      initialSelected: initial.filter((id) => id !== MAIN_ID),
+      onSave: (ids) => {
+        const chosen = project.circuits.filter((d) => ids.includes(d.id));
+        return saveJsonFile(
+          getCircuitsFileName(chosen, new Date()),
+          serializeCircuits(project, ids),
+        );
+      },
+    });
+  }
+
+  /** フォルダ path の中 (入れ子を含む) の回路の ID (行のメニューの「エクスポート…」で、初めに印を付けておくもの) */
+  function circuitsInFolder(path: string): string[] {
+    return project.circuits
+      .filter((d) => (d.path ?? '') === path || (d.path ?? '').startsWith(`${path}/`))
+      .map((d) => d.id);
+  }
+
+  /** ファイルを選ぶ画面を開き、選んだ回路ファイルを読む。取り消したら undefined、読めなければ理由の文 */
+  async function pickCircuits(): Promise<PickedCircuits | undefined> {
+    const file = await pickFile('.json,application/json');
+    if (!file) {
+      return undefined;
+    }
+    let text: string;
+    try {
+      text = await readTextFile(file);
+    } catch (e) {
+      // 選んだあとにファイルが消された・動かされたときなど。調べられるようにコンソールに残す
+      console.error('ファイルを読み取れませんでした', e);
+      return { error: m.file.readFailed };
+    }
+    const result = parseCircuits(text.trim(), newId);
+    return result.ok
+      ? { name: file.name, circuits: result.circuits }
+      : { error: describeCircuitsFileError(m, result.error) };
+  }
+
+  /** 回路を読み込むダイアログを開く。初めに選んでいる読み込み先は folder。読み込みは 1 回の編集にする */
+  function importCircuits(folder: string) {
+    showImportCircuits({
+      initialFolder: folder,
+      onCreateFolder: createFolder,
+      pickFile: pickCircuits,
+      plan: planImport,
+      onSubmit: (circuits, at, actions) => setProject((p) => importInto(p, circuits, at, actions)),
+    });
+  }
+
   return {
+    exportCircuits,
+    circuitsInFolder,
+    importCircuits,
     newCircuit,
     replace,
     newFolder,

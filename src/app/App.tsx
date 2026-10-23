@@ -292,6 +292,8 @@ export function App() {
     showPrompt: dialogs.showPrompt,
     showNewCircuit: dialogs.showNewCircuit,
     showReplace: dialogs.showReplace,
+    showExportCircuits: dialogs.showExportCircuits,
+    showImportCircuits: dialogs.showImportCircuits,
     onRemoved: (id) => {
       closeTab(id);
       forget(id);
@@ -620,6 +622,11 @@ export function App() {
     newFolder: folders.newFolder,
     removeFolder: folders.removeFolder,
     replace: folders.replace,
+    // ヘッダーの「ファイル」から読み込むときの読み込み先は、フォルダなしから始める
+    importCircuits: () => folders.importCircuits(''),
+    exportCircuits: () => folders.exportCircuits(),
+    exportCircuit: (id: string) => folders.exportCircuits([id]),
+    exportFolder: (path: string) => folders.exportCircuits(folders.circuitsInFolder(path)),
     dropCircuit: folders.dropCircuit,
     dropFolder: folders.dropFolder,
     toggleRunning,
@@ -644,6 +651,8 @@ export function App() {
           onNewProject={on.newProject}
           onOpenProject={on.importProject}
           onSaveProjectAs={on.exportProject}
+          onImportCircuits={on.importCircuits}
+          onExportCircuits={on.exportCircuits}
           canUndo={history.canUndo}
           canRedo={history.canRedo}
           onUndo={on.undoEdit}
@@ -674,6 +683,8 @@ export function App() {
               onRemove={on.removeCircuit}
               onRemoveFolder={on.removeFolder}
               onReplace={on.replace}
+              onExport={on.exportCircuit}
+              onExportFolder={on.exportFolder}
               onNewCircuit={on.newCircuit}
               onNewFolder={on.newFolder}
               onDropCircuit={on.dropCircuit}
