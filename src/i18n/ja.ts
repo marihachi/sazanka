@@ -80,7 +80,6 @@ export const ja = {
     rename: '名前を変える',
     remove: 'プロジェクトから削除…',
     newFolder: '新しいフォルダ…',
-    moveToFolder: 'フォルダを変える…',
     replace: '別のモジュールに差し替える…',
     removeFolder: 'フォルダを削除',
     /** メイン回路の印 (★) の読み上げ用 */
@@ -104,8 +103,6 @@ export const ja = {
     nameRequired: '名前を入力してください',
     nameBad: '「/」を含む名前と、「.」「..」は使えません',
     nameTaken: '同じ名前のフォルダがすでにあります',
-    moveTitle: (name: string) => `「${name}」のフォルダを変える`,
-    move: '移す',
     notEmpty: (name: string) =>
       `「${name}」の中に回路かフォルダがあるため、削除できません。先に中のものを動かすか、削除してください。`,
   },

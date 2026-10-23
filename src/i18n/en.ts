@@ -68,7 +68,6 @@ export const en: Messages = {
     rename: 'Rename',
     remove: 'Remove from project…',
     newFolder: 'New folder…',
-    moveToFolder: 'Move to folder…',
     replace: 'Replace with another module…',
     removeFolder: 'Delete folder',
     main: 'Main circuit',
@@ -89,8 +88,6 @@ export const en: Messages = {
     nameRequired: 'Enter a name',
     nameBad: 'Names with "/" and "." or ".." cannot be used',
     nameTaken: 'A folder with this name already exists',
-    moveTitle: (name) => `Move "${name}" to a folder`,
-    move: 'Move',
     notEmpty: (name) =>
       `"${name}" cannot be deleted because it contains circuits or folders. Move or delete them first.`,
   },

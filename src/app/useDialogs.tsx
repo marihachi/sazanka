@@ -8,7 +8,6 @@ import { TextDialog, type TextRequest } from '../ui/TextDialog';
 import type { Preferences } from '../preferences/preferences';
 import { CircuitSettingsDialog, type CircuitSettings } from '../circuits/CircuitSettingsDialog';
 import { findDef, type Project } from '../circuit/project';
-import { MoveToFolderDialog, type MoveToFolderRequest } from '../project/MoveToFolderDialog';
 import { NewCircuitDialog, type NewCircuitRequest } from '../project/NewCircuitDialog';
 import { ReplaceCircuitDialog, type ReplaceCircuitRequest } from '../project/ReplaceCircuitDialog';
 
@@ -38,7 +37,6 @@ export function useDialogs({
   const [prompt, setPrompt] = useState<PromptRequest | null>(null);
   const [text, setText] = useState<TextRequest | null>(null);
   const [newCircuit, setNewCircuit] = useState<NewCircuitRequest | null>(null);
-  const [moveToFolder, setMoveToFolder] = useState<MoveToFolderRequest | null>(null);
   const [replace, setReplace] = useState<ReplaceCircuitRequest | null>(null);
   /**
    * 入力のダイアログが閉じ終わったか。閉じた Chakra (zag) のダイアログは、開く前の要素へのフォーカスの返しを
@@ -50,13 +48,13 @@ export function useDialogs({
    */
   const [inputClosed, setInputClosed] = useState(true);
   useEffect(() => {
-    if (text || prompt || newCircuit || moveToFolder || replace) {
+    if (text || prompt || newCircuit || replace) {
       setInputClosed(false);
       return;
     }
     const timer = setTimeout(() => flushSync(() => setInputClosed(true)), 0);
     return () => clearTimeout(timer);
-  }, [text, prompt, newCircuit, moveToFolder, replace]);
+  }, [text, prompt, newCircuit, replace]);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   /** 回路設定のダイアログで設定している回路の ID */
@@ -68,7 +66,7 @@ export function useDialogs({
       {/* お知らせは、ほかのダイアログが閉じ終わってから出す (上の inputClosed)。閉じるダイアログと
           入れ替わりに開くと、閉じた方のフォーカスの返しで外へフォーカスを取られ、一緒に閉じてしまう
           (読み込みのあとのお知らせなど) */}
-      {confirm && !text && !prompt && !newCircuit && !moveToFolder && !replace && inputClosed && (
+      {confirm && !text && !prompt && !newCircuit && !replace && inputClosed && (
         <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
       )}
       {prompt && <PromptDialog request={prompt} onClose={() => setPrompt(null)} />}
@@ -81,13 +79,6 @@ export function useDialogs({
         />
       )}
       {replace && <ReplaceCircuitDialog request={replace} onClose={() => setReplace(null)} />}
-      {moveToFolder && (
-        <MoveToFolderDialog
-          request={moveToFolder}
-          project={project}
-          onClose={() => setMoveToFolder(null)}
-        />
-      )}
       {aboutOpen && <AboutDialog onClose={() => setAboutOpen(false)} />}
       {preferencesOpen && (
         <PreferencesDialog
@@ -116,8 +107,6 @@ export function useDialogs({
     showText: setText,
     /** 回路を追加するダイアログ (名前とフォルダ) */
     showNewCircuit: setNewCircuit,
-    /** 回路のフォルダを変えるダイアログ */
-    showMoveToFolder: setMoveToFolder,
     /** 別のモジュールに差し替えるダイアログ */
     showReplace: setReplace,
     openAbout: () => setAboutOpen(true),
@@ -130,7 +119,6 @@ export function useDialogs({
       !!prompt ||
       !!text ||
       !!newCircuit ||
-      !!moveToFolder ||
       !!replace ||
       aboutOpen ||
       preferencesOpen ||

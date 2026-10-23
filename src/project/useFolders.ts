@@ -15,13 +15,12 @@ import {
   removeFolder as removeEmptyFolder,
   renameFolder as renameFolderIn,
 } from './folders';
-import type { MoveToFolderRequest } from './MoveToFolderDialog';
 import type { NewCircuitRequest } from './NewCircuitDialog';
 import type { ReplaceCircuitRequest } from './ReplaceCircuitDialog';
 import { replaceCircuit as replaceIn, replaceTargets, samePins } from './replace';
 
 /**
- * プロジェクトパネルでのフォルダの操作 (作る・名前を変える・削除) と、回路やフォルダを移す操作、
+ * プロジェクトパネルでのフォルダの操作 (作る・名前を変える・削除) と、回路やフォルダをドラッグで移す操作、
  * フォルダを選んで回路を追加する操作。どれも元に戻せる 1 回の編集にする
  */
 export function useFolders({
@@ -33,7 +32,6 @@ export function useFolders({
   showConfirm,
   showPrompt,
   showNewCircuit,
-  showMoveToFolder,
   showReplace,
   onFolderMoved,
   onRemoved,
@@ -50,7 +48,6 @@ export function useFolders({
   showConfirm: (request: ConfirmRequest) => void;
   showPrompt: (request: PromptRequest) => void;
   showNewCircuit: (request: NewCircuitRequest) => void;
-  showMoveToFolder: (request: MoveToFolderRequest) => void;
   showReplace: (request: ReplaceCircuitRequest) => void;
   /** フォルダのパスが from から to に変わった (改名と移動)。折り畳みの記録を付け替えるのに使う */
   onFolderMoved: (from: string, to: string) => void;
@@ -126,20 +123,6 @@ export function useFolders({
     setProject((p) => removeEmptyFolder(p, path));
   }
 
-  /** 回路 id のフォルダを変えるダイアログを開く */
-  function moveToFolder(id: string) {
-    const def = findDef(project, id);
-    if (!def) {
-      return;
-    }
-    showMoveToFolder({
-      name: getCircuitName(def, m),
-      folder: def.path ?? '',
-      onCreateFolder: createFolder,
-      onSubmit: (folder) => setProject((p) => moveCircuitTo(p, id, folder)),
-    });
-  }
-
   /** 回路 id を、フォルダ folder の中の index 番目へ移す (パネルでのドラッグ) */
   function dropCircuit(id: string, folder: string, index?: number) {
     setProject((p) => moveCircuitTo(p, id, folder, index));
@@ -190,7 +173,6 @@ export function useFolders({
     newFolder,
     renameFolder,
     removeFolder,
-    moveToFolder,
     dropCircuit,
     dropFolder,
   };

@@ -291,7 +291,6 @@ export function App() {
     showConfirm: dialogs.showConfirm,
     showPrompt: dialogs.showPrompt,
     showNewCircuit: dialogs.showNewCircuit,
-    showMoveToFolder: dialogs.showMoveToFolder,
     showReplace: dialogs.showReplace,
     onRemoved: (id) => {
       closeTab(id);
@@ -620,7 +619,6 @@ export function App() {
     newCircuit: (folder: string) => folders.newCircuit(folder),
     newFolder: folders.newFolder,
     removeFolder: folders.removeFolder,
-    moveToFolder: folders.moveToFolder,
     replace: folders.replace,
     dropCircuit: folders.dropCircuit,
     dropFolder: folders.dropFolder,
@@ -672,7 +670,6 @@ export function App() {
               onCancelRename={on.cancelRename}
               onRemove={on.removeCircuit}
               onRemoveFolder={on.removeFolder}
-              onMoveToFolder={on.moveToFolder}
               onReplace={on.replace}
               onNewCircuit={on.newCircuit}
               onNewFolder={on.newFolder}
