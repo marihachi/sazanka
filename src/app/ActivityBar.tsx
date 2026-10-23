@@ -34,21 +34,44 @@ export const ActivityBar = memo(function ActivityBar({
       bg="bg.subtle"
       borderRightWidth="1px"
     >
-      {items.map((item) => (
-        <HintTooltip key={item.value} content={item.label}>
-          {/* アイコンは、ほかのツールボタン (16px) の 1.5 倍の 24px にする (開発者が決めた) */}
-          <IconButton
-            size="md"
-            variant={panel === item.value ? 'subtle' : 'ghost'}
-            colorPalette="gray"
-            aria-label={item.label}
-            aria-pressed={panel === item.value}
-            onClick={() => onChange(item.value)}
-          >
-            <MaskIcon src={item.icon} boxSize="6" />
-          </IconButton>
-        </HintTooltip>
-      ))}
+      {items.map((item) => {
+        const active = panel === item.value;
+        return (
+          <HintTooltip key={item.value} content={item.label}>
+            {/*
+              アイコンは、ほかのツールボタン (16px) の 1.5 倍の 24px にする (開発者が決めた)。
+              今開いている方は、アイコンをアクセントカラーにし、左の端に同じ色の縦線を付ける。開いていない方は、アイコンを薄くする
+            */}
+            <IconButton
+              size="md"
+              variant={active ? 'subtle' : 'ghost'}
+              colorPalette="gray"
+              position="relative"
+              color={active ? 'accent.fg' : 'fg.muted'}
+              _hover={{ color: active ? 'accent.fg' : 'fg' }}
+              _before={
+                active
+                  ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: '-1',
+                      top: '2',
+                      bottom: '2',
+                      w: '2px',
+                      rounded: 'full',
+                      bg: 'accent.solid',
+                    }
+                  : undefined
+              }
+              aria-label={item.label}
+              aria-pressed={active}
+              onClick={() => onChange(item.value)}
+            >
+              <MaskIcon src={item.icon} boxSize="6" />
+            </IconButton>
+          </HintTooltip>
+        );
+      })}
     </Flex>
   );
 });
