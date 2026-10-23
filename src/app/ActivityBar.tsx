@@ -27,8 +27,9 @@ export const ActivityBar = memo(function ActivityBar({
     <Flex
       direction="column"
       align="center"
-      gap="1"
-      py="1"
+      // アイコンどうしの間は 8px あける (開発者が求めた)
+      gap="2"
+      py="1.5"
       px="1"
       flexShrink={0}
       bg="bg.subtle"
