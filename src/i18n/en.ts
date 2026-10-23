@@ -279,9 +279,12 @@ export const en: Messages = {
     cannotPaste: (name) => `"${name}" cannot be pasted here because it contains this circuit`,
   },
   file: {
-    confirmNew:
-      'Create a new project? The current project (all circuits) will be cleared. This cannot be undone.',
-    newProject: 'New',
+    confirmLeave:
+      'The current project has changes not saved to a file. Save to a file? If you continue without saving, the current project will be lost.',
+    saveFirst: 'Save and continue',
+    discard: "Don't save",
+    pickAfterSave: 'Saved. Choose the file to open.',
+    pickFile: 'Choose file',
     saveFailed: 'Could not save the file',
     readFailed: 'Could not read the file',
     importFailed: (reason) => `Could not import. ${reason}`,

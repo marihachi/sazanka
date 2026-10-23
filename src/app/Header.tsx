@@ -24,8 +24,12 @@ import { ToolButton, ToolDivider } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
 
 interface HeaderProps {
-  onNewProject: () => void;
-  onOpenProject: () => void;
+  /**
+   * 新規作成と開く。確認を出すときは、確認を出す関数を返す (メニューが閉じ終わってから呼ぶ)。
+   * 確認を出さないときは、その場で行う (開くは、ファイルを選ぶ画面を押した操作の中で開くため)
+   */
+  onNewProject: () => (() => void) | undefined;
+  onOpenProject: () => (() => void) | undefined;
   onSaveProjectAs: () => void;
   /** 回路を読み込むダイアログを開く */
   onImportCircuits: () => void;
@@ -90,10 +94,9 @@ export const Header = memo(function Header({
         >
           <HeaderMenu
             label={m.header.file}
-            // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
-            now={{ open: onOpenProject, saveAs: onSaveProjectAs }}
-            // 確認のダイアログを出す新規作成は、閉じ終わってから行う
-            later={{ new: onNewProject }}
+            // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く。
+            // 新規作成と開くは、保存していない変更の確認を出すなら、それだけ閉じ終わってから出す
+            now={{ new: onNewProject, open: onOpenProject, saveAs: onSaveProjectAs }}
           >
             <Menu.Item value="new">
               <ToolIcon src={newIcon} />
@@ -218,6 +221,7 @@ function FileName({ name, unsaved, dirty }: { name: string; unsaved: boolean; di
 /**
  * ヘッダーのメニュー (「ファイル」「回路」)。文字と下向きの矢印のボタンで開く。
  * now の操作は選んだらすぐ行い、later の操作はメニューが閉じ終わってから行う (onExitComplete)。
+ * now の操作が関数を返したら、その関数はメニューが閉じ終わってから呼ぶ (確認のダイアログを出すときなど)。
  * 閉じている途中にダイアログを開くと、メニューがフォーカスを戻すときに、ダイアログが外を触られたとみなして閉じてしまうため
  */
 function HeaderMenu({
@@ -227,7 +231,7 @@ function HeaderMenu({
   children,
 }: {
   label: string;
-  now?: Record<string, () => void>;
+  now?: Record<string, () => unknown>;
   later?: Record<string, () => void>;
   children: React.ReactNode;
 }) {
@@ -237,8 +241,9 @@ function HeaderMenu({
       // メニューはボタンのすぐ下に出す (既定の 8px あけると離れて見えると開発者が言った)
       positioning={{ gutter: 2 }}
       onSelect={(e) => {
-        now[e.value]?.();
-        pending.current = later[e.value] ?? null;
+        const deferred = now[e.value]?.();
+        pending.current =
+          later[e.value] ?? (typeof deferred === 'function' ? (deferred as () => void) : null);
       }}
       onExitComplete={() => {
         const action = pending.current;
