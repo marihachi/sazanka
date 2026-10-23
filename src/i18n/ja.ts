@@ -77,7 +77,7 @@ export const ja = {
     /** 行の「⋯」。name は行の名前 */
     rowMenu: (name: string) => `${name} の操作`,
     open: '開く',
-    rename: '名前変更',
+    rename: '名前の変更',
     remove: 'プロジェクトから削除…',
     newFolder: '新しいフォルダ…',
     replace: '別のモジュールに差し替える…',
