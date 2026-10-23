@@ -50,6 +50,10 @@ const config = defineConfig({
           emphasized: { value: 'color-mix(in srgb, var(--accent) 50%, #111)' },
           focusRing: { value: 'var(--accent)' },
         },
+        // サイドパネルのツールバーの地。パネル (bg.panel = #111) と bg.muted (#18181b) の間 (開発者が選んだ)
+        sidePanel: {
+          toolbar: { value: '#151517' },
+        },
         // ロゴの色。アクセントカラーと違い、環境設定では変わらない (ブラウザのタブのアイコン public/favicon.svg も同じ色)
         brand: { value: 'lightseagreen' },
         // シートの色。シートは性能のため CSS Modules のままなので、CSS の変数で参照する

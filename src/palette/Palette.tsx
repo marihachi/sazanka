@@ -85,6 +85,7 @@ export const Palette = memo(function Palette({
             onClick={() => onCollapsedChange(allCollapsed ? [] : GROUP_IDS)}
             iconOnly
             iconSize="5"
+            size="xs"
           />
         }
       />

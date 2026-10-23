@@ -17,6 +17,8 @@ interface ToolButtonProps {
   active?: boolean;
   /** アイコンの大きさ。既定は 16px ('4')。サイドパネルのツールバーは 20px ('5') */
   iconSize?: '4' | '5';
+  /** ボタンの大きさ。既定は sm (36px)。サイドパネルのツールバーは xs (32px) */
+  size?: 'xs' | 'sm';
 }
 
 /**
@@ -33,10 +35,11 @@ export function ToolButton({
   danger,
   active,
   iconSize,
+  size = 'sm',
 }: ToolButtonProps) {
   const common = {
     variant: active ? 'subtle' : 'ghost',
-    size: 'sm',
+    size,
     // ボタンの文字はアクセントカラーにせず、灰色で出す
     colorPalette: danger ? 'red' : 'gray',
     onClick,

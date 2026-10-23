@@ -108,6 +108,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
               onClick={() => props.onNewCircuit(selectedFolder)}
               iconOnly
               iconSize="5"
+              size="xs"
             />
             <ToolButton
               icon={newFolderIcon}
@@ -115,6 +116,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
               onClick={() => props.onNewFolder(selectedFolder)}
               iconOnly
               iconSize="5"
+              size="xs"
             />
             {/* フォルダがなければ押せない */}
             <ToolButton
@@ -124,6 +126,7 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
               disabled={allFolders.length === 0}
               iconOnly
               iconSize="5"
+              size="xs"
             />
           </>
         }
