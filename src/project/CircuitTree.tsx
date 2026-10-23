@@ -1,6 +1,8 @@
 import { Box, Flex, IconButton, Text } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 import chevronIcon from '../assets/icons/chevron.svg';
+import circuitIcon from '../assets/icons/circuit.svg';
+import folderIcon from '../assets/icons/folder.svg';
 import moreIcon from '../assets/icons/more.svg';
 import starIcon from '../assets/icons/star.svg';
 import { MAIN_ID } from '../circuit/project';
@@ -334,6 +336,12 @@ export function CircuitTree({
             ) : (
               <Box boxSize="4" flexShrink={0} />
             )}
+            {/* フォルダか回路かのアイコン。色はツールバーの「新しいフォルダ…」「新しい回路…」とそろえる (開発者が決めた) */}
+            <MaskIcon
+              src={isFolder ? folderIcon : circuitIcon}
+              boxSize="4"
+              color={isFolder ? 'orange.400' : 'green.400'}
+            />
             {renaming === key ? (
               <Box flex="1" minW="0" onClick={(e) => e.stopPropagation()}>
                 <InlineInput
