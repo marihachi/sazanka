@@ -33,9 +33,6 @@ interface ProjectPanelProps {
   onNewFolder: (parent: string) => void;
   onDropCircuit: (id: string, folder: string, index?: number) => void;
   onDropFolder: (path: string, parent: string, index?: number) => void;
-  onNewProject: () => void;
-  onOpenProject: () => void;
-  onSaveProjectAs: () => void;
 }
 
 /**
@@ -52,7 +49,7 @@ interface RowMenu {
 /**
  * 左のサイドパネルに出すプロジェクトパネル。プロジェクトの中の回路を、フォルダの木で並べる。
  * 行を押すと選び、下に、選んだ回路が使われている所を出す。ダブルクリックか Enter で開く。
- * パネルの上の「⋯」にプロジェクト全体の操作を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる。
+ * パネルの上の「⋯」に回路とフォルダの追加を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる。
  * 行をドラッグすると、並べ替えたりフォルダへ移したりできる
  */
 export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps) {
@@ -96,17 +93,10 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
         </Text>
         <Menu.Root
           onSelect={(e) => {
-            // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
-            if (e.value === 'openProject') {
-              props.onOpenProject();
-            } else if (e.value === 'saveProjectAs') {
-              props.onSaveProjectAs();
-            }
             // ダイアログを出す操作は、閉じ終わってから行う
             const later: Record<string, () => void> = {
               newCircuit: () => props.onNewCircuit(selectedFolder),
               newFolder: () => props.onNewFolder(selectedFolder),
-              newProject: props.onNewProject,
             };
             pending.current = later[e.value] ?? null;
           }}
@@ -122,10 +112,6 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
               <Menu.Content>
                 <Menu.Item value="newCircuit">{m.project.newCircuit}</Menu.Item>
                 <Menu.Item value="newFolder">{m.project.newFolder}</Menu.Item>
-                <Menu.Separator />
-                <Menu.Item value="newProject">{m.project.newProject}</Menu.Item>
-                <Menu.Item value="openProject">{m.project.openProject}</Menu.Item>
-                <Menu.Item value="saveProjectAs">{m.project.saveProjectAs}</Menu.Item>
               </Menu.Content>
             </Menu.Positioner>
           </Portal>

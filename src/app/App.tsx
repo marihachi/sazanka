@@ -641,6 +641,9 @@ export function App() {
     <LanguageContext.Provider value={lang}>
       <Flex direction="column" h="full">
         <Header
+          onNewProject={on.newProject}
+          onOpenProject={on.importProject}
+          onSaveProjectAs={on.exportProject}
           canUndo={history.canUndo}
           canRedo={history.canRedo}
           onUndo={on.undoEdit}
@@ -675,9 +678,6 @@ export function App() {
               onNewFolder={on.newFolder}
               onDropCircuit={on.dropCircuit}
               onDropFolder={on.dropFolder}
-              onNewProject={on.newProject}
-              onOpenProject={on.importProject}
-              onSaveProjectAs={on.exportProject}
             />
           ) : (
             <Palette

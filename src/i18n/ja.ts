@@ -22,6 +22,12 @@ export const ja = {
   },
   header: {
     toolbar: 'プロジェクトの操作',
+    newProject: '新規作成',
+    newProjectTitle: '空のプロジェクトを新しく作る',
+    openProject: '開く',
+    openProjectTitle: 'プロジェクトファイルを選んで開く',
+    saveProjectAs: '名前を付けて保存',
+    saveProjectAsTitle: 'プロジェクト全体をファイルに保存する',
     undo: '元に戻す',
     undoTitle: '元に戻す (Ctrl+Z)',
     redo: 'やり直し',
@@ -71,9 +77,6 @@ export const ja = {
     /** パネルの上の「⋯」 */
     menu: 'プロジェクトの操作',
     newCircuit: '新しい回路…',
-    newProject: '新規作成…',
-    openProject: '開く…',
-    saveProjectAs: '名前を付けて保存…',
     /** 行の「⋯」。name は行の名前 */
     rowMenu: (name: string) => `${name} の操作`,
     open: '開く',

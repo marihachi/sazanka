@@ -7,7 +7,7 @@ import { getExportFileName, pickFile, readTextFile, saveJsonFile } from './local
 import { describeProjectFileError, type Messages } from '../i18n/messages';
 
 /**
- * プロジェクト全体の新規作成・書き出し・読み込み (プロジェクトパネルの「⋯」の操作)。
+ * プロジェクト全体の新規作成・書き出し・読み込み (ヘッダーの操作)。
  * 書き出しと読み込みは、アプリのダイアログを出さず、ブラウザの保存の画面とファイルを選ぶ画面だけを使う
  */
 export function useProjectFile({
