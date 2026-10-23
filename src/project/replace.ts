@@ -1,5 +1,5 @@
 // 別のモジュールに差し替える計算: 回路を置いている部品を、すべて別の回路を指すようにする
-import { circuitsUsing, dependsOn, getPinout } from '../circuit/module';
+import { circuitsUsing, dependsOn, getPinout, type Pinout } from '../circuit/module';
 import type { Part } from '../circuit/part';
 import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
 
@@ -56,8 +56,11 @@ export function replaceCircuit(
 export function samePins(project: Project, a: string, b: string): boolean {
   const pinout = (id: string) =>
     getPinout({ id: '', kind: 'module', x: 0, y: 0, circuitId: id }, project);
-  const p = pinout(a);
-  const q = pinout(b);
+  return samePinout(pinout(a), pinout(b));
+}
+
+/** 2 つの外側のピン (getPinout) が同じか (パッケージ、入力と出力の数、ピン番号) */
+export function samePinout(p: Pinout, q: Pinout): boolean {
   return (
     JSON.stringify(p.package) === JSON.stringify(q.package) &&
     p.inputs.length === q.inputs.length &&

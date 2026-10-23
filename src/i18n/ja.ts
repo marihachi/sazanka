@@ -301,6 +301,8 @@ export const ja = {
         e.folder === ''
           ? `同じ名前の回路があります: ${e.name}`
           : `フォルダ「${e.folder}」に同じ名前の回路があります: ${e.name}`,
+      NOT_CIRCUITS: '回路ファイルの形式ではありません',
+      HAS_MAIN: 'メイン回路が入っています (メイン回路は回路ファイルに入れられません)',
     } satisfies ErrorTexts<ProjectError>,
     /** プロジェクトファイルを読み込めなかった理由。BROKEN の detail は、project の文にしたもの */
     projectFile: {

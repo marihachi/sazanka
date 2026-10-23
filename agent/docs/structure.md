@@ -27,7 +27,7 @@
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
 - `project/` … プロジェクトパネル（[UI](ui.md)の「プロジェクトパネル」）。
   - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木（ドラッグを含む）。`folders.ts` … 木の組み立て、使われている所、フォルダの操作と落とす先の計算。
-  - `useFolders.ts` … フォルダの操作、回路とフォルダをドラッグで移す操作、フォルダを選んで回路を追加する操作（ダイアログの開閉は `app/useDialogs.tsx`）。`FolderPicker.tsx` … フォルダを選ぶ・作る木。`NewCircuitDialog.tsx` … 回路を追加するダイアログ。`ReplaceCircuitDialog.tsx` … 別のモジュールに差し替えるダイアログ。`replace.ts` … 差し替えの計算（差し替え先、部品の書き換え、ピンが同じか）。
+  - `useFolders.ts` … フォルダの操作、回路とフォルダをドラッグで移す操作、フォルダを選んで回路を追加する操作（ダイアログの開閉は `app/useDialogs.tsx`）。`FolderPicker.tsx` … フォルダを選ぶ・作る木。`NewCircuitDialog.tsx` … 回路を追加するダイアログ。`ReplaceCircuitDialog.tsx` … 別のモジュールに差し替えるダイアログ。`replace.ts` … 差し替えの計算（差し替え先、部品の書き換え、ピンが同じか）。`exchange.ts` … 回路ファイルとのやりとりの計算（依存する回路をたどる、持ち込むときのぶつかりと反映）。
 - `circuits/` … 回路の追加・改名・削除・設定と、回路の切り替え。
   - `useCircuits.ts` … 回路の操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
@@ -39,9 +39,9 @@
 - `palette/` … パレット。
   - `Palette.tsx` … パレット本体。`drag.ts` … パレットからシートへドラッグするときに渡すデータの形。
 - `file/` … 保存と共有（[保存データ](persistence.md)）。
-  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。プロジェクトファイルでも使う）。`projectFile.ts` … プロジェクトファイル。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
+  - `storage.ts` … localStorage への保存と読み込み。保存の形とアプリの中の形の変換（`toStoredProject` / `fromStoredProject`。プロジェクトファイルでも使う）。`projectFile.ts` … プロジェクトファイル。`circuitsFile.ts` … 回路ファイル（書き出し、読み込みと検証、ファイル名）。`useProjectFile.ts` … 新規作成・書き出し・読み込みの操作。`localFile.ts` … 手元のファイルへの保存と、選んだファイルの読み込み。
   - `upgrade/` … 古い版のデータを、今の版の形にする変換（保存データとプロジェクトファイルで共通。[保存データ](persistence.md)の「形式を変えるとき」）。
-    - `index.ts` … 読み込みの入口（`upgradeStoredProject`。一体の形式か新しい形式かを見分ける）と、形式の版（`PROJECT_FORMAT_VERSION`、`CIRCUIT_FORMAT_VERSION`）。
+    - `index.ts` … 読み込みの入口（`upgradeStoredProject`。一体の形式か新しい形式かを見分ける）と、形式の版（`PROJECT_FORMAT_VERSION`、`CIRCUIT_FORMAT_VERSION`、`CIRCUITS_FILE_FORMAT_VERSION`）。
     - `integrated/` … 一体の形式の変換。`upgradeV1.ts` … version 1 → 2。`upgradeV2.ts` … version 2 → 3。`upgradeV3.ts` … version 3 → 4。
     - `project/v1.ts` … 一体の形式 v4 → プロジェクトの形式 v1（`upgradeToProjectV1`）。`circuit/v1.ts` … 一体の形式 v4 の回路 1 つ → 回路の形式 v1（`upgradeToCircuitV1`）。ファイル名 `v<N>.ts` は「version N へ変える変換」。
 - `preferences/` … 環境設定。

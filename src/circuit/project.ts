@@ -219,7 +219,9 @@ export type ProjectError =
   | { code: 'DUPLICATE_PORT_NUMBER'; circuit: string; circuitId: string }
   | { code: 'NO_MAIN' }
   | { code: 'DUPLICATE_ID'; id: string }
-  | { code: 'DUPLICATE_NAME'; name: string; folder: string };
+  | { code: 'DUPLICATE_NAME'; name: string; folder: string }
+  | { code: 'NOT_CIRCUITS' }
+  | { code: 'HAS_MAIN' };
 
 /** 版の番号として正しい形か (1 以上の整数)。今の版以下かは、読み込みの入口 (file/upgrade/index.ts) が確かめる */
 function isVersion(v: unknown): boolean {
@@ -386,6 +388,36 @@ export function checkProject(project: unknown): ProjectError | undefined {
     }
     inFolder.add(name);
     names.set(path, inFolder);
+  }
+  return undefined;
+}
+
+/**
+ * 回路ファイルのデータとして正しい形かを確かめ、問題があればその内容を返す (文にするのは画面の側)。
+ * 中の回路は、プロジェクトの中の回路と同じ確かめ方をする。メイン回路は入れられない (どのプロジェクトでも ID が同じで、
+ * 持ち込むと見分けられないため)。回路の ID は重ならない。名前は重なってもよい (持ち込むときに名前を変える)。
+ * 版が今より新しいかは、先に読み込む側 (file/circuitsFile.ts) が確かめる
+ */
+export function checkCircuitsFile(data: unknown): ProjectError | undefined {
+  if (!isObject(data) || data.format !== 'sazanka-circuits' || !isVersion(data.version)) {
+    return { code: 'NOT_CIRCUITS' };
+  }
+  if (!Array.isArray(data.circuits)) {
+    return { code: 'NO_CIRCUITS' };
+  }
+  for (const circuit of data.circuits as unknown[]) {
+    const error = checkCircuit(circuit);
+    if (error) {
+      return error;
+    }
+  }
+  const defs = data.circuits as CheckedCircuit[];
+  if (defs.some((d) => d.id === MAIN_ID)) {
+    return { code: 'HAS_MAIN' };
+  }
+  const duplicate = findDuplicateId(defs);
+  if (duplicate !== undefined) {
+    return { code: 'DUPLICATE_ID', id: duplicate };
   }
   return undefined;
 }

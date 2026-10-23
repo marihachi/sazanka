@@ -147,6 +147,11 @@ export function uniqueCircuitName(
       .filter((d) => d.id !== exceptId && (d.path ?? '') === folder)
       .map((d) => d.name),
   );
+  return uniqueName(taken, name);
+}
+
+/** taken に重ならない名前。重なれば「 (2)」「 (3)」…を付ける */
+export function uniqueName(taken: ReadonlySet<string>, name: string): string {
   if (!taken.has(name)) {
     return name;
   }

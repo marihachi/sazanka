@@ -16,6 +16,9 @@ export const PROJECT_FORMAT_VERSION = 1;
 /** 回路の形式の今の版。形式を変えたら上げて、1 版分の変換 (circuit/v<N>.ts) を足す */
 export const CIRCUIT_FORMAT_VERSION = 1;
 
+/** 回路ファイルの形式の今の版。プロジェクトと回路の形式とは別に数える (中の回路は回路の形式で、その版は CIRCUIT_FORMAT_VERSION) */
+export const CIRCUITS_FILE_FORMAT_VERSION = 1;
+
 /**
  * 一体の形式の 1 版分の変換を、版の順に並べたもの。INTEGRATED_UPGRADES[i] は version i + 1 のプロジェクトを version i + 2 の形にする。
  * newId は、ID を付け直す変換 (upgradeV3) が新しい ID を作るのに使う。一体の形式は version 4 で終わりなので、もう足さない

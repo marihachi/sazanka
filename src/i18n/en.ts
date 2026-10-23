@@ -269,6 +269,8 @@ export const en: Messages = {
         e.folder === ''
           ? `There are circuits with the same name: ${e.name}`
           : `The folder "${e.folder}" has circuits with the same name: ${e.name}`,
+      NOT_CIRCUITS: 'This is not in the circuit file format',
+      HAS_MAIN: 'It contains the main circuit (a circuit file cannot contain the main circuit)',
     },
     projectFile: {
       NOT_JSON: 'Cannot be read as JSON',
