@@ -13,12 +13,11 @@ export const en: Messages = {
   },
   header: {
     toolbar: 'Project actions',
+    /** ヘッダーの「ファイル」のメニュー */
+    file: 'File',
     newProject: 'New…',
-    newProjectTitle: 'Start a new empty project',
     openProject: 'Open…',
-    openProjectTitle: 'Choose a project file to open',
     saveProjectAs: 'Save as…',
-    saveProjectAsTitle: 'Save the whole project to a file',
     undo: 'Undo',
     undoTitle: 'Undo (Ctrl+Z)',
     redo: 'Redo',

@@ -112,7 +112,7 @@
 
 ## プロジェクトファイル
 
-- ヘッダーの「名前を付けて保存…」「開く…」で使う（`file/projectFile.ts`、操作は `file/useProjectFile.ts`）。形はプロジェクトの形式のデータそのもの（保存データと同じ。外側の包みはない）。一体の形式で書き出したもの（`{ app: 'sazanka', version, project }`）も読める。
+- ヘッダーの「ファイル」のメニューの「名前を付けて保存…」「開く…」で使う（`file/projectFile.ts`、操作は `file/useProjectFile.ts`）。形はプロジェクトの形式のデータそのもの（保存データと同じ。外側の包みはない）。一体の形式で書き出したもの（`{ app: 'sazanka', version, project }`）も読める。
 - 受け渡しはファイルだけ（文字列のコピーと貼り付けはしない）。書き出しと読み込みは、アプリのダイアログを出さずに直接行う。
   - 書き出しは、`project-YYYY-MM-DD.sazanka.json`（端末の日付）を既定の名前にして保存する。
   - 手元のファイルとのやりとりは `file/localFile.ts` にまとめている（保存の `saveJsonFile`、ファイルを選ぶ `pickFile`、読む `readTextFile`）。
