@@ -72,7 +72,7 @@
   - `<種類>/` … 1 種類 1 フォルダ。フォルダの名前は種類の名前（`kind`）と同じ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）、`Body.tsx`（本体の描き込み。デバイスなど、描き込みを種類のフォルダに置く種類だけ）。
   - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は、動作の分類ごとの既定の配置、小さな四角の配置 `squareLayout`、部品の向きの型 `Rotation` と配置を回す `rotateLayout` も）。`specs.ts` … 仕様の一覧（`PART_SPECS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `getLayout`。`PartIcon.tsx` … 種類のアイコン。`bodies.tsx` … 本体の描き込みを種類のフォルダ（`<種類>/Body.tsx`）に置く種類の一覧（`PART_BODIES`）。
 - `ui/` … 回路を知らない、共通の画面部品。
-  - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
+  - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（プロジェクトパネルの行の名前の変更）。`SidePanelHeader.tsx` … サイドパネルの上の部分（パネルの名前とツールバー）。
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（文字列の欄と、ファイルの選択を持つ入力。今は使う所がないが、残しておく）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
 - `i18n/` … 画面の文言（表示言語）。決まりと仕組みは[文言と表示言語](i18n.md)。

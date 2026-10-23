@@ -63,7 +63,7 @@ export const en: Messages = {
   },
   project: {
     title: 'Project',
-    menu: 'Project actions',
+    toolbar: 'Circuit and folder actions',
     newCircuit: 'New circuit…',
     rowMenu: (name) => `Actions for ${name}`,
     open: 'Open',
@@ -103,6 +103,7 @@ export const en: Messages = {
     apply: 'Replace',
   },
   palette: {
+    toolbar: 'Parts actions',
     groups: {
       io: 'Input / Output',
       source: 'Sources',

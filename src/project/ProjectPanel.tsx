@@ -1,10 +1,14 @@
-import { Box, Flex, IconButton, Menu, Portal, Text } from '@chakra-ui/react';
+import { Box, Flex, Menu, Portal, Text } from '@chakra-ui/react';
 import { memo, useMemo, useRef, useState } from 'react';
-import moreIcon from '../assets/icons/more.svg';
+import collapseAllIcon from '../assets/icons/collapse-all.svg';
+import expandAllIcon from '../assets/icons/expand-all.svg';
+import newCircuitIcon from '../assets/icons/new-circuit.svg';
+import newFolderIcon from '../assets/icons/new-folder.svg';
 import { MAIN_ID, type Project } from '../circuit/project';
 import { getCircuitName } from '../i18n/messages';
 import { useMessages } from '../i18n/useMessages';
-import { MaskIcon } from '../ui/Icons';
+import { SidePanelHeader } from '../ui/SidePanelHeader';
+import { ToolButton } from '../ui/ToolButton';
 import { CircuitTree, type MenuPoint, rowKey } from './CircuitTree';
 import { dropTarget, type TreeRow, treeRows, usagesOf } from './folders';
 
@@ -49,7 +53,7 @@ interface RowMenu {
 /**
  * 左のサイドパネルに出すプロジェクトパネル。プロジェクトの中の回路を、フォルダの木で並べる。
  * 行を押すと選び、下に、選んだ回路が使われている所を出す。ダブルクリックか Enter で開く。
- * パネルの上の「⋯」に回路とフォルダの追加を、行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる。
+ * 上から、パネルの名前、ツールバー (回路とフォルダの追加、すべて折り畳む)、回路の木の順に並べる。行のメニュー (右クリック、長押し、行の「⋯」) に行の操作をまとめる。
  * 行をドラッグすると、並べ替えたりフォルダへ移したりできる
  */
 export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps) {
@@ -69,6 +73,12 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
   };
   const collapsedSet = useMemo(() => new Set(collapsed), [collapsed]);
   const rows = useMemo(() => treeRows(project, collapsedSet), [project, collapsedSet]);
+  /** すべてのフォルダのパス (すべて折り畳む・すべて展開に使う) */
+  const allFolders = useMemo(
+    () => treeRows(project, new Set()).flatMap((r) => (r.kind === 'folder' ? [r.path] : [])),
+    [project],
+  );
+  const allCollapsed = allFolders.length > 0 && allFolders.every((p) => collapsedSet.has(p));
   const toggleFolder = (path: string) =>
     onCollapsedChange(
       collapsed.includes(path) ? collapsed.filter((p) => p !== path) : [...collapsed, path],
@@ -87,36 +97,34 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
 
   return (
     <Flex direction="column" w="176px" flexShrink={0} bg="bg.panel" borderRightWidth="1px">
-      <Flex h="9" ps="3" pe="1" align="center" borderBottomWidth="1px">
-        <Text textStyle="sm" fontWeight="medium" flex="1">
-          {m.project.title}
-        </Text>
-        <Menu.Root
-          onSelect={(e) => {
-            // ダイアログを出す操作は、閉じ終わってから行う
-            const later: Record<string, () => void> = {
-              newCircuit: () => props.onNewCircuit(selectedFolder),
-              newFolder: () => props.onNewFolder(selectedFolder),
-            };
-            pending.current = later[e.value] ?? null;
-          }}
-          onExitComplete={runPending}
-        >
-          <Menu.Trigger asChild>
-            <IconButton size="xs" variant="ghost" colorPalette="gray" aria-label={m.project.menu}>
-              <MaskIcon src={moreIcon} boxSize="4" />
-            </IconButton>
-          </Menu.Trigger>
-          <Portal>
-            <Menu.Positioner>
-              <Menu.Content>
-                <Menu.Item value="newCircuit">{m.project.newCircuit}</Menu.Item>
-                <Menu.Item value="newFolder">{m.project.newFolder}</Menu.Item>
-              </Menu.Content>
-            </Menu.Positioner>
-          </Portal>
-        </Menu.Root>
-      </Flex>
+      <SidePanelHeader
+        title={m.project.title}
+        toolbarLabel={m.project.toolbar}
+        toolbar={
+          <>
+            <ToolButton
+              icon={newCircuitIcon}
+              label={m.project.newCircuit}
+              onClick={() => props.onNewCircuit(selectedFolder)}
+              iconOnly
+            />
+            <ToolButton
+              icon={newFolderIcon}
+              label={m.project.newFolder}
+              onClick={() => props.onNewFolder(selectedFolder)}
+              iconOnly
+            />
+            {/* フォルダがなければ押せない */}
+            <ToolButton
+              icon={allCollapsed ? expandAllIcon : collapseAllIcon}
+              label={allCollapsed ? m.palette.expandAll : m.palette.collapseAll}
+              onClick={() => onCollapsedChange(allCollapsed ? [] : allFolders)}
+              disabled={allFolders.length === 0}
+              iconOnly
+            />
+          </>
+        }
+      />
       <Box as="aside" flex="1" minH="0" overflowY="auto">
         <CircuitTree
           rows={rows}

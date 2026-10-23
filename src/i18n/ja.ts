@@ -73,8 +73,7 @@ export const ja = {
   },
   project: {
     title: 'プロジェクト',
-    /** パネルの上の「⋯」 */
-    menu: 'プロジェクトの操作',
+    toolbar: '回路とフォルダの操作',
     newCircuit: '新しい回路…',
     /** 行の「⋯」。name は行の名前 */
     rowMenu: (name: string) => `${name} の操作`,
@@ -118,6 +117,7 @@ export const ja = {
     apply: '差し替える',
   },
   palette: {
+    toolbar: '部品の操作',
     groups: {
       io: '入出力',
       source: '信号源',
