@@ -56,7 +56,8 @@ export const Header = memo(function Header({
       </Heading>
       {/*
         入りきらない幅では横にスクロールする。
-        スクロールする箱はフォーカスの枠も切ってしまうので、内側に枠の分の余白をとる (外側の負の余白で、並びの位置は変えない)
+        スクロールする箱はフォーカスの枠も切ってしまうので、内側に枠の分の余白をとる (右は外側の負の余白で位置を保つ)。
+        左は、ロゴとの間を少しあける (ロゴの端からボタンの地の端まで 12px。近すぎると開発者が言った)
       */}
       <Flex
         as="nav"
@@ -65,7 +66,8 @@ export const Header = memo(function Header({
         minW="0"
         overflowX="auto"
         p="1"
-        mx="-1"
+        me="-1"
+        ms="0.5"
         aria-label={m.header.toolbar}
       >
         <Menu.Root
