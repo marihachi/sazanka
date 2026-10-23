@@ -1,4 +1,5 @@
 import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react';
+import { menuAnatomy } from '@chakra-ui/react/anatomy';
 
 /**
  * Chakra UI のテーマ。Chakra の既定の見た目をもとに、このアプリで要る色だけを足す。
@@ -21,6 +22,18 @@ const config = defineConfig({
     },
   },
   theme: {
+    slotRecipes: {
+      // メニューの地は、既定 (bg.panel = #111) ではパネルと同じで、シート (#1c1c1c) より暗く沈んで見えるので、
+      // 一段明るくする (開発者が求めた)。選んでいる項目と枠は、地より明るくして見分けられるようにする
+      menu: {
+        slots: menuAnatomy.keys(),
+        base: {
+          content: { bg: 'gray.800', borderColor: 'gray.700' },
+        },
+        // 選んでいる項目の色は、既定ではバリアント (subtle) が決めるので、バリアントの方を変える
+        variants: { variant: { subtle: { item: { _highlighted: { bg: 'gray.700' } } } } },
+      },
+    },
     semanticTokens: {
       colors: {
         // アクセントカラーのパレット。元の色は環境設定で変わるので、App.tsx が差し替える --accent から作る
