@@ -186,10 +186,11 @@ export function useFolders({
       initialSelected: initial.filter((id) => id !== MAIN_ID),
       onSave: (ids) => {
         const chosen = project.circuits.filter((d) => ids.includes(d.id));
+        // 保存したかだけを返す (回路ファイルの名前は覚えない)
         return saveJsonFile(
           getCircuitsFileName(chosen, new Date()),
           serializeCircuits(project, ids),
-        );
+        ).then((saved) => saved !== undefined);
       },
     });
   }

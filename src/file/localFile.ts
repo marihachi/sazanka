@@ -13,6 +13,8 @@ export function dateStamp(date: Date): string {
 
 /** 保存先のファイル (File System Access API の FileSystemFileHandle のうち、使うところ) */
 interface SaveFileHandle {
+  /** 利用者が選んだファイルの名前 */
+  name: string;
   createWritable(): Promise<{ write(data: string): Promise<void>; close(): Promise<void> }>;
 }
 
@@ -47,12 +49,13 @@ function isElectron(): boolean {
 }
 
 /**
- * 文字列を JSON ファイルとして保存する。保存したら true、利用者が保存の画面で取り消したら false。
+ * 文字列を JSON ファイルとして保存する。保存したら、保存したファイルの名前、利用者が保存の画面で取り消したら undefined。
  * showSaveFilePicker が使えるブラウザでは、保存場所とファイル名を選ぶ画面を出す。
  * 使えないブラウザ (Firefox、Safari)、Electron の中のブラウザ (isElectron) と、あっても画面を開けない・書き込めない環境では、a 要素の download で保存する (保存場所を聞くかはブラウザの設定による。
- * 取り消したかはアプリから分からないので、保存を始めたら true)
+ * 取り消したかも、利用者が付けた名前もアプリから分からないので、保存を始めたら name を返す)。
+ * 保存の画面では、利用者が選んだ名前を返す
  */
-export async function saveJsonFile(name: string, text: string): Promise<boolean> {
+export async function saveJsonFile(name: string, text: string): Promise<string | undefined> {
   const picker = isElectron()
     ? undefined
     : (window as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
@@ -66,11 +69,11 @@ export async function saveJsonFile(name: string, text: string): Promise<boolean>
       const writable = await handle.createWritable();
       await writable.write(text);
       await writable.close();
-      return true;
+      return handle.name;
     } catch (e) {
       // 保存の画面で取り消した
       if (e instanceof DOMException && e.name === 'AbortError') {
-        return false;
+        return undefined;
       }
       // showSaveFilePicker はあるのに、保存の画面を開けない、または選んだファイルに書き込めない環境がある
       // (VS Code の中のブラウザでは、画面は開けるが createWritable が NotAllowedError になる)。下のダウンロードで保存する
@@ -85,7 +88,7 @@ export async function saveJsonFile(name: string, text: string): Promise<boolean>
   // click の直後に URL を消すと、保存が始まる前に消えて失敗するブラウザがある (Safari など)。
   // 少し待ってから消す
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  return true;
+  return name;
 }
 
 /**

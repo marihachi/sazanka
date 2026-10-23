@@ -334,6 +334,43 @@ export function saveTabs(tabs: OpenTabs) {
   }
 }
 
+const FILE_KEY = 'sazanka.file';
+
+/**
+ * 今開いているプロジェクトのファイル。name は開いた・保存したファイルの名前 (なければ null。ヘッダーに「(未保存)」と出す)。
+ * savedHash は、そのとき (ファイルなしなら新規作成のとき) のプロジェクトの指紋 (projectFile.ts の projectHash)。
+ * 今のプロジェクトの指紋と違えば、ファイルに保存していない変更がある
+ */
+export interface FileState {
+  name: string | null;
+  savedHash: string;
+}
+
+/** 覚えていたファイルの状態。保存がないか、形が違えば undefined */
+export function loadFileState(): FileState | undefined {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(FILE_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return undefined;
+    }
+    const { name, savedHash } = value as Record<string, unknown>;
+    if ((typeof name !== 'string' && name !== null) || typeof savedHash !== 'string') {
+      return undefined;
+    }
+    return { name, savedHash };
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveFileState(state: FileState) {
+  try {
+    localStorage.setItem(FILE_KEY, JSON.stringify(state));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
 const SIDE_PANEL_KEY = 'sazanka.sidePanel';
 
 /** 左のサイドパネルに出すもの。project はプロジェクトパネル、parts はパレット (部品) */

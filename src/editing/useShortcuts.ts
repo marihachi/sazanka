@@ -22,6 +22,10 @@ export interface Shortcuts {
   onSplitTool: () => void;
   /** 選んでいるもの (貼り付け中は貼り付けるもの) を回す。R は時計回り、Shift+R は反時計回り */
   onRotate: (direction: TurnDirection) => void;
+  /** プロジェクトを開く (Ctrl+O) */
+  onOpenProject: () => void;
+  /** 名前を付けて保存 (Ctrl+Shift+S) */
+  onSaveProjectAs: () => void;
 }
 
 /** 編集操作のキーボードショートカット */
@@ -52,6 +56,18 @@ export function useShortcuts(shortcuts: Shortcuts) {
         } else {
           s.onUndo();
         }
+        return;
+      }
+      // ブラウザのページを開く (Ctrl+O)・ページを保存 (Ctrl+Shift+S) より、アプリの操作を優先する。
+      // Ctrl+S は割り当てない (上書き保存のキーという印象が強いため。開発者が決めた)
+      if (mod && key === 'o' && !e.shiftKey) {
+        e.preventDefault();
+        s.onOpenProject();
+        return;
+      }
+      if (mod && key === 's' && e.shiftKey) {
+        e.preventDefault();
+        s.onSaveProjectAs();
         return;
       }
       if (!s.sheet) {

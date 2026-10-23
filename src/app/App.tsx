@@ -414,6 +414,9 @@ export function App() {
     sheet: !noCircuit,
     onUndo: undoEdit,
     onRedo: redoEdit,
+    // 確認を出すなら、メニューを通らないので、その場で出す
+    onOpenProject: () => file.importProject()?.(),
+    onSaveProjectAs: () => void file.exportProject(),
     onDelete: () => deleteSelection(),
     onCopy: clipboard.copy,
     onCut: clipboard.cut,
@@ -651,6 +654,8 @@ export function App() {
           onNewProject={on.newProject}
           onOpenProject={on.importProject}
           onSaveProjectAs={on.exportProject}
+          fileName={file.fileName}
+          dirty={file.dirty}
           onImportCircuits={on.importCircuits}
           onExportCircuits={on.exportCircuits}
           canUndo={history.canUndo}
