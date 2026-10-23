@@ -32,8 +32,6 @@ interface SheetToolbarProps {
   canStepBack: boolean;
   /** 開いている回路の回路設定 (作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て) を開く。メイン回路でも出す */
   onCircuitSettings: () => void;
-  /** 開いている回路がない (タブがない)。ボタンはすべて押せない */
-  disabled?: boolean;
 }
 
 /**
@@ -51,7 +49,6 @@ export const SheetToolbar = memo(function SheetToolbar({
   onStepBack,
   canStepBack,
   onCircuitSettings,
-  disabled = false,
 }: SheetToolbarProps) {
   const m = useMessages();
   return (
@@ -63,7 +60,6 @@ export const SheetToolbar = memo(function SheetToolbar({
         title={m.toolbar.selectTitle}
         onClick={() => onToolChange('select')}
         active={tool === 'select'}
-        disabled={disabled}
       />
       <ToolButton
         icon={wireIcon}
@@ -71,7 +67,6 @@ export const SheetToolbar = memo(function SheetToolbar({
         title={m.toolbar.wireTitle}
         onClick={() => onToolChange('wire')}
         active={tool === 'wire'}
-        disabled={disabled}
       />
       <ToolButton
         icon={splitIcon}
@@ -79,7 +74,6 @@ export const SheetToolbar = memo(function SheetToolbar({
         title={m.toolbar.splitTitle}
         onClick={() => onToolChange('split')}
         active={tool === 'split'}
-        disabled={disabled}
       />
       <ToolDivider />
       <ToolButton
@@ -87,7 +81,7 @@ export const SheetToolbar = memo(function SheetToolbar({
         label={m.toolbar.rotate}
         title={m.toolbar.rotateTitle}
         onClick={onRotate}
-        disabled={disabled || !canRotate}
+        disabled={!canRotate}
       />
       <ToolDivider />
       <ToolButton
@@ -95,21 +89,20 @@ export const SheetToolbar = memo(function SheetToolbar({
         label={running ? m.toolbar.pause : m.toolbar.resume}
         title={running ? m.toolbar.pauseTitle : m.toolbar.resumeTitle}
         onClick={onToggleRunning}
-        disabled={disabled}
       />
       <ToolButton
         icon={stepBackIcon}
         label={m.toolbar.stepBack}
         title={m.toolbar.stepBackTitle}
         onClick={onStepBack}
-        disabled={disabled || running || !canStepBack}
+        disabled={running || !canStepBack}
       />
       <ToolButton
         icon={stepIcon}
         label={m.toolbar.stepForward}
         title={m.toolbar.stepForwardTitle}
         onClick={onStep}
-        disabled={disabled || running}
+        disabled={running}
       />
       <Flex ms="auto" gap="0.5">
         <ToolButton
@@ -117,7 +110,6 @@ export const SheetToolbar = memo(function SheetToolbar({
           label={m.toolbar.circuitSettings}
           title={m.toolbar.circuitSettingsTitle}
           onClick={onCircuitSettings}
-          disabled={disabled}
         />
       </Flex>
     </Flex>

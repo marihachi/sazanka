@@ -695,19 +695,21 @@ export function App() {
               onClose={on.closeTab}
               onReorder={on.reorderTabs}
             />
-            <SheetToolbar
-              tool={tool}
-              onToolChange={on.changeTool}
-              onRotate={on.rotate}
-              canRotate={canRotate}
-              running={running}
-              onToggleRunning={on.toggleRunning}
-              onStep={on.stepOnce}
-              onStepBack={on.stepBack}
-              canStepBack={canStepBack}
-              onCircuitSettings={on.openCircuitSettings}
-              disabled={noCircuit}
-            />
+            {/* タブがないときは、ツールバーも出さない (開発者が決めた) */}
+            {!noCircuit && (
+              <SheetToolbar
+                tool={tool}
+                onToolChange={on.changeTool}
+                onRotate={on.rotate}
+                canRotate={canRotate}
+                running={running}
+                onToggleRunning={on.toggleRunning}
+                onStep={on.stepOnce}
+                onStepBack={on.stepBack}
+                canStepBack={canStepBack}
+                onCircuitSettings={on.openCircuitSettings}
+              />
+            )}
             <Flex flex="1" minH="0">
               {noCircuit ? (
                 // タブがないときは、シートを描かず、短い文だけを出す (開発者が決めた)
