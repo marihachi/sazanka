@@ -86,7 +86,7 @@ localStorage の読み書き（`file/storage.ts` の `load*` / `save*`）は単�
 ## ファイルの保存と選択
 
 - 書き出しは、Chromium では保存の画面（`showSaveFilePicker`）を開く。ヘッドレスでは画面を操作できないので、`page.evaluateOnNewDocument` で `window.showSaveFilePicker` を、渡された中身を覚える偽物に差し替えて確かめる（取り消しは `AbortError` の `DOMException` を投げる偽物で試す。画面を開けない環境は、`NotAllowedError` などほかの例外を投げる偽物で、書き込めない環境は `createWritable` が例外を投げる偽物で試し、ダウンロードに切り替わることを見る）。Electron の中のブラウザの扱いは、`page.setUserAgent` で `Electron/` を含む名前にして試す（保存の画面を呼ばずにダウンロードになる）。同じブラウザで続けてダウンロードさせると、2 回目からは Chrome が自動のダウンロードを止めることがある。ダウンロードを見る確認は、ブラウザを分けるか、1 回目に置く。ダウンロードの経路（Firefox と Safari の代わり）は、`delete window.showSaveFilePicker` で消してから押し、CDP の `Browser.setDownloadBehavior`（`behavior: 'allow'`、`downloadPath`）で作業用のフォルダに保存させ、中身を読んで比べる。スクリプトを並べて流すときは、保存先のフォルダを分ける。
-- 読み込みは、ヘッダーの「開く」を押すと開くファイルを選ぶ画面を、`page.waitForFileChooser()` で受けて `accept([パス])` で選ぶ。ボタンを押す操作は人の速さでする。`cancel()` で取り消しも試せる。
+- 読み込みは、ヘッダーの「開く…」を押すと開くファイルを選ぶ画面を、`page.waitForFileChooser()` で受けて `accept([パス])` で選ぶ。ボタンを押す操作は人の速さでする。`cancel()` で取り消しも試せる。
 - 試すファイル（JSON でないもの、空のもの、壊れたもの、BOM 付き、とても大きいもの）は作業用のフォルダに作る。
 
 ## フレームレートを測る
