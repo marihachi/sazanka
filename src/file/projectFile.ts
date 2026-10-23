@@ -6,12 +6,21 @@ import {
   checkProject,
   withoutSwitchStates,
 } from '../circuit/project';
+import { hashString } from '../util';
 import { fromStoredProject, type StoredProject, toStoredProject } from './storage';
 import { upgradeStoredProject } from './upgrade';
 
 /** プロジェクト全体をプロジェクトファイル (プロジェクトの形式のデータ) にする */
 export function serializeProject(project: Project): string {
   return JSON.stringify(toStoredProject(withoutSwitchStates(project)));
+}
+
+/**
+ * プロジェクトの指紋。プロジェクトファイルに書く中身 (serializeProject) から作るので、ファイルに書かないもの
+ * (INPUT の ON/OFF、部品と配線の ID) が違っても同じになる。ファイルに保存したときから変わったかを見るのに使う
+ */
+export function projectHash(project: Project): string {
+  return hashString(serializeProject(project));
 }
 
 /**

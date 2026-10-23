@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyProject, MAIN_ID, type Project, withoutSwitchStates } from '../circuit/project';
-import { parseProject, serializeProject } from './projectFile';
+import { parseProject, projectHash, serializeProject } from './projectFile';
 import { type StoredProject, toStoredProject } from './storage';
 
 /** アプリの中の形のプロジェクト。位置は px で、メイン回路の名前は空文字 */
@@ -380,5 +380,28 @@ describe('CLOCK の周期', () => {
       counter(),
     );
     expect(result.ok).toBe(true);
+  });
+});
+
+describe('projectHash', () => {
+  it('同じ中身なら同じ、ファイルに書く中身が違えば違う', () => {
+    expect(projectHash(project)).toBe(projectHash(structuredClone(project)));
+    const renamed: Project = {
+      ...project,
+      circuits: project.circuits.map((d) => (d.id === 'mod' ? { ...d, name: '別の名前' } : d)),
+    };
+    expect(projectHash(renamed)).not.toBe(projectHash(project));
+  });
+
+  it('ファイルに書かないもの (INPUT の ON/OFF、部品と配線の ID) が違っても同じ', () => {
+    const changed: Project = {
+      ...project,
+      circuits: project.circuits.map((d) => ({
+        ...d,
+        parts: d.parts.map((c) => ({ ...c, id: `${c.id}-2`, on: !c.on })),
+        wires: d.wires.map((w) => ({ ...w, id: `${w.id}-2` })),
+      })),
+    };
+    expect(projectHash(changed)).toBe(projectHash(project));
   });
 });

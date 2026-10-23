@@ -24,6 +24,10 @@ export const en: Messages = {
     redoTitle: 'Redo (Ctrl+Shift+Z / Ctrl+Y)',
     preferences: 'Preferences',
     about: 'About this app',
+    unsaved: '(Unsaved)',
+    dirty: 'Unsaved changes',
+    dirtyDetail:
+      'There are changes not saved to a file (your work is saved automatically in this browser)',
   },
   about: {
     title: 'About sazanka',

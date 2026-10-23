@@ -651,6 +651,8 @@ export function App() {
           onNewProject={on.newProject}
           onOpenProject={on.importProject}
           onSaveProjectAs={on.exportProject}
+          fileName={file.fileName}
+          dirty={file.dirty}
           onImportCircuits={on.importCircuits}
           onExportCircuits={on.exportCircuits}
           canUndo={history.canUndo}
