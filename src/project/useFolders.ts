@@ -79,17 +79,14 @@ export function useFolders({
   }
 
   /** 回路を追加するダイアログを開く。開いたときに選んでいるフォルダは folder */
-  function newCircuit(folder: string, onCreated?: () => void) {
+  function newCircuit(folder: string) {
     showNewCircuit({
       initialFolder: folder,
       defaultName: defaultCircuitName,
       validate: (name, at) =>
         describeNameProblem(checkCircuitName(project, name, m.common.mainCircuit, at), m),
       onCreateFolder: createFolder,
-      onSubmit: (name, at) => {
-        addCircuit(name, at);
-        onCreated?.();
-      },
+      onSubmit: (name, at) => addCircuit(name, at),
     });
   }
 

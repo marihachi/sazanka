@@ -245,14 +245,12 @@ export function App() {
     showConfirm: dialogs.showConfirm,
   });
 
-  /** 回路を開く。開いていなければタブを末尾に足す。新しくタブを開いたかを返す */
-  function openCircuit(id: string): boolean {
+  /** 回路を開く。開いていなければタブを末尾に足す */
+  function openCircuit(id: string) {
     clipboard.cancelPaste();
-    const added = !tabs.open.includes(id);
     setTabs((t) => ({ open: t.open.includes(id) ? t.open : [...t.open, id], current: id }));
     setSelection(null);
     setPending(null);
-    return added;
   }
 
   /** タブを閉じる。選んでいるタブを閉じたら、右隣 (なければ左隣) を選ぶ。最後のタブなら、タブなしになる */
@@ -588,13 +586,6 @@ export function App() {
   // 子の部品へ渡す関数。ドラッグの一歩ごとに App は描き直されるが、ドラッグで中身の変わらない部品
   // (ヘッダー、タブバー、ツールバー、パレット、プロパティ欄) は描き直さないよう、同じ関数を渡し続ける
   const on = useStableCallbacks({
-    // プロジェクトパネルから開いて新しくタブが開いたら、すぐ部品を置けるよう、サイドパネルを部品に移す。
-    // 開いているタブに切り替えただけなら移さない (開発者が決めた)
-    openFromPanel: (id: string) => {
-      if (openCircuit(id)) {
-        setSidePanel('parts');
-      }
-    },
     closeTab,
     reorderTabs: (id: string, index: number) =>
       setTabs((t) => {
@@ -625,8 +616,8 @@ export function App() {
       folders.renameFolder(path, value);
     },
     cancelRename: () => setEditing(null),
-    // パネルで作った回路はタブで開くので、すぐ部品を置けるよう、サイドパネルを部品に移す
-    newCircuit: (folder: string) => folders.newCircuit(folder, () => setSidePanel('parts')),
+    // パネルから回路を開いたり作ったりしても、サイドパネルはプロジェクトパネルのまま (開発者が決めた)
+    newCircuit: (folder: string) => folders.newCircuit(folder),
     newFolder: folders.newFolder,
     removeFolder: folders.removeFolder,
     moveToFolder: folders.moveToFolder,
@@ -673,7 +664,7 @@ export function App() {
                     ? `folder:${editing.path}`
                     : undefined
               }
-              onOpen={on.openFromPanel}
+              onOpen={on.openCircuit}
               onStartRenameCircuit={on.startRename}
               onStartRenameFolder={on.startRenameFolder}
               onRenameCircuit={on.renameCircuit}
