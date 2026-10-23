@@ -23,7 +23,11 @@
 - `app/` … 画面全体の組み立てと、状態のつなぎ役。
   - `App.tsx` … 画面の組み立て、状態の保持、回路の編集操作（部品の追加、削除、移動、配線など）。
   - `useDialogs.tsx` … ダイアログの開閉と描画。`useStableCallbacks.ts` … 子に渡す関数を固定する（[描画の重さ](performance.md)）。
+  - `ActivityBar.tsx` … 左端のアクティビティバー（サイドパネルにプロジェクトパネルとパレットのどちらを出すかを切り替える）。
   - `Header.tsx` … ヘッダー。`PropertyPanel.tsx` … プロパティ欄。`AboutDialog.tsx` … 「このアプリについて」。
+- `project/` … プロジェクトパネル（[UI](ui.md)の「プロジェクトパネル」）。
+  - `ProjectPanel.tsx` … プロジェクトパネル。`CircuitTree.tsx` … フォルダと回路の木（ドラッグを含む）。`folders.ts` … 木の組み立て、使われている所、フォルダの操作と落とす先の計算。
+  - `useFolders.ts` … フォルダの操作、回路とフォルダをドラッグで移す操作、フォルダを選んで回路を追加する操作（ダイアログの開閉は `app/useDialogs.tsx`）。`FolderPicker.tsx` … フォルダを選ぶ・作る木。`NewCircuitDialog.tsx` … 回路を追加するダイアログ。`ReplaceCircuitDialog.tsx` … 別のモジュールに差し替えるダイアログ。`replace.ts` … 差し替えの計算（差し替え先、部品の書き換え、ピンが同じか）。
 - `circuits/` … 回路の追加・改名・削除・設定と、回路の切り替え。
   - `useCircuits.ts` … 回路の操作と、パレットに出すモジュールの一覧。`TabBar.tsx` … タブバー。`CircuitSettingsDialog.tsx` … 回路設定のダイアログ（作者名、シートの大きさ、パッケージ、ポートの名前、ピンの割り当て。メイン回路にも使う。計算は `circuit/module.ts`）。
 - `sheet/` … シートの描画と操作（[画面操作](interaction.md)、[シートの表示](view.md)）。
@@ -68,7 +72,7 @@
   - `<種類>/` … 1 種類 1 フォルダ。フォルダの名前は種類の名前（`kind`）と同じ。`spec.ts`（仕様）、`view.ts`（見せ方）、`layout.ts`（シート上の配置。既定と違う種類だけ）、`icon.svg`（アイコン）、`Body.tsx`（本体の描き込み。デバイスなど、描き込みを種類のフォルダに置く種類だけ）。
   - `spec.ts` / `view.ts` / `layout.ts` … 仕様、見せ方、配置の型と、共通の処理（配置は、動作の分類ごとの既定の配置、小さな四角の配置 `squareLayout`、部品の向きの型 `Rotation` と配置を回す `rotateLayout` も）。`specs.ts` … 仕様の一覧（`PART_SPECS`）。`views.ts` … 見せ方の一覧（`PART_VIEWS`）。`layouts.ts` … 配置の一覧（`PART_LAYOUTS`）と、配置を引く `getLayout`。`PartIcon.tsx` … 種類のアイコン。`bodies.tsx` … 本体の描き込みを種類のフォルダ（`<種類>/Body.tsx`）に置く種類の一覧（`PART_BODIES`）。
 - `ui/` … 回路を知らない、共通の画面部品。
-  - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（タブの名前の変更）。
+  - `ToolButton.tsx` … ヘッダーやツールバーのボタン。`HintTooltip.tsx` … ツールチップ。`Icons.tsx` … 文字色で塗るアイコン。`InlineInput.tsx` … その場で文字を編集する入力欄（プロジェクトパネルの行の名前の変更）。`SidePanelHeader.tsx` … サイドパネルの上の部分（パネルの名前とツールバー）。
   - `DialogFrame.tsx` … ダイアログの外枠。`ConfirmDialog.tsx`（確認とお知らせ）、`PromptDialog.tsx`（名前の入力）、`TextDialog.tsx`（文字列の欄と、ファイルの選択を持つ入力。今は使う所がないが、残しておく）。
   - `theme.ts` … Chakra UI のテーマ。`classNames.ts` … クラス名の連結。
 - `i18n/` … 画面の文言（表示言語）。決まりと仕組みは[文言と表示言語](i18n.md)。
@@ -83,7 +87,7 @@
 
 今のフォルダ同士の依存は、次の向きになっている（左が右を使う）。依存の向きについての方針は[コードの置き場所の決め方](code-placement.md)の「依存の向き」。
 
-`app` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `problems` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
+`app` → `project` → `circuits` → `sheet` → `palette` → `file` → `preferences` → `hints` → `problems` → `editing` → `simulation` → `geometry` → `circuit` → `parts` → `ui` → `i18n` → `util`
 
 - この向きになる主な理由: モジュールの一覧はパレットに出す（`circuits` → `palette`）。シートは、パレットからのドラッグ、選択の型、シミュレーションの結果、座標を組み合わせる（`sheet` → `palette`、`editing`、`simulation`、`geometry`）。保存は環境設定とシートの表示も保存する（`file` → `preferences`、`geometry`）。座標の計算は部品の形を見る（`geometry` → `circuit`、`parts`）。ネットはピンの座標から作るので `geometry/net.ts` に置き、展開（`simulation/flatten.ts`）とシートから使う。部品のアイコンは共通のアイコンで描く（`parts` → `ui`）。共通のダイアログの文言（「キャンセル」など）も表から引くので、文言の表は `ui` より下に置く（`ui` → `i18n`）。
 - 逆向きに、`i18n/ja.ts` は、エラーと問題を文にするために `circuit/` と `file/` のエラーの型と、`problems/` の問題の種類を型だけ import する。

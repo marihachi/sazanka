@@ -286,6 +286,85 @@ export function saveProject(project: Project) {
   }
 }
 
+const TABS_KEY = 'sazanka.tabs';
+
+/** 開いているタブ (回路 ID。並びがタブの並び) と、選んでいるタブ。タブがなければ current は null */
+export interface OpenTabs {
+  open: string[];
+  current: string | null;
+}
+
+/**
+ * 開いていたタブ。保存がなければ、タブなし (初めて開いたとき)。
+ * 回路がプロジェクトにあるかは、使う側 (App) が確かめる
+ */
+export function loadTabs(): OpenTabs {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(TABS_KEY) ?? 'null');
+    if (typeof value !== 'object' || value === null) {
+      return { open: [], current: null };
+    }
+    const { open, current } = value as Record<string, unknown>;
+    const ids = Array.isArray(open) ? open.filter((v): v is string => typeof v === 'string') : [];
+    return {
+      open: ids,
+      current: typeof current === 'string' && ids.includes(current) ? current : null,
+    };
+  } catch {
+    return { open: [], current: null };
+  }
+}
+
+export function saveTabs(tabs: OpenTabs) {
+  try {
+    localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const SIDE_PANEL_KEY = 'sazanka.sidePanel';
+
+/** 左のサイドパネルに出すもの。project はプロジェクトパネル、parts はパレット (部品) */
+export type SidePanel = 'project' | 'parts';
+
+/** 最後に選んでいたサイドパネル。保存がなければプロジェクトパネル (初めて開いたとき) */
+export function loadSidePanel(): SidePanel {
+  try {
+    return localStorage.getItem(SIDE_PANEL_KEY) === 'parts' ? 'parts' : 'project';
+  } catch {
+    return 'project';
+  }
+}
+
+export function saveSidePanel(panel: SidePanel) {
+  try {
+    localStorage.setItem(SIDE_PANEL_KEY, panel);
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
+const TREE_COLLAPSED_KEY = 'sazanka.projectTreeCollapsed';
+
+/** プロジェクトパネルで折り畳んでいるフォルダのパス。知らないパスは無視される */
+export function loadTreeCollapsed(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(TREE_COLLAPSED_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveTreeCollapsed(paths: string[]) {
+  try {
+    localStorage.setItem(TREE_COLLAPSED_KEY, JSON.stringify(paths));
+  } catch {
+    // 保存できない環境では無視
+  }
+}
+
 const COLLAPSED_KEY = 'sazanka.paletteCollapsed';
 
 /** パレットで折り畳んでいるグループの ID (Palette.tsx の GROUPS)。知らない ID は無視される */

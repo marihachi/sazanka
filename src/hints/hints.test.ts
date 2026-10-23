@@ -103,7 +103,7 @@ describe('statusHints', () => {
   it('メイン回路では、回路設定のヒントを出し、タブの操作と split の並び順のヒントは出さない', () => {
     const main = hints({ inMain: true });
     expect(main[0]).toContain('回路設定');
-    expect(main.some((h) => h.includes('タブをダブルクリック'))).toBe(false);
+    expect(main.some((h) => h.includes('回路の名前は'))).toBe(false);
     expect(main.some((h) => h.includes('シミュレーションは止まる'))).toBe(false);
     expect(main.some((h) => h.includes('ポート番号の順に並ぶ'))).toBe(false);
     expect(main.some((h) => h.includes('ピンが増える'))).toBe(false);

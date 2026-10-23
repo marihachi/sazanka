@@ -22,12 +22,11 @@ export const ja = {
   },
   header: {
     toolbar: 'プロジェクトの操作',
-    newProject: '新規作成',
-    newProjectTitle: '空のプロジェクトを新しく作る',
-    importProject: '読み込み',
-    importProjectTitle: 'プロジェクトファイルを選んで読み込む',
-    exportProject: '書き出し',
-    exportProjectTitle: 'プロジェクト全体をファイルに保存する',
+    /** ヘッダーの「ファイル」のメニュー */
+    file: 'ファイル',
+    newProject: '新規作成…',
+    openProject: '開く…',
+    saveProjectAs: '名前を付けて保存…',
     undo: '元に戻す',
     undoTitle: '元に戻す (Ctrl+Z)',
     redo: 'やり直し',
@@ -44,8 +43,8 @@ export const ja = {
       'MIT ライセンスで利用できます。ロゴには Inter SemiBold (SIL OFL) というフォントを使っています。',
   },
   tabs: {
-    addCircuit: '回路を追加',
-    circuitTabTooltip: 'ダブルクリックで名前を変更、ドラッグで並べ替えできます。',
+    circuitTabTooltip: 'ドラッグで並べ替えできます。',
+    close: (name: string) => `${name} を閉じる`,
   },
   toolbar: {
     select: '選択',
@@ -67,9 +66,58 @@ export const ja = {
     circuitSettings: '回路設定',
     circuitSettingsTitle:
       '回路設定: シートの大きさ、パッケージ、ポートの名前、ピンの割り当てを変える',
-    removeCircuit: 'プロジェクトから削除',
+  },
+  sidePanel: {
+    project: 'プロジェクト',
+    parts: '部品',
+  },
+  project: {
+    title: 'プロジェクト',
+    toolbar: '回路とフォルダの操作',
+    newCircuit: '新しい回路…',
+    /** 行の「⋯」。name は行の名前 */
+    rowMenu: (name: string) => `${name} の操作`,
+    open: '開く',
+    rename: '名前の変更',
+    remove: 'プロジェクトから削除…',
+    newFolder: '新しいフォルダ…',
+    replace: '別のモジュールに差し替える…',
+    removeFolder: 'フォルダを削除',
+    /** メイン回路の印 (★) の読み上げ用 */
+    main: 'メイン回路',
+    usedIn: '使われている所',
+    notUsed: 'どこにも置かれていません',
+    /** 使われている所の 1 つ。name は回路の名前、count は置いている数 */
+    usage: (name: string, count: number) => `${name} (${count})`,
+    usageSeparator: '、',
+    expand: (name: string) => `${name} を開く`,
+    collapse: (name: string) => `${name} を閉じる`,
+  },
+  folders: {
+    /** フォルダに入れない (いちばん上) */
+    none: '(フォルダなし)',
+    folder: 'フォルダ',
+    create: 'フォルダを作る',
+    newTitle: '新しいフォルダ',
+    name: 'フォルダの名前',
+    add: '作成',
+    nameRequired: '名前を入力してください',
+    nameBad: '「/」を含む名前と、「.」「..」は使えません',
+    nameTaken: '同じ名前のフォルダがすでにあります',
+    notEmpty: (name: string) =>
+      `「${name}」の中に回路かフォルダがあるため、削除できません。先に中のものを動かすか、削除してください。`,
+  },
+  replace: {
+    title: (name: string) => `「${name}」を別のモジュールに差し替える`,
+    target: '差し替え先',
+    none: '差し替えられる回路がありません',
+    pinsDiffer:
+      'ピンの数か並びが違うため、置いている所の配線が外れたり、別のピンにつながったりすることがあります。差し替えたあとに確かめてください。',
+    removeSource: (name: string) => `差し替えたあと、「${name}」をプロジェクトから削除する`,
+    apply: '差し替える',
   },
   palette: {
+    toolbar: '部品の操作',
     groups: {
       io: '入出力',
       source: '信号源',
@@ -89,6 +137,8 @@ export const ja = {
     unknownModule: '(不明)',
     /** 見つからないモジュールの本体に書く */
     missing: '見つからない',
+    /** タブがないときに、シートの所に出す */
+    noCircuit: '開いている回路はありません',
     /** 見つからないモジュールを選んだときに、プロパティ欄に出す名前 */
     missingName: (name: string) => `${name || '(不明)'} (見つからない)`,
     zoomOut: '縮小',
@@ -216,7 +266,7 @@ export const ja = {
   },
   file: {
     confirmNew:
-      '新しいプロジェクトを作成しますか？今のプロジェクト (すべての回路) は消えます (元に戻すで戻せます)。',
+      '新しいプロジェクトを作成しますか？今のプロジェクト (すべての回路) は消えます。元に戻せません。',
     newProject: '新規作成',
     saveFailed: 'ファイルに保存できませんでした',
     readFailed: 'ファイルを読み取れませんでした',
@@ -291,14 +341,14 @@ export const ja = {
       'RS Latch はクロックがなく、S / R が変わるとすぐに Q が変わる',
       '部品には遅延がある。信号は 1 tick ずつ、時間をかけて伝わる',
       '「一時停止」してから「1 tick 進める」「1 tick 戻す」で、信号が伝わる様子を 1 tick ずつ行き来できる',
-      'タブの「+」で回路を追加すると、モジュールとしてほかの回路に置ける',
-      '「書き出し」でプロジェクト全体を JSON にしてコピーし、「読み込み」に貼り付けると同じ回路を開ける',
+      'プロジェクトパネルの「⋯」の「新しい回路」で回路を追加すると、モジュールとしてほかの回路に置ける',
+      'プロジェクトパネルの「⋯」の「名前を付けて保存」でプロジェクトをファイルに保存し、「開く」で開ける',
       'INPUT / OUTPUT に名前を付けると、モジュールとして置いたときのピンの名前になる',
     ],
     /** モジュールのタブ (メイン回路でない回路) を開いているときに追加で表示するヒント */
     nonMain: [
-      'タブをダブルクリックすると、回路の名前を変更できる',
-      'タブはドラッグで並べ替えられる (メインは先頭に固定)',
+      '回路の名前は、プロジェクトパネルの行の「⋯」か F2 で変えられる',
+      'タブはドラッグで並べ替えられ、「×」で閉じられる',
       'INPUT / OUTPUT を置くと、モジュールのピンが増える',
       'ほかの回路のタブを開いている間は、メイン回路のシミュレーションは止まる',
     ],
@@ -314,6 +364,8 @@ export const ja = {
     numberedPackage: ['INPUT / OUTPUT を置くと、空いているピンに自動で割り当てられる'],
     /** 外側のピンに出せないポートの理由ごとの説明 */
     /** 見つからないモジュール (指す回路がプロジェクトにない) を選んだとき */
+    /** タブがないとき */
+    noCircuit: '左のプロジェクトパネルで、回路をダブルクリックすると開く',
     unresolvedModule:
       'この回路はプロジェクトにない。ピンはなく、シミュレーションでは何も出力しない',
     portProblems: {

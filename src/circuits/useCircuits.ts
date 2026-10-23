@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { ConfirmRequest } from '../ui/ConfirmDialog';
-import type { PromptRequest } from '../ui/PromptDialog';
 import type { PaletteModule } from '../palette/Palette';
 import { newId } from '../circuit/circuit';
 import type { Part } from '../circuit/part';
@@ -15,7 +14,7 @@ import {
 } from '../circuit/project';
 import { getCircuitName, type Messages } from '../i18n/messages';
 
-/** 回路の追加・改名・削除と、パレットに並べるモジュールの一覧 */
+/** 回路の追加・改名・削除と、パレットに並べるモジュールの一覧。追加のダイアログ (フォルダを選ぶ) は project/useFolders.ts にある */
 export function useCircuits({
   project,
   circuit,
@@ -23,7 +22,6 @@ export function useCircuits({
   openCircuit,
   onDeleted,
   showConfirm,
-  showPrompt,
   m,
 }: {
   /** 文言の表。このフックは言語を渡す側 (App) で呼ぶので、Context ではなく引数で受け取る */
@@ -34,10 +32,9 @@ export function useCircuits({
   /** 元に戻せる編集としてプロジェクトを更新する */
   setProject: (update: (p: Project) => Project) => void;
   openCircuit: (id: string) => void;
-  /** 回路を削除した。その回路について覚えているもの (シミュレーションの結果、表示) を捨てる */
+  /** 回路を削除した。その回路のタブを閉じ、その回路について覚えているもの (シミュレーションの結果、表示) を捨てる */
   onDeleted: (id: string) => void;
   showConfirm: (request: ConfirmRequest) => void;
-  showPrompt: (request: PromptRequest) => void;
 }) {
   /**
    * パネルに並べるモジュール。今の回路に置けないもの (循環するもの) は理由付き。
@@ -71,46 +68,42 @@ export function useCircuits({
     [modulesKey, m],
   );
 
-  /** 名前を入力するウィンドウを開き、確定したら回路を作成して開く */
-  function createCircuit() {
-    // 既定の名前は、ほかの回路の名前とメイン回路の表示名を避ける
-    const names = new Set([...project.circuits.map((d) => d.name), m.common.mainCircuit]);
-    // 既定の名前の番号は、メイン回路以外の回路の数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
+  /**
+   * フォルダ folder に置く回路の、既定の名前 (「回路<n>」)。同じフォルダの回路の名前とメイン回路の表示名を避ける。
+   * 番号は、メイン回路以外の回路の数 + 1 から (回路の数にはメイン回路も入っている)。使われていれば次の番号にする
+   */
+  function defaultCircuitName(folder: string): string {
     let n = project.circuits.length;
-    while (names.has(m.circuits.defaultName(n))) {
+    while (checkCircuitName(project, m.circuits.defaultName(n), m.common.mainCircuit, folder)) {
       n++;
     }
-    showPrompt({
-      title: m.circuits.addTitle,
-      label: m.circuits.name,
-      initial: m.circuits.defaultName(n),
-      confirmLabel: m.circuits.add,
-      validate: (name) =>
-        describeNameProblem(checkCircuitName(project, name, m.common.mainCircuit), m),
-      onSubmit: (name) => {
-        const def: CircuitDef = {
-          id: newId(),
-          name,
-          path: '',
-          author: '',
-          package: { kind: 'dip', pins: 8 },
-          sheet: DEFAULT_SHEET,
-          parts: [],
-          wires: [],
-        };
-        setProject((p) => ({ ...p, circuits: [...p.circuits, def] }));
-        openCircuit(def.id);
-      },
-    });
+    return m.circuits.defaultName(n);
+  }
+
+  /** フォルダ folder に、名前 name の空の回路を作り、開く (名前は呼ぶ側が確かめる) */
+  function addCircuit(name: string, folder: string) {
+    const def: CircuitDef = {
+      id: newId(),
+      name,
+      path: folder,
+      author: '',
+      package: { kind: 'dip', pins: 8 },
+      sheet: DEFAULT_SHEET,
+      parts: [],
+      wires: [],
+    };
+    setProject((p) => ({ ...p, circuits: [...p.circuits, def] }));
+    openCircuit(def.id);
   }
 
   /**
-   * 名前を変える。空の名前なら変えない。ほかの回路と同じ名前なら、変えずにそのことを知らせる
+   * 名前を変える。空の名前なら変えない。同じフォルダのほかの回路と同じ名前なら、変えずにそのことを知らせる
    * (同じフォルダに同じ名前の回路があると、保存データが検証を通らず、次に開くときに読み込めなくなるため)
    */
   function renameCircuit(id: string, value: string) {
     const name = value.trim();
-    const problem = checkCircuitName(project, name, m.common.mainCircuit, id);
+    const folder = project.circuits.find((d) => d.id === id)?.path ?? '';
+    const problem = checkCircuitName(project, name, m.common.mainCircuit, folder, id);
     if (problem === 'EMPTY') {
       return;
     }
@@ -125,14 +118,17 @@ export function useCircuits({
   }
 
   /**
-   * 開いている回路をプロジェクトから削除する (確認を出してから)。ほかの回路に置かれていても削除できる。
+   * 回路 id をプロジェクトから削除する (確認を出してから)。メイン回路は削除できない。ほかの回路に置かれていても削除できる。
    * 置いている部品は残り、指す回路がなくなるので見つからないモジュールになる。何が足りないかを見せるため、
    * その部品に今の名前の写し (circuitName) を持たせる。元に戻す 1 回で、回路も部品も戻る
    */
-  function removeCircuit() {
-    const users = circuitsUsing(project, circuit.id);
-    const id = circuit.id;
-    const name = circuit.name;
+  function removeCircuit(id: string) {
+    const target = project.circuits.find((d) => d.id === id);
+    if (!target || id === MAIN_ID) {
+      return;
+    }
+    const users = circuitsUsing(project, id);
+    const name = target.name;
     const placed = project.circuits
       .flatMap((d) => d.parts)
       .filter((c) => c.kind === 'module' && c.circuitId === id).length;
@@ -145,13 +141,13 @@ export function useCircuits({
       danger: true,
       onConfirm: () => {
         setProject((p) => removeCircuitFrom(p, id, name));
+        // 削除した回路のタブは、onDeleted で閉じる (メイン回路は開かない)
         onDeleted(id);
-        openCircuit(MAIN_ID);
       },
     });
   }
 
-  return { paletteModules, createCircuit, renameCircuit, removeCircuit };
+  return { paletteModules, defaultCircuitName, addCircuit, renameCircuit, removeCircuit };
 }
 
 /** 回路の名前が使えない理由 (checkCircuitName) を、欄の下に出す文にする */

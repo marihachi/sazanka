@@ -13,12 +13,11 @@ export const en: Messages = {
   },
   header: {
     toolbar: 'Project actions',
-    newProject: 'New',
-    newProjectTitle: 'Start a new empty project',
-    importProject: 'Import',
-    importProjectTitle: 'Choose a project file to import',
-    exportProject: 'Export',
-    exportProjectTitle: 'Save the whole project to a file',
+    /** ヘッダーの「ファイル」のメニュー */
+    file: 'File',
+    newProject: 'New…',
+    openProject: 'Open…',
+    saveProjectAs: 'Save as…',
     undo: 'Undo',
     undoTitle: 'Undo (Ctrl+Z)',
     redo: 'Redo',
@@ -34,8 +33,8 @@ export const en: Messages = {
     license: 'Available under the MIT License. The logo uses the Inter SemiBold font (SIL OFL).',
   },
   tabs: {
-    addCircuit: 'Add circuit',
-    circuitTabTooltip: 'Double-click to rename, drag to reorder.',
+    close: (name) => `Close ${name}`,
+    circuitTabTooltip: 'Drag to reorder.',
   },
   toolbar: {
     select: 'Select',
@@ -57,9 +56,54 @@ export const en: Messages = {
     circuitSettings: 'Circuit settings',
     circuitSettingsTitle:
       'Circuit settings: change the sheet size, package, port names, and pin assignment',
-    removeCircuit: 'Remove from project',
+  },
+  sidePanel: {
+    project: 'Project',
+    parts: 'Parts',
+  },
+  project: {
+    title: 'Project',
+    toolbar: 'Circuit and folder actions',
+    newCircuit: 'New circuit…',
+    rowMenu: (name) => `Actions for ${name}`,
+    open: 'Open',
+    rename: 'Rename',
+    remove: 'Remove from project…',
+    newFolder: 'New folder…',
+    replace: 'Replace with another module…',
+    removeFolder: 'Delete folder',
+    main: 'Main circuit',
+    usedIn: 'Used in',
+    notUsed: 'Not placed anywhere',
+    usage: (name, count) => `${name} (${count})`,
+    usageSeparator: ', ',
+    expand: (name) => `Expand ${name}`,
+    collapse: (name) => `Collapse ${name}`,
+  },
+  folders: {
+    none: '(No folder)',
+    folder: 'Folder',
+    create: 'Create folder',
+    newTitle: 'New folder',
+    name: 'Folder name',
+    add: 'Create',
+    nameRequired: 'Enter a name',
+    nameBad: 'Names with "/" and "." or ".." cannot be used',
+    nameTaken: 'A folder with this name already exists',
+    notEmpty: (name) =>
+      `"${name}" cannot be deleted because it contains circuits or folders. Move or delete them first.`,
+  },
+  replace: {
+    title: (name) => `Replace "${name}" with another module`,
+    target: 'Replace with',
+    none: 'No circuit can be used instead',
+    pinsDiffer:
+      'The pin count or order differs, so wires where it is placed may be disconnected or connect to different pins. Check them after replacing.',
+    removeSource: (name) => `Remove "${name}" from the project after replacing`,
+    apply: 'Replace',
   },
   palette: {
+    toolbar: 'Parts actions',
     groups: {
       io: 'Input / Output',
       source: 'Sources',
@@ -78,6 +122,7 @@ export const en: Messages = {
   sheet: {
     unknownModule: '(unknown)',
     missing: 'Not found',
+    noCircuit: 'No circuit is open',
     missingName: (name) => `${name || '(unknown)'} (not found)`,
     zoomOut: 'Zoom out',
     zoomReset: 'Reset to 100%',
@@ -193,7 +238,7 @@ export const en: Messages = {
   },
   file: {
     confirmNew:
-      'Create a new project? The current project (all circuits) will be cleared (you can undo this).',
+      'Create a new project? The current project (all circuits) will be cleared. This cannot be undone.',
     newProject: 'New',
     saveFailed: 'Could not save the file',
     readFailed: 'Could not read the file',
@@ -260,13 +305,13 @@ export const en: Messages = {
       'RS Latch has no clock: Q changes as soon as S / R change',
       'Parts have delay. Signals travel 1 tick at a time',
       'Pause, then use "Forward 1 tick" and "Back 1 tick" to step through signals 1 tick at a time',
-      'Add a circuit with "+" on the tabs to place it in other circuits as a module',
-      '"Export" copies the whole project as JSON. Paste it into "Import" to open the same circuit',
+      'Add a circuit with "New circuit" in the project panel "⋯" menu to place it in other circuits as a module',
+      'Save the project to a file with "Save as" in the project panel "⋯" menu, and open it with "Open"',
       'Naming an INPUT / OUTPUT sets the pin name when the circuit is placed as a module',
     ],
     nonMain: [
-      'Double-click a tab to rename the circuit',
-      'Drag tabs to reorder them (Main stays first)',
+      'Rename a circuit from its row "⋯" in the project panel, or with F2',
+      'Drag tabs to reorder them, and close them with "×"',
       'Placing an INPUT / OUTPUT adds a pin to the module',
       'While another circuit tab is open, the main circuit simulation is paused',
     ],
@@ -277,6 +322,7 @@ export const en: Messages = {
       'Renumbering ports in "Circuit settings" changes the pin order, so outer wires may connect to different pins',
     ],
     numberedPackage: ['Placing an INPUT / OUTPUT assigns it to a free pin automatically'],
+    noCircuit: 'Double-click a circuit in the project panel on the left to open it',
     unresolvedModule:
       'This circuit is not in the project. It has no pins and outputs nothing in the simulation',
     portProblems: {

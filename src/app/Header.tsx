@@ -1,5 +1,6 @@
-import { memo } from 'react';
-import { Flex, Heading, VisuallyHidden } from '@chakra-ui/react';
+import { memo, useRef } from 'react';
+import { Button, Flex, Heading, Menu, Portal, VisuallyHidden } from '@chakra-ui/react';
+import chevronIcon from '../assets/icons/chevron.svg';
 import exportIcon from '../assets/icons/export.svg';
 import importIcon from '../assets/icons/import.svg';
 import infoIcon from '../assets/icons/info.svg';
@@ -8,14 +9,14 @@ import logoMark from '../assets/logo-mark.svg';
 import newIcon from '../assets/icons/new.svg';
 import redoIcon from '../assets/icons/redo.svg';
 import undoIcon from '../assets/icons/undo.svg';
-import { MaskIcon } from '../ui/Icons';
+import { MaskIcon, ToolIcon } from '../ui/Icons';
 import { ToolButton, ToolDivider } from '../ui/ToolButton';
 import { useMessages } from '../i18n/useMessages';
 
 interface HeaderProps {
-  onNew: () => void;
-  onExport: () => void;
-  onImport: () => void;
+  onNewProject: () => void;
+  onOpenProject: () => void;
+  onSaveProjectAs: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -25,13 +26,15 @@ interface HeaderProps {
 }
 
 /**
- * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (新規作成、読み込み、書き出し、元に戻す、やり直し)。
- * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーにある
+ * 最上部のヘッダー。ロゴと、プロジェクト全体に効く操作 (「ファイル」のメニュー (新規作成、開く、名前を付けて保存)、元に戻す、やり直し)、
+ * 環境設定、このアプリについて。
+ * 元に戻すの履歴はすべての回路で1本なので、全体の操作としてここに置く。開いている回路に効く操作はシートのツールバーに、
+ * 回路とフォルダの操作はプロジェクトパネルにある
  */
 export const Header = memo(function Header({
-  onNew,
-  onExport,
-  onImport,
+  onNewProject,
+  onOpenProject,
+  onSaveProjectAs,
   canUndo,
   canRedo,
   onUndo,
@@ -40,39 +43,78 @@ export const Header = memo(function Header({
   onAbout,
 }: HeaderProps) {
   const m = useMessages();
+  /**
+   * 「ファイル」のメニューで選んだ操作のうち、メニューが閉じ終わってから行うもの (onExitComplete)。
+   * 閉じている途中に確認のダイアログを開くと、メニューがフォーカスを戻すときに、ダイアログが外を触られたとみなして閉じてしまうため
+   */
+  const pending = useRef<(() => void) | null>(null);
   return (
     <Flex as="header" align="center" gap="1.5" h="12" px="3" flexShrink={0} borderBottomWidth="1px">
       <Heading as="h1" display="flex" flexShrink={0}>
         <MaskIcon src={logoMark} boxSize="7" bg="brand" />
         <VisuallyHidden>sazanka</VisuallyHidden>
       </Heading>
-      {/* 入りきらない幅では横にスクロールする */}
+      {/*
+        入りきらない幅では横にスクロールする。
+        スクロールする箱はフォーカスの枠も切ってしまうので、内側に枠の分の余白をとる (右は外側の負の余白で位置を保つ)。
+        左は、ロゴとの間を少しあける (ロゴの端からボタンの地の端まで 12px。近すぎると開発者が言った)
+      */}
       <Flex
         as="nav"
         align="center"
         gap="0.5"
         minW="0"
         overflowX="auto"
+        p="1"
+        me="-1"
+        ms="0.5"
         aria-label={m.header.toolbar}
       >
-        <ToolButton
-          icon={newIcon}
-          label={m.header.newProject}
-          title={m.header.newProjectTitle}
-          onClick={onNew}
-        />
-        <ToolButton
-          icon={importIcon}
-          label={m.header.importProject}
-          title={m.header.importProjectTitle}
-          onClick={onImport}
-        />
-        <ToolButton
-          icon={exportIcon}
-          label={m.header.exportProject}
-          title={m.header.exportProjectTitle}
-          onClick={onExport}
-        />
+        <Menu.Root
+          // メニューはボタンのすぐ下に出す (既定の 8px あけると離れて見えると開発者が言った)
+          positioning={{ gutter: 2 }}
+          onSelect={(e) => {
+            // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
+            if (e.value === 'open') {
+              onOpenProject();
+            } else if (e.value === 'saveAs') {
+              onSaveProjectAs();
+            }
+            // 確認のダイアログを出す新規作成は、閉じ終わってから行う
+            pending.current = e.value === 'new' ? onNewProject : null;
+          }}
+          onExitComplete={() => {
+            const action = pending.current;
+            pending.current = null;
+            action?.();
+          }}
+        >
+          <Menu.Trigger asChild>
+            {/* 狭い画面でも、文字は隠さない (アイコンがないため) */}
+            <Button variant="ghost" size="sm" colorPalette="gray" flexShrink={0} px="2.5">
+              {m.header.file}
+              <MaskIcon src={chevronIcon} boxSize="3" />
+            </Button>
+          </Menu.Trigger>
+          <Portal>
+            <Menu.Positioner>
+              <Menu.Content>
+                <Menu.Item value="new">
+                  <ToolIcon src={newIcon} />
+                  {m.header.newProject}
+                </Menu.Item>
+                <Menu.Item value="open">
+                  <ToolIcon src={importIcon} />
+                  {m.header.openProject}
+                </Menu.Item>
+                <Menu.Item value="saveAs">
+                  <ToolIcon src={exportIcon} />
+                  {m.header.saveProjectAs}
+                </Menu.Item>
+              </Menu.Content>
+            </Menu.Positioner>
+          </Portal>
+        </Menu.Root>
         <ToolDivider />
         <ToolButton
           icon={undoIcon}
