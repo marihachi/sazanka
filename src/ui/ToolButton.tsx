@@ -19,6 +19,8 @@ interface ToolButtonProps {
   iconSize?: '4' | '5';
   /** ボタンの大きさ。既定は sm (36px)。サイドパネルのツールバーは xs (32px) */
   size?: 'xs' | 'sm';
+  /** アイコンだけの色 (テーマの色の名前)。省略するとボタンの文字色。押せないときは付けない */
+  iconColor?: string;
 }
 
 /**
@@ -36,6 +38,7 @@ export function ToolButton({
   active,
   iconSize,
   size = 'sm',
+  iconColor,
 }: ToolButtonProps) {
   const common = {
     variant: active ? 'subtle' : 'ghost',
@@ -47,13 +50,14 @@ export function ToolButton({
     'aria-label': label,
     'aria-pressed': active,
   } as const;
+  const color = disabled ? undefined : iconColor;
   const button = iconOnly ? (
     <IconButton {...common}>
-      <ToolIcon src={icon} size={iconSize} />
+      <ToolIcon src={icon} size={iconSize} color={color} />
     </IconButton>
   ) : (
     <Button {...common} flexShrink={0} px={{ base: '2', md: '2.5' }}>
-      <ToolIcon src={icon} size={iconSize} />
+      <ToolIcon src={icon} size={iconSize} color={color} />
       <Box as="span" display={{ base: 'none', md: 'inline' }}>
         {label}
       </Box>

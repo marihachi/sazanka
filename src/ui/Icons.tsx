@@ -21,6 +21,15 @@ export function MaskIcon({ src, ...props }: { src: string } & BoxProps) {
 }
 
 /** ボタンに付けるアイコン (既定は 16×16) */
-export function ToolIcon({ src, size = '4' }: { src: string; size?: '4' | '5' }) {
-  return <MaskIcon src={src} boxSize={size} />;
+export function ToolIcon({
+  src,
+  size = '4',
+  color,
+}: {
+  src: string;
+  size?: '4' | '5';
+  /** 色。省略すると文字色 */
+  color?: string;
+}) {
+  return <MaskIcon src={src} boxSize={size} color={color} />;
 }

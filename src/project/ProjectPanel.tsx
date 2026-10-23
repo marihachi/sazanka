@@ -104,6 +104,8 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
           <>
             <ToolButton
               icon={newCircuitIcon}
+              // 回路のアイコンは緑にする (開発者が求めた)
+              iconColor="green.400"
               label={m.project.newCircuit}
               onClick={() => props.onNewCircuit(selectedFolder)}
               iconOnly
@@ -112,6 +114,8 @@ export const ProjectPanel = memo(function ProjectPanel(props: ProjectPanelProps)
             />
             <ToolButton
               icon={newFolderIcon}
+              // フォルダのアイコンはオレンジにする (開発者が求めた)
+              iconColor="orange.400"
               label={m.project.newFolder}
               onClick={() => props.onNewFolder(selectedFolder)}
               iconOnly
