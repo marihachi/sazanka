@@ -157,6 +157,27 @@ describe('simulate', () => {
     expect(r.values.get('n:0')).toBeTypeOf('boolean');
   });
 
+  it('発振が止まったと判定される tick では、値は変わらない', () => {
+    // 発振の判定が戻るのは、値が落ち着いて何 tick か続いたあと。画面へは値が変わった tick でだけ結果を渡すと、
+    // 判定が戻ったことが伝わらない (計画 25。useSimulation.ts は、値が変わらなくても判定が変わったら知らせる)
+    const looped = {
+      parts: [{ id: 'n', kind: 'not' as const, x: 0, y: 0 }],
+      links: [{ from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+    };
+    let r = settle(looped, undefined, 80);
+    expect(r.unstable).toBe(true);
+    const alone = { ...looped, links: [] };
+    let cleared: SimResult | undefined;
+    for (let i = 0; i < 80 && !cleared; i++) {
+      r = stepCircuit(alone, r);
+      if (!r.unstable) {
+        cleared = r;
+      }
+    }
+    expect(cleared?.unstable).toBe(false);
+    expect(cleared?.stableTicks).toBeGreaterThan(0);
+  });
+
   it('NOR で組んだ RS ラッチが状態を保持する', () => {
     const build = (s: boolean, r: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
