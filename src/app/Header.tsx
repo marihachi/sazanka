@@ -71,6 +71,8 @@ export const Header = memo(function Header({
         aria-label={m.header.toolbar}
       >
         <Menu.Root
+          // メニューはボタンのすぐ下に出す (既定の 8px あけると離れて見えると開発者が言った)
+          positioning={{ gutter: 2 }}
           onSelect={(e) => {
             // ファイルを選ぶ画面と保存の画面は、押した操作の中でしか開けないので、閉じ終わるのを待たずにすぐ開く
             if (e.value === 'open') {
