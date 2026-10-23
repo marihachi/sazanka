@@ -124,7 +124,7 @@ export const ja = {
     importMenu: '回路のインポート…',
     exportMenu: '回路のエクスポート…',
     /** プロジェクトパネルの行のメニュー */
-    exportRow: '書き出す…',
+    exportRow: 'エクスポート…',
     exportTitle: '回路のエクスポート',
     exportTarget: '書き出す回路',
     includeDependencies: '依存する回路も含める',

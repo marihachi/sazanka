@@ -194,7 +194,7 @@ export function useFolders({
     });
   }
 
-  /** フォルダ path の中 (入れ子を含む) の回路の ID (行のメニューの「書き出す…」で、初めに印を付けておくもの) */
+  /** フォルダ path の中 (入れ子を含む) の回路の ID (行のメニューの「エクスポート…」で、初めに印を付けておくもの) */
   function circuitsInFolder(path: string): string[] {
     return project.circuits
       .filter((d) => (d.path ?? '') === path || (d.path ?? '').startsWith(`${path}/`))

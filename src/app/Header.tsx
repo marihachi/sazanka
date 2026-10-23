@@ -96,8 +96,15 @@ export const Header = memo(function Header({
           label={m.exchange.menu}
           later={{ importCircuits: onImportCircuits, exportCircuits: onExportCircuits }}
         >
-          <Menu.Item value="importCircuits">{m.exchange.importMenu}</Menu.Item>
-          <Menu.Item value="exportCircuits">{m.exchange.exportMenu}</Menu.Item>
+          {/* アイコンは、「ファイル」の開く・名前を付けて保存と同じもの (取り込む・書き出すの向きが同じため) */}
+          <Menu.Item value="importCircuits">
+            <ToolIcon src={importIcon} />
+            {m.exchange.importMenu}
+          </Menu.Item>
+          <Menu.Item value="exportCircuits">
+            <ToolIcon src={exportIcon} />
+            {m.exchange.exportMenu}
+          </Menu.Item>
         </HeaderMenu>
         <ToolDivider />
         <ToolButton
