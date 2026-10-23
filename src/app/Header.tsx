@@ -47,13 +47,18 @@ export const Header = memo(function Header({
         <MaskIcon src={logoMark} boxSize="7" bg="brand" />
         <VisuallyHidden>sazanka</VisuallyHidden>
       </Heading>
-      {/* 入りきらない幅では横にスクロールする */}
+      {/*
+        入りきらない幅では横にスクロールする。
+        スクロールする箱はフォーカスの枠も切ってしまうので、内側に枠の分の余白をとる (外側の負の余白で、並びの位置は変えない)
+      */}
       <Flex
         as="nav"
         align="center"
         gap="0.5"
         minW="0"
         overflowX="auto"
+        p="1"
+        mx="-1"
         aria-label={m.header.toolbar}
       >
         <ToolButton
