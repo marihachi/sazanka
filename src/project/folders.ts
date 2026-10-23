@@ -247,7 +247,8 @@ export type DropTarget =
  * - into: フォルダの行の上。そのフォルダの中の末尾へ (フォルダはフォルダの中へ)。
  * - before / after: 行と行の間。回路は回路どうし、フォルダはフォルダどうしの間に並べる (フォルダの中は、子のフォルダが先、回路があと)。
  *   開いているフォルダの行のすぐ下は、そのフォルダの中の先頭。
- * 自分自身と、フォルダを自分の中へは落とせない
+ * 自分自身と、フォルダを自分の中へは落とせない。
+ * over が rows.length (いちばん下の行より下の、何もない所) なら、いちばん上の階層 (フォルダなし) の末尾へ
  */
 export function dropTarget(
   project: Project,
@@ -256,11 +257,14 @@ export function dropTarget(
   over: number,
   zone: 'before' | 'into' | 'after',
 ): DropTarget | undefined {
+  const isFolder = dragged.kind === 'folder';
+  if (over === rows.length) {
+    return isFolder ? { kind: 'folder', parent: '' } : { kind: 'circuit', folder: '' };
+  }
   const target = rows[over];
   if (!target) {
     return undefined;
   }
-  const isFolder = dragged.kind === 'folder';
   const draggedPath = dragged.kind === 'folder' ? dragged.path : undefined;
   // フォルダを、自分自身か自分の中へは動かせない
   const insideDragged = (path: string) => draggedPath !== undefined && isInside(path, draggedPath);
@@ -299,9 +303,10 @@ export function dropTarget(
         ? { kind: 'folder', parent: target.path, index: 0 }
         : { kind: 'circuit', folder: target.path, index: 0 };
     }
-    // 回路は、フォルダの行の前後には並べられない (フォルダの中は、子のフォルダが先、回路があと)
+    // 回路は、フォルダの行の前後には並べられない (フォルダの中は、子のフォルダが先、回路があと)。
+    // そのフォルダと同じ階層の回路の先頭へ入れる (フォルダの外へ出せるように。いちばん上の階層に回路がないときも)
     if (!isFolder) {
-      return undefined;
+      return { kind: 'circuit', folder: parentOf(target.path), index: 0 };
     }
     const index = folderIndex(target.path);
     return {

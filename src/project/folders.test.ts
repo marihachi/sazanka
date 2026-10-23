@@ -179,8 +179,14 @@ describe('dropTarget', () => {
   };
   // [lib] [gates] and seg [adders] fa ha main cnt
   const rows = treeRows(project);
-  const at = (key: string) =>
-    rows.findIndex((r) => (r.kind === 'folder' ? `[${r.path}]` : r.def.id) === key);
+  // 見つからない行で調べると、テストが何も確かめずに通ってしまうので、見つからなければ止める
+  const at = (key: string) => {
+    const i = rows.findIndex((r) => (r.kind === 'folder' ? `[${r.path}]` : r.def.id) === key);
+    if (i < 0) {
+      throw new Error(`行がない: ${key}`);
+    }
+    return i;
+  };
   const row = (key: string) => rows[at(key)];
 
   it('フォルダの行の上に落とすと、その中の末尾へ', () => {
@@ -225,16 +231,37 @@ describe('dropTarget', () => {
     });
   });
 
+  it('いちばん下の行より下に落とすと、いちばん上の階層の末尾へ', () => {
+    expect(dropTarget(project, rows, row('fa'), rows.length, 'after')).toEqual({
+      kind: 'circuit',
+      folder: '',
+    });
+    expect(dropTarget(project, rows, row('[lib/gates]'), rows.length, 'after')).toEqual({
+      kind: 'folder',
+      parent: '',
+    });
+  });
+
   it('フォルダはフォルダの間に並べる。自分の中へは落とせない', () => {
     expect(dropTarget(project, rows, row('[adders]'), at('[lib]'), 'before')).toEqual({
       kind: 'folder',
       parent: '',
       index: 0,
     });
-    expect(dropTarget(project, rows, row('[lib]'), at('[gates]'), 'into')).toBeUndefined();
+    expect(dropTarget(project, rows, row('[lib]'), at('[lib/gates]'), 'into')).toBeUndefined();
     expect(dropTarget(project, rows, row('[lib]'), at('and'), 'before')).toBeUndefined();
-    // 回路はフォルダの間に並べない。フォルダは回路の間に並べない
-    expect(dropTarget(project, rows, row('cnt'), at('[adders]'), 'before')).toBeUndefined();
+    // 回路をフォルダの行の前後に落とすと、そのフォルダと同じ階層の回路の先頭へ (フォルダの外へ出せる)。
+    // フォルダは回路の間に並べない
+    expect(dropTarget(project, rows, row('fa'), at('[adders]'), 'before')).toEqual({
+      kind: 'circuit',
+      folder: '',
+      index: 0,
+    });
+    expect(dropTarget(project, rows, row('and'), at('[lib/gates]'), 'before')).toEqual({
+      kind: 'circuit',
+      folder: 'lib',
+      index: 0,
+    });
     expect(dropTarget(project, rows, row('[adders]'), at('cnt'), 'before')).toBeUndefined();
   });
 });

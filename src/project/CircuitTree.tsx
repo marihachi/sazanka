@@ -94,8 +94,15 @@ export function CircuitTree({
   /** ドラッグを終えた直後のクリック (同じ押し離しで起きる) で、行を選び直さないための印 */
   const justDragged = useRef(false);
 
-  /** 画面の高さ y にある行と、その行のどこか (フォルダは上 1/4・真ん中・下 1/4、回路は上半分・下半分) */
+  /**
+   * 画面の高さ y にある行と、その行のどこか (フォルダは上 1/4・真ん中・下 1/4、回路は上半分・下半分)。
+   * いちばん下の行より下 (何もない所) なら、over は rows.length (いちばん上の階層の末尾へ落とす)
+   */
   function hitTest(y: number): { over: number; zone: 'before' | 'into' | 'after' } | undefined {
+    const last = rows.length > 0 && rowRefs.current.get(rowKey(rows[rows.length - 1]));
+    if (last && y >= last.getBoundingClientRect().bottom) {
+      return { over: rows.length, zone: 'after' };
+    }
     for (let i = 0; i < rows.length; i++) {
       const rect = rowRefs.current.get(rowKey(rows[i]))?.getBoundingClientRect();
       if (!rect || y < rect.top || y >= rect.bottom) {
@@ -127,9 +134,14 @@ export function CircuitTree({
         const name = isFolder ? row.name : getCircuitName(row.def, m);
         const menu = hasMenu(row);
         // 落とす先の印。フォルダの中へなら行に色を付け、行の間なら線を引く
-        const here = drag?.started && drag.target && drag.over === rows.indexOf(row);
+        const index = rows.indexOf(row);
+        // いちばん下より下に落とすときは、いちばん下の行の下に、いちばん上の階層の線を引く
+        const atEnd =
+          drag?.started && drag.target && drag.over === rows.length && index === rows.length - 1;
+        const here = drag?.started && drag.target && drag.over === index;
         const dropInto = here && drag?.zone === 'into';
-        const dropLine = here && drag?.zone !== 'into' ? drag?.zone : undefined;
+        const dropLine = atEnd ? 'after' : here && drag?.zone !== 'into' ? drag?.zone : undefined;
+        const lineDepth = atEnd ? 0 : row.depth;
         return (
           <Box
             as="li"
@@ -260,7 +272,7 @@ export function CircuitTree({
               <Box
                 position="absolute"
                 insetX="0"
-                ms={`${8 + row.depth * 14}px`}
+                ms={`${8 + lineDepth * 14}px`}
                 h="2px"
                 bg="accent.solid"
                 pointerEvents="none"
