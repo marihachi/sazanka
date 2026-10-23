@@ -29,7 +29,11 @@ export function SidePanelHeader({
         align="center"
         gap="0.5"
         px="1"
-        pb="1"
+        py="1"
+        // 地をパネル (#111) より少しだけ明るくする (開発者が「暗めで」と選んだ)。
+        // ボタンのポインターを載せたときの色 (gray.subtle) が地と同じになって見えないので、一段明るくする
+        bg="bg.muted"
+        css={{ '& button:hover:not(:disabled)': { bg: 'gray.800' } }}
         flexShrink={0}
         borderBottomWidth="1px"
       >
