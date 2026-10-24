@@ -87,7 +87,7 @@ export function useCircuits({
       name,
       path: folder,
       author: '',
-      package: { kind: 'dip', pins: 8 },
+      package: { kind: 'split' },
       sheet: DEFAULT_SHEET,
       parts: [],
       wires: [],
