@@ -281,7 +281,12 @@ export function useSimulation(
     }
     past.current.push({ snapshot: current.current, toggled });
     const { circuit, sources } = prepare(p, id);
-    const state = stepState(circuit, sources, stateFor(current.current, circuit));
+    const prev = stateFor(current.current, circuit);
+    // 回路を編集したら (回路を準備し直したら)、落ち着いた tick 数を数え直す。編集の効果はゲートの遅延のぶん
+    // あとの tick で出るので、編集前の数を引き継ぐと、最初の tick で値が変わらないだけで落ち着いたとみなし、
+    // CLOCK のない回路ではループを止めてしまう (落ち着いた回路にループを足しても発振を検出しなかった。計画 25)
+    const edited = current.current.circuit !== circuit;
+    const state = stepState(circuit, sources, edited ? { ...prev, stableTicks: 0 } : prev);
     // 周期の短い CLOCK では、遅延のある回路は落ち着く前に次の反転が来る。
     // そのままでは「落ち着かないまま続いている」と数えられて発振と誤って判定されるので、反転するたびに数え直す。
     // その代わり、周期の短い CLOCK を置いた回路では、本当の発振も検出できない。
