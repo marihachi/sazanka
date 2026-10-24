@@ -70,11 +70,12 @@ export function useProjectFile({
    * 別のプロジェクトに入れ替える前の確認 (開く前と新規作成の前)。ファイルに保存していない変更があるときだけ、
    * 「保存してから続ける」「保存しない」「キャンセル」を聞き、続けるなら next を呼ぶ。変更がなければ、聞かずに next を呼ぶ。
    * 確認を出すなら、確認を出す関数を返す (呼ぶ側が、メニューが閉じ終わってから呼ぶため)。出さないなら、next を呼んで undefined を返す。
+   * next には、「保存してから続ける」で保存したかを渡す。
    * 「保存してから続ける」で保存の画面を取り消したら、続けない。ダウンロードで保存するブラウザでは、取り消したか分からないので続ける
    */
-  function beforeLeaving(next: () => void): (() => void) | undefined {
+  function beforeLeaving(next: (saved: boolean) => void): (() => void) | undefined {
     if (!hasUnsavedChanges()) {
-      next();
+      next(false);
       return undefined;
     }
     return () =>
@@ -83,11 +84,11 @@ export function useProjectFile({
         confirmLabel: m.file.saveFirst,
         onConfirm: async () => {
           if (await exportProject()) {
-            next();
+            next(true);
           }
         },
         secondaryLabel: m.file.discard,
-        onSecondary: next,
+        onSecondary: () => next(false),
       });
   }
 
@@ -140,12 +141,13 @@ export function useProjectFile({
   }
 
   /**
-   * 確認のあとで、ファイルを選ぶ画面を開く。ブラウザは利用者の操作の直後にしか開かせない。保存の画面
-   * (showSaveFilePicker) はその効力を使い切るので、保存したあとでは開けない。そのときは、もう一度押してもらう確認を出す (開発者が決めた)
+   * 確認のあとで、ファイルを選ぶ画面を開く。保存したあと (saved) は、もう一度押してもらう確認を出してから開く (開発者が決めた)。
+   * ブラウザは利用者の操作の直後にしかファイルを選ぶ画面を開かせず、保存の画面 (showSaveFilePicker) はその効力を使い切るので、続けて開けない。
+   * ダウンロードで保存するブラウザ (Firefox、Safari など) では効力が残るが、すぐ開くとダウンロードとファイルを選ぶ画面が同時に出るので、
+   * 同じく確認を挟む (計画 27)
    */
-  function pickAfterLeaving() {
-    const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
-    if (activation && !activation.isActive) {
+  function pickAfterLeaving(saved: boolean) {
+    if (saved) {
       showConfirm({
         message: m.file.pickAfterSave,
         confirmLabel: m.file.pickFile,
