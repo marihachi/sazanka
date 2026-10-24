@@ -65,6 +65,7 @@
   - 見つからないモジュール（指す回路がプロジェクトにない。`Pinout.unresolved`）は、ピンのない箱にする（ピンは分からないため）。大きさは、部品が持つ大きさの写し（`Part.circuitSize`。元の本体の大きさ）で、写しがなければ幅 6・高さ 3。本体は赤い破線で囲み、中に名前の写し（`Part.circuitName`）と「見つからない」を 2 行で書く（`SheetPart.tsx`）。つながっていた配線は、外れて見える（[計画 20](../plans/unresolved-module/plan.md)）。
 - 上下の辺のピン名は、90 度回して本体の内側に縦に書く（`SheetPart.tsx` の `PinName`）。
 - 種類の `layout.ts` がなければ、動作の分類の既定の配置（`gateLayout`、`flipflopLayout`）になる。INPUT、OUTPUT、CLOCK、HIGH は、種類の `layout.ts` で小さな四角（`squareLayout`）にしている。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は小さな四角の配置の輪郭だけを円にしている）。
+  - NOT を 3×2 にし、ゲートの本体に記号を描く計画がある（[計画 28](../plans/gate-symbols/plan.md)）。
 - 本体の中の描き込み（ランプ、矩形波の絵、文字）は、配置ではなく `sheet/SheetPart.tsx` が種類ごとに描いている。
 - 回した部品も、描き込みは回していない向き（種類の配置のまま）で描き、`SheetPart.tsx` が最後に全体を回す（`rotateTransform`）。そのため、描き込み（`Body.tsx` を含む）は回転を知らなくてよい。回し方は `rotateLayout` と同じでなければならない。違うと、描いたピンと、つながりの計算のピンの位置がずれる。
 - モジュールごとに大きさやピンの位置を変えられるようにするなら、モジュールの定義から `module/layout.ts` の配置を上書きする形にする。保存データの形が変わるので、[保存データ](persistence.md)の決まりに従う。
