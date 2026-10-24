@@ -10,6 +10,8 @@ README の `screenshot.png` を撮り直すときの手順と、写す回路。�
    - スクロールバーも写す（パレットのスクロールバー）。Puppeteer は既定でブラウザを `--hide-scrollbars` 付きで起動するので、`launch` の `ignoreDefaultArgs: ['--hide-scrollbars']` で外す。外さないと、スクロールバーのない、実際の画面と違う画像になる。
 4. 下の「写す回路」を保存データ（`sazanka.project`）に書き、`sazanka.views`（シートの表示）と `sazanka.paletteCollapsed`（パレットの折り畳み）を消して開き直す。表示を消したので、回路全体が見える表示（この回路では倍率 100%）で開く。
    - 2 の環境設定も、ここで一緒に書く。
+   - タブ（`sazanka.tabs`）に `{"open":["main","e4c364b7-5aa0-4ca1-a43c-298c0bb4c5e8"],"current":"main"}` を書き、メイン回路と AND Memory のタブを開いてメイン回路を選ぶ。書かないと、タブのない（回路を開いていない）画面で開く。
+   - サイドパネル（`sazanka.sidePanel`）に `parts` を書き、パレットを出す。書かないと、プロジェクトパネルで開く。
    - 回路に CLOCK があり、アプリが自動保存を続けるので、書いた値が上書きされやすい。一度開いてから、`page.evaluateOnNewDocument` で書いて再読み込みし、読み込んだら `removeScriptToEvaluateOnNewDocument` で外す（Skill の `browser-check` の「ハマりやすい点」）。
 5. 倍率が 100% でなければ、ズームの「回路全体を表示」を押す。
 6. INPUT の ON/OFF は保存データから読まないので、画面でクリックして切り替える。押す位置は、本体の真ん中の回路の座標を、シートの `<g transform>` で画面の座標に直して求める（[ブラウザでの動作確認](browser-check.md)の「状態の用意」）。
