@@ -240,12 +240,20 @@ export function useSimulation(
     store.current = createSimStore(toResult(current.current.circuit, current.current.state));
   }
   const [unstable, setUnstable] = useState(current.current.state.unstable);
+  /** App に最後に知らせた「発振しているか」。変わったときだけ知らせる (App を描き直すため) */
+  const notifiedUnstable = useRef(current.current.state.unstable);
+  function notifyUnstable(next: boolean) {
+    if (notifiedUnstable.current !== next) {
+      notifiedUnstable.current = next;
+      setUnstable(next);
+    }
+  }
   /** 一時停止中の 1 tick 送り・戻しのあとに、ボタンの押せる / 押せないを描き直すため */
   const [, setStepVersion] = useState(0);
   /** 結果を画面へ渡す。App へは、発振しているかが変わったときだけ知らせる */
   function publish({ circuit, state }: Snapshot) {
     store.current?.set(toResult(circuit, state));
-    setUnstable(state.unstable);
+    notifyUnstable(state.unstable);
   }
   const [running, setRunning] = useState(true);
   /** 回路ごとの結果。タブを切り替えても、その回路の状態を保つ */
@@ -273,7 +281,12 @@ export function useSimulation(
     }
     past.current.push({ snapshot: current.current, toggled });
     const { circuit, sources } = prepare(p, id);
-    const state = stepState(circuit, sources, stateFor(current.current, circuit));
+    const prev = stateFor(current.current, circuit);
+    // 回路を編集したら (回路を準備し直したら)、落ち着いた tick 数を数え直す。編集の効果はゲートの遅延のぶん
+    // あとの tick で出るので、編集前の数を引き継ぐと、最初の tick で値が変わらないだけで落ち着いたとみなし、
+    // CLOCK のない回路ではループを止めてしまう (落ち着いた回路にループを足しても発振を検出しなかった。計画 25)
+    const edited = current.current.circuit !== circuit;
+    const state = stepState(circuit, sources, edited ? { ...prev, stableTicks: 0 } : prev);
     // 周期の短い CLOCK では、遅延のある回路は落ち着く前に次の反転が来る。
     // そのままでは「落ち着かないまま続いている」と数えられて発振と誤って判定されるので、反転するたびに数え直す。
     // その代わり、周期の短い CLOCK を置いた回路では、本当の発振も検出できない。
@@ -352,6 +365,11 @@ export function useSimulation(
       // 画面へ渡すのはフレームに1回だけ。値が変わっていなければ描き直さない
       if (changed) {
         publish(current.current);
+      } else {
+        // 発振が止まったと判定されるのは、値が落ち着いて何 tick か続いたあとで、その tick では値が変わらない。
+        // 値が変わらなくても、発振しているかが変わったら知らせる (知らせないと「発振しています」が消えない。計画 25)。
+        // CLOCK がなくループを止めるフレームも、止める前にここを通る
+        notifyUnstable(current.current.state.unstable);
       }
       // CLOCK がなく、値も落ち着いたら止める。回路を触れば (project が変わるので) また動き出す
       if (stepped && !hasClock && current.current.state.stableTicks > SETTLED_TICKS) {
