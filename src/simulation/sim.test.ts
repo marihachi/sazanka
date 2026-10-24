@@ -157,6 +157,44 @@ describe('simulate', () => {
     expect(r.values.get('n:0')).toBeTypeOf('boolean');
   });
 
+  it('発振が止まったと判定される tick では、値は変わらない', () => {
+    // 発振の判定が戻るのは、値が落ち着いて何 tick か続いたあと。画面へは値が変わった tick でだけ結果を渡すと、
+    // 判定が戻ったことが伝わらない (計画 25。useSimulation.ts は、値が変わらなくても判定が変わったら知らせる)
+    const looped = {
+      parts: [{ id: 'n', kind: 'not' as const, x: 0, y: 0 }],
+      links: [{ from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+    };
+    let r = settle(looped, undefined, 80);
+    expect(r.unstable).toBe(true);
+    const alone = { ...looped, links: [] };
+    let cleared: SimResult | undefined;
+    for (let i = 0; i < 80 && !cleared; i++) {
+      r = stepCircuit(alone, r);
+      if (!r.unstable) {
+        cleared = r;
+      }
+    }
+    expect(cleared?.unstable).toBe(false);
+    expect(cleared?.stableTicks).toBeGreaterThan(0);
+  });
+
+  it('落ち着いた回路にループを足すと、最初の tick では値が変わらないが、そのあと発振する', () => {
+    // 編集の効果は遅延のぶんあとの tick で出る。落ち着いた tick 数を引き継いだまま最初の tick だけで
+    // 落ち着いたとみなすと、発振を見落とす (計画 25。useSimulation.ts は、編集したら数え直す)
+    const alone = { parts: [{ id: 'n', kind: 'not' as const, x: 0, y: 0 }], links: [] };
+    let r = settle(alone);
+    const looped = {
+      ...alone,
+      links: [{ from: { comp: 'n', pin: 0 }, to: { comp: 'n', pin: 0 } }],
+    };
+    r = stepCircuit(looped, r);
+    expect(r.stableTicks).toBeGreaterThan(0);
+    for (let i = 0; i < 80; i++) {
+      r = stepCircuit(looped, r);
+    }
+    expect(r.unstable).toBe(true);
+  });
+
   it('NOR で組んだ RS ラッチが状態を保持する', () => {
     const build = (s: boolean, r: boolean): Netlist => ({
       // biome-ignore format: 表形式を維持するため
