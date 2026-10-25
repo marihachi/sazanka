@@ -52,7 +52,7 @@ export function upgradeCircuit(circuit: unknown): unknown {
 }
 
 /** プロジェクトの形式のデータの中の回路を、どれも今の版の形にする。形が正しくないところは、そのまま残す (検証で断る) */
-function upgradeProjectCircuits(project: unknown): unknown {
+export function upgradeProjectCircuits(project: unknown): unknown {
   if (!isObject(project) || !Array.isArray(project.circuits)) {
     return project;
   }

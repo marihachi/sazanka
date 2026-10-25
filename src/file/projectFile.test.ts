@@ -13,7 +13,7 @@ const project: Project = {
       name: '',
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       parts: [
@@ -29,7 +29,7 @@ const project: Project = {
       name: 'モジュール1',
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 300, height: 200 },
       parts: [{ id: 'i', kind: 'input', x: 0, y: 0, portNumber: 1 }],
       wires: [],
@@ -101,7 +101,7 @@ describe('projectFile', () => {
       version: CIRCUIT_FORMAT_VERSION,
       id: MAIN_ID,
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       elements: [
@@ -283,7 +283,7 @@ describe('一体の形式のデータ', () => {
           { kind: 'module', x: 5, y: 0, module: 'mod' },
           { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
         ] },
-        { id: 'mod', name: 'モジュール1', package: { kind: 'split' }, elements: [
+        { id: 'mod', name: 'モジュール1', package: { kind: 'split', width: 4 }, elements: [
           { kind: 'input', x: 0, y: 0, portNumber: 1 },
         ] },
       ],

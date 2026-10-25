@@ -24,6 +24,9 @@ import {
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
 import {
+  SPLIT_WIDTH_MAX,
+  SPLIT_WIDTH_MIN,
+  DEFAULT_SPLIT_PACKAGE,
   type CircuitDef,
   type CircuitSheet,
   checkCircuitName,
@@ -124,10 +127,14 @@ export function CircuitSettingsDialog({
     [def, portNumbers],
   );
   const portsByPosition = useMemo(() => listPortsInPositionOrder(def), [def]);
-  const initial = def.package ?? { kind: 'split' };
+  const initial = def.package ?? DEFAULT_SPLIT_PACKAGE;
   const [kind, setKind] = useState<PackageKind>(initial.kind);
   const [pinsText, setPinsText] = useState(
     'pins' in initial ? String(initial.pins) : String(calcFittingPins('dip', ports.length)),
+  );
+  // split の本体の幅 (マス) の下書き。dip / qfp から変えたときは既定の幅で始める
+  const [splitWidthText, setSplitWidthText] = useState(
+    String(initial.kind === 'split' ? initial.width : DEFAULT_SPLIT_PACKAGE.width),
   );
   // ピンの割り当ての下書き。開いたときの番号から、重なり (2 つめ以降) を除いて始める
   const [numbers, setNumbers] = useState(() => initialNumbers(listPortsInNumberOrder(def)));
@@ -140,7 +147,8 @@ export function CircuitSettingsDialog({
   const duplicates = useMemo(() => findDuplicatePortNames(portNames), [portNames]);
 
   const pins = Number(pinsText);
-  const draft: Package = kind === 'split' ? { kind } : { kind, pins };
+  const draft: Package =
+    kind === 'split' ? { kind, width: Number(splitWidthText) } : { kind, pins };
   const valid = isPackage(draft);
   const applied = valid
     ? applyCircuitSettings(def, draft, numbers, portNames, portNumbers)
@@ -319,6 +327,20 @@ export function CircuitSettingsDialog({
                       <NativeSelect.Indicator />
                     </NativeSelect.Root>
                   </Field.Root>
+                  {kind === 'split' && (
+                    <Field.Root invalid={!valid} w="28">
+                      <Field.Label>{m.circuitSettings.splitWidth}</Field.Label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        step={1}
+                        min={SPLIT_WIDTH_MIN}
+                        max={SPLIT_WIDTH_MAX}
+                        value={splitWidthText}
+                        onChange={(e) => setSplitWidthText(e.target.value)}
+                      />
+                    </Field.Root>
+                  )}
                   {kind !== 'split' && (
                     <Field.Root invalid={!valid} w="28">
                       <Field.Label>{m.circuitSettings.pins}</Field.Label>
@@ -336,9 +358,11 @@ export function CircuitSettingsDialog({
                 </HStack>
                 {!valid && (
                   <Text textStyle="sm" color="fg.error">
-                    {kind === 'dip'
-                      ? m.circuitSettings.dipPinsError
-                      : m.circuitSettings.qfpPinsError}
+                    {kind === 'split'
+                      ? m.circuitSettings.splitWidthError
+                      : kind === 'dip'
+                        ? m.circuitSettings.dipPinsError
+                        : m.circuitSettings.qfpPinsError}
                   </Text>
                 )}
                 {kind === 'split' && (
@@ -604,7 +628,7 @@ function getPortName(c: Part, text: string, m: Messages): string {
  */
 function samePins(a: CircuitDef, b: CircuitDef): boolean {
   return (
-    JSON.stringify(a.package ?? { kind: 'split' }) === JSON.stringify(b.package) &&
+    JSON.stringify(a.package ?? DEFAULT_SPLIT_PACKAGE) === JSON.stringify(b.package) &&
     a.parts.every((c, i) => c.pinNumber === b.parts[i].pinNumber) &&
     (b.package?.kind !== 'split' || samePortNumbers(a, b))
   );

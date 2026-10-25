@@ -38,7 +38,7 @@
   - 版の番号だけでは見分けない。一体の形式の version 1 と、プロジェクトの形式の version 1 があるため。
 - 今の版は、プロジェクトの形式が 1、回路の形式が 2（作業中）。一体の形式は version 4 で終わり。
   - 回路の形式 version 1 → 2 は `circuit/v2.ts` の `upgradeToCircuitV2`。NOT を 3×4 から 3×2 にしたので、ピンの先が元の場所に残るように NOT の位置をずらす（[計画 28](../plans/gate-symbols/plan.md)）。変え方は[回路の形式 version 2](../../docs/format/circuit/v2.md) の「version 1 からの変更」にある。
-  - version 2 に、split の幅を足す計画がある（[計画 29](../plans/split-width/plan.md)）。
+  - version 2 では、split のパッケージに本体の幅（`width`。2〜20 マス）を持たせた。v1 → v2 の変換で、split に幅 4（v1 の split の幅）を書き込む（[計画 29](../plans/split-width/plan.md)）。アプリで作る split は、既定のパッケージ（`project.ts` の `DEFAULT_SPLIT_PACKAGE`。幅 4）を使う。
 - 一体の形式の変換は `file/upgrade/integrated/` にある。古い形式を読むためだけに残しているので、直さない。
   - version 1 → 2 は `upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/integrated/v2.md) の「version 1 からの変更」にある。
     - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。

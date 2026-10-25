@@ -6,6 +6,7 @@ import type { Part } from '../circuit/part';
 import { moduleSizeOf } from '../geometry/layout';
 import { circuitsUsing, dependsOn } from '../circuit/module';
 import {
+  DEFAULT_SPLIT_PACKAGE,
   type CircuitDef,
   checkCircuitName,
   DEFAULT_SHEET,
@@ -87,7 +88,7 @@ export function useCircuits({
       name,
       path: folder,
       author: '',
-      package: { kind: 'split' },
+      package: DEFAULT_SPLIT_PACKAGE,
       sheet: DEFAULT_SHEET,
       parts: [],
       wires: [],

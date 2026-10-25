@@ -83,4 +83,13 @@ describe('upgradeToCircuitV2', () => {
     expect(upgradeToCircuitV2('x')).toBe('x');
     expect(upgradeToCircuitV2({ version: 1 })).toEqual({ version: 2 });
   });
+
+  it('パッケージが split なら、幅 4 を書き込む。ほかの形と、形の正しくないパッケージは変えない', () => {
+    const pkg = (p: unknown) =>
+      (upgradeToCircuitV2({ version: 1, package: p }) as { package: unknown }).package;
+    expect(pkg({ kind: 'split' })).toEqual({ kind: 'split', width: 4 });
+    expect(pkg({ kind: 'dip', pins: 8 })).toEqual({ kind: 'dip', pins: 8 });
+    expect(pkg('x')).toBe('x');
+    expect(pkg(undefined)).toBeUndefined();
+  });
 });
