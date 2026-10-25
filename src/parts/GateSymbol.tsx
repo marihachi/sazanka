@@ -16,7 +16,8 @@ export function GateSymbol({ symbol, w, h }: { symbol: GateSymbolSpec; w: number
   const leadIn = two ? (gate === 'xor' ? 7 : 9) : 6;
   const leadOut = 6;
   const r = negated ? BUBBLE_R : 0;
-  const H = two ? Math.min(h - 18, 22) : 18;
+  // AND (と NAND) は、22px では横長に見えるので少し高くする (開発者がモックで見て決めた)
+  const H = two ? Math.min(h - 18, gate === 'and' ? 24 : 22) : 18;
   // 本体の幅 (否定の丸を含む)
   const bodyW = two ? Math.min(w - 16, 44) - leadIn - leadOut : Math.round(H * 0.9) + 2 * BUBBLE_R;
   const total = bodyW + leadIn + leadOut;
