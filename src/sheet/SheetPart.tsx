@@ -282,15 +282,21 @@ function samePinNames(
     sameArray(p.outputs, q.outputs) &&
     p.unresolved === q.unresolved &&
     p.package?.kind === q.package?.kind &&
-    pinsOf(p.package) === pinsOf(q.package) &&
+    packageSizeOf(p.package) === packageSizeOf(q.package) &&
     sameArray(p.pinNumbers?.inputs ?? [], q.pinNumbers?.inputs ?? []) &&
     sameArray(p.pinNumbers?.outputs ?? [], q.pinNumbers?.outputs ?? [])
   );
 }
 
-/** パッケージのピンの数。split とパッケージのない部品は undefined */
-function pinsOf(pkg: Pinout['package']): number | undefined {
-  return pkg && 'pins' in pkg ? pkg.pins : undefined;
+/**
+ * ピンの位置を決めるパッケージの数。dip / qfp はピンの数、split は本体の幅。パッケージのない部品は undefined。
+ * 配置が変わる値はすべて比べる (比べ忘れると、幅を変えてもピンが前の位置に残る)
+ */
+function packageSizeOf(pkg: Pinout['package']): number | undefined {
+  if (!pkg) {
+    return undefined;
+  }
+  return pkg.kind === 'split' ? pkg.width : pkg.pins;
 }
 
 function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
