@@ -35,7 +35,7 @@
   - `format` がなく、いちばん外に `version` と `project` があれば一体の形式。`upgradeIntegratedProject` で version 4 まで順に変えてから、`upgradeToProjectV1`（`file/upgrade/project/v1.ts`）でプロジェクトの形式 v1 に変える。回路 1 つずつは `upgradeToCircuitV1`（`file/upgrade/circuit/v1.ts`）が変える。
   - 版の番号だけでは見分けない。一体の形式の version 1 と、プロジェクトの形式の version 1 があるため。
 - 今の版は、プロジェクトの形式も回路の形式も 1。一体の形式は version 4 で終わり。
-  - 回路の形式を version 2 に上げる計画がある（NOT を 3×2 にするため。[計画 28](../plans/gate-symbols/plan.md)）。
+  - 回路の形式を version 2 に上げる計画がある（NOT を 3×2 にするため。[計画 28](../plans/gate-symbols/plan.md)）。その version 2 に、split の幅を足す計画もある（[計画 29](../plans/split-width/plan.md)）。
 - 一体の形式の変換は `file/upgrade/integrated/` にある。古い形式を読むためだけに残しているので、直さない。
   - version 1 → 2 は `upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/integrated/v2.md) の「version 1 からの変更」にある。
     - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。
