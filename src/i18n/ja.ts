@@ -273,6 +273,9 @@ export const ja = {
     pins: 'ピン数',
     dipPinsError: 'DIP のピン数は、4〜256 の偶数で入力してください',
     qfpPinsError: 'QFP のピン数は、8〜256 の 4 の倍数で入力してください',
+    /** ロジック (split) の本体の幅 */
+    splitWidth: '幅 (マス)',
+    splitWidthError: '幅は 2〜20 の整数で入力してください',
     splitHelp:
       '入力は左、出力は右に、ポート番号の順 (入力 1、出力 1 がいちばん上) に並びます。ピン番号は使いません。',
     ports: 'ポート',
