@@ -148,3 +148,4 @@
   - AND と NAND の記号の高さを 24px にした（上の「記号の描き方」）。
   - 記号を、種類のフォルダの `symbol.svg` にした（上の「記号を SVG のファイルにする」）。`GateSymbol.tsx` の式で描いたものを書き出し（見た目は同じ）、`view.ts` で `?raw` として読み込んで `symbol` に渡す。`SheetPart.tsx` は、本体の左上を原点に、その SVG をそのまま描く（`dangerouslySetInnerHTML`。アプリの中の SVG なので Biome の指摘は理由を書いて外した）。線の色は `currentColor` で、`SheetPart.module.css` の `.symbol` で `gray.300` にする。`GateSymbol.tsx` と `GateSymbolSpec` は消した（エージェントが決めた。採らなかった案: SVG からパスだけを取り出して React で描く。SVG の書き方を `path` だけに縛るため）。
   - ブラウザで、7 種類 × 4 つの向きで同じ形に描けることを確かめた。フレームレートは変える前と同じ（待機 60 fps、ドラッグ 60 fps）。テスト 533 件が通る。
+  - AND（NAND は除く）の記号の入力と出力のリードを、9px / 6px から 7.5px / 7.5px にした。本体の幅（29px）はそのままで、本体が真ん中に来る（開発者がモックで比べて選んだ。採らなかった案: 6 / 6（本体が大きくなる）、9 / 9（本体が細くなる））。`symbol.svg` を直接直した（「記号の描き方」の式とは、ここだけ違う）。
