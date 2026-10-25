@@ -144,3 +144,7 @@
   - README のスクリーンショットは、写す回路を作り直して撮り直した。今までの回路は、写す画面（メイン回路）にゲートがなく、撮り直しても同じになるため。開発者が、今の回路を白紙に戻してよいとし、全加算器の案を選んだ（採らなかった案: 今の回路に NOT と XOR を足す。配線が込み入り、回路の意味が分かりにくい）。
     - 全加算器（入力 A・B・Cin、出力 S・Cout）を Half Adder のモジュール（XOR と AND）2 つと OR で組み、下に CLOCK → NOT → OUTPUT（LED）を置いた。A と B を ON にして、1 + 1 + 0 で S が消え Cout が点く。手順と回路は [README のスクリーンショット](../../docs/screenshot.md)。
     - 撮るときに記号の色を見て、開発者が `fg` から `gray.300` に変えた（上の「記号の描き方」）。
+- レビューで直したこと:
+  - AND と NAND の記号の高さを 24px にした（上の「記号の描き方」）。
+  - 記号を、種類のフォルダの `symbol.svg` にした（上の「記号を SVG のファイルにする」）。`GateSymbol.tsx` の式で描いたものを書き出し（見た目は同じ）、`view.ts` で `?raw` として読み込んで `symbol` に渡す。`SheetPart.tsx` は、本体の左上を原点に、その SVG をそのまま描く（`dangerouslySetInnerHTML`。アプリの中の SVG なので Biome の指摘は理由を書いて外した）。線の色は `currentColor` で、`SheetPart.module.css` の `.symbol` で `gray.300` にする。`GateSymbol.tsx` と `GateSymbolSpec` は消した（エージェントが決めた。採らなかった案: SVG からパスだけを取り出して React で描く。SVG の書き方を `path` だけに縛るため）。
+  - ブラウザで、7 種類 × 4 つの向きで同じ形に描けることを確かめた。フレームレートは変える前と同じ（待機 60 fps、ドラッグ 60 fps）。テスト 533 件が通る。
