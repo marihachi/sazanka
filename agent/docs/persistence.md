@@ -1,6 +1,6 @@
 # 保存データ
 
-プロジェクトの保存データとプロジェクトファイル、利用者ごとの設定の保存。形式の仕様は `docs/format/` にある。今のアプリが読み書きするのは、[プロジェクトの形式 version 1](../../docs/format/project/v1.md)、[回路の形式 version 1](../../docs/format/circuit/v1.md)、[回路ファイルの形式 version 1](../../docs/format/circuits/v1.md)（どれも 2026-10-24 に公開した）。一体の形式（最後は [version 4](../../docs/format/integrated/v4.md)）のデータも、変換して読める。
+プロジェクトの保存データとプロジェクトファイル、利用者ごとの設定の保存。形式の仕様は `docs/format/` にある。今のアプリが読み書きするのは、[プロジェクトの形式 version 1](../../docs/format/project/v1.md)、[回路の形式 version 2](../../docs/format/circuit/v2.md)（作業中）、[回路ファイルの形式 version 1](../../docs/format/circuits/v1.md)。回路の形式 version 1 のデータも、変換して読める。一体の形式（最後は [version 4](../../docs/format/integrated/v4.md)）のデータも、変換して読める。
 
 ## 前提
 
@@ -15,6 +15,7 @@
 | 一体の形式（プロジェクトと回路）     | 4   | 公開済み（最後） | 2026-10-13 |
 | プロジェクトの形式                     | 1   | 公開済み         | 2026-10-24 |
 | 回路の形式                       | 1   | 公開済み         | 2026-10-24 |
+| 回路の形式                       | 2   | 作業中（未公開） |            |
 | 回路ファイルの形式                     | 1   | 公開済み         | 2026-10-24 |
 
 - 一体の形式は v4 で終わり、プロジェクトの形式と回路の形式に分けた。一体の形式のデータは、v4 にしてから、プロジェクトの形式 v1 と回路の形式 v1 に変えて読む。
@@ -29,13 +30,15 @@
   - 上げなくてよいのは、公開しているのが最新版だけで、新しいデータが古い版で開かれることがほぼないため。古い版を開けるようにする（版ごとの URL を残す、オフラインで動かすなど）なら、この判断を見直す。そのときは、追加だけでも版を上げることと、古い版が新しいデータを上書きしないようにすることが要る。今は、古い版のアプリで新しいデータを開くと、「壊れている」か「新しい版のデータ」として断り、空のプロジェクトを自動保存で上書きしてしまう。
 - 版を上げるときにすること:
   1. プロジェクトの形式なら `PROJECT_FORMAT_VERSION`、回路の形式なら `CIRCUIT_FORMAT_VERSION`（どちらも `file/upgrade/index.ts`）を上げる。
-  2. 1 版分の変換（`file/upgrade/project/v<N>.ts` か `file/upgrade/circuit/v<N>.ts`。ファイル名は「version N へ変える変換」）を作り、読み込みの入口（`upgradeStoredProject`）から順に通す。
+  2. 1 版分の変換（`file/upgrade/project/v<N>.ts` か `file/upgrade/circuit/v<N>.ts`。ファイル名は「version N へ変える変換」）を作り、順に通す並びに足す。回路の形式なら `CIRCUIT_UPGRADES`（`file/upgrade/index.ts`）に足せば、`upgradeCircuit` が古い版から 1 版ずつ通す。
 - 読み込みの入口は `file/upgrade/index.ts` の `upgradeStoredProject`。保存データ（`readStored`）とプロジェクトファイル（`parseProject`）の両方が、検証（`checkProject`）の前にこれを呼ぶ。変換の決まりは、下の「開発者からの指示」にある。
-  - 新しい形式は `format` で見分ける。`"sazanka-project"` なら、プロジェクトと中の回路の版を見て、今より新しければ断る（今は v1 しかないので変換はない）。`"sazanka-circuit"` と `"sazanka-circuits"` は、種類が違うとして断る（`CIRCUIT_FILE`）。
-  - `format` がなく、いちばん外に `version` と `project` があれば一体の形式。`upgradeIntegratedProject` で version 4 まで順に変えてから、`upgradeToProjectV1`（`file/upgrade/project/v1.ts`）でプロジェクトの形式 v1 に変える。回路 1 つずつは `upgradeToCircuitV1`（`file/upgrade/circuit/v1.ts`）が変える。
+  - 新しい形式は `format` で見分ける。`"sazanka-project"` なら、プロジェクトと中の回路の版を見て、今より新しければ断る。古い版の回路は、`upgradeCircuit` で今の版に変える。`"sazanka-circuit"` と `"sazanka-circuits"` は、種類が違うとして断る（`CIRCUIT_FILE`）。
+  - `format` がなく、いちばん外に `version` と `project` があれば一体の形式。`upgradeIntegratedProject` で version 4 まで順に変えてから、`upgradeToProjectV1`（`file/upgrade/project/v1.ts`）でプロジェクトの形式 v1 に変える。回路 1 つずつは `upgradeToCircuitV1`（`file/upgrade/circuit/v1.ts`）が変える。そのあと、回路を `upgradeCircuit` で今の版に変える。
+  - 回路ファイル（`parseCircuits`）も、検証の前に、中の回路を `upgradeCircuit` で今の版に変える。
   - 版の番号だけでは見分けない。一体の形式の version 1 と、プロジェクトの形式の version 1 があるため。
-- 今の版は、プロジェクトの形式も回路の形式も 1。一体の形式は version 4 で終わり。
-  - 回路の形式を version 2 に上げる計画がある（NOT を 3×2 にするため。[計画 28](../plans/gate-symbols/plan.md)）。その version 2 に、split の幅を足す計画もある（[計画 29](../plans/split-width/plan.md)）。
+- 今の版は、プロジェクトの形式が 1、回路の形式が 2（作業中）。一体の形式は version 4 で終わり。
+  - 回路の形式 version 1 → 2 は `circuit/v2.ts` の `upgradeToCircuitV2`。NOT を 3×4 から 3×2 にしたので、ピンの先が元の場所に残るように NOT の位置をずらす（[計画 28](../plans/gate-symbols/plan.md)）。変え方は[回路の形式 version 2](../../docs/format/circuit/v2.md) の「version 1 からの変更」にある。
+  - version 2 に、split の幅を足す計画がある（[計画 29](../plans/split-width/plan.md)）。
 - 一体の形式の変換は `file/upgrade/integrated/` にある。古い形式を読むためだけに残しているので、直さない。
   - version 1 → 2 は `upgradeV1.ts` の `upgradeV1`。変え方は [version 2](../../docs/format/integrated/v2.md) の「version 1 からの変更」にある。
     - `upgradeV1` は、version 1 のアプリが描いていた配線の形（`routeV1`）を点の並びにする。古い形の決め方は、ここにだけ残している。

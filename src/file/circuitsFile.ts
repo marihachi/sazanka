@@ -10,7 +10,7 @@ import {
 import { isObject } from '../util';
 import { dateStamp } from './localFile';
 import { fromStoredCircuit, type StoredCircuit, toStoredCircuit } from './storage';
-import { CIRCUIT_FORMAT_VERSION, CIRCUITS_FILE_FORMAT_VERSION } from './upgrade';
+import { CIRCUIT_FORMAT_VERSION, CIRCUITS_FILE_FORMAT_VERSION, upgradeCircuit } from './upgrade';
 
 /** 回路ファイルの形。中の回路は、回路の形式のデータそのもの (プロジェクトの中の回路と同じ形)。フォルダは持たない */
 export interface StoredCircuits {
@@ -84,6 +84,9 @@ export function parseCircuits(text: string, newId: () => string): CircuitsParseR
   }
   if (isNewer(data)) {
     return { ok: false, error: { code: 'NEWER_VERSION' } };
+  }
+  if (Array.isArray(data.circuits)) {
+    data = { ...data, circuits: data.circuits.map(upgradeCircuit) };
   }
   const error = checkCircuitsFile(data);
   if (error) {

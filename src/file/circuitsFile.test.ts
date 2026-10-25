@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CIRCUIT_FORMAT_VERSION } from './upgrade';
 import { type CircuitDef, MAIN_ID, type Project } from '../circuit/project';
 import { getCircuitsFileName, parseCircuits, serializeCircuits } from './circuitsFile';
 import { serializeProject } from './projectFile';
@@ -100,13 +101,28 @@ describe('parseCircuits', () => {
     });
   });
 
+  it('古い版の回路は、今の版に変えてから読む (version 1 の NOT は、ピンの先が同じ場所に残るようにずらす)', () => {
+    const data = JSON.parse(serializeCircuits(project, ['c']));
+    data.circuits[0].version = 1;
+    data.circuits[0].elements.push({ kind: 'not', x: 10, y: 20 });
+    const result = parseCircuits(JSON.stringify(data), counter());
+    if (!result.ok) {
+      throw new Error('読み込めなかった');
+    }
+    // 位置はアプリの中では px (1 マス 20px)。y を 1 マス下げる
+    expect(result.circuits[0].parts.find((p) => p.kind === 'not')).toMatchObject({
+      x: 200,
+      y: 420,
+    });
+  });
+
   it('ファイルか中の回路が今より新しい版なら断る', () => {
     const data = JSON.parse(serializeCircuits(project, ['c']));
     expect(parseCircuits(JSON.stringify({ ...data, version: 2 }), counter())).toEqual({
       ok: false,
       error: { code: 'NEWER_VERSION' },
     });
-    data.circuits[0].version = 2;
+    data.circuits[0].version = CIRCUIT_FORMAT_VERSION + 1;
     expect(parseCircuits(JSON.stringify(data), counter())).toEqual({
       ok: false,
       error: { code: 'NEWER_VERSION' },

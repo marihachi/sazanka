@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CIRCUIT_FORMAT_VERSION } from './upgrade';
 import type { Part } from '../circuit/part';
 import { checkProject, emptyProject, type Project } from '../circuit/project';
 import { assignPortNumbers } from '../circuit/module';
@@ -93,7 +94,7 @@ describe('toStoredProject / fromStoredProject', () => {
           path: '',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'main',
             author: '',
             package: { kind: 'split' },
@@ -110,7 +111,7 @@ describe('toStoredProject / fromStoredProject', () => {
           path: 'lib',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'mod',
             name: 'M',
             author: 'さざんか',
@@ -169,7 +170,7 @@ describe('toStoredProject / fromStoredProject', () => {
           path: '',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'main',
             author: '',
             package: { kind: 'split' },
@@ -433,7 +434,10 @@ describe('readStored', () => {
       {
         ...stored,
         circuits: [
-          { ...stored.circuits[0], circuit: { ...stored.circuits[0].circuit, version: 2 } },
+          {
+            ...stored.circuits[0],
+            circuit: { ...stored.circuits[0].circuit, version: CIRCUIT_FORMAT_VERSION + 1 },
+          },
         ],
       },
     ]) {

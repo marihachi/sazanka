@@ -8,13 +8,14 @@ import { isObject } from '../../util';
 import { upgradeV1 } from './integrated/upgradeV1';
 import { upgradeV2 } from './integrated/upgradeV2';
 import { upgradeV3 } from './integrated/upgradeV3';
+import { upgradeToCircuitV2 } from './circuit/v2';
 import { upgradeToProjectV1 } from './project/v1';
 
 /** プロジェクトの形式の今の版。形式を変えたら上げて、1 版分の変換 (project/v<N>.ts) を足す */
 export const PROJECT_FORMAT_VERSION = 1;
 
 /** 回路の形式の今の版。形式を変えたら上げて、1 版分の変換 (circuit/v<N>.ts) を足す */
-export const CIRCUIT_FORMAT_VERSION = 1;
+export const CIRCUIT_FORMAT_VERSION = 2;
 
 /** 回路ファイルの形式の今の版。プロジェクトと回路の形式とは別に数える (中の回路は回路の形式で、その版は CIRCUIT_FORMAT_VERSION) */
 export const CIRCUITS_FILE_FORMAT_VERSION = 1;
@@ -28,6 +29,38 @@ const INTEGRATED_UPGRADES: ((project: unknown, newId: () => string) => unknown)[
   upgradeV2,
   upgradeV3,
 ];
+
+/**
+ * 回路の形式の 1 版分の変換を、版の順に並べたもの。CIRCUIT_UPGRADES[i] は version i + 1 の回路を version i + 2 の形にする。
+ * 回路の形式の version 1 は、一体の形式からの変換 (circuit/v1.ts) で作るので、ここには並べない
+ */
+const CIRCUIT_UPGRADES: ((circuit: unknown) => unknown)[] = [upgradeToCircuitV2];
+
+/**
+ * 回路の形式の回路 1 つを、今の版の形にする。版が 1 以上の整数でないもの、今の版以上のものは、そのまま返す
+ * (正しくない版は検証で断り、新しい版は読み込みの入口で断る)
+ */
+export function upgradeCircuit(circuit: unknown): unknown {
+  if (!isObject(circuit) || !Number.isInteger(circuit.version) || (circuit.version as number) < 1) {
+    return circuit;
+  }
+  let upgraded = circuit as unknown;
+  for (let v = circuit.version as number; v < CIRCUIT_FORMAT_VERSION; v++) {
+    upgraded = CIRCUIT_UPGRADES[v - 1](upgraded);
+  }
+  return upgraded;
+}
+
+/** プロジェクトの形式のデータの中の回路を、どれも今の版の形にする。形が正しくないところは、そのまま残す (検証で断る) */
+function upgradeProjectCircuits(project: unknown): unknown {
+  if (!isObject(project) || !Array.isArray(project.circuits)) {
+    return project;
+  }
+  const circuits = project.circuits.map((entry) =>
+    isObject(entry) ? { ...entry, circuit: upgradeCircuit(entry.circuit) } : entry,
+  );
+  return { ...project, circuits };
+}
 
 /** 一体の形式の最後の版 */
 const INTEGRATED_LAST_VERSION = INTEGRATED_UPGRADES.length + 1;
@@ -77,7 +110,7 @@ export function upgradeStoredProject(data: unknown, newId: () => string): Upgrad
   if (data.format === 'sazanka-project') {
     return isNewer(data)
       ? { ok: false, error: { code: 'NEWER_VERSION' } }
-      : { ok: true, project: data };
+      : { ok: true, project: upgradeProjectCircuits(data) };
   }
   if (data.format !== undefined || typeof data.version !== 'number' || !('project' in data)) {
     return { ok: false, error: { code: 'NOT_PROJECT' } };
@@ -86,7 +119,7 @@ export function upgradeStoredProject(data: unknown, newId: () => string): Upgrad
     return { ok: false, error: { code: 'NEWER_VERSION' } };
   }
   const integrated = upgradeIntegratedProject(data.project, data.version, newId);
-  return { ok: true, project: upgradeToProjectV1(integrated) };
+  return { ok: true, project: upgradeProjectCircuits(upgradeToProjectV1(integrated)) };
 }
 
 /**

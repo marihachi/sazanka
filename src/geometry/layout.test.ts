@@ -166,12 +166,11 @@ describe('ピンの位置', () => {
     expect(outputPinPos(and, pinout, 0)).toEqual({ x: 180, y: 140 });
   });
 
-  it('1入力のゲートは入力も中央', () => {
+  it('NOT は高さ 2 マスで、入力と出力は上から 1 マスめ', () => {
     const not: Part = { id: 'n', kind: 'not', x: 100, y: 100 };
-    expect(inputPinPos(not, { inputs: [''], outputs: [''] }, 0)).toEqual({
-      x: 80,
-      y: 140,
-    });
+    const pinout = { inputs: [''], outputs: [''] };
+    expect(inputPinPos(not, pinout, 0)).toEqual({ x: 80, y: 120 });
+    expect(outputPinPos(not, pinout, 0)).toEqual({ x: 180, y: 120 });
   });
 
   it('フリップフロップは入力が上から順、Q と Q̄ は上下端から1グリッド内側', () => {

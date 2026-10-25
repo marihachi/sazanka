@@ -6,6 +6,7 @@ import { input } from './input/layout';
 import { high } from './high/layout';
 import { flipflopLayout, gateLayout, type PartLayout, type PartLayoutOf } from './layout';
 import { module } from './module/layout';
+import { not } from './not/layout';
 import { output } from './output/layout';
 import { sevenSegment } from './sevenSegment/layout';
 import type { Pinout } from '../circuit/module';
@@ -21,6 +22,7 @@ const PART_LAYOUTS: Partial<Record<SpecKind | SpecialKind, PartLayoutOf>> = {
   output: output,
   clock: clock,
   module: module,
+  not: not,
   sevenSegment: sevenSegment,
 };
 
