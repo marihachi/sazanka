@@ -102,3 +102,9 @@
   text-anchor: middle;
   pointer-events: none;
 }
+
+/* 本体の中に描く記号 (parts/<種類>/symbol.svg。線は currentColor)。名前の文字 (fg) より少し暗くして、控えめにする (開発者が選んだ) */
+.symbol {
+  color: var(--chakra-colors-gray-300);
+  pointer-events: none;
+}

@@ -429,6 +429,7 @@ export function SheetPart({
     // 描き込みを種類のフォルダに置いた種類 (parts/bodies.tsx) は、それを本体の左上を原点にして描く。
     // 名前は書かない (描き込みが本体を使い、見た目で何の部品か分かるため)
     const OwnBody = PART_BODIES[c.kind];
+    const symbol = partViewOf(c.kind)?.symbol;
     body = (
       <>
         {outline}
@@ -447,9 +448,24 @@ export function SheetPart({
             <OwnBody w={w} h={h} layout={layout} inputValues={inputValues} />
           </g>
         ) : (
-          <text className={styles.label} x={c.x + w / 2} y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}>
-            {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
-          </text>
+          <>
+            {/* ゲートは、本体の中に記号を描く (名前は、配置の nameAbove で本体の上に書く) */}
+            {symbol && (
+              <g
+                className={styles.symbol}
+                transform={`translate(${c.x} ${c.y})`}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: 種類のフォルダに置いた、アプリの中の SVG (外から来た文字列ではない)
+                dangerouslySetInnerHTML={{ __html: symbol }}
+              />
+            )}
+            <text
+              className={styles.label}
+              x={c.x + w / 2}
+              y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}
+            >
+              {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
+            </text>
+          </>
         )}
         <g transform={`translate(${c.x} ${c.y})`}>
           <PinNames kind={c.kind} pinout={pinout} />
