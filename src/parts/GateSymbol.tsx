@@ -61,7 +61,8 @@ export function GateSymbol({ symbol, w, h }: { symbol: GateSymbolSpec; w: number
   return (
     <g
       fill="none"
-      stroke="var(--chakra-colors-fg)"
+      // 名前の文字 (fg) より少し暗くして、記号を控えめにする (開発者が選んだ)
+      stroke="var(--chakra-colors-gray-300)"
       strokeWidth={1.5}
       strokeLinejoin="round"
       pointerEvents="none"
