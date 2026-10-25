@@ -7,7 +7,7 @@
 部品の種類は、`src/parts/<名前>/` に 1 種類ずつまとめる。
 
 - `spec.ts` … 仕様。種類の名前（`kind`）、動作の分類（`behavior`）、入力ピン（`inputs`）、遅延（`delay`）、評価（`logic` は `output`、`flipFlop` は `next`）。動作だけを書き、見た目は書かない。型は `parts/spec.ts`。
-- `view.ts` … 見せ方。表示名（`label`）、本体の中に書く名前（`bodyLabel`）、アイコン、パレットのグループ、説明（パレットのツールチップ）、ヒント。型は `parts/view.ts`。
+- `view.ts` … 見せ方。表示名（`label`）、本体の中に書く名前（`bodyLabel`）、ゲートの記号（`symbol`）、アイコン、パレットのグループ、説明（パレットのツールチップ）、ヒント。型は `parts/view.ts`。
 - `layout.ts` … シート上の配置。既定と違う配置にする種類だけが持つ（下の「配置」）。型は `parts/layout.ts`。
 - `icon.svg` … アイコン（描き方は[アイコンとロゴ](icons.md)）。
 
@@ -66,14 +66,17 @@
   - 見つからないモジュール（指す回路がプロジェクトにない。`Pinout.unresolved`）は、ピンのない箱にする（ピンは分からないため）。大きさは、部品が持つ大きさの写し（`Part.circuitSize`。元の本体の大きさ）で、写しがなければ幅 6・高さ 3。本体は赤い破線で囲み、中に名前の写し（`Part.circuitName`）と「見つからない」を 2 行で書く（`SheetPart.tsx`）。つながっていた配線は、外れて見える（[計画 20](../plans/unresolved-module/plan.md)）。
 - 上下の辺のピン名は、90 度回して本体の内側に縦に書く（`SheetPart.tsx` の `PinName`）。
 - 種類の `layout.ts` がなければ、動作の分類の既定の配置（`gateLayout`、`flipflopLayout`）になる。INPUT、OUTPUT、CLOCK、HIGH は、種類の `layout.ts` で小さな四角（`squareLayout`）にしている。NOT は、`not/layout.ts` で 3×2（入力と出力は上から 1 マスめ）にしている（ゲートの既定の 3×4 より場所を取らないように）。一部だけ変えるときは、既定の配置を広げて上書きする（例: `output/layout.ts` は小さな四角の配置の輪郭だけを円にしている）。
-  - ゲートの本体に記号を描く計画がある（[計画 28](../plans/gate-symbols/plan.md)）。
+  - ゲート（`gateLayout` と NOT）は `nameAbove` を true にし、名前を本体の上に書く。本体の中には記号を描くため（下の「本体の描き込み」）。名前の 1 マスは部品の占める範囲に入る。
 - 本体の中の描き込み（ランプ、矩形波の絵、文字）は、配置ではなく `sheet/SheetPart.tsx` が種類ごとに描いている。
 - 回した部品も、描き込みは回していない向き（種類の配置のまま）で描き、`SheetPart.tsx` が最後に全体を回す（`rotateTransform`）。そのため、描き込み（`Body.tsx` を含む）は回転を知らなくてよい。回し方は `rotateLayout` と同じでなければならない。違うと、描いたピンと、つながりの計算のピンの位置がずれる。
 - モジュールごとに大きさやピンの位置を変えられるようにするなら、モジュールの定義から `module/layout.ts` の配置を上書きする形にする。保存データの形が変わるので、[保存データ](persistence.md)の決まりに従う。
 
 ## 本体の描き込み
 
-- 前からある部品（INPUT のスイッチ、OUTPUT のランプ、CLOCK の矩形波、HIGH の記号、ゲートなどの名前）の描き込みは、`sheet/SheetPart.tsx` が種類ごとに描く。
+- 前からある部品（INPUT のスイッチ、OUTPUT のランプ、CLOCK の矩形波、HIGH の記号、記憶素子などの名前）の描き込みは、`sheet/SheetPart.tsx` が種類ごとに描く。
+- ゲート（NOT、AND、OR、XOR、NAND、NOR、XNOR）は、本体の中に短いリードの付いた記号（MIL 記号）を描く（`parts/GateSymbol.tsx`）。どの記号を描くかは、種類の見せ方の `symbol`（`view.ts`。形 `gate` と、否定の丸を付けるか `negated`）で決める。リードはピンにはつながず、本体の真ん中に余白を取って描く。名前は本体の上に書く（配置の `nameAbove`）。
+  - 形と寸法は、開発者がモックで見て決めた（[計画 28](../plans/gate-symbols/plan.md)の「記号の描き方」）。2 入力のゲートは本体の大きさから記号の大きさを決め、NOT は正三角形に近い決まった大きさにする。XOR と XNOR は、左の弧の分だけ入力のリードを短くし、本体を長くする。
+  - ゲートの種類を足すなら、`symbol` を書き、記号の形が今の 4 つ（三角、AND、OR、XOR）にないなら `GateSymbol.tsx` に足す。
 - デバイスのように描くものが大きく種類ごとに違う部品は、描き込みを種類のフォルダの `Body.tsx` に置き、`parts/bodies.tsx` の `PART_BODIES` に並べる。`SheetPart.tsx` は、一覧にある種類なら、本体の左上を原点にしてそれを描き、名前は書かない（本体を描き込みが使い切り、見た目で何の部品か分かるため）。
   - 描き込みが受け取るもの（`PartBodyProps`）: 本体の幅と高さ（px）、種類の配置（ピンのある辺を避けて描くため）、入力ピンの値。
   - 一覧は部品（`.tsx`）を import するので `.tsx` にしている（`.ts` から `.tsx` の部品を import しない決まり。[コードの書き方](coding-style.md)）。

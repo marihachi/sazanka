@@ -7,5 +7,6 @@ export const not: PartLayoutOf = (pinout) => ({
   body: 'rect',
   inputs: pinout.inputs.map(() => ({ side: 'left', at: 1 })),
   outputs: pinout.outputs.map(() => ({ side: 'right', at: 1 })),
-  nameAbove: false,
+  // 本体の中には記号を描くので、名前は上に書く (parts/GateSymbol.tsx)
+  nameAbove: true,
 });

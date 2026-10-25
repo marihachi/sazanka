@@ -109,7 +109,7 @@ export type PartLayoutOf = (pinout: Pinout) => PartLayout;
 
 /**
  * 論理ゲート (と、モジュールの展開でだけ作られる BUF)。幅 3、高さ 4 マス。
- * 1 入力 (NOT、BUF) は中央、2 入力は上下端から 1 マス内側。出力は中央
+ * 1 入力 (BUF。NOT は not/layout.ts) は中央、2 入力は上下端から 1 マス内側。出力は中央
  */
 export const gateLayout: PartLayoutOf = (pinout) => ({
   w: 3,
@@ -120,7 +120,8 @@ export const gateLayout: PartLayoutOf = (pinout) => ({
     at: pinout.inputs.length === 1 ? 2 : i === 0 ? 1 : 3,
   })),
   outputs: pinout.outputs.map(() => ({ side: 'right', at: 2 })),
-  nameAbove: false,
+  // 本体の中には記号を描くので、名前は上に書く (parts/GateSymbol.tsx)
+  nameAbove: true,
 });
 
 /**

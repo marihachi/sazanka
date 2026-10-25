@@ -37,10 +37,11 @@ describe('clampPosition', () => {
     });
   });
 
-  it('左上にはみ出すと、入力ピンの先端が収まる位置に戻す', () => {
+  it('左上にはみ出すと、入力ピンの先端と上の名前が収まる位置に戻す', () => {
+    // ゲートは本体の上に名前の 1 マスを取る
     expect(clampPosition(and, pinout, { x: -60, y: -40 }, sheet)).toEqual({
       x: 20,
-      y: 0,
+      y: 20,
     });
   });
 
@@ -204,17 +205,17 @@ describe('clampMove', () => {
   });
 
   it('どれか1つでも左上にはみ出すなら、全体の移動を縮める', () => {
-    // b は上に 20 までしか動けない。a は左に 80 までしか動けない
-    expect(clampMove(items, { x: -200, y: -100 }, sheet)).toEqual({ x: -80, y: -20 });
+    // b は上の名前の 1 マスがすでに上端にあるので、上に動けない。a は左に 80 までしか動けない
+    expect(clampMove(items, { x: -200, y: -100 }, sheet)).toEqual({ x: -80, y: 0 });
   });
 });
 
 describe('partBounds', () => {
-  it('本体に、左右のピンの先端を含める', () => {
+  it('本体に、左右のピンの先端と、上の名前の 1 マスを含める', () => {
     const and: Part = { id: 'g', kind: 'and', x: 100, y: 100 };
     expect(partBounds(and, { inputs: ['', ''], outputs: [''] })).toEqual({
       left: 80,
-      top: 100,
+      top: 80,
       right: 180,
       bottom: 180,
     });
@@ -300,7 +301,8 @@ describe('回した部品', () => {
   it('占める範囲は、回した後のピンのある辺で決まる', () => {
     // 90 度: 上下にピンがある。左右はピンがなくても 1 マス
     expect(partBounds(and(90), pinout)).toEqual({ left: 80, top: 80, right: 200, bottom: 180 });
-    expect(partBounds(and(), pinout)).toEqual({ left: 80, top: 100, right: 180, bottom: 180 });
+    // 0 度: 上に名前の 1 マス
+    expect(partBounds(and(), pinout)).toEqual({ left: 80, top: 80, right: 180, bottom: 180 });
   });
 
   it('シートからはみ出さない位置も、回した後の大きさで決まる', () => {
@@ -338,14 +340,14 @@ describe('placeOffset', () => {
   const pinout = { inputs: ['', ''], outputs: [''] };
 
   it('全体の中心が指定した点に来るよう、グリッドに合わせて動かす', () => {
-    // 範囲は左右のピンを含めて x: 80〜180、y: 100〜180 なので、中心は (130, 140)
+    // 範囲は左右のピンと上の名前を含めて x: 80〜180、y: 80〜180 なので、中心は (130, 130)
     const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
-    expect(placeOffset(items, [], { x: 530, y: 345 }, sheet)).toEqual({ x: 400, y: 200 });
+    expect(placeOffset(items, [], { x: 530, y: 345 }, sheet)).toEqual({ x: 400, y: 220 });
   });
 
   it('シートからはみ出す位置なら縮める', () => {
     const items = [{ c: { id: 'a', kind: 'and', x: 100, y: 100 } as Part, pinout }];
-    expect(placeOffset(items, [], { x: 0, y: 0 }, sheet)).toEqual({ x: -80, y: -100 });
+    expect(placeOffset(items, [], { x: 0, y: 0 }, sheet)).toEqual({ x: -80, y: -80 });
   });
 });
 

@@ -4,6 +4,7 @@ import type { PartView } from '../view';
 export const or: PartView = {
   label: 'OR',
   icon,
+  symbol: { gate: 'or', negated: false },
   group: 'gate',
   description: {
     ja: 'どれかの入力が ON のとき ON',

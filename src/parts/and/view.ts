@@ -4,6 +4,7 @@ import type { PartView } from '../view';
 export const and: PartView = {
   label: 'AND',
   icon,
+  symbol: { gate: 'and', negated: false },
   group: 'gate',
   description: {
     ja: 'すべての入力が ON のとき ON',

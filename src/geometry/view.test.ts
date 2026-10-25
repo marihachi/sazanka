@@ -234,14 +234,14 @@ describe('circuitBounds', () => {
   });
 
   it('すべての部品の、ピンの先まで含めた範囲を合わせる', () => {
-    // INPUT は 40×40 で右にピン、AND は 60×80 で左右にピン。ピンは本体から 1 グリッド (20) 出る
+    // INPUT は 40×40 で右にピン、AND は 60×80 で左右にピンと上に名前。ピンと名前は本体から 1 グリッド (20) 出る
     const p = project([
       { id: 'a', kind: 'input', x: 100, y: 200 },
       { id: 'b', kind: 'and', x: 300, y: 100 },
     ]);
     expect(circuitBounds(p.circuits[0], p)).toEqual({
       left: 80,
-      top: 100,
+      top: 80,
       right: 380,
       bottom: 240,
     });

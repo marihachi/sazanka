@@ -4,6 +4,7 @@ import type { PartView } from '../view';
 export const xor: PartView = {
   label: 'XOR',
   icon,
+  symbol: { gate: 'xor', negated: false },
   group: 'gate',
   description: {
     ja: '2つの入力が異なるとき ON',

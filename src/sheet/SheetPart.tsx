@@ -4,6 +4,7 @@ import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
 import type { PartLayout, Rotation } from '../parts/layout';
 import { PART_BODIES } from '../parts/bodies';
+import { GateSymbol } from '../parts/GateSymbol';
 import { getLayout } from '../parts/layouts';
 import { classNames } from '../ui/classNames';
 import styles from './SheetPart.module.css';
@@ -429,6 +430,7 @@ export function SheetPart({
     // 描き込みを種類のフォルダに置いた種類 (parts/bodies.tsx) は、それを本体の左上を原点にして描く。
     // 名前は書かない (描き込みが本体を使い、見た目で何の部品か分かるため)
     const OwnBody = PART_BODIES[c.kind];
+    const symbol = partViewOf(c.kind)?.symbol;
     body = (
       <>
         {outline}
@@ -447,9 +449,21 @@ export function SheetPart({
             <OwnBody w={w} h={h} layout={layout} inputValues={inputValues} />
           </g>
         ) : (
-          <text className={styles.label} x={c.x + w / 2} y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}>
-            {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
-          </text>
+          <>
+            {/* ゲートは、本体の中に記号を描く (名前は、配置の nameAbove で本体の上に書く) */}
+            {symbol && (
+              <g transform={`translate(${c.x} ${c.y})`}>
+                <GateSymbol symbol={symbol} w={w} h={h} />
+              </g>
+            )}
+            <text
+              className={styles.label}
+              x={c.x + w / 2}
+              y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}
+            >
+              {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
+            </text>
+          </>
         )}
         <g transform={`translate(${c.x} ${c.y})`}>
           <PinNames kind={c.kind} pinout={pinout} />

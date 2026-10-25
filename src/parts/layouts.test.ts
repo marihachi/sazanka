@@ -60,7 +60,10 @@ describe('getLayout', () => {
     expect(getLayout('output', none).body).toBe('circle');
     expect(getLayout('input', none).body).toBe('rounded');
     expect(getLayout('module', none).nameAbove).toBe(true);
-    expect(getLayout('and', none).nameAbove).toBe(false);
+    // ゲートは本体の中に記号を描くので、名前は上に書く
+    expect(getLayout('and', none).nameAbove).toBe(true);
+    expect(getLayout('not', none)).toMatchObject({ w: 3, h: 2, nameAbove: true });
+    expect(getLayout('dFlipFlop', { inputs: ['', ''], outputs: ['', ''] }).nameAbove).toBe(false);
   });
 });
 
