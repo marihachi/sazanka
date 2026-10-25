@@ -59,4 +59,11 @@
 
 ## 進み具合
 
-- まだ始めていない（計画 28 を待つ）。
+- 段階 1: 終えた。PR #41（ドラフト）。整形、Lint、型、テスト（535 件）、ビルドが通る。
+  - `Package` の split を `{ kind: 'split'; width: number }` にし、`isPackage` で 2〜20 の整数を確かめる。既定のパッケージ `DEFAULT_SPLIT_PACKAGE`（幅 4。`DEFAULT_SPLIT_WIDTH`）を `project.ts` に置き、split を作る所とパッケージを持たない回路の既定に使う（エージェントが決めた。幅 4 を何か所にも書かないため）。
+  - 配置（`makeSplitLayout`）は幅を受け取る。パッケージを持たないモジュール（テストで作るもの）は幅 4（`module/layout.ts` の `SPLIT_DEFAULT_WIDTH`。`parts/` は `circuit/project.ts` を import しない決まりのため、値を別に持つ）。
+  - v1 → v2 の変換（`upgradeToCircuitV2`）で、split のパッケージに幅 4 を書き込む。回路の形式 v2 は公開前なので、計画 28 で作った変換を直した。
+  - 古い形式の変換のテスト（一体の形式、プロジェクトの形式 v1）は、変換の結果を今の検証で確かめていたので、中の回路を今の版にしてから確かめる形にした（`upgradeProjectCircuits` を export した）。
+  - README のスクリーンショットの回路の JSON（回路の形式 v2 で書いていた）に、幅 4 を足した（足さないと検証で断られる）。
+  - 回路設定の幅の入力欄は段階 2。今は、開いたときの幅のまま適用する。
+  - ブラウザで確かめた: version 1 のプロジェクトファイル（split のモジュール）を開くと、外側の配線がつながったまま、出力が点く。README の回路の JSON が読み込める。
