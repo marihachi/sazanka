@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { getPinout } from '../../../circuit/module';
 import { checkProject } from '../../../circuit/project';
+import { upgradeProjectCircuits } from '..';
 import { inputPinPos, outputPinPos } from '../../../geometry/layout';
 import { fromStoredProject, type StoredProject } from '../../storage';
 import { upgradeToProjectV1 } from '../project/v1';
 import { upgradeV3 } from './upgradeV3';
+
+/** 中の回路を回路の形式の今の版にしてから確かめる (この変換が作るのは回路の形式 v1 の形で、読み込みではこのあと今の版に変えるため) */
+const checkLatest = (project: unknown) => checkProject(upgradeProjectCircuits(project));
 
 /** 呼ぶたびに id1, id2, … を返す ID の作り方 (テスト用) */
 function counter(): () => string {
@@ -80,7 +84,7 @@ describe('upgradeV3', () => {
     });
     const v4 = upgradeV3({ circuits: [circuit('main', 'メイン'), circuit('m', 'M')] }, counter());
     // 検証は今の形 (プロジェクトの形式) で行うので、今の形まで変えてから確かめる
-    expect(checkProject(upgradeToProjectV1(v4))).toBeUndefined();
+    expect(checkLatest(upgradeToProjectV1(v4))).toBeUndefined();
   });
 
   it('20 の倍数でない位置は、いちばん近いマスに丸める (ちょうど中間なら大きい方)', () => {
@@ -111,7 +115,7 @@ describe('upgradeV3', () => {
       { circuits: [main, module('m'), module('m')] },
       { circuits: [main, module('main')] },
     ]) {
-      expect(checkProject(upgradeToProjectV1(upgradeV3(v3, counter())))).toMatchObject({
+      expect(checkLatest(upgradeToProjectV1(upgradeV3(v3, counter())))).toMatchObject({
         code: 'DUPLICATE_ID',
       });
     }
@@ -144,7 +148,7 @@ describe('upgradeV3', () => {
       wires: [{ id: 'w', points: [{ x: 60, y: 20 }, { x: 180, y: 20 }] }],
     }] };
     const current = upgradeToProjectV1(upgradeV3(v3, counter()));
-    expect(checkProject(current)).toBeUndefined();
+    expect(checkLatest(current)).toBeUndefined();
     const project = fromStoredProject(current as StoredProject, counter());
     const [a, q] = project.circuits[0].parts;
     const [w] = project.circuits[0].wires;

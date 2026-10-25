@@ -1,4 +1,5 @@
 import {
+  DEFAULT_SPLIT_PACKAGE,
   type CircuitDef,
   type CircuitSheet,
   checkProject,
@@ -156,7 +157,7 @@ export function toStoredCircuit(def: CircuitDef, project: Project): StoredCircui
     id,
     ...(id === MAIN_ID ? {} : { name }),
     author: author ?? '',
-    package: def.package ?? { kind: 'split' },
+    package: def.package ?? DEFAULT_SPLIT_PACKAGE,
     sheet: getCircuitSheet(def),
     // sort は安定なので、同じ種類の中はアプリの中の順のまま
     elements: [

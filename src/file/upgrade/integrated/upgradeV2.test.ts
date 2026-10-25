@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { getPinout } from '../../../circuit/module';
 import { checkProject } from '../../../circuit/project';
+import { upgradeProjectCircuits } from '..';
 import { inputPinPos, outputPinPos } from '../../../geometry/layout';
 import { fromStoredProject, type StoredProject } from '../../storage';
 import { upgradeToProjectV1 } from '../project/v1';
 import { upgradeV1 } from './upgradeV1';
 import { upgradeV2 } from './upgradeV2';
 import { upgradeV3 } from './upgradeV3';
+
+/** 中の回路を回路の形式の今の版にしてから確かめる (この変換が作るのは回路の形式 v1 の形で、読み込みではこのあと今の版に変えるため) */
+const checkLatest = (project: unknown) => checkProject(upgradeProjectCircuits(project));
 
 describe('upgradeV2', () => {
   it('部品の一覧を parts に、モジュールの参照を module に移し、種類の名前を変える', () => {
@@ -104,7 +108,7 @@ describe('upgradeV2', () => {
       circuits: [{ id: 'main', parts: [{ kind: 'FOO' }], wires: [] }],
     });
     expect(
-      checkProject(upgradeToProjectV1(upgradeV3(upgradeV2(unknown), () => 'id'))),
+      checkLatest(upgradeToProjectV1(upgradeV3(upgradeV2(unknown), () => 'id'))),
     ).toBeDefined();
   });
 });
@@ -145,8 +149,8 @@ describe('古い版から順に変えたときのつながり', () => {
     // 検証とピンの位置は今の形 (プロジェクトの形式) で求めるので、今の形まで変えてから確かめる
     let n = 0;
     const newId = () => `id${++n}`;
-    const current = upgradeToProjectV1(upgradeV3(v3, newId));
-    expect(checkProject(current)).toBeUndefined();
+    const current = upgradeProjectCircuits(upgradeToProjectV1(upgradeV3(v3, newId)));
+    expect(checkLatest(current)).toBeUndefined();
     const project = fromStoredProject(current as StoredProject, newId);
     const [a, m, q] = project.circuits[0].parts;
     const pinout = (p: (typeof project.circuits)[0]['parts'][0]) => getPinout(p, project);

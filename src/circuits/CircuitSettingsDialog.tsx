@@ -24,6 +24,7 @@ import {
 } from '../circuit/module';
 import type { Part } from '../circuit/part';
 import {
+  DEFAULT_SPLIT_PACKAGE,
   type CircuitDef,
   type CircuitSheet,
   checkCircuitName,
@@ -124,7 +125,7 @@ export function CircuitSettingsDialog({
     [def, portNumbers],
   );
   const portsByPosition = useMemo(() => listPortsInPositionOrder(def), [def]);
-  const initial = def.package ?? { kind: 'split' };
+  const initial = def.package ?? DEFAULT_SPLIT_PACKAGE;
   const [kind, setKind] = useState<PackageKind>(initial.kind);
   const [pinsText, setPinsText] = useState(
     'pins' in initial ? String(initial.pins) : String(calcFittingPins('dip', ports.length)),
@@ -140,7 +141,9 @@ export function CircuitSettingsDialog({
   const duplicates = useMemo(() => findDuplicatePortNames(portNames), [portNames]);
 
   const pins = Number(pinsText);
-  const draft: Package = kind === 'split' ? { kind } : { kind, pins };
+  // split の幅は、今は開いたときのまま (幅の入力欄は計画 29 の段階 2 で足す)
+  const splitWidth = initial.kind === 'split' ? initial.width : DEFAULT_SPLIT_PACKAGE.width;
+  const draft: Package = kind === 'split' ? { kind, width: splitWidth } : { kind, pins };
   const valid = isPackage(draft);
   const applied = valid
     ? applyCircuitSettings(def, draft, numbers, portNames, portNumbers)
@@ -604,7 +607,7 @@ function getPortName(c: Part, text: string, m: Messages): string {
  */
 function samePins(a: CircuitDef, b: CircuitDef): boolean {
   return (
-    JSON.stringify(a.package ?? { kind: 'split' }) === JSON.stringify(b.package) &&
+    JSON.stringify(a.package ?? DEFAULT_SPLIT_PACKAGE) === JSON.stringify(b.package) &&
     a.parts.every((c, i) => c.pinNumber === b.parts[i].pinNumber) &&
     (b.package?.kind !== 'split' || samePortNumbers(a, b))
   );

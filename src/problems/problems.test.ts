@@ -24,7 +24,7 @@ function circuitOf(def: Partial<CircuitDef>): CircuitDef {
     name: 'M',
     path: '',
     author: '',
-    package: { kind: 'split' },
+    package: { kind: 'split', width: 4 },
     sheet: { width: 300, height: 200 },
     parts,
     wires: [],

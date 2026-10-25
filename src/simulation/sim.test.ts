@@ -445,7 +445,7 @@ describe('モジュール', () => {
     expect(getPinout(comp('u', 'module', { circuitId: 'ha' }), project)).toEqual({
       inputs: ['A', 'B'],
       outputs: ['S', 'C'],
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
     });
   });
 

@@ -10,7 +10,7 @@ const circuit = (id: string, name: string, extra: Partial<CircuitDef> = {}): Cir
   name,
   path: '',
   author: '',
-  package: { kind: 'split' },
+  package: { kind: 'split', width: 4 },
   sheet: { width: 40, height: 30 },
   parts: [{ id: `${id}-i`, kind: 'input', x: 0, y: 0, on: true, portNumber: 1 }],
   wires: [],

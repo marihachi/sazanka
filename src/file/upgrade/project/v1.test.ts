@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { checkProject } from '../../../circuit/project';
+import { upgradeProjectCircuits } from '..';
 import { step } from '../../../simulation/sim';
 import { fromStoredProject, type StoredProject } from '../../storage';
 import { upgradeToProjectV1 } from './v1';
+
+/** 中の回路を回路の形式の今の版にしてから確かめる (この変換が作るのは回路の形式 v1 の形で、読み込みではこのあと今の版に変えるため) */
+const checkLatest = (project: unknown) => checkProject(upgradeProjectCircuits(project));
 
 /** 一体の形式 version 4 のモジュール (名前とパッケージを持つ回路) */
 function v4Module(id: string, name: unknown, elements: unknown[] = []) {
@@ -26,7 +30,7 @@ describe('upgradeToProjectV1', () => {
       ['', 'b'],
       ['', 'a'],
     ]);
-    expect(checkProject(project)).toBeUndefined();
+    expect(checkLatest(project)).toBeUndefined();
   });
 
   it('プロジェクトの作者名を、すべてのモジュール (メイン回路を含む) に写す。なければ空文字', () => {
@@ -63,7 +67,7 @@ describe('upgradeToProjectV1', () => {
     };
     const project = upgradeToProjectV1(v4);
     expect(names(project)).toEqual([undefined, 'X', 'X (3)', 'X (2)', 'X (4)']);
-    expect(checkProject(project)).toBeUndefined();
+    expect(checkLatest(project)).toBeUndefined();
   });
 
   it('部品の名前の写しは、名前を整えた後の名前にする', () => {
@@ -90,13 +94,13 @@ describe('upgradeToProjectV1', () => {
   it('形の正しくないデータは、そのまま返す (検証で断る)', () => {
     expect(upgradeToProjectV1(null)).toBeNull();
     expect(upgradeToProjectV1({ circuits: 1 })).toEqual({ circuits: 1 });
-    expect(checkProject(upgradeToProjectV1({ circuits: 1 }))).toBeDefined();
+    expect(checkLatest(upgradeToProjectV1({ circuits: 1 }))).toBeDefined();
     // 名前が文字列でないモジュールは、名前を付けずに残す
     const project = upgradeToProjectV1({
       circuits: [{ id: 'main', elements: [] }, v4Module('m', 1)],
     });
     expect(names(project)).toEqual([undefined, 1]);
-    expect(checkProject(project)).toBeDefined();
+    expect(checkLatest(project)).toBeDefined();
   });
 });
 
@@ -126,7 +130,7 @@ describe('変換の前後で、外側の配線は同じピンにつながった�
 
   it('ポート番号を位置の順に振り直し、シミュレーションの結果が変わらない', () => {
     const stored = upgradeToProjectV1(v4) as StoredProject;
-    expect(checkProject(stored)).toBeUndefined();
+    expect(checkLatest(stored)).toBeUndefined();
     const sel = stored.circuits[1].circuit.elements;
     expect(sel.filter((e) => e.kind === 'input')).toMatchObject([
       { portName: 'A', portNumber: 1 },

@@ -19,7 +19,7 @@ const port = (id: string, kind: 'input' | 'output', portNumber: number): Part =>
   portNumber,
 });
 const def = (id: string, parts: Part[] = []): CircuitDef =>
-  ({ id, name: id, package: { kind: 'split' }, parts, wires: [] }) as CircuitDef;
+  ({ id, name: id, package: { kind: 'split', width: 4 }, parts, wires: [] }) as CircuitDef;
 
 // メインに A を置き、B に A を置く。C は B を置く (C → B → A)。D は何も置かない
 const project: Project = {

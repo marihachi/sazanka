@@ -17,7 +17,7 @@ export const module: PartLayoutOf = (pinout) => {
   if (pkg?.kind === 'qfp' && pinout.pinNumbers) {
     return makeQfpLayout(pinout.pinNumbers, pkg.pins);
   }
-  return makeSplitLayout(pinout);
+  return makeSplitLayout(pinout, pkg?.kind === 'split' ? pkg.width : SPLIT_DEFAULT_WIDTH);
 };
 
 /**
@@ -34,14 +34,17 @@ const UNRESOLVED_LAYOUT: PartLayout = {
   nameAbove: false,
 };
 
+/** パッケージを持たないモジュール (テストで作るもの) の split の幅 (回路の既定のパッケージと同じ 4) */
+const SPLIT_DEFAULT_WIDTH = 4;
+
 /**
- * 形 split (version 2 までの形)。幅 4 マスで、本体の上に名前を書く。
+ * 形 split。幅は回路のパッケージで決まる (width。マス)。本体の上に名前を書く。
  * 入力は左、出力は右に、それぞれ上から 1 マスおき (1, 2, 3… マスめ) に並ぶので、高さは多い方のピンの数 + 1 マスにする。
  * 例: ピンが 3 本なら、ピンは 1, 2, 3 マスめで、高さは 4 マス
  */
-function makeSplitLayout(pinout: Pinout): PartLayout {
+function makeSplitLayout(pinout: Pinout, width: number): PartLayout {
   return {
-    w: 4,
+    w: width,
     h: Math.max(pinout.inputs.length, pinout.outputs.length, 1) + 1,
     body: 'rect',
     inputs: pinout.inputs.map((_, i) => ({ side: 'left', at: i + 1 })),
