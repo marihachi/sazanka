@@ -1,10 +1,11 @@
 import icon from './icon.svg';
+import symbol from './symbol.svg?raw';
 import type { PartView } from '../view';
 
 export const or: PartView = {
   label: 'OR',
   icon,
-  symbol: { gate: 'or', negated: false },
+  symbol,
   group: 'gate',
   description: {
     ja: 'どれかの入力が ON のとき ON',

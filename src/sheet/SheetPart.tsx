@@ -4,7 +4,6 @@ import { bodySize, type SheetPin, calcSheetPins } from '../geometry/layout';
 import type { Pinout, PortProblem } from '../circuit/module';
 import type { PartLayout, Rotation } from '../parts/layout';
 import { PART_BODIES } from '../parts/bodies';
-import { GateSymbol } from '../parts/GateSymbol';
 import { getLayout } from '../parts/layouts';
 import { classNames } from '../ui/classNames';
 import styles from './SheetPart.module.css';
@@ -452,9 +451,12 @@ export function SheetPart({
           <>
             {/* ゲートは、本体の中に記号を描く (名前は、配置の nameAbove で本体の上に書く) */}
             {symbol && (
-              <g transform={`translate(${c.x} ${c.y})`}>
-                <GateSymbol symbol={symbol} w={w} h={h} />
-              </g>
+              <g
+                className={styles.symbol}
+                transform={`translate(${c.x} ${c.y})`}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: 種類のフォルダに置いた、アプリの中の SVG (外から来た文字列ではない)
+                dangerouslySetInnerHTML={{ __html: symbol }}
+              />
             )}
             <text
               className={styles.label}

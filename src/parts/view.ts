@@ -17,15 +17,6 @@ export interface HintContext {
   periodSeconds: number;
 }
 
-/**
- * ゲートの記号 (MIL 記号)。本体の中に描く (描き方は GateSymbol.tsx)。
- * gate は形 (NOT は三角、AND・OR・XOR はそれぞれの形)、negated は出力に否定の丸を付けるか (NOT、NAND、NOR、XNOR)
- */
-export interface GateSymbolSpec {
-  gate: 'not' | 'and' | 'or' | 'xor';
-  negated: boolean;
-}
-
 export interface PartView {
   /** 表示名 (パレット、プロパティ欄、シート上の部品) */
   label: LocalText;
@@ -41,8 +32,12 @@ export interface PartView {
    * なければパレットに種類としては出さない (モジュールは、モジュールごとに出す)
    */
   group?: PaletteGroupId;
-  /** 本体の中に描くゲートの記号。あれば、名前は本体の中ではなく上に書く (配置の nameAbove も true にする) */
-  symbol?: GateSymbolSpec;
+  /**
+   * 本体の中に描く記号 (同じ種類のフォルダの symbol.svg を ?raw で読んだ文字列。ゲートの MIL 記号)。
+   * 本体と同じ大きさ (px) で描き、線の色は currentColor にする (色は SheetPart.module.css の .symbol)。
+   * あれば、名前は本体の中ではなく上に書く (配置の nameAbove も true にする)
+   */
+  symbol?: string;
   /** パレットのツールチップ。部品の働きを1文で説明する */
   description: Localized<string>;
   /** 選んでいる間にステータスバーに出すヒント。移動・削除の案内は後ろに自動で付く */
