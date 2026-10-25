@@ -1,6 +1,7 @@
 // ネット: 配線とピンの、位置によるつながり。
 // 配線の端が、ピンの先か、ほかの配線の上 (端・折れる点・途中) にあれば、同じネットになる。
-// 配線の途中どうしが交わるだけ (交差) ではつながらない
+// 配線の途中どうしが交わるだけ (交差) ではつながらない。ピンの先どうしが同じ点にあれば、配線がなくても同じネットになる。
+// 決まりは agent/docs/nets.md
 
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
 import { getPinout } from '../circuit/module';
@@ -19,12 +20,22 @@ export interface Net {
 }
 
 export interface Nets {
-  /** 配線が 1 本以上あるネット。配線のないピンは含めない */
+  /**
+   * ネット。配線が 1 本以上あるネットと、配線がなくピンの先どうしが重なってできたネット (wires が空)。
+   * 何ともつながっていないピンは含めない
+   */
   nets: Net[];
   /** 配線 ID → その配線のネット */
   wireNet: Map<string, Net>;
   /** 分岐の印を描く点 (3 本以上の線が集まる接続点) と、そこを通る配線の 1 本 (色を決めるのに使う) */
   junctions: { at: Point; wire: string }[];
+  /** 出力がぶつかっているネットのピン (conflictPinKey)。ピンの線を赤く描くのに使う */
+  conflictPins: Set<string>;
+}
+
+/** ぶつかっているピン (Nets.conflictPins) のキー */
+export function conflictPinKey(comp: string, output: boolean, pin: number): string {
+  return `${output ? 'out' : 'in'}:${comp}:${pin}`;
 }
 
 /** 出力ピンが 2 つ以上つながったネット (値が決まらないエラー) か */
@@ -180,7 +191,32 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
     }
   }
 
-  return { nets: [...byRoot.values()].map((e) => e.net), wireNet, junctions };
+  const nets = [...byRoot.values()].map((e) => e.net);
+
+  // 配線の端のない点で、ピンの先が 2 つ以上重なっていれば、配線のないネットにする
+  // (配線の端のある点のピンは、上でその配線のネットに入れた。配線の途中が通るだけの点は、配線とはつながらない)
+  for (const [k, pins] of pinsAt) {
+    if (pins.length < 2 || ends.has(k)) {
+      continue;
+    }
+    const net: Net = { outputs: [], inputs: [], wires: [] };
+    for (const { ref, output } of pins) {
+      (output ? net.outputs : net.inputs).push(ref);
+    }
+    nets.push(net);
+  }
+
+  const conflictPins = new Set<string>();
+  for (const net of nets.filter(isConflict)) {
+    for (const p of net.outputs) {
+      conflictPins.add(conflictPinKey(p.comp, true, p.pin));
+    }
+    for (const p of net.inputs) {
+      conflictPins.add(conflictPinKey(p.comp, false, p.pin));
+    }
+  }
+
+  return { nets, wireNet, junctions, conflictPins };
 }
 
 /**
