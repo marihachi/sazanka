@@ -2,7 +2,7 @@
 
 状態: **計画中**
 
-- 前提: [計画 28](../gate-symbols/plan.md)（回路の形式 version 2 を作る計画）。計画 28 の PR が `format-next` にマージされてから始める。計画 28 が `format-next` に入れる計画なので、この計画も `format-next` に入れる（[作業の進め方](../../docs/workflow.md)の「ブランチ」）。
+- 前提: [計画 28](../gate-symbols/plan.md)（回路の形式 version 2 を作る計画）。計画 28 の PR が `format-next` にマージされてから始める。計画 28 のベースブランチが `format-next` なので、この計画のベースブランチも `format-next`（[作業の進め方](../../docs/workflow.md)の「ブランチ」）。
 - 開始の合図を受けたら、段階の区切りで止めずに最後の段階まで進める。迷うことがあれば止めて聞く（[作業の進め方](../../docs/workflow.md)の「実装を始める合図」）。
 - 決まったことや変わったことがあれば、その都度この文書を直す（[ドキュメントの書き方](../../docs/documentation.md)の「計画の文書」）。
 
