@@ -55,12 +55,15 @@ function BodyOutline({
 function PinLead({
   pin,
   on,
+  conflict = false,
   direction,
   nc = false,
   showNumber,
 }: {
   pin: SheetPin;
   on: boolean | undefined;
+  /** 出力がぶつかっているネットのピンか (赤く描く) */
+  conflict?: boolean;
   direction?: 'in' | 'out';
   nc?: boolean;
   /** 外側のピン番号を書くか */
@@ -71,7 +74,7 @@ function PinLead({
   return (
     <g>
       <line
-        className={classNames(styles.lead, on && styles.on)}
+        className={classNames(styles.lead, on && styles.on, conflict && styles.conflict)}
         x1={from.x}
         y1={from.y}
         x2={to.x}
@@ -199,6 +202,9 @@ interface PinLeadsProps {
   pinout: Pinout;
   inputValues: boolean[];
   outputValues: boolean[];
+  /** 出力がぶつかっているネットの入力ピン・出力ピンか (なければ、どれもぶつかっていない) */
+  inputConflicts?: boolean[];
+  outputConflicts?: boolean[];
   /** 外側のピン番号を書くか */
   showPinNumbers: boolean;
 }
@@ -208,6 +214,8 @@ const PinLeads = memo(function PinLeads({
   pinout,
   inputValues,
   outputValues,
+  inputConflicts,
+  outputConflicts,
   showPinNumbers,
 }: PinLeadsProps) {
   const pins = calcLocalPins(kind, pinout);
@@ -219,6 +227,7 @@ const PinLeads = memo(function PinLeads({
           key={i}
           pin={pins.inputs[i]}
           on={v}
+          conflict={inputConflicts?.[i]}
           direction={pins.directionMarks ? 'in' : undefined}
           showNumber={showPinNumbers}
         />
@@ -229,6 +238,7 @@ const PinLeads = memo(function PinLeads({
           key={i}
           pin={pins.outputs[i]}
           on={outputValues[i]}
+          conflict={outputConflicts?.[i]}
           direction={pins.directionMarks ? 'out' : undefined}
           showNumber={showPinNumbers}
         />
@@ -266,7 +276,9 @@ function samePinLeads(a: PinLeadsProps, b: PinLeadsProps): boolean {
     a.showPinNumbers === b.showPinNumbers &&
     samePinNames(a, b) &&
     sameArray(a.inputValues, b.inputValues) &&
-    sameArray(a.outputValues, b.outputValues)
+    sameArray(a.outputValues, b.outputValues) &&
+    sameArray(a.inputConflicts ?? [], b.inputConflicts ?? []) &&
+    sameArray(a.outputConflicts ?? [], b.outputConflicts ?? [])
   );
 }
 
@@ -317,6 +329,9 @@ interface SheetPartProps {
    * 回路設定のプレビューでだけ書く
    */
   showPinNumbers?: boolean;
+  /** 出力がぶつかっているネットの入力ピン・出力ピンか。ピンの線を赤く描く (なければ、どれもぶつかっていない) */
+  inputConflicts?: boolean[];
+  outputConflicts?: boolean[];
   /** モジュールの中の INPUT / OUTPUT が、外側のピンに出せないとき、その理由。部品に印を付ける */
   portProblem?: PortProblem;
   onBodyDown: (e: React.PointerEvent) => void;
@@ -329,6 +344,8 @@ export function SheetPart({
   name,
   outputValues,
   inputValues,
+  inputConflicts,
+  outputConflicts,
   selected,
   showPinNumbers = false,
   portProblem,
@@ -495,6 +512,8 @@ export function SheetPart({
             pinout={pinout}
             inputValues={inputValues}
             outputValues={outputValues}
+            inputConflicts={inputConflicts}
+            outputConflicts={outputConflicts}
             showPinNumbers={showPinNumbers}
           />
         </g>

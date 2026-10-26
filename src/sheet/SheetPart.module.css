@@ -47,6 +47,11 @@
   stroke: var(--chakra-colors-sheet-on);
 }
 
+/* 出力がぶつかっているネットのピンの線 (配線の .wire.conflict と同じ色)。値の色より優先する */
+.lead.conflict {
+  stroke: var(--chakra-colors-sheet-conflict);
+}
+
 /* ピンの線の中ほどの、入力か出力かを示す向きの三角 (dip / qfp のモジュール) */
 .direction {
   fill: var(--chakra-colors-sheet-line);

@@ -19,6 +19,7 @@ import {
 import {
   findSplitTarget,
   findWireJoints,
+  conflictPinKey,
   isConflict,
   isOnWire,
   type Net,
@@ -860,6 +861,12 @@ export function Sheet({
                   const from = drivers.get(pinKey(c.id, i));
                   return from ? !!sim.values.get(pinKey(from.comp, from.pin)) : false;
                 })}
+                inputConflicts={pinout.inputs.map((_, i) =>
+                  nets.conflictPins.has(conflictPinKey(c.id, false, i)),
+                )}
+                outputConflicts={pinout.outputs.map((_, i) =>
+                  nets.conflictPins.has(conflictPinKey(c.id, true, i)),
+                )}
                 selected={selectedComps.has(c.id)}
                 portProblem={problems.get(c.id)}
                 onBodyDown={(e) => onCompPointerDown(e, c)}
