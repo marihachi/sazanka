@@ -15,10 +15,10 @@ export function link(from: string, fromPin: number, to: string, toPin: number): 
 /**
  * 部品と、つなぎたいピンの組 (links) から、配線を引いた回路を作る。
  * 部品は、並べた順に右下へ 200 ずつずらして階段状に置く。モジュールのピンの順 (上から) も、並べた順になる。
- * 配線は、出力ピンの先と入力ピンの先を直線で結ぶ。計算はピンの先の位置でつながりを決めるだけなので、
- * アプリでは引けない斜めの線でも、つながりは同じになる。
- * 階段状に置くのは、ほかの部品のピンの先と同じ縦線・横線に並ばないようにして、
- * 配線の端がほかの配線の途中に乗る (意図しないつながりができる) のを避けるため
+ * 配線は、出力ピンの先から半マス (10) 右へ出て、部品より上の、配線ごとに違う高さの道 (これも半マスずらす) を通り、
+ * 入力ピンの先の半マス左から入る。ピンの先と配線の端はグリッド (20 の倍数) の上にあり、半マスずらした線の上には来ないので、
+ * 配線の途中がほかのピンの先を通ったり、配線の端がほかの配線の途中に乗ったりして、意図しないつながりができることがない
+ * (配線の途中に接するピンの先もつながるため)
  */
 export function buildWiredCircuit(
   def: { id: string; name: string; parts: Part[]; links: Link[] },
@@ -40,12 +40,22 @@ export function buildWiredCircuit(
     id: def.id,
     name: def.name,
     parts,
-    wires: def.links.map(({ from, to }) => {
+    wires: def.links.map(({ from, to }, k) => {
       const a = mustGet(byId, from.comp);
       const b = mustGet(byId, to.comp);
+      const start = outputPinPos(a, pinsOf(a), from.pin);
+      const end = inputPinPos(b, pinsOf(b), to.pin);
+      const lane = -1010 - k * 20;
       return {
         id: `${from.comp}.${from.pin}-${to.comp}.${to.pin}`,
-        points: [outputPinPos(a, pinsOf(a), from.pin), inputPinPos(b, pinsOf(b), to.pin)],
+        points: [
+          start,
+          { x: start.x + 10, y: start.y },
+          { x: start.x + 10, y: lane },
+          { x: end.x - 10, y: lane },
+          { x: end.x - 10, y: end.y },
+          end,
+        ],
       };
     }),
   };

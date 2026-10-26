@@ -94,12 +94,22 @@ describe('computeNets', () => {
     expect(r.junctions).toEqual([]);
   });
 
-  it('配線の途中がピンの先を通るだけなら、そのピンにはつながらない', () => {
-    // (380, 20) は o の入力ピンの先。配線はその上を通り過ぎる
-    const {
-      nets: [net],
-    } = nets(wire('w', [60, 20], [500, 20]));
-    expect(net.inputs).toEqual([]);
+  it('配線の途中がピンの先を通れば、そのピンにもつながり、そこに分岐の印を描く', () => {
+    // (380, 20) は o の入力ピンの先。配線はその上を通り過ぎる (配線の両側とピンで 3 本)
+    const r = nets(wire('w', [60, 20], [500, 20]));
+    expect(r.nets[0].outputs).toEqual([{ comp: 'a', pin: 0 }]);
+    expect(r.nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
+    expect(r.junctions).toEqual([{ at: { x: 380, y: 20 }, wire: 'w' }]);
+  });
+
+  it('配線の折れる点にピンの先があっても、つながる', () => {
+    // (380, 20) で折れる配線
+    const r = nets(wire('w', [60, 20], [380, 20], [380, 100]));
+    expect(r.nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
+  });
+
+  it('配線の端にあるピンの先 (1 つだけ) には、分岐の印を描かない', () => {
+    expect(nets(wire('w', [60, 20], [380, 20])).junctions).toEqual([]);
   });
 
   it('どこにもつながらない配線も、それだけでネットになる', () => {
@@ -458,14 +468,11 @@ describe('ピンの先どうしのつながり', () => {
     ]);
   });
 
-  it('配線の途中が通るだけの点では、配線とはつながらず、ピンどうしだけでつながる', () => {
+  it('重なったピンの先を配線の途中が通れば、ピンも配線も 1 つのネットになる (配線のないネットは作らない)', () => {
     const { nets } = netsOf(touching, wire('w', [40, 20], [100, 20]));
-    expect(nets).toContainEqual({ outputs: [], inputs: [], wires: ['w'] });
-    expect(nets).toContainEqual({
-      outputs: [{ comp: 'i', pin: 0 }],
-      inputs: [{ comp: 'o', pin: 0 }],
-      wires: [],
-    });
+    expect(nets).toEqual([
+      { outputs: [{ comp: 'i', pin: 0 }], inputs: [{ comp: 'o', pin: 0 }], wires: ['w'] },
+    ]);
   });
 
   it('回した部品のピンの先でも、重なればつながる', () => {

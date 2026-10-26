@@ -1,6 +1,6 @@
 // ネット: 配線とピンの、位置によるつながり。
-// 配線の端が、ピンの先か、ほかの配線の上 (端・折れる点・途中) にあれば、同じネットになる。
-// 配線の途中どうしが交わるだけ (交差) ではつながらない。ピンの先どうしが同じ点にあれば、配線がなくても同じネットになる。
+// 配線の端が、ほかの配線の上 (端・折れる点・途中) にあれば、同じネットになる。配線の途中どうしが交わるだけ (交差) ではつながらない。
+// ピンの先は、そこを通る配線 (端でも途中でも) と、同じ点にあるほかのピンの先とつながる (配線がなくても)。
 // 決まりは agent/docs/nets.md
 
 import type { Circuit, PinRef, Wire } from '../circuit/circuit';
@@ -76,10 +76,13 @@ function pointKey(p: Point): string {
 export function computeNets(circuit: Circuit, project: Project): Nets {
   // ピンの先の位置 → そこにあるピン
   const pinsAt = new Map<string, { ref: PinRef; output: boolean }[]>();
+  /** ピンの先の位置 ("x,y") → その点 */
+  const pinPoints = new Map<string, Point>();
   for (const c of circuit.parts) {
     const add = (p: Point, ref: PinRef, output: boolean) => {
       const k = pointKey(p);
       pinsAt.set(k, [...(pinsAt.get(k) ?? []), { ref, output }]);
+      pinPoints.set(k, p);
     };
     // 配置は部品ごとに 1 回だけ求める。ピンごとに求めると、ピンの多いモジュール (128 ピンなど) で重くなるため
     const pins = calcSheetPins(c, getPinout(c, project));
@@ -130,14 +133,11 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
     return [...candidates].filter((i) => isOnWire(p, wires[i]));
   };
 
-  // 配線の番号 → その端にあるピン
-  const pinsOfWire = wires.map(() => [] as { ref: PinRef; output: boolean }[]);
-  /** 配線の端のある点。分岐の印を描くかを、あとでここだけ調べる */
-  const ends = new Map<string, Point>();
+  /** 配線の端のある点と、配線の上にあるピンの先の点。分岐の印を描くかを、あとでここだけ調べる */
+  const junctionCandidates = new Map<string, Point>();
   wires.forEach((w, i) => {
     for (const p of [w.points[0], w.points[w.points.length - 1]]) {
-      ends.set(pointKey(p), p);
-      pinsOfWire[i].push(...(pinsAt.get(pointKey(p)) ?? []));
+      junctionCandidates.set(pointKey(p), p);
       for (const j of wiresThrough(p)) {
         if (j !== i) {
           union(i, j);
@@ -145,6 +145,21 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
       }
     }
   });
+
+  // 配線の番号 → その上 (端か途中) にあるピン。配線の上にないピンの先の点 (ピンだけの点) も覚える
+  const pinsOfWire = wires.map(() => [] as { ref: PinRef; output: boolean }[]);
+  const pinOnlyPoints: string[] = [];
+  for (const [k, p] of pinPoints) {
+    const through = wiresThrough(p);
+    if (through.length === 0) {
+      pinOnlyPoints.push(k);
+      continue;
+    }
+    junctionCandidates.set(k, p);
+    for (const i of through) {
+      pinsOfWire[i].push(...(pinsAt.get(k) ?? []));
+    }
+  }
 
   // 根ごとにネットを作る。同じピンに 2 本の配線の端があっても、ピンは 1 回だけ数える
   const byRoot = new Map<number, { net: Net; seen: Set<string> }>();
@@ -172,7 +187,7 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
   // 配線の端なら 1 本、途中 (折れる点を含む) を通るなら、その点から両側に出るので 2 本、ピンは 1 本と数える。
   // 例: T 字の分岐は 1 + 2 = 3、配線の端どうしは 1 + 1 = 2、ピンに配線の端は 1 + 1 = 2
   const junctions: { at: Point; wire: string }[] = [];
-  for (const [k, p] of ends) {
+  for (const [k, p] of junctionCandidates) {
     let arms = pinsAt.get(k)?.length ?? 0;
     const through = wiresThrough(p);
     for (const i of through) {
@@ -193,10 +208,11 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
 
   const nets = [...byRoot.values()].map((e) => e.net);
 
-  // 配線の端のない点で、ピンの先が 2 つ以上重なっていれば、配線のないネットにする
-  // (配線の端のある点のピンは、上でその配線のネットに入れた。配線の途中が通るだけの点は、配線とはつながらない)
-  for (const [k, pins] of pinsAt) {
-    if (pins.length < 2 || ends.has(k)) {
+  // 配線の通らない点で、ピンの先が 2 つ以上重なっていれば、配線のないネットにする
+  // (配線の上にある点のピンは、上でその配線のネットに入れた)
+  for (const k of pinOnlyPoints) {
+    const pins = pinsAt.get(k) ?? [];
+    if (pins.length < 2) {
       continue;
     }
     const net: Net = { outputs: [], inputs: [], wires: [] };
