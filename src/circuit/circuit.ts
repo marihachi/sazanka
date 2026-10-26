@@ -11,7 +11,7 @@ export interface Circuit {
 }
 
 /**
- * 配線。points を順に結んだ線で、どの区間も縦か横 (2 点以上)。
+ * 配線。points を順に結んだ線で、どの区間も縦、横、斜め 45 度のどれか (2 点以上)。
  * 部品とは参照でつながず、位置で接続を決める (geometry/net.ts)。
  * 端が部品のピンの先や、ほかの配線の上 (端・折れる点・途中) にあれば接続。途中どうしが交わるだけなら接続しない
  */
@@ -21,7 +21,7 @@ export interface Wire {
 }
 
 /**
- * 保存データの配線として正しい形か。種類 (kind) が普通の配線 (wire) で、点が 2 つ以上あり、どの区間も縦か横。
+ * 保存データの配線として正しい形か。種類 (kind) が普通の配線 (wire) で、点が 2 つ以上あり、どの区間も縦、横、斜め 45 度のどれか。
  * 知らない種類は断る (あとで種類を足したとき、古いアプリが普通の配線として読み違えないため)。
  * ID は保存しないので見ない (あっても読み込むときに捨てる)
  */
@@ -32,13 +32,20 @@ export function isWire(w: unknown): boolean {
     Array.isArray(w.points) &&
     w.points.length >= 2 &&
     w.points.every(isPoint) &&
-    isAxisAligned(w.points as { x: number; y: number }[])
+    isOctilinear(w.points as { x: number; y: number }[])
   );
 }
 
-/** どの区間も縦か横か */
-function isAxisAligned(points: { x: number; y: number }[]): boolean {
-  return points.every((p, i) => i === 0 || p.x === points[i - 1].x || p.y === points[i - 1].y);
+/** どの区間も縦、横、斜め 45 度 (x と y の変わる量が同じ) のどれかか */
+function isOctilinear(points: { x: number; y: number }[]): boolean {
+  return points.every((p, i) => {
+    if (i === 0) {
+      return true;
+    }
+    const dx = Math.abs(p.x - points[i - 1].x);
+    const dy = Math.abs(p.y - points[i - 1].y);
+    return dx === 0 || dy === 0 || dx === dy;
+  });
 }
 
 /** 点として正しい形か。保存データの座標はマス単位なので、整数でなければならない */

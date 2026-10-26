@@ -271,6 +271,7 @@ export function placeOffset(
 
 /**
  * 配線中の点の並びを整える。同じ点が続くところと、前後とまっすぐ並んで、その間にある点 (曲がらない点) を省く。
+ * 縦横だけでなく、斜めの直線の途中の点も省く。
  * 例: (0,0) → (40,0) → (80,0) は (0,0) → (80,0)。折り返す点 ((0,0) → (80,0) → (40,0) の (80,0)) は残す
  */
 export function simplifyWire(points: readonly Point[]): Point[] {
@@ -281,12 +282,13 @@ export function simplifyWire(points: readonly Point[]): Point[] {
   for (const p of distinct) {
     const a = out[out.length - 2];
     const b = out[out.length - 1];
-    // a → b → p が同じ直線の上で、b が a と p の間にあれば、b は曲がらない点なので省く
+    // a → b → p が同じ直線の上 (外積が 0) で、b が a と p の間 (a→b と b→p が同じ向き。内積が正) にあれば、
+    // b は曲がらない点なので省く
     const between =
       a &&
       b &&
-      ((a.x === b.x && b.x === p.x && (b.y - a.y) * (p.y - b.y) > 0) ||
-        (a.y === b.y && b.y === p.y && (b.x - a.x) * (p.x - b.x) > 0));
+      (b.x - a.x) * (p.y - b.y) - (b.y - a.y) * (p.x - b.x) === 0 &&
+      (b.x - a.x) * (p.x - b.x) + (b.y - a.y) * (p.y - b.y) > 0;
     if (between) {
       out.pop();
     }

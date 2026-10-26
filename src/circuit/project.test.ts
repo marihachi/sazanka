@@ -262,7 +262,7 @@ describe('checkProject', () => {
     ['配線の点が 1 つ', main([], [{ kind: 'wire', points: [点(0, 0)] }]), 'BAD_ELEMENT'],
     ['配線の種類がない', main([], [{ points: [点(0, 0), 点(1, 0)] }]), 'BAD_ELEMENT'],
     ['配線の種類が知らない値', main([], [{ kind: 'bus', points: [点(0, 0), 点(1, 0)] }]), 'BAD_ELEMENT'],
-    ['配線に斜めの区間がある', main([], [{ kind: 'wire', points: [点(0, 0), 点(1, 1)] }]), 'BAD_ELEMENT'],
+    ['配線に 45 度でない斜めの区間がある', main([], [{ kind: 'wire', points: [点(0, 0), 点(1, 2)] }]), 'BAD_ELEMENT'],
     ['version 1 の形の配線', main([], [{ id: 'w', from: { comp: 'a', pin: 0 }, to: { comp: 'a', pin: 0 } }]), 'BAD_ELEMENT'],
     ['CLOCK に周期がない', main([comp('c', 'clock')]), 'BAD_ELEMENT'],
     ['モジュールの部品に circuitId がない', withModule([{ ...comp('u', 'module'), circuitName: 'M' }], []), 'BAD_ELEMENT'],

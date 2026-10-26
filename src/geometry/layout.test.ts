@@ -416,6 +416,15 @@ describe('simplifyWire', () => {
   it('折り返す点は残す', () => {
     expect(simplifyWire(pts([0, 0], [80, 0], [40, 0]))).toEqual(pts([0, 0], [80, 0], [40, 0]));
   });
+
+  it('斜めの直線の途中の点も省き、斜めから縦横へ曲がる点は残す', () => {
+    expect(simplifyWire(pts([0, 0], [20, 20], [40, 40], [40, 80]))).toEqual(
+      pts([0, 0], [40, 40], [40, 80]),
+    );
+    expect(simplifyWire(pts([0, 40], [20, 20], [40, 0], [80, 0]))).toEqual(
+      pts([0, 40], [40, 0], [80, 0]),
+    );
+  });
 });
 
 describe('dragWireEnd', () => {

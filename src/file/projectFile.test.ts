@@ -262,14 +262,20 @@ describe('配線の点', () => {
     expect(result.ok && result.project.circuits[0].wires[0].points).toEqual(points);
   });
 
-  it('点の形が正しくないか、斜めの区間があれば読み込まない', () => {
+  it('点の形が正しくないか、45 度でない斜めの区間があれば読み込まない', () => {
     // biome-ignore format: 表形式を維持するため
     for (const bad of [
       [{ x: '1', y: 0 }, { x: 0, y: 0 }],
-      [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      [{ x: 0, y: 0 }, { x: 1, y: 2 }],
     ]) {
       expect(parse(withMainElements([{ kind: 'wire', points: bad }])).ok).toBe(false);
     }
+  });
+
+  it('縦、横、斜め 45 度の区間は読み込む', () => {
+    // biome-ignore format: 表形式を維持するため
+    const points = [{ x: 0, y: 0 }, { x: 3, y: 3 }, { x: 5, y: 1 }, { x: 5, y: 4 }, { x: 2, y: 4 }];
+    expect(parse(withMainElements([{ kind: 'wire', points }])).ok).toBe(true);
   });
 });
 

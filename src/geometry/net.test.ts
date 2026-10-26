@@ -398,7 +398,17 @@ describe('findWireJoints', () => {
   it('2 本の端だけが合わさっている点を返す (印の向きは 1 本目の端の区間)', () => {
     const a = wire('a', [0, 100], [100, 100]);
     const b = wire('b', [100, 100], [100, 200]);
-    expect(findWireJoints([a, b], tips)).toEqual([{ at: { x: 100, y: 100 }, horizontal: true }]);
+    expect(findWireJoints([a, b], tips)).toEqual([
+      { at: { x: 100, y: 100 }, direction: { x: -1, y: 0 } },
+    ]);
+  });
+
+  it('斜めの区間の端でも、印の向きは区間の向き', () => {
+    const a = wire('a', [0, 0], [100, 100]);
+    const b = wire('b', [100, 100], [200, 100]);
+    expect(findWireJoints([a, b], tips)).toEqual([
+      { at: { x: 100, y: 100 }, direction: { x: -1, y: -1 } },
+    ]);
   });
 
   it('分岐の点、3 本以上の端、ピンの先、同じ配線の両端は含めない', () => {
@@ -483,5 +493,41 @@ describe('ピンの先どうしのつながり', () => {
     ]);
     expect(nets).toHaveLength(1);
     expect(nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
+  });
+});
+
+describe('斜め 45 度の配線のつながり', () => {
+  const none: Part[] = [];
+  const netsOf = (parts: Part[], ...wires: Wire[]) => computeNets({ parts, wires }, project);
+
+  it('配線の端が斜めの区間の途中にあれば、つながる (右下がりと右上がり)', () => {
+    // (40, 40) は右下がり (0,0)→(100,100) の途中、(40, 60) は右上がり (0,100)→(100,0) の途中
+    for (const [diag, end] of [
+      [wire('d', [0, 0], [100, 100]), [40, 40]],
+      [wire('d', [0, 100], [100, 0]), [40, 60]],
+    ] as const) {
+      const { nets } = netsOf(none, diag, wire('w', [end[0], end[1]], [end[0], 300]));
+      expect(nets).toHaveLength(1);
+      expect(nets[0].wires.sort()).toEqual(['d', 'w']);
+    }
+  });
+
+  it('ピンの先が斜めの区間の途中にあれば、つながる', () => {
+    // INPUT a (0, 0) の出力ピンの先は (60, 20)。斜めの配線 (20, -20) → (100, 60) の途中にある
+    const { nets } = netsOf(
+      [{ id: 'a', kind: 'input', x: 0, y: 0 }],
+      wire('d', [20, -20], [100, 60]),
+    );
+    expect(nets[0].outputs).toEqual([{ comp: 'a', pin: 0 }]);
+  });
+
+  it('斜めどうし、斜めと縦横の途中の交差はつながらない', () => {
+    const { nets } = netsOf(
+      none,
+      wire('d', [0, 0], [100, 100]),
+      wire('e', [0, 100], [100, 0]),
+      wire('h', [0, 60], [100, 60]),
+    );
+    expect(nets).toHaveLength(3);
   });
 });

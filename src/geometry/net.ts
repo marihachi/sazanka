@@ -110,9 +110,12 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
   };
 
   // 配線の端ごとに、そこにあるピンと、その点を通る配線を調べる。
-  // 配線の数が多くても調べる組を減らせるよう、区間を、横線は y、縦線は x ごとに分けておく
+  // 配線の数が多くても調べる組を減らせるよう、区間を、横線は y、縦線は x、右下がりの斜めは x - y、右上がりの斜めは x + y
+  // ごとに分けておく (同じ直線の上の点は、その値が同じ)
   const horizontal = new Map<number, number[]>();
   const vertical = new Map<number, number[]>();
+  const fall = new Map<number, number[]>();
+  const rise = new Map<number, number[]>();
   wires.forEach((w, i) => {
     w.points.forEach((b, j) => {
       if (j === 0) {
@@ -125,11 +128,22 @@ export function computeNets(circuit: Circuit, project: Project): Nets {
       if (a.x === b.x) {
         vertical.set(a.x, [...(vertical.get(a.x) ?? []), i]);
       }
+      if (a.x !== b.x && b.x - a.x === b.y - a.y) {
+        fall.set(a.x - a.y, [...(fall.get(a.x - a.y) ?? []), i]);
+      }
+      if (a.x !== b.x && b.x - a.x === a.y - b.y) {
+        rise.set(a.x + a.y, [...(rise.get(a.x + a.y) ?? []), i]);
+      }
     });
   });
   /** 点 p を通る配線の番号 (同じ配線は 1 度だけ) */
   const wiresThrough = (p: Point): number[] => {
-    const candidates = new Set([...(horizontal.get(p.y) ?? []), ...(vertical.get(p.x) ?? [])]);
+    const candidates = new Set([
+      ...(horizontal.get(p.y) ?? []),
+      ...(vertical.get(p.x) ?? []),
+      ...(fall.get(p.x - p.y) ?? []),
+      ...(rise.get(p.x + p.y) ?? []),
+    ]);
     return [...candidates].filter((i) => isOnWire(p, wires[i]));
   };
 
@@ -357,14 +371,14 @@ export function findSplitTarget(
 /**
  * 分かれ目: 2 本の配線の端だけが合わさっている点 (分割モードで分けた所や、動かして端を重ねた所)。
  * ピンの先がある点と、ほかの配線が途中を通る点 (分岐) は含めない。
- * horizontal は、1 本目の配線の端の区間が横向きか (印は区間と直角に描く)
+ * direction は、1 本目の配線の端の区間の向き (x と y は -1、0、1。印は区間と直角に描く)
  */
 export function findWireJoints(
   wires: readonly Wire[],
   pinTips: ReadonlySet<string>,
-): { at: Point; horizontal: boolean }[] {
-  // 点 → そこに端がある配線と、その端の区間が横向きか
-  const ends = new Map<string, { at: Point; wire: Wire; horizontal: boolean }[]>();
+): { at: Point; direction: Point }[] {
+  // 点 → そこに端がある配線と、その端の区間の向き
+  const ends = new Map<string, { at: Point; wire: Wire; direction: Point }[]>();
   for (const w of wires) {
     const n = w.points.length;
     for (const [tip, next] of [
@@ -372,7 +386,10 @@ export function findWireJoints(
       [w.points[n - 1], w.points[n - 2]],
     ]) {
       const k = pointKey(tip);
-      ends.set(k, [...(ends.get(k) ?? []), { at: tip, wire: w, horizontal: tip.y === next.y }]);
+      ends.set(k, [
+        ...(ends.get(k) ?? []),
+        { at: tip, wire: w, direction: segmentDirection(tip, next) },
+      ]);
     }
   }
   return [...ends].flatMap(([k, list]) => {
@@ -383,6 +400,11 @@ export function findWireJoints(
     if (wires.some((w) => isOnWire(at, w) && !isWireEnd(at, w))) {
       return [];
     }
-    return [{ at, horizontal: list[0].horizontal }];
+    return [{ at, direction: list[0].direction }];
   });
+}
+
+/** a から b への区間の向き。x と y は -1、0、1 (縦、横、斜め 45 度の区間は、この向きで表せる) */
+export function segmentDirection(a: Point, b: Point): Point {
+  return { x: Math.sign(b.x - a.x), y: Math.sign(b.y - a.y) };
 }

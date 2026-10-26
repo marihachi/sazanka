@@ -4,8 +4,8 @@ import type { Point } from '../geometry/layout';
 const WIRE_CORNER_RADIUS = 6;
 
 /**
- * 配線の SVG のパス。route (始点・折れる点・終点の並び。どの区間も縦か横) を順に結ぶ。
- * round なら、曲がり角を丸める (環境設定)
+ * 配線の SVG のパス。route (始点・折れる点・終点の並び。どの区間も縦、横、斜め 45 度) を順に結ぶ。
+ * round なら、曲がり角を丸める (環境設定)。角の向きによらない作りなので、45 度と 135 度の角も同じに丸める
  */
 export function wirePath(route: readonly Point[], round: boolean): string {
   // SVG のパスでは、M x,y が始点への移動、L x,y がそこまでの直線、Q cx,cy x,y が cx,cy を制御点にした曲線

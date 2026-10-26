@@ -21,6 +21,7 @@ import {
   findWireJoints,
   conflictPinKey,
   isConflict,
+  segmentDirection,
   isOnWire,
   type Net,
   netLinks,
@@ -152,17 +153,20 @@ function isHorizontalEnd(points: readonly Point[], end: WireEnd): boolean {
 const JOINT_MARK = 10;
 const SPLIT_MARK = 12;
 
-/** 点 at を通る、長さ len の短い線のパス。区間が横向きなら縦に、縦向きなら横に引く (区間と直角) */
-function tickPath(at: Point, horizontal: boolean, len: number): string {
-  return horizontal
-    ? `M${at.x},${at.y - len / 2} V${at.y + len / 2}`
-    : `M${at.x - len / 2},${at.y} H${at.x + len / 2}`;
+/** 点 at を通る、長さ len の短い線のパス。区間の向き direction と直角に引く */
+function tickPath(at: Point, direction: Point, len: number): string {
+  // 区間の向きを 90 度回した向き (-y, x) を、長さ 1 にする
+  const n = Math.hypot(direction.x, direction.y) || 1;
+  const ux = -direction.y / n;
+  const uy = direction.x / n;
+  const h = len / 2;
+  return `M${at.x - ux * h},${at.y - uy * h} L${at.x + ux * h},${at.y + uy * h}`;
 }
 
-/** 配線の、点 at を含む最初の区間が横向きか */
-function isHorizontalAt(points: readonly Point[], at: Point): boolean {
+/** 配線の、点 at を含む最初の区間の向き (見つからなければ横向き) */
+function directionAt(points: readonly Point[], at: Point): Point {
   const i = points.findIndex((b, j) => j > 0 && onSegment(at, points[j - 1], b));
-  return i > 0 && points[i - 1].y === points[i].y;
+  return i > 0 ? segmentDirection(points[i - 1], points[i]) : { x: 1, y: 0 };
 }
 
 /** 拡大・縮小ボタン1回で変える倍率 */
@@ -1029,19 +1033,19 @@ function SplitMarks({
   const joints = useMemo(() => findWireJoints(wires, pinTips), [wires, pinTips]);
   return (
     <>
-      {joints.map(({ at, horizontal }) => (
+      {joints.map(({ at, direction }) => (
         <path
           key={`${at.x},${at.y}`}
           className={styles.splitJoint}
           vectorEffect="non-scaling-stroke"
-          d={tickPath(at, horizontal, JOINT_MARK / scale)}
+          d={tickPath(at, direction, JOINT_MARK / scale)}
         />
       ))}
       {point && target && (
         <path
           className={styles.splitCursor}
           vectorEffect="non-scaling-stroke"
-          d={tickPath(point, isHorizontalAt(target, point), SPLIT_MARK / scale)}
+          d={tickPath(point, directionAt(target, point), SPLIT_MARK / scale)}
         />
       )}
     </>
