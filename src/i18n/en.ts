@@ -346,7 +346,7 @@ export const en: Messages = {
     msPerChar: 80,
     idle: [
       'Click or drag from the left panel to add parts',
-      'W ("Wire" above) for wire mode, V ("Select" above) for select mode. In wire mode, click from point to point to draw horizontal or vertical wires',
+      'W ("Wire" above) for wire mode, V ("Select" above) for select mode. In wire mode, click from point to point to draw horizontal, vertical, or 45° wires',
       'Wires connect when an end is on a pin tip or on another wire. Wires that merely cross in the middle do not connect',
       'Click an INPUT to toggle ON/OFF',
       'Connecting 2 or more output pins to one net is an error with no defined value (red wire)',

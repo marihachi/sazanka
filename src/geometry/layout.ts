@@ -298,13 +298,32 @@ export function simplifyWire(points: readonly Point[]): Point[] {
 }
 
 /**
- * 配線中に、最後の点 from からポインターの位置 at へ伸ばす区間の先。
- * 縦か横の 1 方向にだけ伸ばすので、動いた量の大きい方の向きにまっすぐ進んだ点にする
+ * 配線中に、斜め 45 度へ伸ばすとみなす、動いた量の小さい方と大きい方の比の下限。
+ * 8 方向の真ん中で分けると 0.414 (22.5 度) だが、縦横で引きたいときに少し斜めに寄っただけで 45 度にならないよう、
+ * 縦横の幅を広めにとる (約 31 度より斜めなら 45 度)
  */
-export function wireStepTo(from: Point, at: Point): Point {
-  return Math.abs(at.x - from.x) >= Math.abs(at.y - from.y)
-    ? { x: at.x, y: from.y }
-    : { x: from.x, y: at.y };
+const DIAGONAL_RATIO = 0.6;
+
+/**
+ * 配線中に、最後の点 from (グリッドの上) からポインターの位置 at へ伸ばす区間の先。縦、横、斜め 45 度の 8 方向のどれかに伸ばす。
+ * 向きは、グリッドに合わせる前の at で決める (合わせた後で決めると、短く動かしたときに、縦横のつもりが斜めになりやすい)。
+ * 先は、at をグリッドに合わせてシートに収めた点 g から決める。縦横なら、g のその軸の位置まで進んだ点。
+ * 斜めなら、x と y を、g までの量の小さい方と同じだけ進んだ点 (グリッドの上で、シートの中に来る)
+ */
+export function wireStepTo(from: Point, at: Point, sheet: CircuitSheet): Point {
+  const g = clampToSheet({ x: snap(at.x), y: snap(at.y) }, sheet);
+  const dx = at.x - from.x;
+  const dy = at.y - from.y;
+  const small = Math.min(Math.abs(dx), Math.abs(dy));
+  const large = Math.max(Math.abs(dx), Math.abs(dy));
+  if (large > 0 && small >= large * DIAGONAL_RATIO) {
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+    // g が from から見て at と同じ側になければ (at がまだ半マス動いていない)、その軸は 0 進む
+    const length = Math.max(Math.min((g.x - from.x) * sx, (g.y - from.y) * sy), 0);
+    return { x: from.x + sx * length, y: from.y + sy * length };
+  }
+  return Math.abs(dx) >= Math.abs(dy) ? { x: g.x, y: from.y } : { x: from.x, y: g.y };
 }
 
 /** 配線のどちらの端か。'start' は points の先頭、'end' は末尾 */
@@ -312,7 +331,7 @@ export type WireEnd = 'start' | 'end';
 
 /**
  * 配線の端をドラッグしたときの、新しい点の並び。points はドラッグを始めたときの並び。
- * 端は、端の区間の向き (縦か横) にだけ動き、位置はポインター at をその軸に写してグリッドに合わせる。
+ * 端は、端の区間の向き (縦、横、斜め 45 度) にだけ動き、位置はポインター at をその向きに写してグリッドに合わせる。
  * 縮めるのは隣の点 (折れる点) まで。折れる点まで縮めたときも、長さ 0 の区間を残して点の数を変えない
  * (ドラッグの途中で戻すと、また伸びるように。区間を除くのは離したとき、simplifyWire で)。
  * 区間が 1 つだけの配線は、もう一方の端から 1 マスより短くしない。伸ばす先はシートの範囲で止める
@@ -328,18 +347,25 @@ export function dragWireEnd(
   const tip = points[i];
   // 隣の点 (区間が 1 つなら、もう一方の端)。端はこの点を越えて反対側へは行かない
   const anchor = points[j];
-  const horizontal = tip.y === anchor.y;
-  const from = horizontal ? anchor.x : anchor.y;
-  // 端が隣の点から見てどちら向きにあるか (+1 か -1)。端の区間を伸ばす向き
-  const dir = Math.sign((horizontal ? tip.x : tip.y) - from);
+  // 隣の点から端へ向かう向き (x と y は -1、0、1)。長さ 0 の区間 (向きが決まらない) は横とみなす
+  let d = { x: Math.sign(tip.x - anchor.x), y: Math.sign(tip.y - anchor.y) };
+  if (d.x === 0 && d.y === 0) {
+    d = { x: 1, y: 0 };
+  }
+  // ポインターを端の区間の向きに写した、隣の点からの長さ (x と y のそれぞれが進む量。斜めなら両方の平均)
+  const axes = (d.x !== 0 ? 1 : 0) + (d.y !== 0 ? 1 : 0);
+  const projected = ((at.x - anchor.x) * d.x + (at.y - anchor.y) * d.y) / axes;
   const sheetEnd = getSheetEnd(sheet);
-  const limit = horizontal ? sheetEnd.x : sheetEnd.y;
-  // 隣の点からの長さ (伸ばす向きを正)。0 なら折れる点まで縮めた状態
+  // 伸ばせる長さ: 動く軸ごとに、シートの端までの長さの小さい方
+  const room = (dir: number, from: number, end: number) => (dir > 0 ? end - from : from);
+  const max = Math.min(
+    d.x !== 0 ? room(d.x, anchor.x, sheetEnd.x) : Number.POSITIVE_INFINITY,
+    d.y !== 0 ? room(d.y, anchor.y, sheetEnd.y) : Number.POSITIVE_INFINITY,
+  );
+  // 0 なら折れる点まで縮めた状態
   const min = points.length === 2 ? GRID : 0;
-  const max = dir > 0 ? limit - from : from;
-  const length = Math.min(Math.max(snap((horizontal ? at.x : at.y) - from) * dir, min), max);
-  const v = from + length * dir;
+  const length = Math.min(Math.max(snap(projected), min), max);
   const next = [...points];
-  next[i] = horizontal ? { x: v, y: tip.y } : { x: tip.x, y: v };
+  next[i] = { x: anchor.x + d.x * length, y: anchor.y + d.y * length };
   return next;
 }

@@ -111,6 +111,14 @@
   cursor: ns-resize;
 }
 
+.resize-nwse {
+  cursor: nwse-resize;
+}
+
+.resize-nesw {
+  cursor: nesw-resize;
+}
+
 /* 配線の端をドラッグしている間 (ポインターが印から外れても形を保つ) */
 .sheet.resizing-x,
 .sheet.resizing-x * {
@@ -122,6 +130,18 @@
 .sheet.resizing-y * {
   /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
   cursor: ns-resize !important;
+}
+
+.sheet.resizing-nwse,
+.sheet.resizing-nwse * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: nwse-resize !important;
+}
+
+.sheet.resizing-nesw,
+.sheet.resizing-nesw * {
+  /* biome-ignore lint/complexity/noImportantStyles: 部品のインラインの cursor: move を上書きするため */
+  cursor: nesw-resize !important;
 }
 
 /* 分割モードの印。分かれ目は配線と同じ色、分ける点はアクセントカラー */

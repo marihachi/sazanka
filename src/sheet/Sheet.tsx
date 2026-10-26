@@ -133,21 +133,50 @@ const DRAG_THRESHOLD = 4;
 const HANDLE_SIZE = 6;
 const HANDLE_HIT = 20;
 
+/** 配線の端が動く軸。横、縦、右下がりの斜め、右上がりの斜め */
+type EndAxis = 'x' | 'y' | 'nwse' | 'nesw';
+
+/** 向き (x と y は -1、0、1) の軸 */
+function axisOf(d: Point): EndAxis {
+  if (d.y === 0) {
+    return 'x';
+  }
+  if (d.x === 0) {
+    return 'y';
+  }
+  return d.x === d.y ? 'nwse' : 'nesw';
+}
+
 /**
- * 配線の端の区間が横向きか。端の区間が長さ 0 (端のドラッグで折れる点まで縮めた途中) なら、
- * その先の区間と直角の向きにする (縮める前の端の区間の向き)
+ * 配線の端の区間の軸。端の区間が長さ 0 (端のドラッグで折れる点まで縮めた途中) なら、
+ * その先の区間と直角の軸にする
  */
-function isHorizontalEnd(points: readonly Point[], end: WireEnd): boolean {
+function endAxis(points: readonly Point[], end: WireEnd): EndAxis {
   const n = points.length;
   const [tip, anchor, next] =
     end === 'start'
       ? [points[0], points[1], points[2]]
       : [points[n - 1], points[n - 2], points[n - 3]];
   if (tip.x !== anchor.x || tip.y !== anchor.y || !next) {
-    return tip.y === anchor.y;
+    return axisOf(segmentDirection(anchor, tip));
   }
-  return anchor.x === next.x;
+  const d = segmentDirection(next, anchor);
+  return axisOf({ x: -d.y, y: d.x });
 }
+
+/** 端の軸ごとの、印の上と、ドラッグしている間のポインターの形のクラス */
+const RESIZE_CLASS: Record<EndAxis, string> = {
+  x: styles.resizeX,
+  y: styles.resizeY,
+  nwse: styles.resizeNwse,
+  nesw: styles.resizeNesw,
+};
+const RESIZING_CLASS: Record<EndAxis, string> = {
+  x: styles.resizingX,
+  y: styles.resizingY,
+  nwse: styles.resizingNwse,
+  nesw: styles.resizingNesw,
+};
 
 /** 分割モードの印 (線に直角の短い線) の長さ。分かれ目と、分ける点 (画面上の px。拡大縮小しても変えない) */
 const JOINT_MARK = 10;
@@ -267,7 +296,7 @@ export function Sheet({
   const dragRef = useRef<Drag | null>(null);
   const endDragRef = useRef<EndDrag | null>(null);
   /** ドラッグしている配線の端と、その向き。印を強調し、ポインターの形を保つのに使う */
-  const [activeEnd, setActiveEnd] = useState<{ end: WireEnd; horizontal: boolean } | null>(null);
+  const [activeEnd, setActiveEnd] = useState<{ end: WireEnd; axis: EndAxis } | null>(null);
   /**
    * 端のドラッグ中の配線の仮の形。回路はまだ変えず、この形で描くだけにする
    * (ドラッグの途中でつながりとシミュレーションを変えないため。分岐の印も元の位置に残る)
@@ -421,7 +450,7 @@ export function Sheet({
       return;
     }
     const last = pending[pending.length - 1];
-    const next = wireStepTo(last, p);
+    const next = wireStepTo(last, at, sheet);
     if (next.x === last.x && next.y === last.y) {
       // 点が 1 つだけ (始点をもう一度押した) なら、配線にならないので取り消す
       if (pending.length >= 2) {
@@ -538,7 +567,7 @@ export function Sheet({
     if (!endDrag.started) {
       endDrag.started = true;
       onDragModeChange('wireEnd');
-      setActiveEnd({ end: endDrag.end, horizontal: isHorizontalEnd(endDrag.origin, endDrag.end) });
+      setActiveEnd({ end: endDrag.end, axis: endAxis(endDrag.origin, endDrag.end) });
     }
     endDrag.points = next;
     setPreview({ wire: endDrag.wire, points: next });
@@ -717,8 +746,7 @@ export function Sheet({
    * クリックしたときと同じ計算 (onWireClick) にしないと、クリックした後に線が違う位置へ動いて見える
    */
   function wireCursor(at: Point): Point {
-    const p = wireGridPoint(at, sheet);
-    return pending ? wireStepTo(pending[pending.length - 1], p) : p;
+    return pending ? wireStepTo(pending[pending.length - 1], at, sheet) : wireGridPoint(at, sheet);
   }
 
   const transform = `translate(${view.x} ${view.y}) scale(${view.scale})`;
@@ -749,7 +777,7 @@ export function Sheet({
           tool === 'wire' && styles.wireTool,
           tool === 'split' && (splitTarget?.blocked ? styles.splitBlocked : styles.splitTool),
           (spaceHeld || panning) && styles.panning,
-          activeEnd && (activeEnd.horizontal ? styles.resizingX : styles.resizingY),
+          activeEnd && RESIZING_CLASS[activeEnd.axis],
         )}
         onPointerDownCapture={onPointerDownCapture}
         onPointerMove={onPointerMove}
@@ -891,7 +919,7 @@ export function Sheet({
                   key={end}
                   className={classNames(
                     styles.wireHandle,
-                    isHorizontalEnd(pts, end) ? styles.resizeX : styles.resizeY,
+                    RESIZE_CLASS[endAxis(pts, end)],
                     activeEnd?.end === end && styles.active,
                   )}
                   onPointerDown={(e) => onWireEndPointerDown(e, handleWire, end)}

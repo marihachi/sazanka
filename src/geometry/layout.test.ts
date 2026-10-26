@@ -394,13 +394,30 @@ describe('wiresInRect', () => {
 });
 
 describe('wireStepTo', () => {
-  it('最後の点から、動いた量の大きい方の向きにだけ伸ばす', () => {
-    expect(wireStepTo({ x: 0, y: 0 }, { x: 100, y: 40 })).toEqual({ x: 100, y: 0 });
-    expect(wireStepTo({ x: 0, y: 0 }, { x: 40, y: -100 })).toEqual({ x: 0, y: -100 });
+  const from = { x: 100, y: 100 };
+
+  it('動いた量の大きい方の向きに縦か横に伸ばし、グリッドに合わせる', () => {
+    expect(wireStepTo(from, { x: 203, y: 130 }, sheet)).toEqual({ x: 200, y: 100 });
+    expect(wireStepTo(from, { x: 130, y: -8 }, sheet)).toEqual({ x: 100, y: 0 });
   });
 
-  it('同じだけ動いたときは横に伸ばす', () => {
-    expect(wireStepTo({ x: 0, y: 0 }, { x: 40, y: 40 })).toEqual({ x: 40, y: 0 });
+  it('小さい方が大きい方の 0.6 倍以上なら、斜め 45 度に、グリッドの上の点まで伸ばす', () => {
+    expect(wireStepTo(from, { x: 141, y: 139 }, sheet)).toEqual({ x: 140, y: 140 });
+    expect(wireStepTo(from, { x: 200, y: 40 }, sheet)).toEqual({ x: 160, y: 40 });
+    expect(wireStepTo(from, { x: 40, y: 200 }, sheet)).toEqual({ x: 40, y: 160 });
+  });
+
+  it('向きはグリッドに合わせる前の位置で決める', () => {
+    // (125,111) をグリッドに合わせると (120,120) で斜めになるが、動きは横寄りなので横
+    expect(wireStepTo(from, { x: 125, y: 111 }, sheet)).toEqual({ x: 120, y: 100 });
+  });
+
+  it('斜めの先はシートの中で止める', () => {
+    expect(wireStepTo(from, { x: -300, y: -260 }, sheet)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('ほとんど動いていなければその点', () => {
+    expect(wireStepTo(from, { x: 104, y: 103 }, sheet)).toEqual(from);
   });
 });
 
@@ -487,6 +504,39 @@ describe('dragWireEnd', () => {
     expect(dragWireEnd(l, 'end', { x: 300, y: SHEET_HEIGHT + 500 }, sheet)).toEqual(
       pts([100, 100], [300, 100], [300, SHEET_HEIGHT]),
     );
+  });
+
+  describe('斜めの端の区間', () => {
+    // (100,100) から右下へ 100 進み、右へ 100 進む配線
+    const d = pts([100, 100], [200, 200], [300, 200]);
+
+    it('斜めの向きにだけ動き、ポインターをその向きに写してグリッドに合わせる', () => {
+      expect(dragWireEnd(d, 'start', { x: 60, y: 60 }, sheet)).toEqual(
+        pts([60, 60], [200, 200], [300, 200]),
+      );
+      // 斜めと直角の向きの動きは消える ((-40,+40) は写すと 0)
+      expect(dragWireEnd(d, 'start', { x: 60, y: 140 }, sheet)).toEqual(d);
+      // 写した長さ (x と y の平均) をグリッドに合わせる
+      expect(dragWireEnd(d, 'start', { x: 130, y: 150 }, sheet)).toEqual(
+        pts([140, 140], [200, 200], [300, 200]),
+      );
+    });
+
+    it('隣の折れる点で止まる', () => {
+      expect(dragWireEnd(d, 'start', { x: 300, y: 300 }, sheet)).toEqual(
+        pts([200, 200], [200, 200], [300, 200]),
+      );
+    });
+
+    it('シートの端まで近い方の軸で止める', () => {
+      expect(dragWireEnd(d, 'start', { x: -500, y: -500 }, sheet)).toEqual(
+        pts([0, 0], [200, 200], [300, 200]),
+      );
+      const rise = pts([100, 100], [140, 60]);
+      expect(dragWireEnd(rise, 'end', { x: 900, y: -900 }, sheet)).toEqual(
+        pts([100, 100], [200, 0]),
+      );
+    });
   });
 
   it('離したときに simplifyWire をかけると、長さ 0 の区間がなくなる', () => {
