@@ -609,3 +609,21 @@ describe('モジュール', () => {
     expect(() => settleProject(project, MAIN_ID)).not.toThrow();
   });
 });
+
+describe('ピンの先どうしのつながり', () => {
+  it('配線なしでピンの先を合わせた INPUT → AND が動く', () => {
+    // INPUT の出力ピンの先は (x + 60, y + 20)。AND (本体 3×4) の入力ピンの先は (x - 20, y + 20) と (x - 20, y + 60)
+    const def: CircuitDef = {
+      id: MAIN_ID,
+      name: '',
+      parts: [
+        { id: 'a', kind: 'input', x: 0, y: 0, on: true },
+        { id: 'b', kind: 'input', x: 0, y: 40, on: true },
+        { id: 'g', kind: 'and', x: 80, y: 0 },
+      ],
+      wires: [],
+    };
+    const result = settleProject({ circuits: [def] }, MAIN_ID);
+    expect(result.values.get('g:0')).toBe(true);
+  });
+});

@@ -4,6 +4,7 @@ import type { Wire } from '../circuit/circuit';
 import type { Project } from '../circuit/project';
 import {
   computeNets,
+  conflictPinKey,
   findSplitTarget,
   findWireJoints,
   isConflict,
@@ -93,12 +94,22 @@ describe('computeNets', () => {
     expect(r.junctions).toEqual([]);
   });
 
-  it('配線の途中がピンの先を通るだけなら、そのピンにはつながらない', () => {
-    // (380, 20) は o の入力ピンの先。配線はその上を通り過ぎる
-    const {
-      nets: [net],
-    } = nets(wire('w', [60, 20], [500, 20]));
-    expect(net.inputs).toEqual([]);
+  it('配線の途中がピンの先を通れば、そのピンにもつながり、そこに分岐の印を描く', () => {
+    // (380, 20) は o の入力ピンの先。配線はその上を通り過ぎる (配線の両側とピンで 3 本)
+    const r = nets(wire('w', [60, 20], [500, 20]));
+    expect(r.nets[0].outputs).toEqual([{ comp: 'a', pin: 0 }]);
+    expect(r.nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
+    expect(r.junctions).toEqual([{ at: { x: 380, y: 20 }, wire: 'w' }]);
+  });
+
+  it('配線の折れる点にピンの先があっても、つながる', () => {
+    // (380, 20) で折れる配線
+    const r = nets(wire('w', [60, 20], [380, 20], [380, 100]));
+    expect(r.nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
+  });
+
+  it('配線の端にあるピンの先 (1 つだけ) には、分岐の印を描かない', () => {
+    expect(nets(wire('w', [60, 20], [380, 20])).junctions).toEqual([]);
   });
 
   it('どこにもつながらない配線も、それだけでネットになる', () => {
@@ -401,5 +412,76 @@ describe('findWireJoints', () => {
     expect(
       findWireJoints([wire('o', [0, 0], [100, 0], [100, 100], [0, 100], [0, 0])], tips),
     ).toEqual([]);
+  });
+});
+
+describe('ピンの先どうしのつながり', () => {
+  // INPUT の出力ピンの先は (x + 60, y + 20)、OUTPUT の入力ピンの先は (x - 20, y + 20)。
+  // INPUT を (0, 0)、OUTPUT を (80, 0) に置くと、どちらのピンの先も (60, 20) に重なる
+  const touching: Part[] = [
+    { id: 'i', kind: 'input', x: 0, y: 0 },
+    { id: 'o', kind: 'output', x: 80, y: 0 },
+  ];
+  const netsOf = (parts: Part[], ...wires: Wire[]) => computeNets({ parts, wires }, project);
+
+  it('ピンの先どうしが同じ点にあれば、配線がなくてもつながる', () => {
+    const { nets } = netsOf(touching);
+    expect(nets).toEqual([
+      { outputs: [{ comp: 'i', pin: 0 }], inputs: [{ comp: 'o', pin: 0 }], wires: [] },
+    ]);
+    expect(netLinks(nets)).toEqual([{ from: { comp: 'i', pin: 0 }, to: { comp: 'o', pin: 0 } }]);
+  });
+
+  it('3 つ以上のピンが重なっても、同じネットになる', () => {
+    const { nets } = netsOf([...touching, { id: 'p', kind: 'output', x: 80, y: 0 }]);
+    expect(nets).toHaveLength(1);
+    expect(nets[0].inputs).toEqual([
+      { comp: 'o', pin: 0 },
+      { comp: 'p', pin: 0 },
+    ]);
+  });
+
+  it('ほかとつながらないピンは、ネットを作らない', () => {
+    expect(netsOf([touching[0]]).nets).toEqual([]);
+  });
+
+  it('出力どうしが重なれば、ぶつかりになり、そのネットのピンが conflictPins に入る', () => {
+    const result = netsOf([...touching, { id: 'j', kind: 'input', x: 0, y: 0 }]);
+    expect(result.nets.filter(isConflict)).toHaveLength(1);
+    expect([...result.conflictPins].sort()).toEqual(
+      [
+        conflictPinKey('i', true, 0),
+        conflictPinKey('j', true, 0),
+        conflictPinKey('o', false, 0),
+      ].sort(),
+    );
+  });
+
+  it('ぶつかっていなければ、conflictPins は空', () => {
+    expect(netsOf(touching).conflictPins.size).toBe(0);
+  });
+
+  it('配線の端がある点では、重なったピンもその配線のネットに入る (配線のないネットは作らない)', () => {
+    const { nets } = netsOf(touching, wire('w', [60, 20], [60, 100]));
+    expect(nets).toEqual([
+      { outputs: [{ comp: 'i', pin: 0 }], inputs: [{ comp: 'o', pin: 0 }], wires: ['w'] },
+    ]);
+  });
+
+  it('重なったピンの先を配線の途中が通れば、ピンも配線も 1 つのネットになる (配線のないネットは作らない)', () => {
+    const { nets } = netsOf(touching, wire('w', [40, 20], [100, 20]));
+    expect(nets).toEqual([
+      { outputs: [{ comp: 'i', pin: 0 }], inputs: [{ comp: 'o', pin: 0 }], wires: ['w'] },
+    ]);
+  });
+
+  it('回した部品のピンの先でも、重なればつながる', () => {
+    // 180 度回した OUTPUT (本体 2×2) は、入力ピンの先が右 (x + 60, y + 20) に出る
+    const { nets } = netsOf([
+      { id: 'i', kind: 'input', x: 0, y: 0 },
+      { id: 'o', kind: 'output', x: 0, y: 0, rotation: 180 },
+    ]);
+    expect(nets).toHaveLength(1);
+    expect(nets[0].inputs).toEqual([{ comp: 'o', pin: 0 }]);
   });
 });
