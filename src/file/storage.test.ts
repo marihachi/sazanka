@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CIRCUIT_FORMAT_VERSION } from './upgrade';
 import type { Part } from '../circuit/part';
 import { checkProject, emptyProject, type Project } from '../circuit/project';
 import { assignPortNumbers } from '../circuit/module';
@@ -33,7 +34,7 @@ const withModule: Project = {
       name: '',
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       parts: [
@@ -48,7 +49,7 @@ const withModule: Project = {
       name: 'M',
       path: 'lib',
       author: 'さざんか',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 300, height: 200 },
       parts: [{ id: 'i', kind: 'input', x: 40, y: 60, portNumber: 1 }],
       wires: [],
@@ -93,10 +94,10 @@ describe('toStoredProject / fromStoredProject', () => {
           path: '',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'main',
             author: '',
-            package: { kind: 'split' },
+            package: { kind: 'split', width: 4 },
             sheet: { width: 40, height: 30 },
             // biome-ignore format: 表形式を維持するため
             elements: [
@@ -110,11 +111,11 @@ describe('toStoredProject / fromStoredProject', () => {
           path: 'lib',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'mod',
             name: 'M',
             author: 'さざんか',
-            package: { kind: 'split' },
+            package: { kind: 'split', width: 4 },
             sheet: { width: 300, height: 200 },
             elements: [{ ...withoutId(mod.parts[0]), x: 2, y: 3 }],
           },
@@ -169,10 +170,10 @@ describe('toStoredProject / fromStoredProject', () => {
           path: '',
           circuit: {
             format: 'sazanka-circuit',
-            version: 1,
+            version: CIRCUIT_FORMAT_VERSION,
             id: 'main',
             author: '',
-            package: { kind: 'split' },
+            package: { kind: 'split', width: 4 },
             sheet: { width: 300, height: 200 },
             elements: [],
           },
@@ -301,7 +302,7 @@ describe('readStored', () => {
             { kind: 'input', x: 0, y: 1, portName: 'A', portNumber: 1 },
             { kind: 'module', x: 5, y: 0, module: 'mod' },
           ] },
-          { id: 'mod', name: 'M', package: { kind: 'split' }, elements: [
+          { id: 'mod', name: 'M', package: { kind: 'split', width: 4 }, elements: [
             { kind: 'input', x: 2, y: 3 },
           ] },
         ],
@@ -317,7 +318,7 @@ describe('readStored', () => {
           name: '',
           path: '',
           author: 'さざんか',
-          package: { kind: 'split' },
+          package: { kind: 'split', width: 4 },
           sheet: { width: 300, height: 200 },
           // biome-ignore format: 表形式を維持するため
           parts: [
@@ -331,7 +332,7 @@ describe('readStored', () => {
           name: 'M',
           path: '',
           author: 'さざんか',
-          package: { kind: 'split' },
+          package: { kind: 'split', width: 4 },
           sheet: { width: 300, height: 200 },
           parts: [{ id: 'id3', kind: 'input', x: 40, y: 60, portNumber: 1 }],
           wires: [],
@@ -405,7 +406,7 @@ describe('readStored', () => {
             name: '',
             path: '',
             author: '',
-            package: { kind: 'split' },
+            package: { kind: 'split', width: 4 },
             sheet: { width: 300, height: 200 },
             parts: [{ id: 'id2', kind: 'module', x: 100, y: 0, circuitId: 'id1' }],
             wires: [],
@@ -415,7 +416,7 @@ describe('readStored', () => {
             name: 'M',
             path: '',
             author: '',
-            package: { kind: 'split' },
+            package: { kind: 'split', width: 4 },
             sheet: { width: 300, height: 200 },
             parts: [{ id: 'id3', kind: 'dFlipFlop', x: 0, y: 0 }],
             wires: [],
@@ -433,7 +434,10 @@ describe('readStored', () => {
       {
         ...stored,
         circuits: [
-          { ...stored.circuits[0], circuit: { ...stored.circuits[0].circuit, version: 2 } },
+          {
+            ...stored.circuits[0],
+            circuit: { ...stored.circuits[0].circuit, version: CIRCUIT_FORMAT_VERSION + 1 },
+          },
         ],
       },
     ]) {

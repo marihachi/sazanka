@@ -29,7 +29,7 @@ const def = (id: string, name: string, parts: Part[] = [], path = ''): CircuitDe
   name,
   path,
   author: '',
-  package: { kind: 'split' },
+  package: { kind: 'split', width: 4 },
   parts,
   wires: [],
 });

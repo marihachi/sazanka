@@ -4,6 +4,7 @@
 import { type CircuitSize, inputPinNames, outputPinNames, type Part } from './part';
 import type { Circuit } from './circuit';
 import {
+  DEFAULT_SPLIT_PACKAGE,
   findDef,
   MAIN_ID,
   MAX_PACKAGE_PINS,
@@ -136,7 +137,7 @@ export function getPinout(c: Part, project: Project): Pinout {
     }
 
     const { inputs, outputs } = getPortsInPinOrder(def);
-    const pkg = def.package ?? { kind: 'split' };
+    const pkg = def.package ?? DEFAULT_SPLIT_PACKAGE;
     const numberOf = (k: Part) => k.pinNumber ?? 0;
 
     return {

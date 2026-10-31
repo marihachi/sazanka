@@ -72,18 +72,31 @@ export function getCircuitSheet(def: CircuitDef): CircuitSheet {
 
 /**
  * 回路をモジュールとして置いたときの形 (パッケージ)。形の種類 (kind) とピンの数 (pins) で、本体の大きさと、外側のピンを置ける辺と位置が決まる。
- * dip は左右の 2 辺、qfp は 4 辺にピンを置く。split は入力を左、出力を右に置く (version 2 までの形)。
+ * dip は左右の 2 辺、qfp は 4 辺にピンを置く。split は入力を左、出力を右に置き、本体の幅 (width。マス) を回路ごとに変えられる。
  * どのピンにどのポートをつなぐか (割り当て) は、中の INPUT / OUTPUT の pinNumber で決まる
  */
 export type Package =
   | { kind: 'dip'; pins: number }
   | { kind: 'qfp'; pins: number }
-  | { kind: 'split' };
+  | { kind: 'split'; width: number };
+
+/** split の本体の幅 (マス) の範囲 */
+export const SPLIT_WIDTH_MIN = 2;
+export const SPLIT_WIDTH_MAX = 20;
+
+/** split の既定の幅 (マス)。幅を変えられるようにする前の形と同じ */
+export const DEFAULT_SPLIT_WIDTH = 4;
+
+/** split の既定のパッケージ (新しく作る回路と、パッケージを持たない回路) */
+export const DEFAULT_SPLIT_PACKAGE = {
+  kind: 'split',
+  width: DEFAULT_SPLIT_WIDTH,
+} as const satisfies Package;
 
 /** パッケージのピンの数の上限 */
 export const MAX_PACKAGE_PINS = 256;
 
-/** パッケージとして正しい形か。dip のピンは 4 以上の偶数、qfp は 8 以上の 4 の倍数で、どちらも上限以下 */
+/** パッケージとして正しい形か。dip のピンは 4 以上の偶数、qfp は 8 以上の 4 の倍数で、どちらも上限以下。split の幅は範囲の中の整数 */
 export function isPackage(f: unknown): f is Package {
   if (!isObject(f)) {
     return false;
@@ -100,7 +113,11 @@ export function isPackage(f: unknown): f is Package {
     case 'qfp':
       return inRange(8, 4);
     case 'split':
-      return true;
+      return (
+        Number.isInteger(f.width) &&
+        (f.width as number) >= SPLIT_WIDTH_MIN &&
+        (f.width as number) <= SPLIT_WIDTH_MAX
+      );
     default:
       return false;
   }
@@ -128,7 +145,7 @@ export function emptyProject(): Project {
         name: '',
         path: '',
         author: '',
-        package: { kind: 'split' },
+        package: DEFAULT_SPLIT_PACKAGE,
         sheet: DEFAULT_SHEET,
         parts: [],
         wires: [],

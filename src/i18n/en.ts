@@ -242,6 +242,8 @@ export const en: Messages = {
     pins: 'Pins',
     dipPinsError: 'DIP pin count must be an even number from 4 to 256',
     qfpPinsError: 'QFP pin count must be a multiple of 4 from 8 to 256',
+    splitWidth: 'Width (cells)',
+    splitWidthError: 'Enter a whole number from 2 to 20 for the width.',
     splitHelp:
       'Inputs go on the left and outputs on the right, in order of port number (input 1 and output 1 at the top). Pin numbers are not used.',
     ports: 'Ports',

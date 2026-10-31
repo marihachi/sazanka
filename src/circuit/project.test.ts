@@ -22,7 +22,7 @@ describe('emptyProject / findDef', () => {
       id: MAIN_ID,
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       parts: [],
     });
     expect(project.folders).toEqual([]);
@@ -48,7 +48,7 @@ describe('checkProject', () => {
       id,
       ...(id === MAIN_ID ? {} : { name: id.toUpperCase() }),
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 300, height: 200 },
       elements,
       ...extra,
@@ -290,7 +290,9 @@ describe('checkProject', () => {
     it('正しいパッケージなら undefined (メイン回路も、どの形でもよい)', () => {
       // biome-ignore format: 表形式を維持するため
       for (const f of [
-        { kind: 'split' },
+        { kind: 'split', width: 4 },
+        { kind: 'split', width: 2 },
+        { kind: 'split', width: 20 },
         { kind: 'dip', pins: 4 },
         { kind: 'dip', pins: 256 },
         { kind: 'qfp', pins: 8 },
@@ -314,6 +316,11 @@ describe('checkProject', () => {
         { kind: 'qfp', pins: 10 },
         { kind: 'qfp', pins: 260 },
         { kind: 'dip', pins: 8.5 },
+        { kind: 'split' },
+        { kind: 'split', width: 1 },
+        { kind: 'split', width: 21 },
+        { kind: 'split', width: 4.5 },
+        { kind: 'split', width: '4' },
       ]) {
         expect(checkProject(withPackage(f))).toBeDefined();
       }

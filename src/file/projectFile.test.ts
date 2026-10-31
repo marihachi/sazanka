@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CIRCUIT_FORMAT_VERSION } from './upgrade';
 import { emptyProject, MAIN_ID, type Project, withoutSwitchStates } from '../circuit/project';
 import { parseProject, projectHash, serializeProject } from './projectFile';
 import { type StoredProject, toStoredProject } from './storage';
@@ -12,7 +13,7 @@ const project: Project = {
       name: '',
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       parts: [
@@ -28,7 +29,7 @@ const project: Project = {
       name: 'モジュール1',
       path: '',
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 300, height: 200 },
       parts: [{ id: 'i', kind: 'input', x: 0, y: 0, portNumber: 1 }],
       wires: [],
@@ -97,10 +98,10 @@ describe('projectFile', () => {
   it('書き出すと、部品と配線を 1 つの一覧にし、位置はマスになり、メイン回路の名前と部品と配線の ID は書かず、配線に種類を書く', () => {
     expect((JSON.parse(serializeProject(project)) as StoredProject).circuits[0].circuit).toEqual({
       format: 'sazanka-circuit',
-      version: 1,
+      version: CIRCUIT_FORMAT_VERSION,
       id: MAIN_ID,
       author: '',
-      package: { kind: 'split' },
+      package: { kind: 'split', width: 4 },
       sheet: { width: 40, height: 30 },
       // biome-ignore format: 表形式を維持するため
       elements: [
@@ -178,7 +179,10 @@ describe('projectFile', () => {
     const newer: unknown[] = [
       { app: 'sazanka', version: 99, project },
       { ...stored, version: 2 },
-      { ...stored, circuits: [{ path: '', circuit: { ...storedMain, version: 2 } }] },
+      {
+        ...stored,
+        circuits: [{ path: '', circuit: { ...storedMain, version: CIRCUIT_FORMAT_VERSION + 1 } }],
+      },
     ];
     for (const data of newer) {
       expect(parse(JSON.stringify(data))).toEqual({ ok: false, error: { code: 'NEWER_VERSION' } });
@@ -279,7 +283,7 @@ describe('一体の形式のデータ', () => {
           { kind: 'module', x: 5, y: 0, module: 'mod' },
           { kind: 'wire', points: [{ x: 3, y: 1 }, { x: 4, y: 1 }] },
         ] },
-        { id: 'mod', name: 'モジュール1', package: { kind: 'split' }, elements: [
+        { id: 'mod', name: 'モジュール1', package: { kind: 'split', width: 4 }, elements: [
           { kind: 'input', x: 0, y: 0, portNumber: 1 },
         ] },
       ],

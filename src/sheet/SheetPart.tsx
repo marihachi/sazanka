@@ -294,15 +294,21 @@ function samePinNames(
     sameArray(p.outputs, q.outputs) &&
     p.unresolved === q.unresolved &&
     p.package?.kind === q.package?.kind &&
-    pinsOf(p.package) === pinsOf(q.package) &&
+    packageSizeOf(p.package) === packageSizeOf(q.package) &&
     sameArray(p.pinNumbers?.inputs ?? [], q.pinNumbers?.inputs ?? []) &&
     sameArray(p.pinNumbers?.outputs ?? [], q.pinNumbers?.outputs ?? [])
   );
 }
 
-/** パッケージのピンの数。split とパッケージのない部品は undefined */
-function pinsOf(pkg: Pinout['package']): number | undefined {
-  return pkg && 'pins' in pkg ? pkg.pins : undefined;
+/**
+ * ピンの位置を決めるパッケージの数。dip / qfp はピンの数、split は本体の幅。パッケージのない部品は undefined。
+ * 配置が変わる値はすべて比べる (比べ忘れると、幅を変えてもピンが前の位置に残る)
+ */
+function packageSizeOf(pkg: Pinout['package']): number | undefined {
+  if (!pkg) {
+    return undefined;
+  }
+  return pkg.kind === 'split' ? pkg.width : pkg.pins;
 }
 
 function sameArray<T>(a: readonly T[], b: readonly T[]): boolean {
@@ -446,6 +452,7 @@ export function SheetPart({
     // 描き込みを種類のフォルダに置いた種類 (parts/bodies.tsx) は、それを本体の左上を原点にして描く。
     // 名前は書かない (描き込みが本体を使い、見た目で何の部品か分かるため)
     const OwnBody = PART_BODIES[c.kind];
+    const symbol = partViewOf(c.kind)?.symbol;
     body = (
       <>
         {outline}
@@ -464,9 +471,24 @@ export function SheetPart({
             <OwnBody w={w} h={h} layout={layout} inputValues={inputValues} />
           </g>
         ) : (
-          <text className={styles.label} x={c.x + w / 2} y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}>
-            {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
-          </text>
+          <>
+            {/* ゲートは、本体の中に記号を描く (名前は、配置の nameAbove で本体の上に書く) */}
+            {symbol && (
+              <g
+                className={styles.symbol}
+                transform={`translate(${c.x} ${c.y})`}
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: 種類のフォルダに置いた、アプリの中の SVG (外から来た文字列ではない)
+                dangerouslySetInnerHTML={{ __html: symbol }}
+              />
+            )}
+            <text
+              className={styles.label}
+              x={c.x + w / 2}
+              y={nameAbove ? c.y - 6 : c.y + h / 2 + 4}
+            >
+              {isModule ? (name ?? m.sheet.unknownModule) : bodyLabelOf(c.kind, lang)}
+            </text>
+          </>
         )}
         <g transform={`translate(${c.x} ${c.y})`}>
           <PinNames kind={c.kind} pinout={pinout} />

@@ -60,7 +60,26 @@ describe('getLayout', () => {
     expect(getLayout('output', none).body).toBe('circle');
     expect(getLayout('input', none).body).toBe('rounded');
     expect(getLayout('module', none).nameAbove).toBe(true);
-    expect(getLayout('and', none).nameAbove).toBe(false);
+    // ゲートは本体の中に記号を描くので、名前は上に書く
+    expect(getLayout('and', none).nameAbove).toBe(true);
+    expect(getLayout('not', none)).toMatchObject({ w: 3, h: 2, nameAbove: true });
+    expect(getLayout('dFlipFlop', { inputs: ['', ''], outputs: ['', ''] }).nameAbove).toBe(false);
+  });
+});
+
+describe('モジュールの split の配置', () => {
+  const pinout = (width: number) => ({
+    inputs: ['A', 'B'],
+    outputs: ['S'],
+    package: { kind: 'split' as const, width },
+  });
+
+  it('幅はパッケージの幅、高さは多い方のピンの数 + 1 マス。出力は右の辺', () => {
+    for (const width of [2, 4, 20]) {
+      const layout = getLayout('module', pinout(width));
+      expect(layout).toMatchObject({ w: width, h: 3, nameAbove: true });
+      expect(layout.outputs).toEqual([{ side: 'right', at: 1 }]);
+    }
   });
 });
 
@@ -95,7 +114,11 @@ describe('モジュールの dip の配置', () => {
 
   it('向きの印を付ける。split には付けない', () => {
     expect(layout.directionMarks).toBe(true);
-    const split = getLayout('module', { inputs: [''], outputs: [''], package: { kind: 'split' } });
+    const split = getLayout('module', {
+      inputs: [''],
+      outputs: [''],
+      package: { kind: 'split', width: 4 },
+    });
     expect(split.directionMarks).toBeFalsy();
     expect(split.nc ?? []).toEqual([]);
   });
